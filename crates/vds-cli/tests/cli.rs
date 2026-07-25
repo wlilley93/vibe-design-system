@@ -873,3 +873,37 @@ fn newest_proof_id(f: &Fixture, kind: &str) -> String {
 fn oldest_proof_id(f: &Fixture, kind: &str) -> String {
     proof_ids(f, kind).remove(0)
 }
+
+// -- doctor, for a project that is not the jurisdiction ----------------------
+
+/// A subject project has no standing to answer another jurisdiction's reserved
+/// clauses, and D10 used to report it as failing for not duplicating them.
+#[test]
+fn doctor_does_not_ask_a_subject_project_to_refile_the_specifications_submissions() {
+    let f = Fixture::new();
+    f.ready();
+    let run = f.vds(&["doctor", "--report-only"]);
+    run.expect(PASSED)
+        .does_not_say("SUBMISSION-VDS-001 MISSING")
+        .says("vendors no designpack");
+}
+
+/// And once a pack IS vendored, the criterion is settled by the pin rather than
+/// by a directory this project does not own.
+#[test]
+fn doctor_settles_the_reserved_clauses_against_a_vendored_designpack() {
+    let f = Fixture::new();
+    f.ready();
+    let config = f.root().join(".vds/config.toml");
+    let text = std::fs::read_to_string(&config).expect("a config");
+    std::fs::write(
+        &config,
+        text.replace("designpack = \"none@0\"", "designpack = \"vds@1\""),
+    )
+    .expect("write");
+
+    f.vds(&["doctor", "--report-only"])
+        .expect(PASSED)
+        .says("vendors vds@1")
+        .says("answered upstream");
+}

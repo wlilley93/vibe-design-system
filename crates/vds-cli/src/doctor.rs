@@ -438,43 +438,185 @@ fn d9(store: &Store) -> Result<Row> {
     })
 }
 
+/// Who owns the specification's reserved clauses, which decides what D10 asks.
+///
+/// The clauses live in VDS.md, so the project that SHIPS VDS.md is the project
+/// that answers them, and every other project receives the answers through a
+/// vendored designpack (VDS S-11(3): no doctrine flows downstream by silence).
+///
+/// Before this distinction existed, D10 demanded that every project hold
+/// `SUBMISSION-VDS-001` through `-006` in its own `.vds/submissions/`, and
+/// running `vds doctor` on `examples/storefront` printed six MISSING lines about
+/// questions that subject has no standing to answer and no business re-filing.
+/// A criterion that reports a project as failing for not duplicating another
+/// project's paperwork is a criterion that teaches a reader to skip it.
+enum ReservedClauseOwner {
+    /// The project holds VDS.md: it IS the jurisdiction.
+    ThisProject,
+    /// A designpack is vendored, so the answers arrive pinned from upstream.
+    Upstream { pack: String },
+    /// Neither. The project cannot see the reserved clauses at all.
+    Nowhere,
+}
+
+fn reserved_clause_owner(store: &Store) -> ReservedClauseOwner {
+    let project = store.project;
+    if project.root.join("VDS.md").is_file() {
+        return ReservedClauseOwner::ThisProject;
+    }
+    let (id, version) = project.config.designpack_parts();
+    if id == "none" {
+        return ReservedClauseOwner::Nowhere;
+    }
+    ReservedClauseOwner::Upstream {
+        pack: format!("{id}@{version}"),
+    }
+}
+
 fn d10(store: &Store) -> Result<Row> {
-    // The five reserved matters at VDS S-13, plus SUBMISSION-VDS-006 which this
-    // port opened by departing from drafted S-2(7).
-    const RESERVED: &[(&str, &str)] = &[
-        (
-            "SUBMISSION-VDS-001",
-            "S-6(5) may W1 be granted provisionally",
-        ),
-        ("SUBMISSION-VDS-002", "S-6(6) who may grant W2"),
-        ("SUBMISSION-VDS-003", "S-3(6) what a designpack binds"),
-        ("SUBMISSION-VDS-004", "S-9(9) forced-drain retirement"),
-        (
-            "SUBMISSION-VDS-005",
-            "S-9(10) where the primitive floor sits",
-        ),
-        ("SUBMISSION-VDS-006", "S-2(7) the pin's per-value digests"),
-    ];
+    match reserved_clause_owner(store) {
+        ReservedClauseOwner::ThisProject => d10_as_the_jurisdiction(store),
+        ReservedClauseOwner::Upstream { pack } => Ok(Row {
+            id: "D10",
+            title: "every RESERVED clause resolves to an open or answered submission",
+            // The pack digest is checked by `vds pack verify`, which is D5's
+            // business. Here the question is only whether the project is
+            // receiving doctrine at all, and it is.
+            verdict: Verdict::Met,
+            detail: vec![
+                format!(
+                    "this project vendors {pack}, so the specification's reserved clauses are \
+                     answered upstream and arrive pinned (VDS S-11(3))"
+                ),
+                "A subscriber does not re-file another jurisdiction's submissions. Run `vds \
+                 pack verify` for whether what arrived is what was pinned."
+                    .to_owned(),
+            ],
+            settled_by: "the designpack pin in .vds/config.toml",
+        }),
+        ReservedClauseOwner::Nowhere => Ok(Row {
+            id: "D10",
+            title: "every RESERVED clause resolves to an open or answered submission",
+            verdict: Verdict::Unmet,
+            detail: vec![
+                "this project holds no VDS.md and vendors no designpack, so it cannot see the \
+                 specification's reserved clauses at all, answered or open."
+                    .to_owned(),
+                "That is not a missing file in this repository. VDS S-15(1): the specification \
+                 commences on a dated, digest-pinned assent event, and until a pack is vendored \
+                 there is nothing downstream for a reserved clause to resolve against."
+                    .to_owned(),
+            ],
+            settled_by: "the absence of both VDS.md and a vendored designpack",
+        }),
+    }
+}
+
+/// Every clause VDS.md marks RESERVED, read out of the specification itself.
+///
+/// The marker is `**S-<clause> RESERVED.**` at the head of a paragraph, which is
+/// the form S-1 announces: "Clauses marked **RESERVED** depend on a point that is
+/// not settled."
+///
+/// Derived rather than listed, which is the same ratio this repository applies to
+/// the JSON schemas. The list used to be six hardcoded pairs of submission id and
+/// question, and a hardcoded list is a second copy of the specification: add a
+/// RESERVED clause to VDS.md and D10 would go on reporting MET while covering one
+/// clause fewer than exists. Now adding one to the specification makes D10 unmet
+/// until a submission names it, which is the behaviour the criterion claims.
+fn reserved_clauses_in(specification: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    for line in specification.lines() {
+        let Some(rest) = line.trim_start().strip_prefix("**S-") else {
+            continue;
+        };
+        let Some((clause, _)) = rest.split_once(" RESERVED.**") else {
+            continue;
+        };
+        let clause = format!("S-{clause}");
+        if !out.contains(&clause) {
+            out.push(clause);
+        }
+    }
+    out
+}
+
+fn d10_as_the_jurisdiction(store: &Store) -> Result<Row> {
+    let path = store.project.root.join("VDS.md");
+    let specification = std::fs::read_to_string(&path)
+        .map_err(|e| vds_core::VdsError::io(store.project.rel(&path), e))?;
+    let reserved = reserved_clauses_in(&specification);
+
     let filed = store.read_submissions()?;
-    let mut detail = Vec::new();
+    let mut detail = vec![format!(
+        "{} clauses marked RESERVED in VDS.md, {} submissions on file",
+        reserved.len(),
+        filed.len()
+    )];
     let mut all_filed = true;
-    for (id, question) in RESERVED {
-        match filed.iter().find(|s| s.value.id.as_str() == *id) {
+
+    for clause in &reserved {
+        match filed
+            .iter()
+            .find(|s| s.value.reserved_clause.as_deref() == Some(clause.as_str()))
+        {
             Some(submission) => {
                 let defects = submission.value.defects();
                 if defects.is_empty() {
-                    detail.push(format!("{id} filed: {question}"));
+                    detail.push(format!(
+                        "{clause} -> {} filed: {}",
+                        submission.value.id, submission.value.question
+                    ));
                 } else {
-                    detail.push(format!("{id} filed and DEFECTIVE: {}", defects.join("; ")));
+                    detail.push(format!(
+                        "{clause} -> {} filed and DEFECTIVE: {}",
+                        submission.value.id,
+                        defects.join("; ")
+                    ));
                     all_filed = false;
                 }
             }
             None => {
-                detail.push(format!("{id} MISSING: {question}"));
+                detail.push(format!(
+                    "{clause} MISSING: VDS.md reserves it and no submission names it, so the \
+                     clause fails closed with nobody asked (VDS S-15(3))"
+                ));
                 all_filed = false;
             }
         }
     }
+
+    // A submission that names no reserved clause is not a defect: a departure
+    // from the drafted specification (SUBMISSION-VDS-006 on S-2(7)) is a question
+    // in its own right. It is listed so the count above adds up.
+    for submission in &filed {
+        let names_reserved = submission
+            .value
+            .reserved_clause
+            .as_deref()
+            .is_some_and(|c| reserved.iter().any(|r| r == c));
+        if !names_reserved {
+            let defects = submission.value.defects();
+            detail.push(format!(
+                "{} filed on {}, which VDS.md does not mark RESERVED{}",
+                submission.value.id,
+                submission
+                    .value
+                    .reserved_clause
+                    .as_deref()
+                    .unwrap_or("no clause"),
+                if defects.is_empty() {
+                    String::new()
+                } else {
+                    format!(" and is DEFECTIVE: {}", defects.join("; "))
+                }
+            ));
+            if !defects.is_empty() {
+                all_filed = false;
+            }
+        }
+    }
+
     Ok(Row {
         id: "D10",
         title: "every RESERVED clause resolves to an open or answered submission",
@@ -484,7 +626,8 @@ fn d10(store: &Store) -> Result<Row> {
             Verdict::Unmet
         },
         detail,
-        settled_by: "a cross-check between VDS S-13 and .vds/submissions/",
+        settled_by: "the RESERVED markers read out of VDS.md, cross-checked against \
+                     .vds/submissions/",
     })
 }
 
@@ -492,4 +635,58 @@ fn count_files(dir: &std::path::Path) -> usize {
     std::fs::read_dir(dir)
         .map(|entries| entries.flatten().filter(|e| e.path().is_file()).count())
         .unwrap_or(0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The list D10 checks is the specification's, not a copy of it.
+    ///
+    /// Before this was derived, six pairs of submission id and question were
+    /// hardcoded here. Adding a RESERVED clause to VDS.md would have left D10
+    /// reporting MET while covering one clause fewer than exists, which is the
+    /// silent-narrowing failure the criterion is for.
+    #[test]
+    fn the_reserved_clauses_are_read_out_of_the_specification() {
+        let specification = "\
+**S-1** Ordinary text mentioning RESERVED in passing.\n\
+\n\
+**S-3(6) RESERVED.** Whether one designpack binds a single project.\n\
+\n\
+**S-6(5) RESERVED.** Whether W1 may be granted provisionally.\n\
+\n\
+| **W2** | something | RESERVED, S-6(6) | a table row, not a marker |\n\
+\n\
+**S-6(5) RESERVED.** A duplicate, which must not be counted twice.\n";
+        assert_eq!(
+            reserved_clauses_in(specification),
+            vec!["S-3(6)".to_owned(), "S-6(5)".to_owned()],
+            "the marker is a paragraph head, not any line containing the word"
+        );
+    }
+
+    /// The real specification, so the parser cannot pass its own fixture and
+    /// fail the file it exists to read.
+    #[test]
+    fn the_committed_specification_reserves_the_clauses_it_says_it_does() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../..")
+            .join("VDS.md");
+        let specification = std::fs::read_to_string(path).expect("VDS.md");
+        let reserved = reserved_clauses_in(&specification);
+        for clause in ["S-3(6)", "S-6(5)", "S-6(6)", "S-9(9)", "S-9(10)"] {
+            assert!(
+                reserved.contains(&clause.to_owned()),
+                "{clause} is marked RESERVED in VDS.md and the parser missed it: {reserved:?}"
+            );
+        }
+        assert_eq!(
+            reserved.len(),
+            5,
+            "the specification reserves {} clauses. If that is right, this number moves with \
+             it deliberately; if it is not, a marker has been misread: {reserved:?}",
+            reserved.len()
+        );
+    }
 }
