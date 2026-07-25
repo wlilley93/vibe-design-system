@@ -404,6 +404,40 @@ pub fn breaking_reasons(before: &ComponentRecord, after: &ComponentRecord) -> Ve
         )));
     }
 
+    // Keyboard. Absent from this list until it was noticed that `keyboard` could
+    // not be amended at all, which hid the second half of the same hole: once
+    // `--remove-keyboard` existed, a published keyboard contract could have been
+    // withdrawn with no warrant and nothing saying so.
+    //
+    // Withdrawing a key or changing what it does is breaking for the same reason
+    // removing a prop is: somebody is relying on it, and a keyboard contract is
+    // relied on by a person who cannot use a mouse. ADDING a key is not breaking,
+    // which is the same asymmetry the prop rules already use.
+    let before_keys: std::collections::BTreeMap<&str, &str> = before
+        .a11y
+        .keyboard
+        .iter()
+        .map(|k| (k.key.as_str(), k.effect.as_str()))
+        .collect();
+    let after_keys: std::collections::BTreeMap<&str, &str> = after
+        .a11y
+        .keyboard
+        .iter()
+        .map(|k| (k.key.as_str(), k.effect.as_str()))
+        .collect();
+    for (key, before_effect) in &before_keys {
+        match after_keys.get(key) {
+            None => reasons.push(plain(format!("keyboard contract {key:?} removed"))),
+            Some(after_effect) if after_effect != before_effect => {
+                reasons.push(plain(format!(
+                    "keyboard contract {key:?} changed from {before_effect:?} to \
+                     {after_effect:?}"
+                )));
+            }
+            Some(_) => {}
+        }
+    }
+
     let key = |f: &ContrastFloor| (f.boundary.clone(), f.against.clone());
     let before_floors: std::collections::BTreeMap<(String, String), f64> = before
         .a11y

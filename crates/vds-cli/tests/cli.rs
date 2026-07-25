@@ -973,3 +973,167 @@ fn doctor_settles_the_reserved_clauses_against_a_vendored_designpack() {
         .says("vendors vds@1")
         .says("answered upstream");
 }
+
+// -- the contract fields that could not be amended ---------------------------
+
+/// A keyboard contract could be set at `register add` and never afterwards.
+///
+/// It is part of the contract, `vds impl` prints it as a requirement, and the
+/// only route to changing one was to hand-edit the record, which is the one
+/// thing the register may not be.
+#[test]
+fn a_keyboard_contract_can_be_amended_after_it_is_registered() {
+    let f = Fixture::new();
+    f.ready();
+    let id = f.register_button();
+
+    f.vds(&[
+        "register",
+        "amend",
+        &id,
+        "--kind",
+        "non_breaking",
+        "--what",
+        "the keyboard contract, added after registration",
+        "--add-keyboard",
+        "Enter=activate",
+        "--add-keyboard",
+        "Space=activate",
+    ])
+    .expect(PASSED);
+
+    f.vds(&["register", "show", &id])
+        .expect(PASSED)
+        .says("Enter")
+        .says("Space");
+}
+
+/// And the second half of the same hole: once a key CAN be withdrawn,
+/// withdrawing one must need a warrant. A keyboard contract is relied on by
+/// somebody who cannot use a mouse.
+#[test]
+fn withdrawing_a_keyboard_contract_is_breaking_and_needs_a_warrant() {
+    let f = Fixture::new();
+    f.ready();
+    let id = f.register_button();
+    f.vds(&[
+        "register",
+        "amend",
+        &id,
+        "--kind",
+        "non_breaking",
+        "--what",
+        "the keyboard contract",
+        "--add-keyboard",
+        "Enter=activate",
+    ])
+    .expect(PASSED);
+    f.vds(&["register", "set-status", &id, "built"])
+        .expect(PASSED);
+
+    f.vds(&[
+        "register",
+        "amend",
+        &id,
+        "--kind",
+        "non_breaking",
+        "--what",
+        "quietly dropping the keyboard contract",
+        "--remove-keyboard",
+        "Enter",
+    ])
+    .expect(PRECONDITION)
+    .says("BREAKING")
+    .says("keyboard contract \"Enter\" removed");
+}
+
+/// Changing what a key DOES is breaking too: a consumer relying on Enter to
+/// submit is not served by Enter opening a menu.
+#[test]
+fn changing_what_a_key_does_is_breaking() {
+    let f = Fixture::new();
+    f.ready();
+    let id = f.register_button();
+    f.vds(&[
+        "register",
+        "amend",
+        &id,
+        "--kind",
+        "non_breaking",
+        "--what",
+        "the keyboard contract",
+        "--add-keyboard",
+        "Enter=activate",
+    ])
+    .expect(PASSED);
+    f.vds(&["register", "set-status", &id, "built"])
+        .expect(PASSED);
+
+    f.vds(&[
+        "register",
+        "amend",
+        &id,
+        "--kind",
+        "non_breaking",
+        "--what",
+        "repurposing Enter",
+        "--add-keyboard",
+        "Enter=open the menu",
+    ])
+    .expect(PRECONDITION)
+    .says("BREAKING")
+    .says("changed from");
+}
+
+/// A floor could be added and never withdrawn, so a floor set against the wrong
+/// property was a floor nothing could ever satisfy and nothing could remove.
+#[test]
+fn a_contrast_floor_can_be_withdrawn_and_withdrawing_one_is_breaking() {
+    let f = Fixture::new();
+    f.ready();
+    let id = f.register_button();
+    f.vds(&[
+        "register",
+        "amend",
+        &id,
+        "--kind",
+        "non_breaking",
+        "--what",
+        "a floor named against the wrong property",
+        "--set-floor",
+        "control-border:srface:3.0:WCAG 2.2 SC 1.4.11",
+    ])
+    .expect(PASSED);
+    f.vds(&["register", "set-status", &id, "built"])
+        .expect(PASSED);
+
+    // Breaking, so it is refused without a warrant rather than done quietly.
+    f.vds(&[
+        "register",
+        "amend",
+        &id,
+        "--kind",
+        "non_breaking",
+        "--what",
+        "dropping the mistyped floor",
+        "--remove-floor",
+        "control-border:srface",
+    ])
+    .expect(PRECONDITION)
+    .says("BREAKING");
+
+    // And a floor that is not there is a refusal, not a silent version bump.
+    f.vds(&[
+        "register",
+        "amend",
+        &id,
+        "--kind",
+        "breaking",
+        "--what",
+        "dropping a floor that was never set",
+        "--remove-floor",
+        "nothing:here",
+    ])
+    .expect(PRECONDITION)
+    .says("nothing to");
+}

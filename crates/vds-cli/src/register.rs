@@ -391,6 +391,21 @@ pub struct AmendArgs {
     remove_prop: Vec<String>,
     #[arg(long)]
     set_floor: Vec<String>,
+    /// Drop a contrast floor by its `boundary:against` key.
+    ///
+    /// Removing a floor is BREAKING (VDS S-9(4)), so this needs a warrant. It
+    /// exists because the alternative was a floor that could be added and never
+    /// withdrawn: a floor set against the wrong property is a floor nothing can
+    /// ever satisfy, and with no way to remove it the only route was to hand-edit
+    /// the record, which is the one thing the register may not be.
+    #[arg(long)]
+    remove_floor: Vec<String>,
+    /// `Key=effect`, repeatable.
+    #[arg(long)]
+    add_keyboard: Vec<String>,
+    /// Drop a keyboard contract by its key.
+    #[arg(long)]
+    remove_keyboard: Vec<String>,
     #[arg(long)]
     role: Option<String>,
     #[arg(long)]
@@ -447,6 +462,43 @@ fn amend(store: &Store, args: &AmendArgs) -> Result<i32> {
     after.a11y.contrast_floors.sort_by(|a, b| {
         (a.boundary.as_str(), a.against.as_str()).cmp(&(b.boundary.as_str(), b.against.as_str()))
     });
+
+    // Keyboard. Added late, and the omission was a real hole: `keyboard` is part
+    // of the contract, `vds impl` prints it as a requirement, and it could be set
+    // only at `register add` and never afterwards. A contract field that cannot
+    // be amended is a contract field that gets edited by hand.
+    for spec in &args.add_keyboard {
+        let contract = parse_keyboard(spec)?;
+        after.a11y.keyboard.retain(|k| k.key != contract.key);
+        after.a11y.keyboard.push(contract);
+    }
+    for key in &args.remove_keyboard {
+        after.a11y.keyboard.retain(|k| &k.key != key);
+    }
+    after.a11y.keyboard.sort_by(|a, b| a.key.cmp(&b.key));
+
+    for spec in &args.remove_floor {
+        let (boundary, against) = spec.split_once(':').ok_or_else(|| {
+            VdsError::precondition(format!(
+                "--remove-floor {spec:?} must be 'boundary:against', naming the floor to drop. \
+                 A floor is identified by the pair, because one boundary may be measured \
+                 against several backdrops."
+            ))
+        })?;
+        let before_count = after.a11y.contrast_floors.len();
+        after
+            .a11y
+            .contrast_floors
+            .retain(|f| (f.boundary.as_str(), f.against.as_str()) != (boundary, against));
+        if after.a11y.contrast_floors.len() == before_count {
+            return Err(VdsError::precondition(format!(
+                "no floor {boundary:?} against {against:?} on {}, so there is nothing to \
+                 remove. Removing a floor that is not there would bump contractVersion and \
+                 record an amendment that changed nothing.",
+                after.id
+            )));
+        }
+    }
 
     if let Some(role) = &args.role {
         after.a11y.role = Some(role.clone());
