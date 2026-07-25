@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://vds.local/schema/pin.schema.json",
   "title": "VDS pin",
-  "description": "A derived one-way assertion that two named records agreed at a digest. Governed by VDS S-2. A pin stores NO design value: each row carries digests of the two normalised values and an agreement flag, never the values themselves (VDS S-2(7)). A pin fails closed when the records diverge.",
+  "description": "A derived one-way assertion that two named records agreed at a digest. Governed by VDS S-2. A pin stores NO design value and NO per-value digest: a per-value digest over a small domain (an srgb 8-bit colour has 2^24 members) is a lookup table, not a one-way function, and the first token pin shipped under this schema had all 52 of its value digests recovered by exhaustive search in 27 seconds. Each row therefore carries the agreement flag and nothing from which a value can be reconstructed (VDS S-2(7) as corrected). Staleness is carried by value_set_digest, one digest over every normalised value jointly, whose preimage domain must clear the VDS S-2(8) floor. A pin fails closed when the records diverge.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -14,6 +14,8 @@
     "rows",
     "rows_considered",
     "rows_enforced",
+    "value_set_digest",
+    "value_set_slots",
     "fails_closed",
     "generated_at",
     "generated_by",
@@ -51,9 +53,9 @@
         "required": [
           "token",
           "state",
-          "source_value_digest",
-          "target_value_digest",
-          "agrees"
+          "agrees",
+          "source_defined",
+          "target_defined"
         ],
         "properties": {
           "token": {
@@ -66,31 +68,17 @@
             "enum": ["aligned", "migrating", "floor", "divergent"],
             "description": "Only aligned rows are enforceable. A pin whose rows are all migrating or floor enforces nothing, and its status is vacuous (VDS S-7(2)(4))."
           },
-          "source_value_digest": {
-            "oneOf": [
-              {
-                "$ref": "#/$defs/sha256"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "sha256 of the normalised value as it stands in the source record. Null where the source does not define the token."
-          },
-          "target_value_digest": {
-            "oneOf": [
-              {
-                "$ref": "#/$defs/sha256"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "sha256 of the normalised value as it stands in the target record. Null where the target does not define the token."
-          },
           "agrees": {
             "type": "boolean",
-            "description": "True only when both digests are present and equal."
+            "description": "True only when both records define the token and their normalised values are equal. This is the pin's entire answer, and nothing is recoverable from a boolean. There is deliberately no source_value_digest or target_value_digest field: additionalProperties is false, so a pin carrying one is INVALID under this schema, which is how the storing form is refused rather than merely discouraged."
+          },
+          "source_defined": {
+            "type": "boolean",
+            "description": "Whether the source record defines this token at all. Distinguishes 'disagrees' from 'absent' without carrying the value."
+          },
+          "target_defined": {
+            "type": "boolean",
+            "description": "Whether the target record defines this token at all."
           },
           "theme": {
             "type": ["string", "null"],
@@ -103,7 +91,7 @@
           "normalisation": {
             "type": "string",
             "minLength": 1,
-            "description": "The named normalisation applied before digesting, for example \"oklch to srgb 8-bit, lowercase hex\". Two records cannot be compared without one, and an unnamed normalisation makes the digests incomparable."
+            "description": "The named normalisation applied before the two values were compared IN MEMORY, for example \"oklch to srgb 8-bit, lowercase hex\". Two records cannot be compared without one. It must name units in words, never as literals, or the field itself becomes a storing-form violation."
           }
         }
       }
@@ -116,6 +104,26 @@
       "type": "integer",
       "minimum": 0,
       "description": "The count of rows in state aligned. This is the number reported instead of a bare PASS ([2026] VJS-CC-OPBOX 3 D3)."
+    },
+    "value_set_digest": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "One digest over EVERY normalised value in this pin jointly, in a canonical order. It moves when any mapped value moves, and it is narrower than the two record digests, which also move on an unrelated edit. It is not per-row attributable and is not invertible: its preimage domain is the product over all value slots. Null where value_set_slots gives a domain below the VDS S-2(8) floor of 2^128, because a joint digest over one or two values IS a per-value digest. To find WHICH row moved, re-run generated_by."
+    },
+    "value_set_slots": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "The number of value slots fed into value_set_digest. This is what makes the S-2(8) floor check arithmetic rather than assertion: slots multiplied by the bits per value of the declared normalisation must exceed 128."
+    },
+    "value_set_digest_note": {
+      "type": "string",
+      "description": "Why value_set_digest is present or omitted, in words, including the computed preimage domain in bits."
     },
     "fails_closed": {
       "type": "boolean",

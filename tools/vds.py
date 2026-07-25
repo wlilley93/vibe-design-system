@@ -1204,6 +1204,21 @@ def _warrant_status(project: Project) -> int:
                         except VdsError as exc:
                             print(f"     EVIDENCE NO LONGER STANDS: {exc}")
                             problems += 1
+                acceptance = warrant.get("acceptance_event")
+                if isinstance(acceptance, dict):
+                    event = project.root / str(acceptance.get("path", ""))
+                    if not event.is_file():
+                        print(
+                            f"     ACCEPTANCE EVENT MISSING: {acceptance.get('path')} is not "
+                            "on disk, so nothing records that acceptance happened"
+                        )
+                        problems += 1
+                    elif sha256_file(event) != acceptance.get("digest"):
+                        print(
+                            f"     ACCEPTANCE EVENT ALTERED: {acceptance.get('path')} was "
+                            f"{acceptance.get('digest')} and is now {sha256_file(event)}"
+                        )
+                        problems += 1
                 problems += _report_chain(project, warrant, warrants)
         required = STAGE_EVIDENCE[stage]
         for kind in required:

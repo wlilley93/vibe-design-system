@@ -90,14 +90,84 @@ a proposed artefact that fails any one of them is in the storing form and is for
 a requirement drawn from WCAG 2.2 SC 1.4.11 and is lawful under S-2(4). `"#ebebeb"` is a
 realisation and is not, wherever it appears in `.vds/`.
 
-**S-2(7)** Where a proof must compare two values, it compares **digests of the normalised
-values**, not the values. A pin row therefore carries `source_value_digest` and
-`target_value_digest` and an agreement flag, and never the two strings. This is what keeps
-the pin a gate rather than a store, and it is why the pin schema forbids a value field.
+**S-2(7)** Where a proof must compare two values, it compares them **in memory** and writes
+out only the answer.
 
-**S-2(8)** A machine check enforces S-2(2): a scan over `.vds/**` that finds any colour
-literal, length literal, font family, duration or easing curve is a fatal finding. The
-scan is itself a pinned proof script under S-8.
+This clause previously said the opposite. It said a pin row carries `source_value_digest`
+and `target_value_digest` "and never the two strings", and that this "is what keeps the pin
+a gate rather than a store". That was false, and it was falsified on this specification's
+own first adoption. An srgb 8-bit colour has a 2^24 domain. An unsalted digest over a
+2^24 domain is a lookup table, not a one-way function. All 52 distinct value digests in the
+first token pin were recovered by exhaustive search in 27 seconds on one CPU, and one was
+confirmed to equal the digest of the value `app/globals.css` ships. That pin held 26
+decided and 26 shipped colours in a reversible encoding while its own README asserted
+"there is no design value here". **A digest of a low-entropy value is the value.**
+
+The corrected rule has three limbs.
+
+1. **No per-value digest.** A pin row carries the **agreement flag**, whether each record
+   defines the token, and the token name. Nothing is recoverable from a boolean. The pin
+   schema achieves this by omission plus `additionalProperties: false`, so a pin carrying a
+   per-value digest is schema-invalid rather than merely deprecated.
+2. **Joint digests only, above the floor.** Where an artefact must detect that a value
+   moved, it may carry one digest over the **whole value set at once**, in a canonical
+   order. Its preimage domain is the product over every value slot, not the domain of one
+   value. It is lawful only where that domain exceeds the S-2(9) floor, and an artefact
+   carrying one must publish the slot count so the arithmetic is checkable rather than
+   asserted. Below the floor, a joint digest over one or two values simply is a per-value
+   digest and must be omitted.
+3. **Salting is not a cure.** A repo-local salt gives an attacker holding the repository
+   both halves, so it changes nothing. A salt held outside the repository makes the
+   artefact non-reproducible by a named command from the named records, which fails S-2(5)
+   limb 4 outright. Neither route buys anything that re-deriving does not already give, so
+   the answer is to stop needing a secret, not to keep one.
+
+What limb 1 costs, stated rather than glossed: the artefact can no longer say **which** row
+moved since it was written, only whether each row still agrees. That is recovered by
+re-running the named generating command. Re-deriving is what a deriving artefact is for,
+and one command is not worth holding the palette.
+
+**S-2(8)** The rule S-2(2) actually needs is about **recoverability, not spelling**. An
+artefact is in the storing form if a design value can be reconstructed from `.vds/**`,
+whether it is written as a literal, an encoding, a digest, an index into an ordered set, or
+any other reversible representation. The machine check that enforces S-2(2) is the
+`no_stored_values` proof, and it has two limbs, both fatal:
+
+1. **Literal limb.** Any colour literal, length literal, font family, duration or easing
+   curve appearing verbatim anywhere under `.vds/**`. This is the limb the specification
+   used to have, and on its own it certified the leaking pin clean, because a digest is not
+   a literal.
+2. **Preimage limb.** Any design value **recovered** from `.vds/**` within the recovery
+   budget of S-2(9). The limb enumerates the candidate space, applies each reversible
+   transform an artefact could have used, and matches the result against every digest-shaped
+   and encoded-looking token harvested from the tree. A single match is a fatal finding
+   naming the recovered value and the file it came from.
+
+A guard that passes the very artefact it exists to catch is not a guard, so the preimage
+limb, not the literal limb, is the one that decides whether this specification is honest.
+
+**S-2(9)** "Practical" needs an operational definition or the rule is unfalsifiable, so it
+gets one. Both quantities below are engineering choices, and moving either is an amendment.
+
+- **Recovery budget: 2^40 evaluations.** About a CPU-day of commodity 2026 hardware. A
+  value whose candidate space is smaller than the budget is recoverable, and digesting it
+  does not take it out of the storing form. A joint digest is lawful where its preimage
+  domain exceeds **2^128**, which is the same statement with the margin an adversary with
+  more than a CPU-day deserves.
+- **Candidate space: closed and enumerable**, which is what makes the limb decidable rather
+  than a matter of opinion. It is exactly: the 2^24 srgb 8-bit colours in each spelling the
+  named records use; lengths to three decimal places up to the largest the target record
+  declares, in each unit it uses; durations to millisecond granularity up to ten seconds;
+  and the font families named in the target record. Design realisations come from a small,
+  human-authored, human-readable space, which is precisely why digesting them protects
+  nothing.
+- **Transform set:** identity, and each of `sha256`, `sha1`, `md5`, hexadecimal and base64,
+  applied to each candidate. The set is open to extension and never to reduction. Adding a
+  transform can only find more; removing one is a weakening edit under S-8(4).
+
+The proof therefore fails in the direction that matters: seed `.vds/` with a digest of any
+one colour and the run must exit non-zero and print that colour back. A `no_stored_values`
+implementation that cannot do that has not satisfied S-7(2)(2) and is not a proof.
 
 ---
 
@@ -333,7 +403,7 @@ that is the honest description of where they stand.
 | `token_pin` | the two named records agree where the pin declares them aligned |
 | `retirement_drain` | a component proposed for retirement has zero remaining consumers, S-9 |
 | `ledger_staleness` | each generated ledger is current with its source, S-4(2) |
-| `no_stored_values` | `.vds/**` holds no realisation, S-2(8) |
+| `no_stored_values` | `.vds/**` holds no realisation AND yields none under the S-2(9) recovery test, S-2(8) |
 
 **S-7(6)** Adding a proof kind is an amendment to this specification and to the invariant
 registry, not a script anyone may drop in. The registry is closed for the same reason VJS
