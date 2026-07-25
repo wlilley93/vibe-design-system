@@ -24,6 +24,7 @@ use vds_core::{Digest, Project, Result, Timestamp, VdsError, digest_rows, write_
 
 pub mod glob;
 pub mod jsx;
+pub mod library;
 
 pub const LEDGER_SCHEMA_VERSION: u32 = 1;
 pub const GENERATOR_COMMAND: &str = "vds ledger screens";

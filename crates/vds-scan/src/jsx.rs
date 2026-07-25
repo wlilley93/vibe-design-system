@@ -156,6 +156,19 @@ enum Region {
     SingleQuote,
     DoubleQuote,
     Template,
+    /// A `/.../ ` regular expression literal.
+    ///
+    /// Added 2026-07-25. The module docstring above has always claimed this scanner "knows
+    /// where a string, a template literal, a comment and a regular expression begin and end",
+    /// and until now the regular-expression half of that sentence was false: there was no
+    /// such region. `str.replace(/"/g, '""')` therefore had its `"` read as the start of a
+    /// string, which swallowed the rest of the line, took the closing backtick of the
+    /// surrounding template with it, and made a well-formed file report as unbalanced.
+    /// Because the scanner fails closed, that refused an entire ledger.
+    ///
+    /// A claim in a docstring is not a mechanism. That is the third time this project has
+    /// found that shape and it is worth naming rather than quietly fixing.
+    Regex,
 }
 
 /// Blank out every non-code region, preserving byte offsets and line breaks.
@@ -182,14 +195,50 @@ pub fn blank_non_code_checked(source: &str) -> (String, Option<String>) {
     let mut region = Region::Code;
     let mut i = 0;
 
-    // Depth of `${ ... }` interpolations inside template literals.
+    // ONE ORDERED STACK of what each open brace belongs to.
+    //
+    // These used to be two independent stacks, a template-interpolation depth and a
+    // JSX-expression depth, with the JSX one checked first and the template one guarded by
+    // `braces` being empty. That had no notion of which construct was opened
+    // most recently, so a `}` was handed to the wrong owner whenever a template
+    // interpolation sat inside a JSX expression container:
+    //
+    //     <div>{ [{ h: `/p/${id}` }] }</div>
+    //
+    // The `}` of `${id}` decremented the JSX depth instead of closing the interpolation, the
+    // scanner stayed in Code, and the CLOSING backtick then opened a phantom template literal
+    // that never closed. Because the scanner fails closed, that took the whole ledger down and
+    // the diagnostic blamed the file. It cost a real adoption: every proof in the subject
+    // project refused to run, and the message said the source was malformed when it was not.
+    //
+    // A single stack fixes it by construction. The innermost open brace is whatever was pushed
+    // last, so it always owns the next `}`, and the two constructs can nest either way round
+    // without a special case: a JSX expression inside an interpolation inside a JSX
+    // expression is just three frames.
+    #[derive(PartialEq)]
+    enum Brace {
+        /// A `{ ... }` expression container entered FROM JsxText. Its closing brace returns
+        /// the scanner to content rather than leaving it in code for the rest of the file.
+        JsxExpression,
+        /// A `${ ... }` interpolation. Its closing brace returns the scanner to the template.
+        Interpolation,
+        /// Any other `{`, tracked only so it cannot be mistaken for one of the above.
+        Plain,
+    }
+    let mut braces: Vec<Brace> = Vec::new();
+    // Depth of open template literals, so a nested one is not closed by the wrong backtick.
     let mut template_stack: Vec<u32> = Vec::new();
-    // Brace depth of each `{ ... }` expression container entered FROM JsxText,
-    // so `{cond ? <A/> : <B/>}` is code and the `}` that closes it returns to
-    // content rather than leaving the scanner in code for the rest of the file.
-    let mut jsx_expression_depth: Vec<u32> = Vec::new();
     // Whether we are between a `<` that opened a tag and its `>`.
     let mut in_tag = false;
+    // The last non-whitespace character emitted as CODE, which is how a `/` is told apart
+    // from a division sign. JavaScript cannot do this lexically without it: `a / b` and
+    // `replace(/b/)` differ only in what precedes the slash.
+    let mut last_significant: char = '\0';
+    // The identifier immediately before the current position, for the keyword cases where a
+    // `/` follows a word and is still a regex: `return /x/`, `case /x/`, `typeof /x/`.
+    let mut last_word = String::new();
+    // Whether the regex scanner is inside a `[...]` character class.
+    let mut in_char_class = false;
 
     while i < chars.len() {
         let ch = chars[i];
@@ -228,7 +277,49 @@ pub fn blank_non_code_checked(source: &str) -> (String, Option<String>) {
                     template_stack.push(0);
                     out.push(' ');
                     i += 1;
+                    last_significant = '`';
+                    last_word.clear();
                     continue;
+                }
+
+                // A `/` opens a REGEX rather than dividing when nothing divisible precedes
+                // it. The divisible things are an identifier, a number, and a closing
+                // `)`, `]` or `}`; everything else (an operator, a comma, an opening
+                // bracket, the start of the file) means a literal. The keyword list covers
+                // the cases where a WORD precedes and it is still a regex.
+                // NOT inside a tag: there, a `/` is JSX syntax, either the closing `</p>`
+                // or the self-closing `<Button />`, and never a regex. Omitting this guard
+                // made `</p>` open a regex that ate the rest of the line, which broke the two
+                // tests that exist precisely because a scanner must not swallow content.
+                if !in_tag && ch == '/' && next != Some('/') && next != Some('*') {
+                    const REGEX_KEYWORDS: &[&str] = &[
+                        "return",
+                        "case",
+                        "typeof",
+                        "instanceof",
+                        "in",
+                        "of",
+                        "new",
+                        "delete",
+                        "void",
+                        "throw",
+                        "do",
+                        "else",
+                        "yield",
+                        "await",
+                    ];
+                    let divisible = matches!(last_significant, ')' | ']' | '}')
+                        || last_significant.is_alphanumeric()
+                        || last_significant == '_'
+                        || last_significant == '$';
+                    if !divisible || REGEX_KEYWORDS.contains(&last_word.as_str()) {
+                        region = Region::Regex;
+                        out.push(' ');
+                        i += 1;
+                        last_significant = '/';
+                        last_word.clear();
+                        continue;
+                    }
                 }
 
                 // A `<` that begins a tag, a closing tag or a fragment.
@@ -246,31 +337,39 @@ pub fn blank_non_code_checked(source: &str) -> (String, Option<String>) {
                     continue;
                 }
 
-                if let Some(depth) = jsx_expression_depth.last_mut() {
-                    if ch == '{' {
-                        *depth += 1;
-                    } else if ch == '}' {
-                        *depth -= 1;
-                        if *depth == 0 {
-                            jsx_expression_depth.pop();
+                if ch == '{' {
+                    braces.push(Brace::Plain);
+                } else if ch == '}' {
+                    // The innermost open brace owns this one, whatever kind it is.
+                    match braces.pop() {
+                        Some(Brace::JsxExpression) => {
                             region = Region::JsxText;
                             out.push(ch);
                             i += 1;
                             continue;
                         }
+                        Some(Brace::Interpolation) => {
+                            if let Some(depth) = template_stack.last_mut() {
+                                *depth = depth.saturating_sub(1);
+                            }
+                            region = Region::Template;
+                            out.push(' ');
+                            i += 1;
+                            continue;
+                        }
+                        // A `}` with nothing open is unbalanced source, not a scanner state.
+                        // Emit it and carry on: the region check at the end reports a genuinely
+                        // unterminated construct, and inventing one here would blame the file
+                        // for a brace the scanner simply never saw opened.
+                        Some(Brace::Plain) | None => {}
                     }
                 }
-                if ch == '}'
-                    && jsx_expression_depth.is_empty()
-                    && let Some(depth) = template_stack.last_mut()
-                    && *depth > 0
-                {
-                    *depth -= 1;
-                    if *depth == 0 {
-                        region = Region::Template;
-                        out.push(' ');
-                        i += 1;
-                        continue;
+                if !ch.is_whitespace() {
+                    last_significant = ch;
+                    if ch.is_alphanumeric() || ch == '_' || ch == '$' {
+                        last_word.push(ch);
+                    } else {
+                        last_word.clear();
                     }
                 }
                 out.push(ch);
@@ -285,7 +384,7 @@ pub fn blank_non_code_checked(source: &str) -> (String, Option<String>) {
                     continue;
                 }
                 if ch == '{' {
-                    jsx_expression_depth.push(1);
+                    braces.push(Brace::JsxExpression);
                     region = Region::Code;
                     out.push(ch);
                     i += 1;
@@ -347,6 +446,50 @@ pub fn blank_non_code_checked(source: &str) -> (String, Option<String>) {
                 out.push(' ');
                 i += 1;
             }
+            Region::Regex => {
+                // `\/` is an escaped slash, and a `/` inside a `[...]` character class does
+                // not terminate the literal. Both are ordinary in real regexes and getting
+                // either wrong reintroduces exactly the runaway this region was added to stop.
+                if ch == '\\' {
+                    out.push(' ');
+                    out.push(' ');
+                    i += 2;
+                    continue;
+                }
+                if ch == '[' {
+                    in_char_class = true;
+                    out.push(' ');
+                    i += 1;
+                    continue;
+                }
+                if ch == ']' {
+                    in_char_class = false;
+                    out.push(' ');
+                    i += 1;
+                    continue;
+                }
+                // A newline cannot appear in a regex literal. Reaching one means the `/` was
+                // division after all, so return to code rather than running to end of file:
+                // a misjudged slash must cost one line, never the rest of the scan.
+                if ch == '\n' {
+                    region = Region::Code;
+                    in_char_class = false;
+                    out.push(ch);
+                    i += 1;
+                    continue;
+                }
+                if ch == '/' && !in_char_class {
+                    region = Region::Code;
+                    last_significant = '/';
+                    last_word.clear();
+                    out.push(' ');
+                    i += 1;
+                    continue;
+                }
+                out.push(' ');
+                i += 1;
+            }
+
             Region::Template => {
                 if ch == '\\' {
                     out.push(' ');
@@ -356,8 +499,9 @@ pub fn blank_non_code_checked(source: &str) -> (String, Option<String>) {
                 }
                 if ch == '$' && next == Some('{') {
                     region = Region::Code;
+                    braces.push(Brace::Interpolation);
                     if let Some(depth) = template_stack.last_mut() {
-                        *depth = 1;
+                        *depth += 1;
                     }
                     out.push(' ');
                     out.push(' ');
@@ -381,7 +525,10 @@ pub fn blank_non_code_checked(source: &str) -> (String, Option<String>) {
         // Code and JsxText are both complete endings, and a quoted string is
         // terminated at a newline above, so none of them can hide anything. A
         // file may legitimately end inside a line comment.
-        Region::Code | Region::JsxText | Region::LineComment => None,
+        // Regex joins this group because the region self-terminates at a newline: a `/` that
+        // was really division costs one line and no more, so reaching end of file inside it
+        // cannot hide a run of the source the way an unclosed template can.
+        Region::Code | Region::JsxText | Region::LineComment | Region::Regex => None,
         Region::BlockComment => Some(
             "a block comment was opened and never closed, so everything after it was blanked \
              and any component reference in it was not seen at all"
@@ -982,6 +1129,104 @@ export default function P() { return <Button />; }
                       const f = () => \"<Ghost />\";\n\
                       const x = <A />;\n";
         assert_eq!(components(source), vec!["A"]);
+    }
+
+    /// A template literal with an interpolation, inside an object, inside a JSX CHILD
+    /// expression container. Found by running the scanner over a real Next.js route.
+    ///
+    /// The `}` of `${id}` was consumed by the JSX-expression depth counter rather than by
+    /// the interpolation that opened most recently, so the scanner stayed in code and the
+    /// CLOSING backtick opened a phantom template literal that never closed. Because the
+    /// scanner fails closed, that reported the FILE as malformed and refused the whole
+    /// ledger: every proof in the subject project stopped running, and the diagnostic
+    /// blamed a file that was perfectly well formed.
+    ///
+    /// Both directions are asserted. The nesting must scan clean, AND the reference inside
+    /// it must still be seen: a scanner that stops erroring by blanking more is not fixed.
+    /// A regex literal containing a quote, inside a template interpolation. Found by running
+    /// the scanner over a real Next.js route: `` return `"${str.replace(/"/g, \'""\')}"` ``.
+    ///
+    /// Without a Regex region the `"` inside `/"/g` opened a string, which ran to end of line,
+    /// took the closing backtick with it, and reported a well-formed file as unbalanced. The
+    /// scanner fails closed, so that refused an entire ledger and blamed the source.
+    #[test]
+    fn a_quote_inside_a_regex_literal_does_not_open_a_string() {
+        let src = "import { Cell } from '@/components/ui/cell'\n\
+                   const esc = (s: string) => `\"${s.replace(/\"/g, '\"\"')}\"`\n\
+                   export default function P() { return <Cell /> }\n";
+        let (_, unbalanced) = blank_non_code_checked(src);
+        assert_eq!(
+            unbalanced, None,
+            "a regex literal is not an unbalanced string"
+        );
+        assert!(scan(src).tags.iter().any(|t| t.name == "Cell"));
+    }
+
+    /// Division must NOT be read as a regex, which is the mirror error and the reason the
+    /// slash cannot be judged without knowing what precedes it.
+    #[test]
+    fn division_is_not_mistaken_for_a_regex() {
+        let src = "import { Bar } from '@/components/ui/bar'\n\
+                   const pct = (a: number, b: number) => (a / b) * 100\n\
+                   export default function P() { return <Bar /> }\n";
+        let (_, unbalanced) = blank_non_code_checked(src);
+        assert_eq!(unbalanced, None);
+        assert!(
+            scan(src).tags.iter().any(|t| t.name == "Bar"),
+            "treating `a / b` as a regex would blank the rest of the line"
+        );
+    }
+
+    /// A `/` inside a character class does not end the literal, and a keyword before a slash
+    /// still means a regex. Both are ordinary and getting either wrong reintroduces a runaway.
+    #[test]
+    fn a_regex_handles_character_classes_and_keyword_position() {
+        let src = "import { Baz } from '@/components/ui/baz'\n\
+                   const re = /[/\"']+/g\n\
+                   function f() { return /x/.test('x') }\n\
+                   export default function P() { return <Baz /> }\n";
+        let (_, unbalanced) = blank_non_code_checked(src);
+        assert_eq!(unbalanced, None);
+        assert!(scan(src).tags.iter().any(|t| t.name == "Baz"));
+    }
+
+    #[test]
+    fn an_interpolation_inside_a_jsx_expression_closes_its_own_brace() {
+        let src = r#"
+import { Row } from '@/components/ui/row'
+export default function P({ id }: { id: string }) {
+  return <div>{ [{ label: 'A', href: `/p/${id}` }].map(r => <Row key={r.href} {...r} />) }</div>
+}
+"#;
+        let (_, unbalanced) = blank_non_code_checked(src);
+        assert_eq!(
+            unbalanced, None,
+            "a template interpolation inside a JSX expression container is ordinary code, \
+             and reporting it as unbalanced refuses a whole ledger over a well-formed file"
+        );
+        let scanned = scan(src);
+        assert!(
+            scanned.tags.iter().any(|t| t.name == "Row"),
+            "the reference inside the expression must still be seen: a scanner that stops \
+             erroring by blanking more has traded a loud failure for a silent one"
+        );
+    }
+
+    /// The mirror nesting: a JSX expression INSIDE an interpolation. One ordered stack has
+    /// to handle both directions, which is the reason it replaced two independent counters.
+    #[test]
+    fn a_jsx_expression_inside_an_interpolation_also_closes_correctly() {
+        let src = r#"
+import { Chip } from '@/components/ui/chip'
+const label = `${cond ? 'a' : 'b'}`
+export default function P() {
+  return <div>{`${x}`}<Chip /></div>
+}
+"#;
+        let (_, unbalanced) = blank_non_code_checked(src);
+        assert_eq!(unbalanced, None);
+        let scanned = scan(src);
+        assert!(scanned.tags.iter().any(|t| t.name == "Chip"));
     }
 
     #[test]

@@ -23,6 +23,7 @@ use vds_core::{EXIT_PASSED, EXIT_PRECONDITION, Result, VdsError};
 
 mod doctor;
 mod figma;
+mod import;
 mod init;
 mod ledger;
 mod lock;

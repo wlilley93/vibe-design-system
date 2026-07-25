@@ -37,6 +37,8 @@ enum Action {
     Show { id: String },
     /// Register a new component.
     Add(AddArgs),
+    /// Scaffold CANDIDATE records from the codebase, at `proposed`.
+    Import(crate::import::Args),
     /// Re-measure `demand` from the screens ledger.
     MeasureDemand(MeasureArgs),
     /// Amend a registered component's contract.
@@ -52,10 +54,12 @@ enum Action {
 pub fn run(ctx: &Context, args: &Args) -> Result<i32> {
     let project = ctx.project()?;
     let store = Store::new(&project);
+    let _ = &ctx;
     match &args.action {
         Action::List => list(&store),
         Action::Show { id } => show(&store, id),
         Action::Add(a) => add(&store, a),
+        Action::Import(a) => crate::import::run(ctx, a),
         Action::MeasureDemand(a) => measure(&store, a),
         Action::Amend(a) => amend(&store, a),
         Action::SetStatus { id, status } => set_status(&store, id, status),
