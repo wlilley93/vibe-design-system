@@ -291,3 +291,72 @@ html[data-theme='dark'] { --surface: #1a1a1a; --control-border: #9a9a9a; }
         let _ = EXIT_VIOLATION;
     }
 }
+
+#[cfg(test)]
+mod tests2 {
+    use crate::testing::{Harness, run_kind};
+    use vds_core::{ContrastFloor, FloorScope, ProofKind, Status, default_config};
+
+    /// PROBE I: a project that moved `[surface] stylesheet`. Do the R6 and
+    /// "too many findings" locations name the file that was actually measured?
+    #[test]
+    fn probe_i_finding_location_after_the_stylesheet_moves() {
+        let config = default_config("demo", "DEMO")
+            .replace("stylesheet = \"app/globals.css\"", "stylesheet = \"src/theme.css\"");
+        let h = Harness::with_config(&config);
+        h.reload();
+        h.write(
+            "src/theme.css",
+            "\
+:root { --surface: #ffffff; --control-border: #767676; }
+:root:not(.compact) { --control-border: #eeeeee; }
+",
+        );
+        let id = h.register("Button", Status::Registered);
+        h.amend(&id, |record| {
+            record.a11y.contrast_floors = vec![ContrastFloor {
+                boundary: "control-border".into(),
+                against: "surface".into(),
+                min_ratio: 3.0,
+                basis: "WCAG".into(),
+                scope: Some(FloorScope::ControlBoundary),
+            }];
+        });
+        let (outcome, text) = run_kind(&h, ProofKind::Contrast);
+        println!("PROBE I status={:?} exit={}", outcome.status, outcome.exit_code);
+        for line in text.lines().filter(|l| l.contains("[1]") || l.contains("note: [record]") || l.contains("actual:")) {
+            println!("   {line}");
+        }
+        println!("PROBE I app/globals.css exists = {}", h.root().join("app/globals.css").exists());
+    }
+
+    /// PROBE J: no `:root`, an unclassified palette scope, and the founding
+    /// defect's ratio hiding in it.
+    #[test]
+    fn probe_j_no_root_with_a_conditional_palette() {
+        let h = Harness::new();
+        h.write(
+            "app/globals.css",
+            "\
+html[data-theme='light'] { --surface: #ffffff; --control-border: #767676; }
+:root:not(.compact) { --control-border: #eeeeee; }
+.dark .panel { --control-border: #1c1c1c; --surface: #1a1a1a; }
+",
+        );
+        let id = h.register("Button", Status::Registered);
+        h.amend(&id, |record| {
+            record.a11y.contrast_floors = vec![ContrastFloor {
+                boundary: "control-border".into(),
+                against: "surface".into(),
+                min_ratio: 3.0,
+                basis: "WCAG".into(),
+                scope: Some(FloorScope::ControlBoundary),
+            }];
+        });
+        let (outcome, text) = run_kind(&h, ProofKind::Contrast);
+        println!("PROBE J status={:?} exit={}", outcome.status, outcome.exit_code);
+        for line in text.lines().filter(|l| l.contains("themes-measured") || l.contains("[1]")) {
+            println!("   {line}");
+        }
+    }
+}

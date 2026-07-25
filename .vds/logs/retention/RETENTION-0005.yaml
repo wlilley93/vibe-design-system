@@ -1,0 +1,67 @@
+id: RETENTION-0005
+at: 2026-07-25T16:51:11Z
+by: jellytot
+keep_per_kind: 10
+basis:
+- 'VDS S-2(5) deletion limb: nothing downstream resolves against a passing, uncited, superseded proof record'
+- 'VDS S-2(5) regeneration limb: a proof record is produced by a named command over a named subject and is regenerable by definition (VDS S-7(2)(1))'
+- 'VDS S-6(3): a record cited by any warrant is never removed, whatever that warrant''s status'
+- 'a failed record is never removed: a failure is an event, and a vacuity is a standing condition carried by the most recent record'
+rationale: The proof directory is a WORKING SET over an append-only store. `.vds/` is committed, so every record named below remains at the commit that captured it and is reachable by `git log -- .vds/proofs/<id>.yaml`. Its id, kind, status and digest are recorded here, so which bytes went is answerable without git as well. 9 removed, 82 kept.
+removed:
+- proof_id: PROOF-20260725-141029
+  kind: register_completeness
+  status: vacuous
+  captured_at: 2026-07-25T14:10:29Z
+  digest: sha256:46dd3d6dce5c5c342bb77c1018d2578d1f617b80044f88b23b768c9ed761f99f
+- proof_id: PROOF-20260725-141030
+  kind: reconciliation
+  status: vacuous
+  captured_at: 2026-07-25T14:10:29Z
+  digest: sha256:bdf69d0fb47252ca708a326e2b829c44c00d341ae5ba7307e2b6d4c701f752cc
+- proof_id: PROOF-20260725-141031
+  kind: composition
+  status: vacuous
+  captured_at: 2026-07-25T14:10:29Z
+  digest: sha256:cf857c96fdf5396aa5c0989bf7d4d5249f3e8fcf4b86ecb8f7e602c9e15c64d1
+- proof_id: PROOF-20260725-141032
+  kind: states
+  status: vacuous
+  captured_at: 2026-07-25T14:10:29Z
+  digest: sha256:af494d6695ea7e1649f4e9202fa4ed982d382ff74cbe824b902a963cfab27346
+- proof_id: PROOF-20260725-141033
+  kind: retirement_drain
+  status: vacuous
+  captured_at: 2026-07-25T14:10:29Z
+  digest: sha256:19b0b57fbc06333fd105f43ce9802352909d7c68f76101b54a44ec5a17ebd1b6
+- proof_id: PROOF-20260725-151717
+  kind: ledger_staleness
+  status: passed
+  captured_at: 2026-07-25T15:17:11Z
+  digest: sha256:0819bae389030d9594664db15e075460a340ab97ccfccd8bc9f4ba46c1a399f4
+- proof_id: PROOF-20260725-151714
+  kind: ledger_staleness
+  status: passed
+  captured_at: 2026-07-25T15:17:09Z
+  digest: sha256:0819bae389030d9594664db15e075460a340ab97ccfccd8bc9f4ba46c1a399f4
+- proof_id: PROOF-20260725-151716
+  kind: no_stored_values
+  status: passed
+  captured_at: 2026-07-25T15:17:11Z
+  digest: sha256:58f3490c23969f2ca1fb94590ce4bbd1ed4e009c139e0ded4f4d1eb2baf9574a
+- proof_id: PROOF-20260725-151715
+  kind: no_stored_values
+  status: passed
+  captured_at: 2026-07-25T15:17:10Z
+  digest: sha256:978fe26abbd84021ead5b832995b97e1754d1531682e013a5402b3ccde339e1e
+kept_totals:
+  composition: 10
+  contrast: 4
+  ledger_staleness: 10
+  no_stored_values: 10
+  parity: 3
+  reconciliation: 10
+  register_completeness: 10
+  retirement_drain: 10
+  states: 10
+  token_pin: 5

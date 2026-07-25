@@ -1,11 +1,11 @@
-id: PROOF-20260725-141030
+id: PROOF-20260725-165100
 kind: reconciliation
 status: vacuous
 warrant_id: null
 command: vds proof reconciliation
 script: crates/vds-proof/src/reconciliation.rs
 script_digest: sha256:41310adbc73c2d0cff2a649ecd96dfa4b6057a29dbe51e653f9d6e0a18b602b3
-exit_code: 3
+exit_code: 0
 rows_considered: 0
 rows_enforced: 0
 rows_skipped_reasons: {}
@@ -17,10 +17,10 @@ notes:
 - '[carve-out] a library file named index.*, *.test.*, *.spec.* or *.stories.* is counted and NOT enforced against the register under limb (b): a barrel re-exports components rather than defining one, and a test or a story is not a shipped component. A component defined inside a file with one of those names is therefore outside this proof, and the skip counts above are where that carve-out is visible rather than assumed.'
 - '[surface] library_dirs is empty, so limb (b) of VDS S-5(6) walks nothing and can enforce nothing. The direction that finds code with no register entry is not covered by this run.'
 - '[register] the register holds no records, so limb (a) of VDS S-5(6) enforces nothing. Every finding below is code with no register entry.'
-inputs_digest: sha256:f48b22f541189eb2bdf7394dfc119d1f373e5dd60da5c9b8f028f3fec0f6fd22
-digest: sha256:bdf69d0fb47252ca708a326e2b829c44c00d341ae5ba7307e2b6d4c701f752cc
+inputs_digest: sha256:1f359824e3029267c39fd76eb1309cb985ef563635e91741e89581d9258d26d4
+digest: sha256:a51196ef17c02f17f3c11389db126f39da337003fb30024b2aa824c4fa606f2f
 designpack_digest: sha256:f9c369f3175c15169dafde47c01d7efc2f45c64090444f17f5b3f480e710ec5a
-captured_at: 2026-07-25T14:10:29Z
+captured_at: 2026-07-25T16:50:59Z
 capture_mode: automatic
-invoked_by: manual
+invoked_by: package_script
 duration_ms: 0
