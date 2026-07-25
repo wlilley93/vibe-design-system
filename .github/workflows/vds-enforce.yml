@@ -1,0 +1,93 @@
+# VDS enforcement.
+#
+# VDS S-7(2)(3) requires a gate to be invoked by something OTHER than the author
+# choosing to run it, and VDS S-7(3) is explicit that a hook is not CI:
+# `git commit --no-verify` bypasses a local hook, and an author with write access
+# can edit a gate and re-pin it in the same act (VDS S-8(5) records that residue
+# as non-machine).
+#
+# This job is the TRUST ROOT. It re-runs the same deterministic gates on the
+# canonical remote, on a PINNED toolchain, where no --no-verify and no local edit
+# can reach. `.vds/enforcement.lock` names this workflow as each gate's blocking
+# `ci_workflow` invocation, so `vds doctor` D4 is settled by a fact about this
+# file rather than by an intention.
+#
+# Make this a REQUIRED status check in branch protection, or the verdict is
+# advisory and D4 is not met however green it goes.
+name: vds-enforce
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  enforce:
+    runs-on: ubuntu-latest
+    steps:
+      # Actions are SHA-PINNED (an immutable commit, not a movable tag) so a
+      # re-tagged or compromised action cannot inject code into the trust root.
+      # The trailing comment records the human-readable version; bump the SHA
+      # deliberately, never by drift.
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      # The exact toolchain, matching rust-toolchain.toml. A proof is valid only
+      # if it is re-runnable and deterministic (VDS S-7(2)(1)), and a moving
+      # "stable" channel means a new compiler or lint can silently change what
+      # passes.
+      - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537 # master
+        with:
+          toolchain: "1.95.0"
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+
+      - name: Format
+        run: cargo fmt --all --check
+
+      # Zero warnings, enforced. On a pinned toolchain this is reproducible, so
+      # "no warnings" stops being an honour system.
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      # The failing-direction tests VDS S-7(2)(2) requires live here. Every gate
+      # named in .vds/enforcement.lock points at a test in this suite, and
+      # `vds lock verify` reports an entry whose named test file is missing.
+      - name: Test
+        run: cargo test --workspace
+
+      - name: Build
+        run: cargo build --release --bin vds
+
+      # The schemas are GENERATED from the Rust types. A type change that is not
+      # reflected in the committed schema is drift between the contract and the
+      # thing that produces it, which is the defect the derive-don't-store rule
+      # exists to prevent.
+      - name: Schemas match their types
+        run: ./target/release/vds schema check
+
+      # The vendored designpack matches its pin. VDS S-11(3): no doctrine flows
+      # downstream by silence.
+      - name: Designpack in force
+        run: ./target/release/vds pack verify
+
+      # The gates match their digests. VDS S-8(4): drift is fatal.
+      - name: Enforcement lock
+        run: ./target/release/vds lock verify
+
+      # VDS applied to VDS. The ledger is regenerated first, because a stale
+      # ledger is a precondition failure and would report as "did not run"
+      # rather than as a finding.
+      - name: Regenerate the declared surface
+        run: ./target/release/vds ledger screens
+
+      # invoked-by is recorded HONESTLY on every captured record. A record
+      # stamped `manual` does not satisfy VDS S-7(2)(3), and stamping this run
+      # as anything else would be a false statement of the record.
+      - name: Proofs
+        run: ./target/release/vds proof --all --invoked-by ci_workflow
+
+      # The honest position, printed on every run so a regression in a criterion
+      # is visible in the log rather than discovered at a review.
+      - name: Doctor
+        run: ./target/release/vds doctor --report-only

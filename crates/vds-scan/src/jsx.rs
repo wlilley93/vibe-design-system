@@ -75,6 +75,17 @@ pub struct Scanned {
     /// A local name bound more than once, which makes the import path for that
     /// name ambiguous. Reported rather than resolved by "last one wins".
     pub ambiguous_bindings: Vec<String>,
+    /// Set where the scan ended somewhere other than code, meaning a quote,
+    /// backtick or block comment was opened and never closed.
+    ///
+    /// This exists because of the one failure mode that is genuinely dangerous
+    /// here: a reference the scanner did not SEE is not skipped, not counted and
+    /// not reported. It simply does not exist, and every proof downstream passes
+    /// over a file it never read while its skip counts look perfectly healthy.
+    ///
+    /// A caller must treat this as fatal. Converting a silent narrowing into a
+    /// loud one is the whole of what VDS is for (VDS S-1(4)).
+    pub unbalanced: Option<String>,
 }
 
 impl Scanned {
@@ -115,10 +126,14 @@ impl Scanned {
 }
 
 /// Where the scanner currently is. Everything except `Code` is a region in which
-/// no import and no tag may be recognised.
+/// no import and no tag may be recognised, except `JsxText`, which is where a
+/// child tag legitimately appears.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Region {
     Code,
+    /// Between a JSX opening tag's `>` and the next `<` or `{`. Content, not
+    /// code: a quote here is an apostrophe and a backtick is a backtick.
+    JsxText,
     LineComment,
     BlockComment,
     SingleQuote,
@@ -131,17 +146,37 @@ enum Region {
 /// Preserving offsets is what lets the line number of a match be computed from
 /// the blanked text and still be the line number in the original file.
 pub fn blank_non_code(source: &str) -> String {
-    let bytes: Vec<char> = source.chars().collect();
-    let mut out: Vec<char> = Vec::with_capacity(bytes.len());
+    blank_non_code_checked(source).0
+}
+
+/// Blank out every non-code region, and report the region the scan ended in.
+///
+/// The `JsxText` region is the part that took two attempts to get right. A
+/// quote in JSX CONTENT is a character, not a delimiter: `<p>it's fine</p>` and
+/// ``<p>press `Enter`</p>`` are ordinary text. Treating the apostrophe as
+/// opening a string blanks the rest of the line, and treating the backtick as
+/// opening a template literal blanks an unbounded run of the file, taking every
+/// component reference in it with it. A look-behind at the previous character is
+/// not enough, because the quote is usually several characters into the text.
+/// Content has to be a MODE.
+pub fn blank_non_code_checked(source: &str) -> (String, Option<String>) {
+    let chars: Vec<char> = source.chars().collect();
+    let mut out: Vec<char> = Vec::with_capacity(chars.len());
     let mut region = Region::Code;
     let mut i = 0;
-    // Depth of `${ ... }` interpolations inside template literals. An
-    // interpolation is code, and code inside it may contain further templates.
-    let mut template_stack: Vec<u32> = Vec::new();
 
-    while i < bytes.len() {
-        let ch = bytes[i];
-        let next = bytes.get(i + 1).copied();
+    // Depth of `${ ... }` interpolations inside template literals.
+    let mut template_stack: Vec<u32> = Vec::new();
+    // Brace depth of each `{ ... }` expression container entered FROM JsxText,
+    // so `{cond ? <A/> : <B/>}` is code and the `}` that closes it returns to
+    // content rather than leaving the scanner in code for the rest of the file.
+    let mut jsx_expression_depth: Vec<u32> = Vec::new();
+    // Whether we are between a `<` that opened a tag and its `>`.
+    let mut in_tag = false;
+
+    while i < chars.len() {
+        let ch = chars[i];
+        let next = chars.get(i + 1).copied();
 
         match region {
             Region::Code => {
@@ -178,22 +213,74 @@ pub fn blank_non_code(source: &str) -> String {
                     i += 1;
                     continue;
                 }
-                if ch == '}' && !template_stack.is_empty() {
-                    // Closing an interpolation returns to the template body.
-                    let depth = template_stack.last_mut().expect("checked non-empty");
-                    if *depth > 0 {
+
+                // A `<` that begins a tag, a closing tag or a fragment.
+                if ch == '<'
+                    && matches!(next, Some(c) if is_ident_start(c) || c == '/' || c == '>')
+                {
+                    in_tag = true;
+                }
+                // The `>` that ends it. `/>` self-closes and still returns to
+                // the parent's children, so both spellings land in JsxText.
+                if ch == '>' && in_tag {
+                    in_tag = false;
+                    region = Region::JsxText;
+                    out.push(ch);
+                    i += 1;
+                    continue;
+                }
+
+                if let Some(depth) = jsx_expression_depth.last_mut() {
+                    if ch == '{' {
+                        *depth += 1;
+                    } else if ch == '}' {
                         *depth -= 1;
                         if *depth == 0 {
-                            region = Region::Template;
-                            out.push(' ');
+                            jsx_expression_depth.pop();
+                            region = Region::JsxText;
+                            out.push(ch);
                             i += 1;
                             continue;
                         }
                     }
                 }
+                if ch == '}'
+                    && jsx_expression_depth.is_empty()
+                    && let Some(depth) = template_stack.last_mut()
+                    && *depth > 0
+                {
+                    *depth -= 1;
+                    if *depth == 0 {
+                        region = Region::Template;
+                        out.push(' ');
+                        i += 1;
+                        continue;
+                    }
+                }
                 out.push(ch);
                 i += 1;
             }
+
+            Region::JsxText => {
+                if ch == '<' {
+                    region = Region::Code;
+                    // Do not consume: the Code arm decides whether this opens a
+                    // tag, so `a < b` written in content is handled once.
+                    continue;
+                }
+                if ch == '{' {
+                    jsx_expression_depth.push(1);
+                    region = Region::Code;
+                    out.push(ch);
+                    i += 1;
+                    continue;
+                }
+                // Everything else is content. Emitted verbatim so offsets and
+                // line numbers hold, and so a `<` is still found.
+                out.push(ch);
+                i += 1;
+            }
+
             Region::LineComment => {
                 if ch == '\n' {
                     region = Region::Code;
@@ -269,7 +356,27 @@ pub fn blank_non_code(source: &str) -> String {
             }
         }
     }
-    out.into_iter().collect()
+
+    let unbalanced = match region {
+        // Code and JsxText are both complete endings, and a quoted string is
+        // terminated at a newline above, so none of them can hide anything. A
+        // file may legitimately end inside a line comment.
+        Region::Code | Region::JsxText | Region::LineComment => None,
+        Region::BlockComment => Some(
+            "a block comment was opened and never closed, so everything after it was blanked \
+             and any component reference in it was not seen at all"
+                .to_owned(),
+        ),
+        Region::SingleQuote | Region::DoubleQuote => {
+            Some("a quoted string was opened and never closed".to_owned())
+        }
+        Region::Template => Some(
+            "a template literal (a backtick) was opened and never closed, so everything after \
+             it was blanked and any component reference in it was not seen at all"
+                .to_owned(),
+        ),
+    };
+    (out.into_iter().collect(), unbalanced)
 }
 
 fn line_index(text: &str) -> Vec<usize> {
@@ -469,9 +576,12 @@ fn scan_tags(code: &str, starts: &[usize], found: &mut Scanned) {
 /// keeps strings and then has to decide, per string, whether that particular
 /// string is code. It is not, except this one.
 pub fn scan(source: &str) -> Scanned {
-    let code = blank_non_code(source);
+    let (code, unbalanced) = blank_non_code_checked(source);
     let starts = line_index(&code);
-    let mut found = Scanned::default();
+    let mut found = Scanned {
+        unbalanced,
+        ..Default::default()
+    };
     scan_tags(&code, &starts, &mut found);
 
     let code_chars: Vec<char> = code.chars().collect();
@@ -819,6 +929,67 @@ export default function P() { return <Button />; }
     fn an_unterminated_string_does_not_swallow_the_rest_of_the_file() {
         let source = "const broken = \"oops\nexport default function P() { return <Button />; }\n";
         assert_eq!(components(source), vec!["Button"]);
+    }
+
+    #[test]
+    fn a_jsx_expression_container_is_code_and_its_close_returns_to_content() {
+        let source = "import { A, B } from \"@/components/ui\";\n\
+                      const x = <div>{cond ? <A /> : <B />}it's fine</div>;\n";
+        assert_eq!(components(source), vec!["A", "B"]);
+    }
+
+    #[test]
+    fn a_nested_brace_inside_a_jsx_expression_does_not_end_it_early() {
+        let source = "import { A } from \"@/components/ui\";\n\
+                      const x = <div>{items.map((i) => { return <A key={i} />; })}don't</div>;\n";
+        assert_eq!(components(source), vec!["A"]);
+    }
+
+    #[test]
+    fn a_greater_than_in_ordinary_code_does_not_open_a_content_region() {
+        let source = "import { A } from \"@/components/ui\";\n\
+                      const ok = a > b;\n\
+                      const s = \"<Ghost />\";\n\
+                      const x = <A />;\n";
+        assert_eq!(
+            components(source),
+            vec!["A"],
+            "a comparison must not put the scanner into content mode, or the string after \
+             it stops being blanked"
+        );
+    }
+
+    #[test]
+    fn an_arrow_function_does_not_open_a_content_region() {
+        let source = "import { A } from \"@/components/ui\";\n\
+                      const f = () => \"<Ghost />\";\n\
+                      const x = <A />;\n";
+        assert_eq!(components(source), vec!["A"]);
+    }
+
+    #[test]
+    fn an_unbalanced_template_is_reported_rather_than_swallowing_the_file() {
+        let scanned = scan("const broken = `oops;\n<Button />\n");
+        assert!(scanned.unbalanced.is_some(), "{scanned:?}");
+        assert!(scanned.unbalanced.unwrap().contains("never closed"));
+    }
+
+    #[test]
+    fn an_unbalanced_block_comment_is_reported() {
+        let scanned = scan("/* oops\n<Button />\n");
+        assert!(scanned.unbalanced.is_some());
+    }
+
+    #[test]
+    fn a_well_formed_file_reports_nothing_unbalanced() {
+        let source = "import { A } from \"@/components/ui\";\n\
+                      const t = `fine`;\n/* fine */\nconst x = <A />;\n";
+        assert_eq!(scan(source).unbalanced, None);
+    }
+
+    #[test]
+    fn a_file_ending_in_jsx_content_is_balanced() {
+        assert_eq!(scan("const x = <div>trailing text").unbalanced, None);
     }
 
     #[test]

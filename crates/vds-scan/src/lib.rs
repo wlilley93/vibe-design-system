@@ -188,6 +188,19 @@ pub fn generate(project: &Project) -> Result<ScreensLedger> {
     for path in &files {
         let source = read_source(path)?;
         let scanned = jsx::scan(&source);
+        if let Some(reason) = &scanned.unbalanced {
+            // The one failure mode that is genuinely dangerous: a reference the
+            // scanner did not SEE is not skipped, not counted and not reported.
+            // It does not exist, and every proof downstream passes over a file
+            // it never read while its skip counts look healthy. Refuse.
+            return Err(VdsError::precondition(format!(
+                "{} could not be scanned completely: {reason}.\n  \
+                 A reference the scanner did not see is not counted anywhere, so a ledger \
+                 built from this file would make every proof narrower than it looks and \
+                 nothing would say so. This is refused rather than recorded.",
+                project.rel(path)
+            )));
+        }
         let mut references = Vec::new();
         let screen_dir = path.parent().map(|p| p.to_path_buf());
         for tag in &scanned.tags {
@@ -802,6 +815,72 @@ export default function Page() {
         let reference = ledger.component_references().next().unwrap().1;
         assert_eq!(reference.root, "Btn");
         assert_eq!(reference.lookup_name(), "Button");
+    }
+
+    /// The critical case an adversarial reviewer found: a stray backtick in JSX
+    /// text opened a template literal that never closed, every reference after
+    /// it vanished, and the ledger recorded no skip, no note and no finding.
+    #[test]
+    fn a_screen_the_scanner_cannot_read_completely_is_refused_not_recorded() {
+        let f = fixture(&[]);
+        f_write(
+            &f,
+            "app/dash/page.tsx",
+            "import { Button } from \"@/components/ui\";\n\
+             const broken = `unterminated;\n\
+             export default function P(){ return <Button />; }\n",
+        );
+        let error = generate(&f.project).unwrap_err();
+        assert!(error.to_string().contains("not counted anywhere"), "{error}");
+        assert!(error.to_string().contains("app/dash/page.tsx"), "{error}");
+    }
+
+    #[test]
+    fn an_apostrophe_in_jsx_text_does_not_hide_the_rest_of_the_line() {
+        let f = fixture(&[]);
+        f_write(
+            &f,
+            "app/dash/page.tsx",
+            "import { Button, Card } from \"@/components/ui\";\n\
+             export default function P(){ return <div><p>it's fine</p><Button /><Card /></div>; }\n",
+        );
+        let ledger = generate(&f.project).unwrap();
+        let names: Vec<&str> = ledger
+            .component_references()
+            .map(|(_, r)| r.name.as_str())
+            .collect();
+        assert_eq!(names, vec!["Button", "Card"]);
+    }
+
+    #[test]
+    fn a_backtick_in_jsx_text_does_not_swallow_the_rest_of_the_file() {
+        let f = fixture(&[]);
+        f_write(
+            &f,
+            "app/dash/page.tsx",
+            "import { Button, Card } from \"@/components/ui\";\n\
+             export default function P(){ return <div><p>press `Enter`</p><Button /><Card /></div>; }\n",
+        );
+        let ledger = generate(&f.project).unwrap();
+        assert_eq!(ledger.component_references().count(), 2);
+    }
+
+    #[test]
+    fn a_real_template_literal_in_code_is_still_blanked() {
+        let f = fixture(&[]);
+        f_write(
+            &f,
+            "app/dash/page.tsx",
+            "import { Button } from \"@/components/ui\";\n\
+             const label = `see <Card /> here`;\n\
+             export default function P(){ return <Button />; }\n",
+        );
+        let ledger = generate(&f.project).unwrap();
+        let names: Vec<&str> = ledger
+            .component_references()
+            .map(|(_, r)| r.name.as_str())
+            .collect();
+        assert_eq!(names, vec!["Button"], "a template in CODE is still not JSX");
     }
 
     #[test]

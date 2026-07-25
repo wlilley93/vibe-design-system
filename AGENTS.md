@@ -28,28 +28,66 @@ one of them is in the storing form and is forbidden.
 | authorship | can a reader change a shipped pixel by editing only this artefact? then it is an authority. |
 | regeneration | is a pin or ledger byte-reproducible by a named command from the named records? |
 
-## Quick reference
+## Run the tests
 
-**None of these commands exist yet.** They are the intended front door, recorded so that the
-front door and the wall are designed together. Until they exist, do the equivalent by hand and
-say so in the log. A command written in a doc is not a command that runs.
+**One command:**
 
 ```bash
-# Before governed design work
-vds route --stage <W1|W2|W3|W4> --intent "<description>"
-
-# Run a proof (captures its own result record; never hand-write one)
-vds proof run <kind>
-
-# Refer a judgement call to VJS
-vds submit --trigger <first-impression|distinction|overrule|conflict|breach> --question "<q>"
-
-# After a reversible call
-vds log decision --decision "<decision>" --basis <authority> --why "<reason>"
-
-# Before commit
-vds validate --staged
+tools/run-tests.sh            # the whole suite
+tools/run-tests.sh test_cli   # one module, by prefix
+make test-py                  # the same thing through make
+make test-py T=test_cli_lock  # one module through make
 ```
+
+`make test` is the Rust workspace. `make test-py` / `tools/run-tests.sh` is the Python tooling
+under `tools/`, which needs `python3` and nothing else: no install step, no third-party runner.
+
+The suite lives in `tools/tests/` and exists because of VDS S-7(2)(2): a check is a proof only
+if **a named test seeds a violation against a fixture and asserts the non-zero exit**. On
+2026-07-25 `ls -A tools/tests` returned 0, so by VDS's own statute none of the three implemented
+proofs was a proof and none could lawfully be named as evidence. Every test therefore seeds a
+real violation, runs the real script in a real subprocess, and asserts the real exit code.
+
+Two properties the runner enforces around the whole run, not merely per test:
+
+- **Fenced.** Every fixture is built under `mkdtemp` and torn down. `tools/` and `schema/` are
+  re-digested after every single test, so a test that crashes half way cannot leave the tool it
+  was testing broken. Point `VDS_TEST_PROTECT` at an adopting repository's `.vds/` to fence that
+  too: `VDS_TEST_PROTECT=/path/to/repo/.vds tools/run-tests.sh`.
+- **Not vacuous.** The runner refuses to start if its own manifest digested nothing, because an
+  empty manifest compares equal to an empty manifest forever.
+
+A test whose docstring says **KNOWN RED** is failing on purpose: it asserts the behaviour VDS
+ought to have and does not. Do not delete it and do not weaken it to green. Fix the tool, or
+leave it red and cite it.
+
+## Quick reference
+
+The CLI is `tools/vds.py`, and it has six subcommands: `init`, `ledger`, `register`, `proof`,
+`warrant`, `lock`. Anything else you have seen written down (`vds route`, `vds submit`,
+`vds log`, `vds validate`) does **not** exist. A command written in a doc is not a command that
+runs; do the equivalent by hand and say so in the log.
+
+```bash
+# Scaffold a project's .vds/
+tools/vds.py --root <repo> init
+
+# Regenerate the declared surface, then run every implemented proof
+tools/vds.py --root <repo> ledger screens
+tools/vds.py --root <repo> proof --all       # captures its own records; never hand-write one
+
+# What is granted, on what evidence, over which surface
+tools/vds.py --root <repo> warrant status
+
+# What is actually wired, by digest
+tools/vds.py --root <repo> lock verify
+```
+
+Three of the ten proof kinds are implemented (`register_completeness`, `composition`, `states`).
+`tools/vds.py proof --list` prints which, and the seven that are not. Because `reconciliation`
+and `contrast` are among the seven, **no warrant can currently be recorded as `granted` by
+anyone**: W1 and W2 both require evidence of a kind that has no script. That is the true state
+of the record, not a tooling gap to route around.
 
 ## Lifecycle
 
@@ -71,7 +109,11 @@ asked whether the thing being used was registered.
 
 - No design value in `.vds/`. Requirements only.
 - No self-granted warrant. W1, W2 and W4 are referred to VJS; W3 is the Principal's alone.
-- No hand-written proof record. `capture_mode` is fixed to `automatic` by schema.
+- No hand-written proof record. Fixing `capture_mode` to the single value `automatic` never
+  made that true: it is a string an author types, so it asserted the property it was meant to
+  prove. What makes it true is that `warrant record` re-runs the named check and requires the
+  same digest, after checking the kind is implemented, the script is the canonical one for that
+  kind, its digest still matches, and the record digests to its own stated digest.
 - No proof kind outside the closed registry at VDS S-7(5). Adding one is an amendment to the
   specification and the invariant registry, not a script anyone may drop in.
 - No identifier asserted by hand. Read the live record off disk, take the maximum plus one. A

@@ -131,6 +131,14 @@ impl<'a> Store<'a> {
     }
 
     pub fn read_register(&self) -> Result<Vec<Located<ComponentRecord>>> {
+        // A register record this reader cannot see is worse than one it cannot
+        // parse. An adversarial reviewer put a `verified` record requiring four
+        // states and drawing none into a subdirectory: the gate went green AND
+        // produced an evidence digest byte-identical to the clean project, so a
+        // warrant citing that digest could not distinguish the two states of
+        // the world. The row set has to be the DIRECTORY, not a filtered view
+        // of it.
+        self.refuse_unreadable_entries(&self.register_dir(), "register record")?;
         let records: Vec<Located<ComponentRecord>> = self.read_all(&self.register_dir())?;
         // A record whose filename disagrees with its `id` is ambiguous: one of
         // the two is the identifier and nothing says which. Refuse rather than
@@ -156,6 +164,63 @@ impl<'a> Store<'a> {
             }
         }
         Ok(records)
+    }
+
+    /// Refuse any entry in a record directory this reader would not pick up.
+    ///
+    /// `yaml_files` takes files ending `.yaml`, so a subdirectory, a `.yml`, a
+    /// `.YAML` or a stray note is invisible to every count and every proof. That
+    /// invisibility is the defect: a record nobody reads is not an absent record,
+    /// it is a record whose absence nothing reports.
+    fn refuse_unreadable_entries(&self, directory: &Path, what: &str) -> Result<()> {
+        if !directory.is_dir() {
+            return Ok(());
+        }
+        let mut unseen = Vec::new();
+        for entry in
+            std::fs::read_dir(directory).map_err(|e| VdsError::io(directory.display(), e))?
+        {
+            let entry = entry.map_err(|e| VdsError::io(directory.display(), e))?;
+            let path = entry.path();
+            let name = entry.file_name().to_string_lossy().into_owned();
+            if path.is_dir() {
+                unseen.push(format!("{name}/ is a directory, and the reader does not recurse"));
+                continue;
+            }
+            let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+            if extension == "yaml" {
+                continue;
+            }
+            // `.gitkeep` and the like are how an empty directory is committed,
+            // and are not a record pretending to be absent.
+            if name.starts_with('.') {
+                continue;
+            }
+            if extension.eq_ignore_ascii_case("yaml") || extension.eq_ignore_ascii_case("yml") {
+                unseen.push(format!(
+                    "{name} is not read: the reader takes `.yaml` exactly, and this is `.{extension}`"
+                ));
+            } else {
+                unseen.push(format!("{name} is not a `.yaml` file and is read by nothing"));
+            }
+        }
+        if unseen.is_empty() {
+            return Ok(());
+        }
+        unseen.sort();
+        Err(VdsError::Artefact {
+            path: self.project.rel(directory),
+            message: format!(
+                "holds {} entries that no proof will ever see, so a {what} placed in one of \
+                 them is invisible to every count and every digest:\n    {}\n  \
+                 That invisibility is the defect. A record nobody reads is not an absent \
+                 record, it is a record whose absence nothing reports, and a warrant citing a \
+                 digest taken over the readable subset cannot distinguish the two states of \
+                 the world. Rename or remove them.",
+                unseen.len(),
+                unseen.join("\n    ")
+            ),
+        })
     }
 
     pub fn read_record(&self, id: &ComponentId) -> Result<Located<ComponentRecord>> {
@@ -485,6 +550,38 @@ mod tests {
             err.to_string().contains("CMP-0002"),
             "the error must name the file: {err}"
         );
+    }
+
+    #[test]
+    fn a_record_in_a_subdirectory_is_refused_rather_than_invisible() {
+        let s = scaffold();
+        let store = Store::new(&s.project);
+        std::fs::create_dir_all(store.register_dir().join("nested")).unwrap();
+        std::fs::write(
+            store.register_dir().join("nested/CMP-0009.yaml"),
+            "id: CMP-0009\n",
+        )
+        .unwrap();
+        let err = store.read_register().unwrap_err();
+        assert!(err.to_string().contains("no proof will ever see"), "{err}");
+        assert!(err.to_string().contains("nested/"), "{err}");
+    }
+
+    #[test]
+    fn a_record_with_a_yml_extension_is_refused_rather_than_invisible() {
+        let s = scaffold();
+        let store = Store::new(&s.project);
+        std::fs::write(store.register_dir().join("CMP-0009.yml"), "id: CMP-0009\n").unwrap();
+        let err = store.read_register().unwrap_err();
+        assert!(err.to_string().contains("`.yaml` exactly"), "{err}");
+    }
+
+    #[test]
+    fn a_dotfile_in_the_register_is_not_a_hidden_record() {
+        let s = scaffold();
+        let store = Store::new(&s.project);
+        std::fs::write(store.register_dir().join(".gitkeep"), "").unwrap();
+        assert!(store.read_register().unwrap().is_empty());
     }
 
     #[test]
