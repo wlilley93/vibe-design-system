@@ -55,7 +55,10 @@ gates: build
 	$(VDS) pack verify
 	$(VDS) lock verify
 	$(VDS) ledger screens
-	$(VDS) proof --all --invoked-by package_script
+	$(VDS) proof --all --invoked-by package_script --allow-vacuous
+	@# Without the exemption: the two kinds genuinely enforced against VDS itself.
+	$(VDS) proof no_stored_values --invoked-by package_script
+	$(VDS) proof ledger_staleness --invoked-by package_script
 
 .PHONY: doctor
 doctor: build

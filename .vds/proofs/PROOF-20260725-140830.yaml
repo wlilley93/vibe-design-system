@@ -1,0 +1,21 @@
+id: PROOF-20260725-140830
+kind: composition
+status: vacuous
+warrant_id: null
+command: vds proof composition
+script: crates/vds-proof/src/composition.rs
+script_digest: sha256:f0265e72bed6a05c7f524a93e2aad3990739fd48208699032ccb0413d323a078
+exit_code: 0
+rows_considered: 0
+rows_enforced: 0
+rows_skipped_reasons: {}
+violations: []
+notes:
+- 'relies on VDS S-9(10) RESERVED (SUBMISSION-VDS-005): bare HTML elements are informational rows only, excluded from rows_enforced. Any warrant citing this proof must record that reliance in its `reserved` array.'
+inputs_digest: sha256:f04ba0450ed84a7adc11c2fe1ec552fba2255cfa060c113d91fc5618946840e7
+digest: sha256:1d0ece6d807cc5c1bc97333cf9ee352026a0498ed581306c6411288c2641af34
+designpack_digest: sha256:f9c369f3175c15169dafde47c01d7efc2f45c64090444f17f5b3f480e710ec5a
+captured_at: 2026-07-25T14:08:25Z
+capture_mode: automatic
+invoked_by: package_script
+duration_ms: 0
