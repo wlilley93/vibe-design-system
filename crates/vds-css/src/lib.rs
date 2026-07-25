@@ -8,4 +8,5 @@
 //! This file is a module root and holds no logic. A sibling module (`colour`)
 //! is authored separately and adds its own `pub mod` line here.
 
+pub mod colour;
 pub mod sheet;

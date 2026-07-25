@@ -791,6 +791,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "vds-css"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "vds-designpack"
 version = "0.1.0"
 dependencies = [
