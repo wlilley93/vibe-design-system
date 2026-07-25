@@ -6,25 +6,28 @@
 //! [`ProofKind`], which is an enum, so a new kind cannot be dispatched without
 //! adding a variant to the type the specification names.
 //!
-//! Seven of the ten are implemented. The other three need a named record VDS
-//! reads and does not own, and each says so in
-//! [`ProofKind::unimplemented_because`] rather than sharing one blanket note.
+//! All ten are implemented. [`ProofKind::unimplemented_because`] returns None
+//! for every one of them, and the type still carries it: a kind that later has to
+//! be withdrawn must say WHY, per kind, rather than disappearing from a match.
 
 use std::io::Write;
 
-use vds_core::{Digest, EXIT_PASSED, InvokedBy, Project, ProofKind, Result, Timestamp, VdsError};
+use vds_core::{Digest, EXIT_PASSED, InvokedBy, Project, ProofKind, Result, Timestamp};
 use vds_store::Store;
 
 pub mod composition;
+pub mod contrast;
 pub mod index;
 pub mod ledger_staleness;
 pub mod no_stored_values;
+pub mod parity;
 pub mod preimage;
 pub mod reconciliation;
 pub mod register_completeness;
 pub mod retirement_drain;
 pub mod run;
 pub mod states;
+pub mod token_pin;
 
 #[cfg(test)]
 pub mod testing;
@@ -83,28 +86,26 @@ impl<'a> ProofContext<'a> {
 
 /// Run one proof kind.
 ///
-/// An unimplemented kind is a PRECONDITION failure, not a pass. A caller asking
-/// for `contrast` and getting exit 0 would reasonably conclude the contrast
-/// floors were checked.
+/// The match is exhaustive over [`ProofKind`], which is what makes VDS S-7(6)'s
+/// closure structural: a kind cannot be dispatched without a variant on the type
+/// the specification names, and a variant cannot be added without an arm here.
+///
+/// There is no longer a refusal arm, because there is no longer an unimplemented
+/// kind. Should one be withdrawn, the arm that replaces its dispatch must return
+/// EXIT_PRECONDITION and never a pass: a caller who asked for `contrast` and got
+/// exit 0 would reasonably conclude the contrast floors had been checked.
 pub fn run(kind: ProofKind, ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
     match kind {
         ProofKind::RegisterCompleteness => register_completeness::run(ctx, out),
         ProofKind::Composition => composition::run(ctx, out),
+        ProofKind::Contrast => contrast::run(ctx, out),
+        ProofKind::Parity => parity::run(ctx, out),
         ProofKind::States => states::run(ctx, out),
         ProofKind::Reconciliation => reconciliation::run(ctx, out),
         ProofKind::RetirementDrain => retirement_drain::run(ctx, out),
         ProofKind::LedgerStaleness => ledger_staleness::run(ctx, out),
         ProofKind::NoStoredValues => no_stored_values::run(ctx, out),
-        ProofKind::Contrast | ProofKind::Parity | ProofKind::TokenPin => {
-            Err(VdsError::precondition(format!(
-                "the {kind} proof is in the closed registry (VDS S-7(5)) and is NOT \
-                 implemented.\n  Why: {}\n  Adding a kind amends the specification and the \
-                 invariant registry; it is not a script anyone may drop in (VDS S-7(6)).\n  \
-                 This is exit 2 and not exit 0, because a caller who asked for {kind} and \
-                 got a pass would reasonably conclude it had been checked.",
-                kind.unimplemented_because().unwrap_or("unstated")
-            )))
-        }
+        ProofKind::TokenPin => token_pin::run(ctx, out),
     }
 }
 
@@ -209,7 +210,10 @@ pub const GATE_PATHS: &[&str] = &[
     reconciliation::GATE,
     register_completeness::GATE,
     retirement_drain::GATE,
+    contrast::GATE,
+    parity::GATE,
     states::GATE,
+    token_pin::GATE,
 ];
 
 /// A timestamp helper for proofs that must record when they measured something.
@@ -227,10 +231,7 @@ mod tests {
         // over ProofKind, so this only has to confirm the two arms agree with
         // ProofKind::is_implemented.
         for kind in ProofKind::ALL {
-            let dispatched = !matches!(
-                kind,
-                ProofKind::Contrast | ProofKind::Parity | ProofKind::TokenPin
-            );
+            let dispatched = true;
             assert_eq!(
                 dispatched,
                 kind.is_implemented(),

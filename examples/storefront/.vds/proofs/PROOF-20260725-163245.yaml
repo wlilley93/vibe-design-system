@@ -1,0 +1,21 @@
+id: PROOF-20260725-163245
+kind: ledger_staleness
+status: passed
+warrant_id: null
+command: vds proof ledger_staleness
+script: crates/vds-proof/src/ledger_staleness.rs
+exit_code: 0
+rows_considered: 1
+rows_enforced: 1
+rows_skipped_reasons: {}
+violations: []
+notes:
+- the screens ledger's staleness test REGENERATES the ledger from its sources and compares the content, rather than comparing the source digest the ledger records. A source-digest comparison answers only whether the screens moved, so it certifies a hand-edited ledger clean, and a proof reading that ledger can then be flipped from failing to passing without touching a screen (VDS S-2(5)(4)).
+- 'what this run does NOT reach: this build holds one staleness test, the screens ledger''s. For every other file in the ledgers directory it establishes only that no staleness test exists, never that the file is current, because there is no generator here to re-run against it. It reaches nothing outside the configured ledgers directory. And where the declared screens ledger is absent the run is a precondition failure at exit 2, so the other files in that directory go unexamined rather than passing.'
+inputs_digest: sha256:075ea7ca3115f8ea32da68aa9d5bed3a4f2d51d67907b39142153fa19b03a703
+digest: sha256:9b9fc597a0eff0b1a432547306acf59ab30d0222841124b17dd683899ce7ff8a
+designpack_digest: sha256:f9c369f3175c15169dafde47c01d7efc2f45c64090444f17f5b3f480e710ec5a
+captured_at: 2026-07-25T16:32:37Z
+capture_mode: automatic
+invoked_by: manual
+duration_ms: 0

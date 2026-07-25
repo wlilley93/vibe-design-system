@@ -25,25 +25,26 @@ states:
   - default
   drawn:
   - default
-  built: []
+  built:
+  - default
 a11y:
   role: region
   accessibleNameSource: children
   keyboard: []
   contrastFloors:
-  - boundary: card-title
-    against: card-fill
+  - boundary: sf-text
+    against: sf-surface-raised
     minRatio: 4.5
     basis: WCAG 2.2 SC 1.4.3 contrast minimum
     scope: text
 demand:
   routes: 3
-  measuredAt: 2026-07-25T15:08:55Z
+  measuredAt: 2026-07-25T16:32:37Z
   measuredBy: vds register measure-demand
 supersedes: []
 supersededBy: null
 amendments:
-- at: 2026-07-25T15:08:17Z
+- at: 2026-07-25T16:32:37Z
   by: jellytot
   kind: non_breaking
   what: 'the Card contract: a container, default only, and its title carries the text floor'

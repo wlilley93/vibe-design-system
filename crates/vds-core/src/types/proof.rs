@@ -108,30 +108,24 @@ impl ProofKind {
         }
     }
 
-    /// Why this kind is not implemented, or `None` where it is.
+    /// Why this kind is not implemented, or `None` where it is. Currently `None`
+    /// for all ten.
     ///
-    /// Stated per kind rather than as a blanket "unimplemented", because the
-    /// reasons differ and the difference is what tells a reader whether the gap
-    /// is work or a dependency. VDS S-14(2) requires the position to be honest.
+    /// KEPT after the last kind was built rather than deleted, and the emptiness
+    /// is the point. The reason a kind is unbuilt has to be stated PER KIND
+    /// (VDS S-14(2) requires the position to be honest, and the difference
+    /// between "work" and "a dependency nobody owns" is what tells a reader which
+    /// it is). A kind that later has to be withdrawn must therefore say why, and
+    /// the shape for saying it already exists here rather than having to be
+    /// reinvented under pressure.
+    ///
+    /// Six places read this: the dispatcher's refusal, `vds proof --list`,
+    /// `vds proof --all`'s summary, `vds doctor` D2, `vds impl`'s "checked by
+    /// nothing" paragraph, and the test that holds them together. All six
+    /// currently print nothing, which is correct and is not the same as all six
+    /// having been deleted.
     pub fn unimplemented_because(self) -> Option<&'static str> {
-        match self {
-            ProofKind::Contrast => Some(
-                "needs the subject project's shipped CSS and its theme set, which are named \
-                 records VDS reads and does not own ([2026] VJS-CC-OPBOX 3 D1)",
-            ),
-            ProofKind::Parity => Some(
-                "needs to read the subject project's component source and compare its props \
-                 and states against the record, which is a TypeScript analysis and not a \
-                 digest comparison",
-            ),
-            ProofKind::TokenPin => Some(
-                "needs both named records present: the shipped CSS and the decided-target \
-                 Figma file. The Figma side is a network read, and VDS S-7(2)(1) forbids a \
-                 network call inside a proof, so the pin must be generated out of band and \
-                 then checked",
-            ),
-            _ => None,
-        }
+        None
     }
 
     pub fn is_implemented(self) -> bool {
@@ -403,20 +397,37 @@ mod tests {
         }
     }
 
+    /// Every kind in the closed registry is implemented.
+    ///
+    /// `unimplemented_because` is deliberately KEPT after the last kind was
+    /// built. VDS S-14A(3) requires the position to be honest per kind, and a
+    /// kind that later has to be withdrawn must say WHY rather than quietly
+    /// disappearing from a match arm; keeping the method means the honest form
+    /// already exists when that happens. This test is what holds the two halves
+    /// together: a reason present without a matching refusal in the dispatcher,
+    /// or a refusal without a reason, fails here.
     #[test]
-    fn an_unimplemented_kind_says_why() {
+    fn every_kind_in_the_closed_registry_is_implemented_and_any_gap_says_why() {
+        let unimplemented: Vec<ProofKind> = ProofKind::ALL
+            .into_iter()
+            .filter(|k| !k.is_implemented())
+            .collect();
+        assert!(
+            unimplemented.is_empty(),
+            "these kinds report themselves unimplemented: {unimplemented:?}. That is lawful, \
+             but VDS.md S-14A(3), crates/vds-proof/src/lib.rs and docs/ADOPTING.md all say all \
+             ten are built, and one of the four is now wrong."
+        );
+        assert_eq!(ProofKind::implemented().len(), ProofKind::ALL.len());
+        assert_eq!(ProofKind::ALL.len(), 10, "the registry is closed at ten");
+
+        // The honest form, held in place for whenever a kind has to be
+        // withdrawn: a reason is a sentence, not a shrug.
         for kind in ProofKind::ALL {
-            if !kind.is_implemented() {
-                let reason = kind.unimplemented_because().unwrap();
+            if let Some(reason) = kind.unimplemented_because() {
                 assert!(reason.len() > 40, "{kind}: {reason:?} is not a reason");
             }
         }
-        assert_eq!(
-            ProofKind::implemented().len(),
-            7,
-            "seven of the ten kinds are implemented; the other three need a named record \
-             VDS does not own"
-        );
     }
 
     #[test]

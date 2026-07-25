@@ -196,8 +196,12 @@ over the current one.
   hand against the VJS schemas.
 - **A `submit` command.** Submissions are hand-authored into `.vds/submissions/filed/` and
   validated on read. See this repository's own six for the shape.
-- **Three of the ten proof kinds**: `contrast`, `parity` and `token_pin`, each of which needs
-  a named record VDS reads and does not own. `vds proof --list` prints the reason for each.
+- **A pin generator.** `token_pin` is implemented and CHECKS a pin; nothing in this build
+  PRODUCES one, because one of the two records it compares is a Figma file behind a network
+  call and VDS S-7(2)(1) forbids a network call inside a proof. Until a generator ships,
+  `.vds/pins/` is empty, the proof is `vacuous` and its record says exactly that. Do not
+  hand-author a pin to make it green: `generated_by` is the command that regenerates the pin
+  byte for byte, and a pin with no such command is a record that lies about itself.
 
 A command written in a doc is not a command that runs. Where the machinery does not exist, do
 the equivalent by hand and say so in the log.

@@ -1,5 +1,5 @@
 schema_version: 1
-generated_at: 2026-07-25T14:59:26Z
+generated_at: 2026-07-25T16:37:48Z
 entries:
 - path: crates/vds-proof/src/composition.rs
   digest: sha256:f0265e72bed6a05c7f524a93e2aad3990739fd48208699032ccb0413d323a078
@@ -19,6 +19,26 @@ entries:
     seeds: a screen importing a governed component with no register record
   pinned_at: 2026-07-25T13:58:22Z
   pinned_by: jellytot
+- path: crates/vds-proof/src/contrast.rs
+  digest: sha256:6b93ad08e40fcbb7d1e76393720a688d309a16a7e9b124103c6beaf61872272a
+  kind: proof_script
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Proofs
+    blocking: true
+  - surface: package_script
+    reference: make gates
+    blocking: true
+  proves:
+  - contrast
+  failing_direction_test:
+    path: crates/vds-proof/src/contrast.rs
+    test_name: contrast_fails_on_a_boundary_below_its_floor_in_one_theme
+    seeds: a boundary that clears its floor in one theme and falls below it in another
+  pinned_at: 2026-07-25T16:33:55Z
+  pinned_by: jellytot
+  supersedes_digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+  relock_rationale: 'contrast and parity implemented: all ten kinds in the closed registry at VDS S-7(5) now dispatch. crates/vds-proof/src/contrast.rs and parity.rs are new gates, pinned for the first time; lib.rs and vds-core/types/proof.rs move because both kinds are dispatched and neither reports itself unimplemented. contrast depends on the vds-css crate, which is why crates/vds-proof/Cargo.toml gains a dependency.'
 - path: crates/vds-proof/src/ledger_staleness.rs
   digest: sha256:a72abd79274246e9b3b35f66d05eac15495d74bd4cb7c912adda92089e5fcdde
   kind: proof_script
@@ -57,6 +77,26 @@ entries:
   pinned_by: jellytot
   supersedes_digest: sha256:2e8ee2b2ef96e88880238268b7e7ddba59e37bc06f35767475f30fb536cfeea0
   relock_rationale: 'R10: the preimage limb of VDS S-2(8) limb 2 is now discharged. no_stored_values.rs gains rule R10 and a rewritten PREIMAGE_NOTE; crates/vds-proof/src/preimage.rs is a new gate and is pinned for the first time, since the logic deciding what counts as a recovered design value lives there and an unwitnessed gate can be weakened without tripping a finding. Recorded at .vds/logs/decisions/DECISION-0003.yaml (VDS S-8(4), S-12(3)).'
+- path: crates/vds-proof/src/parity.rs
+  digest: sha256:e28dfbc185d4ae14129dbcf06642dd647935880fe103bde7c5d99e07bd92843a
+  kind: proof_script
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Proofs
+    blocking: true
+  - surface: package_script
+    reference: make gates
+    blocking: true
+  proves:
+  - parity
+  failing_direction_test:
+    path: crates/vds-proof/src/parity.rs
+    test_name: parity_fails_on_a_prop_the_component_accepts_that_no_contract_names
+    seeds: a prop the component source exposes that no register record contracts, which is how a component drifts out from under its contract without anything being removed
+  pinned_at: 2026-07-25T16:37:48Z
+  pinned_by: jellytot
+  supersedes_digest: sha256:026109f2af11281b5004d2ae6eaa663bec513bc81ff85dff69cc21f1ba5a6116
+  relock_rationale: 'parity: an empty [surface] library_dirs refuses only where a record CLAIMS a code side. With nothing at registered or later there is nothing being asserted and nothing being hidden, so VDS S-7(2)(4) governs and the run is vacuous. As a precondition it aggregated to exit 2 on VDS itself, whose library_dirs is empty deliberately, and --allow-vacuous does not relax a precondition.'
 - path: crates/vds-proof/src/preimage.rs
   digest: sha256:fcfcab1fcbed2616823fa040d824fa45819ae9f28a4745a39b345f9099d7d720
   kind: proof_script
@@ -149,6 +189,26 @@ entries:
     seeds: a registered component with a required state that is not drawn
   pinned_at: 2026-07-25T13:58:22Z
   pinned_by: jellytot
+- path: crates/vds-proof/src/token_pin.rs
+  digest: sha256:9c69203f40b67c5a38288a9bca0049e0ba414002ba7ed6e3872f21116262e30c
+  kind: proof_script
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Proofs
+    blocking: true
+  - surface: package_script
+    reference: make gates
+    blocking: true
+  proves:
+  - token_pin
+  failing_direction_test:
+    path: crates/vds-proof/src/token_pin.rs
+    test_name: token_pin_fails_on_a_row_the_pin_declares_aligned_that_does_not_agree
+    seeds: a pin row the pin declares aligned whose two named records do not agree
+  pinned_at: 2026-07-25T16:33:55Z
+  pinned_by: jellytot
+  supersedes_digest: sha256:b2d7371881cf41e1d29865a091e0bfaa28b53a20ec2aa5ae86e280f2bb13d1d1
+  relock_rationale: 'contrast and parity implemented: all ten kinds in the closed registry at VDS S-7(5) now dispatch. crates/vds-proof/src/contrast.rs and parity.rs are new gates, pinned for the first time; lib.rs and vds-core/types/proof.rs move because both kinds are dispatched and neither reports itself unimplemented. contrast depends on the vds-css crate, which is why crates/vds-proof/Cargo.toml gains a dependency.'
 - path: crates/vds-scan/src/glob.rs
   digest: sha256:ab8189e8d4d8e56cfbf0a4eca9d738b3c13438ae190ad6179e057368ceea40d3
   kind: ledger_generator

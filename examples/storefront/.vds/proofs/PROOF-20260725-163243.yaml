@@ -1,0 +1,25 @@
+id: PROOF-20260725-163243
+kind: token_pin
+status: vacuous
+warrant_id: null
+command: vds proof token_pin
+script: crates/vds-proof/src/token_pin.rs
+exit_code: 3
+rows_considered: 0
+rows_enforced: 0
+rows_skipped_reasons: {}
+violations: []
+notes:
+- '[derived] freshness against the local half is DERIVED and not trusted: the shipped record named by the pin is re-digested by this run and compared with the digest the pin recorded for it. `generated_at` is read by nothing here. A stamp says when somebody claims a thing was done, and a pin regenerated against a record that has since moved carries a perfectly recent stamp (VDS S-2(5)(4)).'
+- '[reach] what this run does NOT reach: the decided-target half. That record is a Figma file behind a network call, VDS S-7(2)(1) forbids a network call inside a proof, and nothing offline can re-derive it. This run therefore establishes that the pin still describes the SHIPPED record accurately, and never that the pin still describes the DECIDED one. A pin generated once and never regenerated agrees with a file nobody has looked at since, and a warrant citing this proof must not be described as covering the decided-target side (VDS S-6(3)).'
+- '[redaction] a finding names the pin file, the 1-based row position, the class of defect and the numbers, and it repeats a string the pin authored only where that string provably cannot be a realisation. A captured proof record lands under the tree `no_stored_values` scans and is never deleted, so a finding that copied a realisation out of a pin would make that proof fail forever on a file this one wrote. The screen is deliberately over-eager: withholding a safe name costs a reader one file open, and repeating an unsafe one costs a gate that can never go green again.'
+- '[integrity] this run cannot tell a hand-edited agreement flag from a generated one. A pin carries a `digest` field, and no code in this build derives it, so there is nothing to recompute it against and nothing to compare it with. Both the pin''s row set and the shipped record''s bytes are recorded as inputs, so an edit MOVES this proof''s evidence digest and a warrant pinned to the old one no longer matches, which is detection after the fact rather than refusal at the door. Closing it properly needs the pin type to derive its own content digest the way the Figma ledger already does.'
+- '[scope] the pins directory is read as `*.yaml` exactly, so a pin in a subdirectory, or one saved as `.yml`, is invisible to this run rather than reported by it. The register reader refuses such an entry and the pin reader does not, and until it does, an absent pin and an unreadable-by-this-reader pin look identical from here.'
+- '[vacuous] no pin exists under .vds/pins, so there are no two named records to report the agreement of and this run enforces nothing. A pin is GENERATED OUT OF BAND and only CHECKED here: one of the two records VDS S-2(3) names is a Figma file behind a network call, and VDS S-7(2)(1) forbids a network call inside a proof, so this gate cannot derive one however it is invoked. This record is `vacuous` and is not evidence for any warrant (VDS S-7(2)(4)).'
+inputs_digest: sha256:4c6e525a48f238774f402cec1315d4c2e9e880071da7e277bc8d202fb63585d0
+digest: sha256:94af79f8917814bf76f084ab65faa21fd06b9b1ae8e231690aac93c4cee4573b
+designpack_digest: sha256:f9c369f3175c15169dafde47c01d7efc2f45c64090444f17f5b3f480e710ec5a
+captured_at: 2026-07-25T16:32:37Z
+capture_mode: automatic
+invoked_by: manual
+duration_ms: 0

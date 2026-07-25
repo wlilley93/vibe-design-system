@@ -27,28 +27,30 @@ states:
   drawn:
   - default
   - error
-  built: []
+  built:
+  - default
+  - error
 a11y:
   role: status
   accessibleNameSource: children
   keyboard: []
   contrastFloors:
-  - boundary: alert-text
-    against: alert-fill
+  - boundary: sf-critical-fg
+    against: sf-critical-bg
     minRatio: 4.5
     basis: WCAG 2.2 SC 1.4.3 contrast minimum
     scope: text
 demand:
   routes: 1
-  measuredAt: 2026-07-25T15:08:55Z
+  measuredAt: 2026-07-25T16:32:37Z
   measuredBy: vds register measure-demand
 supersedes: []
 supersededBy: null
 amendments:
-- at: 2026-07-25T15:08:17Z
+- at: 2026-07-25T16:32:37Z
   by: jellytot
   kind: non_breaking
-  what: 'the Alert contract: a status region, default and error, and the text floor in both tones'
+  what: 'the Alert contract: a status region, default and error, and the critical tone carries the text floor'
   contractVersion: 2
 basis:
 - ACT-VDS-001:s5

@@ -333,17 +333,29 @@ fn a_malformed_figma_node_is_refused_where_the_author_can_act_on_it() {
 
 // -- proofs -----------------------------------------------------------------
 
+/// The registry is closed at ten and every one of them is now built, so `--list`
+/// must name all ten and claim no gap it does not have.
 #[test]
-fn proof_list_names_the_closed_registry_and_why_three_are_unbuilt() {
+fn proof_list_names_the_whole_closed_registry() {
     let f = Fixture::new();
     f.ready();
-    f.vds(&["proof", "--list"])
-        .expect(PASSED)
-        .says("CLOSED registry")
-        .says("NOT IMPLEMENTED")
-        .says("contrast")
-        .says("parity")
-        .says("token_pin");
+    let run = f.vds(&["proof", "--list"]);
+    run.expect(PASSED).says("CLOSED registry");
+    for kind in [
+        "register_completeness",
+        "reconciliation",
+        "composition",
+        "contrast",
+        "states",
+        "parity",
+        "token_pin",
+        "retirement_drain",
+        "ledger_staleness",
+        "no_stored_values",
+    ] {
+        run.says(kind);
+    }
+    run.does_not_say("NOT IMPLEMENTED");
 }
 
 #[test]
@@ -398,14 +410,39 @@ fn allow_vacuous_changes_the_exit_code_and_not_the_verdict() {
         .says("VACUOUS");
 }
 
+/// Every kind in the registry actually dispatches.
+///
+/// This test used to assert the opposite about `contrast`: that asking for an
+/// unimplemented kind was exit 2 and never a pass. The refusal is still in the
+/// dispatcher and `vds-proof` holds a unit test that the two arms agree, but
+/// there is no longer an unimplemented kind to reach it through the CLI. What is
+/// worth guarding at this level is the other direction, and it is the direction
+/// that would actually regress: a kind that is named in the registry, listed by
+/// `--list`, and quietly refuses when anybody runs it.
 #[test]
-fn an_unimplemented_kind_is_a_precondition_failure_and_not_a_pass() {
+fn every_kind_in_the_registry_dispatches_rather_than_reporting_itself_unbuilt() {
     let f = Fixture::new();
     f.ready();
-    f.vds(&["proof", "contrast"])
-        .expect(PRECONDITION)
-        .says("NOT implemented")
-        .says("would reasonably conclude");
+    for kind in [
+        "register_completeness",
+        "reconciliation",
+        "composition",
+        "contrast",
+        "states",
+        "parity",
+        "token_pin",
+        "retirement_drain",
+        "ledger_staleness",
+        "no_stored_values",
+    ] {
+        let run = f.vds(&["proof", kind, "--allow-vacuous"]);
+        run.does_not_say("NOT implemented");
+        assert_ne!(
+            run.code, PRECONDITION,
+            "`vds proof {kind}` reports a precondition failure on a ready project, so a kind \
+             the registry names cannot be run{run}"
+        );
+    }
 }
 
 #[test]
@@ -599,15 +636,44 @@ fn the_brief_carries_no_design_value() {
     }
 }
 
+/// The contract stays honest about the requirements no proof reaches.
+///
+/// It used to demonstrate that with the three unimplemented kinds, and all three
+/// are now built, so the honest example moved: a KEYBOARD contract is checked by
+/// nothing in this build, and `vds impl` says so per requirement rather than
+/// listing it as covered.
 #[test]
 fn an_implementation_contract_names_what_nothing_checks() {
     let f = Fixture::new();
     f.ready();
-    let id = f.register_button();
+    f.register_button();
+    let run = f.vds(&[
+        "register",
+        "add",
+        "--name",
+        "Toggle",
+        "--import-path",
+        "@/components/ui",
+        "--source-file",
+        "src/components/ui/button.tsx",
+        "--export-name",
+        "Button",
+        "--keyboard",
+        "Enter=activate",
+    ]);
+    run.expect(PASSED);
+    let id = run
+        .out
+        .split_whitespace()
+        .nth(1)
+        .expect("an allocated id")
+        .to_owned();
+
     f.vds(&["impl", &id])
         .expect(PASSED)
         .says("What no check will catch")
-        .says("checked by nothing");
+        .says("respond to `Enter`")
+        .says("checked by: **nothing in this build**");
 }
 
 #[test]

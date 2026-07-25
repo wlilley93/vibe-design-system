@@ -75,7 +75,25 @@ gates: build
 .PHONY: gates-example
 gates-example: build
 	$(VDS) ledger screens --root examples/storefront
-	$(VDS) proof --all --root examples/storefront --invoked-by package_script
+	@# Every kind, so each is exercised and recorded. --allow-vacuous is needed for
+	@# exactly one of them and the next line is why the flag buys nothing here.
+	$(VDS) proof --all --root examples/storefront --invoked-by package_script --allow-vacuous
+	@# The nine kinds that are REAL against this subject, run with NO exemption, so
+	@# a vacuity in any of them is a red build. `token_pin` is the tenth and is
+	@# absent from this list on purpose: it CHECKS a pin and nothing in this build
+	@# PRODUCES one, because one of the two records it compares is behind a network
+	@# call VDS S-7(2)(1) forbids inside a proof. Hand-authoring a pin to fill the
+	@# gap would put a `generated_by` in the record naming a command that does not
+	@# exist, which is a record that lies about itself.
+	$(VDS) proof register_completeness --root examples/storefront --invoked-by package_script
+	$(VDS) proof reconciliation        --root examples/storefront --invoked-by package_script
+	$(VDS) proof composition           --root examples/storefront --invoked-by package_script
+	$(VDS) proof contrast              --root examples/storefront --invoked-by package_script
+	$(VDS) proof states                --root examples/storefront --invoked-by package_script
+	$(VDS) proof parity                --root examples/storefront --invoked-by package_script
+	$(VDS) proof retirement_drain      --root examples/storefront --invoked-by package_script
+	$(VDS) proof ledger_staleness      --root examples/storefront --invoked-by package_script
+	$(VDS) proof no_stored_values      --root examples/storefront --invoked-by package_script
 
 .PHONY: doctor
 doctor: build

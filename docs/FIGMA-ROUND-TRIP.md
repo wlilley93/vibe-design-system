@@ -189,11 +189,15 @@ Stated here rather than discovered later.
   project's shipped CSS and its theme set. It is the proof that would have caught the first
   founding defect, and it is not built.
 - **It does not check that a token value agrees between Figma and the CSS.** That is
-  `token_pin`, and the Figma side is a network read, so the pin has to be generated out of
-  band and then checked.
+  `token_pin`. The proof is now implemented and CHECKS a pin offline: it re-derives freshness
+  against the shipped record rather than trusting the pin's own `generated_at`, and it reports
+  coverage as a number so a three-row pin cannot be read as evidence about a hundred
+  properties. What is still missing is the GENERATOR. The Figma side is a network read, so the
+  pin has to be produced out of band, and until something produces one the proof is `vacuous`
+  and its record says so.
 - **It cannot tell you the design is good.** W3 exists because that judgement is the
   Principal's.
 
-Three of the ten kinds unimplemented is the honest state, and `vds proof --list` prints the
-reason for each rather than a blanket note. A warrant relying on a run must not be described
+All ten kinds are now implemented. What is still missing is a pin GENERATOR, and
+`vds proof --list` prints what each kind establishes rather than a blanket note. A warrant relying on a run must not be described
 as covering them (VDS S-6(3)).

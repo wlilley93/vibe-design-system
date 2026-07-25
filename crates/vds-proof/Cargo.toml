@@ -10,6 +10,7 @@ description = "VDS proof: the closed registry of proof kinds and the capture tha
 [dependencies]
 vds-core.workspace = true
 vds-scan.workspace = true
+vds-css.workspace = true
 vds-store.workspace = true
 vds-designpack.workspace = true
 serde.workspace = true

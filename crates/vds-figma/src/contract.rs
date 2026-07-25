@@ -422,17 +422,41 @@ mod tests {
         );
     }
 
+    /// The "checked by nothing" paragraph is DERIVED from
+    /// `unimplemented_because`, so it appears exactly when a kind is unbuilt and
+    /// vanishes when it is built.
+    ///
+    /// It used to assert the paragraph was present, naming `parity`. All ten
+    /// kinds are now implemented, so its absence is the correct state and the
+    /// test asserts the derivation instead: no kind is claimed unbuilt, and if
+    /// one ever is, the contract names it rather than staying silent.
     #[test]
-    fn the_contract_names_the_unimplemented_proofs_its_requirements_rely_on() {
+    fn the_contract_claims_a_proof_is_unbuilt_only_where_it_is() {
         let f = Fixture::new();
         let id = f.register("Button", Status::Registered);
         let store = f.store();
         let contract = build(&store, &id, None).unwrap();
+
+        for kind in ProofKind::ALL {
+            let claimed = contract
+                .not_checked
+                .iter()
+                .any(|n| n.contains(kind.as_str()) && n.contains("checked by nothing"));
+            assert_eq!(
+                claimed,
+                !kind.is_implemented(),
+                "the contract says {kind} is checked by nothing and it is implemented, or the \
+                 reverse: {:?}",
+                contract.not_checked
+            );
+        }
+
+        // The one thing no accumulation of proofs replaces is still said.
         assert!(
             contract
                 .not_checked
                 .iter()
-                .any(|n| n.contains("parity") && n.contains("checked by nothing")),
+                .any(|n| n.contains("Whether the result looks right")),
             "{:?}",
             contract.not_checked
         );

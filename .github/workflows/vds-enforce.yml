@@ -88,8 +88,7 @@ jobs:
       # --allow-vacuous IS SPECIFIC TO VDS ITSELF. DO NOT COPY IT.
       #
       # VDS is a governance kernel with no screens and no component library, so
-      # five of the seven implemented kinds are legitimately vacuous here and
-      # `--all` exits 3. `.vds/config.toml` says which five and why. The flag
+      # seven of the ten kinds are legitimately vacuous here and `--all` exits 3. `.vds/config.toml` says which five and why. The flag
       # changes only whether this job BLOCKS: the run is still recorded as
       # `status: vacuous`, still prints the words, and is still not evidence for
       # any warrant (VDS S-7(2)(4)).
@@ -113,14 +112,23 @@ jobs:
       # itself on a repository with no screens has demonstrated very little.
       #
       # `examples/storefront` is three screens, six components, two themes and
-      # one deprecated record draining to zero. Every implemented kind runs over
-      # rows that exist, and NO --allow-vacuous IS PASSED, so a vacuity here is a
-      # red build rather than a footnote. This is the step that makes `vds
-      # doctor` D1, D2 and D3 answerable at all.
+      # one deprecated record draining to zero. The `--all` line exercises every
+      # kind; the loop then re-runs the NINE that are real here with NO exemption,
+      # so a vacuity in any of them is a red build rather than a footnote. This is
+      # the step that makes `vds doctor` D1, D2 and D3 answerable at all.
+      #
+      # `token_pin` is the tenth and is absent from the loop on purpose. It CHECKS
+      # a pin and nothing in this build PRODUCES one, because one of the two
+      # records it compares is behind a network call VDS S-7(2)(1) forbids inside
+      # a proof. Its run is recorded as `vacuous` and is not evidence.
       - name: The worked example, with no exemption
         run: |
           ./target/release/vds ledger screens --root examples/storefront
-          ./target/release/vds proof --all --root examples/storefront --invoked-by ci_workflow
+          ./target/release/vds proof --all --root examples/storefront --invoked-by ci_workflow --allow-vacuous
+          for kind in register_completeness reconciliation composition contrast states \
+                      parity retirement_drain ledger_staleness no_stored_values; do
+            ./target/release/vds proof "$kind" --root examples/storefront --invoked-by ci_workflow
+          done
 
       # The honest position, printed on every run so a regression in a criterion
       # is visible in the log rather than discovered at a review.

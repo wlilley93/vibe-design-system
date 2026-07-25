@@ -647,9 +647,12 @@ unrepresentable rather than invalid. Where a rule can be made structural it is m
 structural, because a rule enforced at runtime is a rule that can be reached with the check
 disabled.
 
-**S-14A(3)** Seven of the ten proof kinds at S-7(5) are implemented. Each of the other three
-records why, per kind, rather than sharing a blanket note, because the reasons differ and the
-difference is what tells a reader whether the gap is work or a dependency.
+**S-14A(3)** All ten proof kinds at S-7(5) are implemented. `unimplemented_because` is kept on
+the type rather than deleted: a kind that later has to be withdrawn must record WHY, per kind,
+rather than disappearing from a match arm, and the difference between work and a dependency is
+what tells a reader which it is. What remains unbuilt is a pin GENERATOR: `token_pin` checks a
+pin and nothing in this build produces one, because one of the two records it compares is
+behind a network call S-7(2)(1) forbids inside a proof. Its runs are `vacuous` and say so.
 
 ---
 

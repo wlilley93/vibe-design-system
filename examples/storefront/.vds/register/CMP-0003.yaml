@@ -39,33 +39,37 @@ states:
   - hover
   - focus
   - disabled
-  built: []
+  built:
+  - default
+  - hover
+  - focus
+  - disabled
 a11y:
   role: button
   accessibleNameSource: children
   keyboard: []
   contrastFloors:
-  - boundary: control-boundary
-    against: surface
+  - boundary: sf-control-border
+    against: sf-surface
     minRatio: 3.0
     basis: WCAG 2.2 SC 1.4.11 non-text contrast
     scope: control_boundary
-  - boundary: label
-    against: control-fill
+  - boundary: sf-control-fg
+    against: sf-control-bg
     minRatio: 4.5
     basis: WCAG 2.2 SC 1.4.3 contrast minimum
     scope: text
 demand:
   routes: 3
-  measuredAt: 2026-07-25T15:08:55Z
+  measuredAt: 2026-07-25T16:32:37Z
   measuredBy: vds register measure-demand
 supersedes: []
 supersededBy: null
 amendments:
-- at: 2026-07-25T15:08:17Z
+- at: 2026-07-25T16:32:37Z
   by: jellytot
   kind: non_breaking
-  what: 'the Button contract: the four states a control must draw, the role and keyboard contract, and the two WCAG floors that bind a control'
+  what: 'the Button contract: the four states a control draws and builds, the role, and the two WCAG floors that bind a control'
   contractVersion: 2
 basis:
 - ACT-VDS-001:s5
