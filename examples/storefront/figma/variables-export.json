@@ -1,0 +1,21 @@
+{
+  "exportedBy": "figma-mcp get_variable_defs",
+  "fileVersion": "3841029571",
+  "exportedAt": "2026-07-25T17:00:00Z",
+  "variables": {
+    "Light": {
+      "sf/control/bg": "#1d4ed8",
+      "sf/control/fg": "#ffffff",
+      "sf/surface": "#ffffff",
+      "sf/radius": 6,
+      "sf/gap": 12
+    },
+    "Dark": {
+      "sf/control/bg": "#4f79f0",
+      "sf/control/fg": "#0b0d10",
+      "sf/surface": "#101215",
+      "sf/radius": 6,
+      "sf/gap": 12
+    }
+  }
+}

@@ -1,0 +1,22 @@
+id: PROOF-20260725-172911
+kind: states
+status: passed
+warrant_id: null
+command: vds proof states
+script: crates/vds-proof/src/states.rs
+exit_code: 0
+rows_considered: 6
+rows_enforced: 6
+rows_skipped_reasons: {}
+violations: []
+notes:
+- '[reach] this proof reads the register''s own account of what is drawn. `states.drawn` is the author''s claim, and confirming it against the decided-target Figma file is a network read that VDS S-7(2)(1) forbids inside a proof. A pass establishes that the contract is complete, never that a frame exists in the file.'
+- '[taste] whether a drawn state looks right is reserved to the Principal (VDS S-1(6)). This proof checks that a required state is drawn, never that it is good.'
+- '[parity] a required state that is drawn and not built is recorded here as an informational finding and never fails this gate; the `parity` proof is the gate for that gap (VDS S-7(5)). Informational findings are captured on the proof record and are not printed, so the record is where they are read.'
+inputs_digest: sha256:ec3cf9fe1cdcfd99e707d96ea0f8bfc8732d7676a3093acdcecc7731eb142dfd
+digest: sha256:379f7a7fcaebb45e71300139f5ea21394ba07ab7cf502ab34596a6e41f877503
+designpack_digest: sha256:f9c369f3175c15169dafde47c01d7efc2f45c64090444f17f5b3f480e710ec5a
+captured_at: 2026-07-25T17:28:58Z
+capture_mode: automatic
+invoked_by: package_script
+duration_ms: 0

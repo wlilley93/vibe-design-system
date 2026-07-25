@@ -135,8 +135,8 @@ jobs:
           # proves the derivation still runs against the shipped stylesheet,
           # checking proves the two named records still agree.
           ./target/release/vds pin generate --root examples/storefront --file-key SFDEMO \
-            --from examples/storefront/figma/variables-SFDEMO.json \
-            --subject "the storefront control palette"
+            --from examples/storefront/figma/variables-export.json \
+            --subject "the storefront palette and spacing"
           ./target/release/vds proof token_pin --root examples/storefront --invoked-by ci_workflow
 
       # The honest position, printed on every run so a regression in a criterion

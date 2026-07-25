@@ -98,8 +98,8 @@ gates-example: build
 	@# and then CHECKED, which is two different acts: generating it proves the
 	@# derivation still runs, checking it proves the two records still agree.
 	$(VDS) pin generate --root examples/storefront --file-key SFDEMO \
-	    --from examples/storefront/figma/variables-SFDEMO.json \
-	    --subject "the storefront control palette"
+	    --from examples/storefront/figma/variables-export.json \
+	    --subject "the storefront palette and spacing"
 	$(VDS) proof token_pin             --root examples/storefront --invoked-by package_script
 
 .PHONY: doctor

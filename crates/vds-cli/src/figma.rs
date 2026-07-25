@@ -86,6 +86,14 @@ pub struct PinGenerateArgs {
         default_value = "the shipped stylesheet against the decided-target variables"
     )]
     subject: String,
+    /// The root font size in pixels, for resolving a `rem` against a Figma FLOAT.
+    ///
+    /// A REQUIREMENT and not a realisation: 16 is the CSS initial value, from the
+    /// specification rather than from the design. A project that changes it says
+    /// so here, because a comparison made against the wrong root would be
+    /// confidently wrong about every `rem` in the sheet.
+    #[arg(long, default_value_t = vds_figma::pin::DEFAULT_ROOT_PX)]
+    root_px: f64,
 }
 
 #[derive(ClapArgs)]
@@ -151,6 +159,7 @@ fn pin_generate(store: &Store, args: &PinGenerateArgs) -> Result<i32> {
         source,
         &args.prefix,
         &args.subject,
+        args.root_px,
     )?;
 
     println!(

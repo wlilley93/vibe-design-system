@@ -118,6 +118,24 @@ struct Mode {
     name: String,
 }
 
+/// What kind of realisation a decided value is, which decides how it compares.
+///
+/// Two kinds, because a colour and a length are compared by different rules and
+/// a single comparison that tried to do both would be wrong about one of them. A
+/// colour is compared at 8-bit through one parser; a length is a number that
+/// carries a unit on the CSS side and none on the Figma side.
+#[derive(Debug, Clone)]
+enum Decided {
+    /// A colour, as CSS text so both sides go through one parser.
+    Colour(String),
+    /// A Figma FLOAT: a bare number, which Figma means in pixels for anything
+    /// spatial and unitless for anything proportional (an opacity, a
+    /// line-height multiplier). Which of the two it is cannot be read off the
+    /// value, so the comparison decides from the CSS side, where the unit is
+    /// written down.
+    Number(f64),
+}
+
 /// One Figma variable, reduced to what a comparison needs.
 #[derive(Debug, Clone)]
 struct DecidedValue {
@@ -125,20 +143,226 @@ struct DecidedValue {
     figma_name: String,
     /// The mode's name, e.g. `Dark`.
     mode: String,
-    /// The value as CSS text, so both sides are compared in one form.
+    /// The value.
     ///
     /// Held in memory and never written to a record. It reaches a `PinRow` only
     /// as the boolean that comes out of comparing it.
-    as_css: String,
+    decided: Decided,
+}
+
+/// How the decided-target values reached this machine.
+///
+/// # Why this is a field and not a comment
+///
+/// The REST `variables/local` endpoint needs an Enterprise plan and the
+/// `file_variables:read` scope, and returns 403 rather than an empty result
+/// without them. That is a real wall, and the way round it is that the BYTES do
+/// not have to come from REST: the plugin API and the Figma MCP server both
+/// expose variables on any plan, and an export from either is a perfectly good
+/// decided-target reading.
+///
+/// What must not happen is the obvious shortcut. A file of variable values
+/// somebody TYPED is a third system of record, and VDS S-2(1) and
+/// [2026] VJS-CC-OPBOX 3 are flat about it: an artefact that STORES token values
+/// is an authority, and only a deriving gate is permitted. A pin between the
+/// shipped stylesheet and a hand-authored copy of what Figma is believed to say
+/// agrees with itself and checks nothing, which is the failure this generator's
+/// own module doc warns about.
+///
+/// So the distinction between EXPORTED and AUTHORED is recorded, per pin, in a
+/// place a reader of the pin sees. An export that declares its provenance is a
+/// reading of the decided target; one that declares none is a file of unknown
+/// origin, and the pin says so rather than presenting it as a measurement.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Provenance {
+    /// The REST `variables/local` response, which carries its own shape.
+    RestApi,
+    /// An export declaring where it came from and when.
+    Export {
+        tool: String,
+        file_version: Option<String>,
+        exported_at: Option<String>,
+    },
+    /// A flat map of names to values with nothing saying where it came from.
+    Undeclared,
+}
+
+impl Provenance {
+    /// What the pin records about how the decided target was read.
+    pub fn describe(&self) -> String {
+        match self {
+            Provenance::RestApi => "the Figma REST variables/local endpoint".to_owned(),
+            Provenance::Export {
+                tool,
+                file_version,
+                exported_at,
+            } => format!(
+                "an export by {tool}{}{}",
+                file_version
+                    .as_deref()
+                    .map(|v| format!(", of file version {v}"))
+                    .unwrap_or_default(),
+                exported_at
+                    .as_deref()
+                    .map(|t| format!(", at {t}"))
+                    .unwrap_or_default()
+            ),
+            Provenance::Undeclared => "a source that declares no provenance".to_owned(),
+        }
+    }
+
+    /// Whether this reading declares where it came from.
+    ///
+    /// `false` does not make a pin unlawful. It makes it a pin whose
+    /// decided-target side is a file of unknown origin, which is a fact a reader
+    /// has to be told rather than left to assume.
+    pub fn is_declared(&self) -> bool {
+        !matches!(self, Provenance::Undeclared)
+    }
+}
+
+/// The envelope an export should be wrapped in.
+///
+/// Deliberately small, and deliberately NOT a VDS artefact type: it describes a
+/// file that lives in the subject project, outside `.vds/`, alongside the
+/// stylesheet. VDS reads it and does not own it, which is the same relationship
+/// S-2(3) fixes for `app/globals.css`.
+#[derive(Debug, Deserialize)]
+struct Envelope {
+    /// What produced it: a plugin name, `figma-mcp`, whatever ran.
+    #[serde(rename = "exportedBy", alias = "exported_by")]
+    exported_by: String,
+    #[serde(rename = "fileVersion", alias = "file_version", default)]
+    file_version: Option<String>,
+    #[serde(rename = "exportedAt", alias = "exported_at", default)]
+    exported_at: Option<String>,
+    /// `{"Light": {"control/bg": "#1d4ed8"}, "Dark": {...}}`, or a single
+    /// unnamed mode as a flat map.
+    variables: serde_json::Value,
 }
 
 /// Everything the decided-target file says, per variable name and mode.
-fn decided_values(body: &str) -> Result<Vec<DecidedValue>> {
+///
+/// Three accepted shapes, tried in order of how much they declare about
+/// themselves. Trying the richest first matters: an envelope also parses as a
+/// flat map if the flat reader is tolerant, and taking it as one would throw
+/// away the provenance the author went to the trouble of writing.
+fn decided_values(body: &str) -> Result<(Vec<DecidedValue>, Provenance)> {
+    match rest_values(body) {
+        Ok(values) => Ok((values, Provenance::RestApi)),
+        Err(rest_error) => {
+            if let Some(found) = envelope_values(body)? {
+                return Ok(found);
+            }
+            match flat_values(body) {
+                Some(values) => Ok((values, Provenance::Undeclared)),
+                None => Err(rest_error),
+            }
+        }
+    }
+}
+
+/// An export wrapped in the envelope, which is the shape to prefer.
+fn envelope_values(body: &str) -> Result<Option<(Vec<DecidedValue>, Provenance)>> {
+    let Ok(envelope) = serde_json::from_str::<Envelope>(body) else {
+        return Ok(None);
+    };
+    let provenance = Provenance::Export {
+        tool: envelope.exported_by.clone(),
+        file_version: envelope.file_version.clone(),
+        exported_at: envelope.exported_at.clone(),
+    };
+    let text = serde_json::to_string(&envelope.variables).map_err(|e| {
+        VdsError::precondition(format!(
+            "the export's `variables` could not be re-read: {e}"
+        ))
+    })?;
+    let Some(values) = flat_values(&text) else {
+        return Err(VdsError::precondition(
+            "the export declares its provenance and its `variables` is not a map this reader              understands. Two shapes are accepted: a flat map of name to value for a              single-mode file, and a map of MODE NAME to such a map for a multi-mode one.",
+        ));
+    };
+    Ok(Some((values, provenance)))
+}
+
+/// A flat map, or a map of mode names to flat maps.
+///
+/// This is what the plugin API and the Figma MCP server produce, and neither
+/// carries the REST envelope. A value is a string (`"#1d4ed8"`, `"12px"`) or a
+/// number (`12`), which is the difference between a colour and a FLOAT and is
+/// read the same way it is read from REST.
+fn flat_values(body: &str) -> Option<Vec<DecidedValue>> {
+    let value: serde_json::Value = serde_json::from_str(body).ok()?;
+    let object = value.as_object()?;
+
+    let read = |name: &str, raw: &serde_json::Value| -> Option<Decided> {
+        if let Some(number) = raw.as_f64() {
+            return Some(Decided::Number(number));
+        }
+        let text = raw.as_str()?.trim();
+        let _ = name;
+        // A string that parses as a bare number is a FLOAT written as text,
+        // which every JSON exporter does at least sometimes.
+        if let Ok(number) = text.parse::<f64>() {
+            return Some(Decided::Number(number));
+        }
+        Some(Decided::Colour(text.to_owned()))
+    };
+
+    // Multi-mode: every value is itself an object.
+    let nested = !object.is_empty() && object.values().all(|v| v.is_object());
+    let mut out = Vec::new();
+    if nested {
+        for (mode, entries) in object {
+            for (name, raw) in entries.as_object()? {
+                if let Some(decided) = read(name, raw) {
+                    out.push(DecidedValue {
+                        figma_name: name.clone(),
+                        mode: mode.clone(),
+                        decided,
+                    });
+                }
+            }
+        }
+    } else {
+        for (name, raw) in object {
+            if raw.is_object() || raw.is_array() {
+                continue;
+            }
+            if let Some(decided) = read(name, raw) {
+                out.push(DecidedValue {
+                    figma_name: name.clone(),
+                    // A flat map declares no mode. `Default` is the name
+                    // `theme_for_mode` maps onto the base scope, which is the
+                    // only lawful reading of a file that names none.
+                    mode: "Default".to_owned(),
+                    decided,
+                });
+            }
+        }
+    }
+    (!out.is_empty()).then(|| {
+        out.sort_by(|a, b| (&a.figma_name, &a.mode).cmp(&(&b.figma_name, &b.mode)));
+        out
+    })
+}
+
+fn rest_values(body: &str) -> Result<Vec<DecidedValue>> {
     let response: VariablesResponse = serde_json::from_str(body).map_err(|e| {
         VdsError::precondition(format!(
-            "the Figma variables response does not parse: {e}. A partial parse would produce a \
-             pin claiming fewer rows than the file decides, and a pin that covers less than it \
-             says is the overclaim the coverage number exists to prevent."
+            "the decided-target reading is not a shape this generator understands: {e}\n  \
+             Three are accepted:\n  \
+             (1) the REST `GET /v1/files/:key/variables/local` response, which needs an \
+             Enterprise plan and the `file_variables:read` scope and returns 403 without \
+             them;\n  \
+             (2) an export declaring its provenance: an object with `exportedBy`, optionally \
+             `fileVersion` and `exportedAt`, and `variables` holding either a flat map of name \
+             to value or a map of mode name to such a map;\n  \
+             (3) a bare flat map, which the plugin API and the Figma MCP server both produce. \
+             This one is accepted and RECORDED as declaring no provenance, because a file of \
+             variable values that says nothing about where it came from could equally have \
+             been typed, and a pin against a typed file agrees with itself and checks nothing \
+             (VDS S-2(1))."
         ))
     })?;
 
@@ -151,25 +375,35 @@ fn decided_values(body: &str) -> Result<Vec<DecidedValue>> {
 
     let mut out = Vec::new();
     for variable in response.meta.variables.values() {
-        // COLOR only, for now, and the omission is named rather than silent:
-        // FLOAT variables carry spacing and radii, which is improvement work
-        // with a different comparison (a number against a length unit), and
-        // STRING and BOOLEAN carry no realisation a stylesheet declares.
-        if variable.resolved_type != "COLOR" {
-            continue;
-        }
+        // COLOR and FLOAT. STRING and BOOLEAN are skipped and the skip is named
+        // rather than silent: neither carries a realisation a stylesheet
+        // declares, so there is nothing on the shipped side to compare against.
+        //
+        // FLOAT is the one that matters for pixel parity. A design system drifts
+        // in SPACING long before it drifts in hue: a gap that is 12 in the
+        // decided target and 0.75rem in the code agrees, and one that is 12 and
+        // 14px does not, and until this read FLOAT nothing in VDS could tell
+        // those two apart.
         let _ = &variable.collection_id;
         for (mode_id, value) in &variable.values_by_mode {
             let Some(mode) = modes.get(mode_id.as_str()) else {
                 continue;
             };
-            let Some(as_css) = colour_to_css(value) else {
-                continue;
+            let decided = match variable.resolved_type.as_str() {
+                "COLOR" => match colour_to_css(value) {
+                    Some(css) => Decided::Colour(css),
+                    None => continue,
+                },
+                "FLOAT" => match value.as_f64() {
+                    Some(number) => Decided::Number(number),
+                    None => continue,
+                },
+                _ => continue,
             };
             out.push(DecidedValue {
                 figma_name: variable.name.clone(),
                 mode: (*mode).to_owned(),
-                as_css,
+                decided,
             });
         }
     }
@@ -260,6 +494,69 @@ fn theme_for_mode(mode: &str, themes: &[String], base: Option<&str>) -> Option<S
 // Generation
 // ---------------------------------------------------------------------------
 
+/// The CSS initial root font size, and the only value a `rem` can be resolved
+/// against without being told.
+///
+/// It is the CSS default, and it is a REQUIREMENT rather than a realisation: it
+/// comes from the specification, not from the design. A project that changes it
+/// declares so with `--root-px`, and a comparison made against the wrong one
+/// would be confidently wrong about every `rem` in the sheet.
+pub const DEFAULT_ROOT_PX: f64 = 16.0;
+
+/// How close two lengths have to be to agree.
+///
+/// A hundredth of a pixel. Figma writes a float and a stylesheet writes a
+/// decimal, and the two round differently at the last place for reasons that
+/// have nothing to do with the design; a tolerance below what any screen can
+/// paint keeps that from becoming a finding. It is a REQUIREMENT and it is named
+/// here so it is contestable rather than hidden in a comparison.
+pub const LENGTH_TOLERANCE_PX: f64 = 0.01;
+
+/// Compare a CSS length against a bare Figma number.
+///
+/// Figma FLOATs carry no unit. For anything spatial Figma means PIXELS, which is
+/// the convention its own UI shows; for anything proportional (an opacity, a
+/// line-height multiplier) it means a bare ratio. Which of the two a variable is
+/// cannot be read off the value, so the CSS side decides, because that is the
+/// side where the unit is written down.
+///
+/// `px` and a bare number compare directly. `rem` and `em` convert through the
+/// root size, which is declared rather than guessed. Every other unit is
+/// DECLINED with the reason: a `vw` against a bare number needs a viewport, and
+/// a comparison that invented one would be a measurement of nothing.
+fn compare_length(shipped: &str, decided: f64, root_px: f64) -> std::result::Result<bool, String> {
+    let text = shipped.trim();
+    let split = text
+        .char_indices()
+        .find(|(_, c)| c.is_ascii_alphabetic() || *c == '%')
+        .map(|(index, _)| index)
+        .unwrap_or(text.len());
+    let (number, unit) = text.split_at(split);
+    let Ok(number) = number.trim().parse::<f64>() else {
+        return Err(
+            "the shipped value is not a number this comparison can read. The decided \
+                    target holds a FLOAT, which is a length or a ratio, and the shipped record \
+                    holds something that is neither."
+                .to_owned(),
+        );
+    };
+    let unit = unit.trim().to_ascii_lowercase();
+    let shipped_px = match unit.as_str() {
+        "" | "px" => number,
+        "rem" | "em" => number * root_px,
+        other => {
+            return Err(format!(
+                "the shipped value carries the unit `{other}`, which cannot be compared against \
+                 a bare Figma FLOAT without a context this run does not have: a viewport for \
+                 `vw` and `vh`, a font for `ch` and `ex`, a containing box for `%`. Declining \
+                 is the honest answer; converting would invent the context and report the \
+                 invention as a measurement."
+            ));
+        }
+    };
+    Ok((shipped_px - decided).abs() < LENGTH_TOLERANCE_PX)
+}
+
 pub struct Generated {
     pub pin: Pin,
     pub path: std::path::PathBuf,
@@ -289,6 +586,7 @@ pub enum Source<'a> {
     Network,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn generate(
     store: &Store,
     file_key: &str,
@@ -296,10 +594,11 @@ pub fn generate(
     source: Source<'_>,
     prefix: &str,
     subject: &str,
+    root_px: f64,
 ) -> Result<Generated> {
     let project = store.project;
     let body = std::fs::read_to_string(cached).map_err(|e| VdsError::io(cached.display(), e))?;
-    let decided = decided_values(&body)?;
+    let (decided, provenance) = decided_values(&body)?;
     if decided.is_empty() {
         return Err(VdsError::precondition(format!(
             "{} carries no COLOR variable this generator can read, so there is nothing to \
@@ -378,38 +677,86 @@ pub fn generate(
             continue;
         };
 
-        // Both sides through ONE parser, and compared at 8-bit, which is what a
-        // screen paints. Comparing the text would call `#fff` and `#ffffff`
-        // different, and comparing at full float precision would call two
-        // colours that render identically different.
-        let verdict = match (colour::parse(shipped), colour::parse(&value.as_css)) {
-            (Ok(left), Ok(right)) => {
-                let agrees = left.quantise_8bit().to_css_hex()
-                    == right.quantise_8bit().to_css_hex()
-                    && (left.alpha() - right.alpha()).abs() < 0.004;
-                rows.push(PinRow {
-                    name: name.clone(),
-                    agrees,
-                    not_enforced_because: None,
-                });
-                if agrees { "agrees" } else { "DISAGREES" }
-            }
-            (Err(why), _) => {
-                rows.push(PinRow::not_enforced(
-                    &name,
-                    format!("the shipped value could not be read as a colour: {why}"),
-                ));
-                "declined"
-            }
-            (_, Err(why)) => {
-                rows.push(PinRow::not_enforced(
-                    &name,
-                    format!("the decided value could not be read as a colour: {why}"),
-                ));
-                "declined"
-            }
+        let verdict = match &value.decided {
+            // Both sides through ONE parser, and compared at 8-bit, which is
+            // what a screen paints. Comparing the text would call `#fff` and
+            // `#ffffff` different, and comparing at full float precision would
+            // call two colours that render identically different.
+            Decided::Colour(as_css) => match (colour::parse(shipped), colour::parse(as_css)) {
+                (Ok(left), Ok(right)) => {
+                    let agrees = left.quantise_8bit().to_css_hex()
+                        == right.quantise_8bit().to_css_hex()
+                        && (left.alpha() - right.alpha()).abs() < 0.004;
+                    rows.push(PinRow {
+                        name: name.clone(),
+                        agrees,
+                        not_enforced_because: None,
+                    });
+                    if agrees { "agrees" } else { "DISAGREES" }
+                }
+                (Err(why), _) => {
+                    rows.push(PinRow::not_enforced(
+                        &name,
+                        format!("the shipped value could not be read as a colour: {why}"),
+                    ));
+                    "declined"
+                }
+                (_, Err(why)) => {
+                    rows.push(PinRow::not_enforced(
+                        &name,
+                        format!("the decided value could not be read as a colour: {why}"),
+                    ));
+                    "declined"
+                }
+            },
+            // The half that was missing, and the half a design system drifts in
+            // first: spacing, radii and sizes.
+            Decided::Number(number) => match compare_length(shipped, *number, root_px) {
+                Ok(agrees) => {
+                    rows.push(PinRow {
+                        name: name.clone(),
+                        agrees,
+                        not_enforced_because: None,
+                    });
+                    if agrees { "agrees" } else { "DISAGREES" }
+                }
+                Err(why) => {
+                    rows.push(PinRow::not_enforced(&name, why));
+                    "declined"
+                }
+            },
         };
         report.push(format!("  {verdict:9} {name}  ({theme})"));
+    }
+
+    // The provenance goes in the SUBJECT, which is the one free-text field a
+    // reader of the pin meets first and the one `token_pin` prints. A pin whose
+    // decided-target side came from a file of unknown origin has to say so
+    // there, not in a comment: a hand-authored file of variable values is a
+    // third system of record (VDS S-2(1)), and a pin against one agrees with
+    // itself and checks nothing.
+    let subject = format!(
+        "{subject} (decided target read from {}{})",
+        provenance.describe(),
+        if provenance.is_declared() {
+            ""
+        } else {
+            "; NOTHING here establishes that those values came out of Figma rather than being \
+             typed, and a pin against a typed file is a pin against a copy of itself"
+        }
+    );
+    report.push(String::new());
+    report.push(format!("  decided target: {}", provenance.describe()));
+    if !provenance.is_declared() {
+        report.push(
+            "  WARNING: that reading declares no provenance. Wrap it in an envelope carrying"
+                .to_owned(),
+        );
+        report.push(
+            "  `exportedBy`, `fileVersion` and `exportedAt` so the pin records a READING of the"
+                .to_owned(),
+        );
+        report.push("  decided target rather than a file of unknown origin.".to_owned());
     }
 
     let enforced = rows.iter().filter(|row| row.is_enforced()).count() as u64;
@@ -417,7 +764,7 @@ pub fn generate(
     let id = PinId::allocate(&store.pins_dir(), &now)?;
     let pin = Pin {
         id: id.clone(),
-        subject: subject.to_owned(),
+        subject,
         direction: PinDirection::OneWayDerived,
         source_of_record: RecordOfTruth {
             authority_for: "what ships".into(),
@@ -502,16 +849,103 @@ mod tests {
       }
     }"#;
 
+    /// COLOR and FLOAT are both read; STRING and BOOLEAN are not, because
+    /// neither carries a realisation a stylesheet declares.
     #[test]
-    fn only_colour_variables_are_read_and_each_mode_becomes_a_row() {
-        let decided = decided_values(RESPONSE).unwrap();
-        assert_eq!(decided.len(), 2, "two modes of one colour variable");
-        assert!(
-            decided.iter().all(|v| v.figma_name == "control/border"),
-            "a FLOAT variable is not a colour and must not be compared as one"
+    fn colour_and_float_variables_are_both_read_and_each_mode_becomes_a_row() {
+        let (decided, provenance) = decided_values(RESPONSE).unwrap();
+        assert_eq!(provenance, Provenance::RestApi);
+        assert_eq!(
+            decided.len(),
+            3,
+            "two modes of a colour and one of a float: {decided:?}"
         );
-        assert_eq!(decided[0].mode, "Dark");
-        assert_eq!(decided[1].mode, "Light");
+        let float = decided
+            .iter()
+            .find(|v| v.figma_name == "spacing/gap")
+            .expect("the FLOAT variable is read, not skipped");
+        assert!(matches!(float.decided, Decided::Number(n) if (n - 12.0).abs() < f64::EPSILON));
+    }
+
+    /// A design system drifts in SPACING before it drifts in hue, and until this
+    /// compared FLOATs nothing in VDS could tell `0.75rem` from `14px`.
+    #[test]
+    fn a_length_agrees_across_units_and_disagrees_on_the_value() {
+        // px against a bare Figma number: the ordinary case.
+        assert_eq!(compare_length("12px", 12.0, 16.0), Ok(true));
+        assert_eq!(compare_length("14px", 12.0, 16.0), Ok(false));
+        // rem, through the declared root. 0.75rem IS 12px, and calling those two
+        // different would make every project using rem fail on agreement.
+        assert_eq!(compare_length("0.75rem", 12.0, 16.0), Ok(true));
+        assert_eq!(compare_length("0.75rem", 12.0, 20.0), Ok(false));
+        // A bare number: a ratio on both sides, an opacity or a line height.
+        assert_eq!(compare_length("1.5", 1.5, 16.0), Ok(true));
+        // Tolerance below what any screen can paint, so a last-place rounding
+        // difference is not a finding.
+        assert_eq!(compare_length("12.001px", 12.0, 16.0), Ok(true));
+        assert_eq!(compare_length("12.5px", 12.0, 16.0), Ok(false));
+    }
+
+    /// A unit that needs a context this run does not have is DECLINED, never
+    /// converted against an invented one.
+    #[test]
+    fn a_unit_needing_a_context_this_run_lacks_is_declined_with_the_reason() {
+        for unit in ["50vw", "10ch", "80%", "3ex"] {
+            let refused = compare_length(unit, 12.0, 16.0).unwrap_err();
+            assert!(refused.contains("cannot be compared"), "{unit}: {refused}");
+            assert!(
+                refused.contains("invent"),
+                "the reason has to say why declining is the honest answer: {refused}"
+            );
+        }
+        assert!(compare_length("solid", 1.0, 16.0).is_err());
+    }
+
+    /// The wall the REST endpoint puts up, and the way round it.
+    ///
+    /// `variables/local` needs an Enterprise plan and returns 403 without one.
+    /// The plugin API and the Figma MCP server both produce a flat map on any
+    /// plan, so that shape is read too. What must NOT happen is a file somebody
+    /// typed passing as a reading of Figma: a hand-authored set of values is a
+    /// third system of record (VDS S-2(1)), and a pin against one agrees with
+    /// itself. So an undeclared source is accepted and RECORDED as undeclared.
+    #[test]
+    fn an_export_is_read_and_its_provenance_is_recorded_either_way() {
+        let declared = r##"{
+          "exportedBy": "figma-mcp get_variable_defs",
+          "fileVersion": "123456",
+          "exportedAt": "2026-07-25T10:00:00Z",
+          "variables": {
+            "Light": { "control/bg": "#1d4ed8", "spacing/gap": 12 },
+            "Dark":  { "control/bg": "#4f79f0", "spacing/gap": 12 }
+          }
+        }"##;
+        let (values, provenance) = decided_values(declared).unwrap();
+        assert_eq!(values.len(), 4);
+        assert!(provenance.is_declared());
+        assert!(
+            provenance.describe().contains("figma-mcp"),
+            "{provenance:?}"
+        );
+        assert!(provenance.describe().contains("123456"), "{provenance:?}");
+
+        // The same values with nothing saying where they came from.
+        let bare = r##"{ "control/bg": "#1d4ed8", "spacing/gap": 12 }"##;
+        let (values, provenance) = decided_values(bare).unwrap();
+        assert_eq!(values.len(), 2);
+        assert!(
+            !provenance.is_declared(),
+            "a bare map could equally have been typed, and a pin must say so"
+        );
+        assert_eq!(values[0].mode, "Default", "a flat map declares no mode");
+    }
+
+    #[test]
+    fn a_reading_this_generator_cannot_understand_names_all_three_shapes() {
+        let error = decided_values("[1, 2, 3]").unwrap_err().to_string();
+        for expected in ["Enterprise", "exportedBy", "typed"] {
+            assert!(error.contains(expected), "{error}");
+        }
     }
 
     #[test]
@@ -582,6 +1016,7 @@ mod tests {
             Source::Saved(std::path::Path::new("figma/variables.json")),
             "",
             "the control palette",
+            DEFAULT_ROOT_PX,
         )
         .unwrap();
 
@@ -629,6 +1064,7 @@ mod tests {
             Source::Saved(std::path::Path::new("figma/variables.json")),
             "",
             "the control palette",
+            DEFAULT_ROOT_PX,
         )
         .unwrap();
         assert_eq!(
@@ -659,7 +1095,16 @@ mod tests {
         std::fs::create_dir_all(cache_dir(store.project)).unwrap();
         std::fs::write(&cached, RESPONSE_TWO_MODES).unwrap();
 
-        let generated = generate(&store, "KEY", &cached, Source::Network, "", "subject").unwrap();
+        let generated = generate(
+            &store,
+            "KEY",
+            &cached,
+            Source::Network,
+            "",
+            "subject",
+            DEFAULT_ROOT_PX,
+        )
+        .unwrap();
         let declined: Vec<&PinRow> = generated
             .pin
             .rows
@@ -697,7 +1142,16 @@ mod tests {
         std::fs::create_dir_all(cache_dir(store.project)).unwrap();
         std::fs::write(&cached, RESPONSE_TWO_MODES).unwrap();
 
-        let network = generate(&store, "KEY", &cached, Source::Network, "", "s").unwrap();
+        let network = generate(
+            &store,
+            "KEY",
+            &cached,
+            Source::Network,
+            "",
+            "s",
+            DEFAULT_ROOT_PX,
+        )
+        .unwrap();
         assert!(
             network.pin.generated_by.contains("gitignored"),
             "a pin pulled over the network must say that reproducing it needs the network, \
@@ -713,6 +1167,7 @@ mod tests {
             Source::Saved(std::path::Path::new("figma/variables.json")),
             "",
             "s",
+            DEFAULT_ROOT_PX,
         )
         .unwrap();
         assert!(
