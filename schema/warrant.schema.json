@@ -1,0 +1,495 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vds.local/schema/warrant.schema.json",
+  "title": "VDS warrant",
+  "description": "A stage gate granted on an evidence digest. Governed by VDS S-6. The operative record is short enough to load at runtime; long rationale lives in designpack/v1/judgments/. A warrant carrying no evidence entry is a signature on nothing and is void on its face (VDS S-6(3)).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "stage",
+    "project",
+    "status",
+    "issue",
+    "holding",
+    "granted_by",
+    "assent_source",
+    "evidence",
+    "case_file_digest",
+    "directives",
+    "forbidden",
+    "supersedes",
+    "unlocks",
+    "runtime_summary",
+    "created_at",
+    "appealable",
+    "reserved"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^WARRANT-W[1-4]-[0-9]{3}$",
+      "description": "Allocated from the live warrant directory on disk, max plus one (VDS S-4(4))."
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "W1_REGISTER_COMPLETE",
+        "W2_DESIGN_COMPLETE",
+        "W3_PRINCIPAL_ACCEPTED",
+        "W4_PARITY"
+      ]
+    },
+    "project": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The jurisdiction_id from .vds/config.toml. A warrant binds exactly one project (VDS S-3(6), reserved)."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["granted", "refused", "spent", "superseded", "revoked"],
+      "description": "spent when the surface the warrant was granted over has changed (VDS S-6(4)). Never deleted."
+    },
+    "issue": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Snake-case issue tag, matching the submission that raised it."
+    },
+    "holding": {
+      "type": "string",
+      "minLength": 1,
+      "description": "What was decided and why, on the evidence. Word-capped by the designpack manifest [limits] block."
+    },
+    "granted_by": {
+      "type": "string",
+      "enum": ["vjs_court", "principal"],
+      "description": "W3 is the Principal's alone (VDS S-6(7)). W1 and W4 are VJS. W2 is RESERVED pending SUBMISSION-VDS-002 and until answered is vjs_court."
+    },
+    "grantor_citation": {
+      "description": "The VJS order that granted this warrant. Null only where granted_by is principal.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^\\[[0-9]{4}\\] VJS-[A-Z]+(-[A-Z]+)? [0-9]+$"
+        }
+      ]
+    },
+    "assent_source": {
+      "type": "string",
+      "enum": [
+        "sovereign_assent",
+        "standing_bounded_assent",
+        "principal_acceptance"
+      ]
+    },
+    "acceptance_event": {
+      "description": "Required non-null for stage W3. The dated, digest-pinned acceptance event in designpack/v1/provenance/assent/ (VDS S-6(7)). Acceptance is never inferred from silence.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "digest", "accepted_at", "accepted_by", "surface_digest"],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^designpack/v[0-9]+/provenance/assent/.+$"
+            },
+            "digest": {
+              "$ref": "#/$defs/sha256"
+            },
+            "accepted_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "accepted_by": {
+              "type": "string",
+              "minLength": 1
+            },
+            "surface_digest": {
+              "$ref": "#/$defs/sha256",
+              "description": "Digest of exactly what was accepted, so a later claim that a screen was accepted is checkable against the bytes."
+            }
+          }
+        }
+      ]
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Every proof relied on, by id and digest (VDS S-6(3)).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["proof_id", "kind", "digest", "status"],
+        "properties": {
+          "proof_id": {
+            "type": "string",
+            "pattern": "^PROOF-[0-9]{8}-[0-9]{6}$"
+          },
+          "kind": {
+            "$ref": "#/$defs/proofKind"
+          },
+          "digest": {
+            "$ref": "#/$defs/sha256"
+          },
+          "status": {
+            "type": "string",
+            "const": "passed",
+            "description": "A warrant may only cite a passed proof. A vacuous or failed proof is not evidence (VDS S-7(2)(4))."
+          }
+        }
+      }
+    },
+    "case_file_digest": {
+      "$ref": "#/$defs/sha256",
+      "description": "Repeated verbatim from the convening record, so what was decided on is provable after the fact (VDS S-10(5))."
+    },
+    "directives": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "actor", "must"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^D[0-9]+$"
+          },
+          "actor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "must": {
+            "type": "string",
+            "minLength": 1
+          },
+          "when": {
+            "type": ["string", "null"]
+          }
+        }
+      }
+    },
+    "forbidden": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "exceptions": {
+      "type": ["string", "null"]
+    },
+    "supersedes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^WARRANT-W[1-4]-[0-9]{3}$"
+      }
+    },
+    "unlocks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": [
+          "design_may_begin",
+          "principal_review",
+          "parity_work_may_begin",
+          "system_complete"
+        ]
+      }
+    },
+    "surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["screens_digest", "register_digest"],
+      "description": "The surface this warrant was granted over. A change to either digest spends the warrant (VDS S-6(4)).",
+      "properties": {
+        "screens_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "register_digest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "runtime_summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000,
+      "description": "What an agent reads at runtime. Operative, not explanatory."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "granted_at": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "bench": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "vote": {
+      "type": ["string", "null"]
+    },
+    "source_opinion": {
+      "type": ["string", "null"],
+      "description": "Path into designpack/v1/judgments/ where the long rationale lives."
+    },
+    "appealable": {
+      "type": "boolean"
+    },
+    "reserved": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Points expressly not decided. A warrant that relies on a RESERVED clause of VDS must say so here (VDS S-9(10))."
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "proofKind": {
+      "type": "string",
+      "enum": [
+        "register_completeness",
+        "reconciliation",
+        "composition",
+        "contrast",
+        "states",
+        "parity",
+        "token_pin",
+        "retirement_drain",
+        "ledger_staleness",
+        "no_stored_values"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "stage": {
+            "const": "W3_PRINCIPAL_ACCEPTED"
+          }
+        },
+        "required": ["stage"]
+      },
+      "then": {
+        "required": ["acceptance_event"],
+        "properties": {
+          "granted_by": {
+            "const": "principal"
+          },
+          "assent_source": {
+            "const": "principal_acceptance"
+          },
+          "acceptance_event": {
+            "type": "object"
+          },
+          "bench": {
+            "maxItems": 0,
+            "description": "No bench may grant W3 (VDS S-6(7))."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "stage": {
+            "enum": [
+              "W1_REGISTER_COMPLETE",
+              "W2_DESIGN_COMPLETE",
+              "W4_PARITY"
+            ]
+          }
+        },
+        "required": ["stage"]
+      },
+      "then": {
+        "required": ["grantor_citation", "bench"],
+        "properties": {
+          "granted_by": {
+            "const": "vjs_court"
+          },
+          "grantor_citation": {
+            "type": "string"
+          },
+          "bench": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "granted"
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "required": ["granted_at", "surface"],
+        "properties": {
+          "granted_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "stage": {
+            "const": "W1_REGISTER_COMPLETE"
+          }
+        },
+        "required": ["stage"]
+      },
+      "then": {
+        "properties": {
+          "evidence": {
+            "allOf": [
+              {
+                "contains": {
+                  "properties": {
+                    "kind": {
+                      "const": "register_completeness"
+                    }
+                  },
+                  "required": ["kind"]
+                }
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "kind": {
+                      "const": "reconciliation"
+                    }
+                  },
+                  "required": ["kind"]
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "stage": {
+            "const": "W2_DESIGN_COMPLETE"
+          }
+        },
+        "required": ["stage"]
+      },
+      "then": {
+        "properties": {
+          "evidence": {
+            "allOf": [
+              {
+                "contains": {
+                  "properties": {
+                    "kind": {
+                      "const": "composition"
+                    }
+                  },
+                  "required": ["kind"]
+                }
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "kind": {
+                      "const": "states"
+                    }
+                  },
+                  "required": ["kind"]
+                }
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "kind": {
+                      "const": "contrast"
+                    }
+                  },
+                  "required": ["kind"]
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "stage": {
+            "const": "W4_PARITY"
+          }
+        },
+        "required": ["stage"]
+      },
+      "then": {
+        "properties": {
+          "evidence": {
+            "allOf": [
+              {
+                "contains": {
+                  "properties": {
+                    "kind": {
+                      "const": "parity"
+                    }
+                  },
+                  "required": ["kind"]
+                }
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "kind": {
+                      "const": "token_pin"
+                    }
+                  },
+                  "required": ["kind"]
+                }
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "kind": {
+                      "const": "contrast"
+                    }
+                  },
+                  "required": ["kind"]
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

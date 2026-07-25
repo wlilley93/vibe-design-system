@@ -1,0 +1,47 @@
+# The VDS record is committed, not scratch (VDS S-3(9)).
+#
+# Only two paths under .vds/ are ignored, and they are named here rather than
+# reached by a wildcard so that adding a third is a visible diff. A governance
+# record that is gitignored is not a record: registrations, warrants, proofs,
+# pins, ledgers, submissions, logs, permits and locks all belong in git.
+.vds/cache/
+.vds/private/
+
+# Local activation entrypoints, regenerated per clone by the installer.
+# The hooks are recorded by digest in .vds/install.lock, so a missing or
+# altered hook is a finding rather than a quiet absence (VDS S-11(4)).
+.vds/hooks/pre-commit
+.vds/hooks/pre-push
+.vds/hooks/adapters/
+
+# The designpack itself is NOT ignored anywhere. A vendored pack is committed
+# read-only and pinned by digest in .vds/designpack.lock, or it is not adopted.
+
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+
+# Rust
+/target/
+**/*.rs.bk
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+._*
+
+# Logs and stray build artifacts
+*.log
+*.rlib

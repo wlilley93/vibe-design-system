@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vds.local/schema/pin.schema.json",
+  "title": "VDS pin",
+  "description": "A derived one-way assertion that two named records agreed at a digest. Governed by VDS S-2. A pin stores NO design value: each row carries digests of the two normalised values and an agreement flag, never the values themselves (VDS S-2(7)). A pin fails closed when the records diverge.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "subject",
+    "direction",
+    "source_of_record",
+    "target_of_record",
+    "rows",
+    "rows_considered",
+    "rows_enforced",
+    "fails_closed",
+    "generated_at",
+    "generated_by",
+    "digest"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^PIN-[0-9]{8}-[0-9]{6}$"
+    },
+    "subject": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "What this pin covers, for example \"control-boundary tokens, five themes\"."
+    },
+    "direction": {
+      "type": "string",
+      "const": "one_way_derived",
+      "description": "Fixed. A pin derives; it never writes back into either record, and a two-way pin would be a third authority (VDS S-2(1))."
+    },
+    "source_of_record": {
+      "$ref": "#/$defs/record",
+      "description": "The record the pin derives FROM, for example the decided-target Figma file."
+    },
+    "target_of_record": {
+      "$ref": "#/$defs/record",
+      "description": "The record the pin derives TO, for example app/globals.css."
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "token",
+          "state",
+          "source_value_digest",
+          "target_value_digest",
+          "agrees"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The token NAME only. A literal value in this field is a storing-form violation of VDS S-2(2)."
+          },
+          "state": {
+            "type": "string",
+            "enum": ["aligned", "migrating", "floor", "divergent"],
+            "description": "Only aligned rows are enforceable. A pin whose rows are all migrating or floor enforces nothing, and its status is vacuous (VDS S-7(2)(4))."
+          },
+          "source_value_digest": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/sha256"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "sha256 of the normalised value as it stands in the source record. Null where the source does not define the token."
+          },
+          "target_value_digest": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/sha256"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "sha256 of the normalised value as it stands in the target record. Null where the target does not define the token."
+          },
+          "agrees": {
+            "type": "boolean",
+            "description": "True only when both digests are present and equal."
+          },
+          "theme": {
+            "type": ["string", "null"],
+            "description": "The theme this row was measured under, where the token is theme-scoped."
+          },
+          "selector": {
+            "type": ["string", "null"],
+            "description": "The declaring selector in the target record, so an unparsed scope is visible rather than silently absent."
+          },
+          "normalisation": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The named normalisation applied before digesting, for example \"oklch to srgb 8-bit, lowercase hex\". Two records cannot be compared without one, and an unnamed normalisation makes the digests incomparable."
+          }
+        }
+      }
+    },
+    "rows_considered": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "rows_enforced": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "The count of rows in state aligned. This is the number reported instead of a bare PASS ([2026] VJS-CC-OPBOX 3 D3)."
+    },
+    "fails_closed": {
+      "type": "boolean",
+      "const": true,
+      "description": "Fixed. A pin that tolerates divergence is a store with extra steps."
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "generated_by": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The exact command that generated this pin. A pin must be byte-reproducible by it (VDS S-2(5) limb 4)."
+    },
+    "digest": {
+      "$ref": "#/$defs/sha256",
+      "description": "Digest of this pin's own normalised content."
+    },
+    "proof_id": {
+      "type": ["string", "null"],
+      "pattern": "^(PROOF-[0-9]{8}-[0-9]{6})?$",
+      "description": "The token_pin proof result this pin was produced alongside."
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "kind", "locator", "digest"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["css_file", "figma_file", "codebase"],
+          "description": "The named systems of record are fixed by [2026] VJS-CC-OPBOX 3 D1 and are not VDS's to move (VDS S-2(3))."
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Repository-relative path for a css_file or codebase, file key for a figma_file."
+        },
+        "digest": {
+          "$ref": "#/$defs/sha256",
+          "description": "The digest of the record at the moment the pin was derived. This is what makes the pin an assertion about a provable state rather than about a moving target."
+        }
+      }
+    }
+  }
+}

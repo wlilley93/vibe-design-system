@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vds.local/schema/proof-result.schema.json",
+  "title": "VDS proof result",
+  "description": "Machine output a warrant was granted against. Governed by VDS S-7. Written by the checker as a side effect of running; a hand-written proof record is void, which is why capture_mode is fixed to the single value automatic (VDS S-7(2)(5)).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "kind",
+    "status",
+    "command",
+    "exit_code",
+    "rows_considered",
+    "rows_enforced",
+    "violations",
+    "inputs_digest",
+    "digest",
+    "captured_at",
+    "capture_mode",
+    "script",
+    "designpack_digest"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^PROOF-[0-9]{8}-[0-9]{6}$",
+      "description": "PROOF-YYYYMMDD-HHMMSS, allocated from disk (VDS S-4(4))."
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "register_completeness",
+        "reconciliation",
+        "composition",
+        "contrast",
+        "states",
+        "parity",
+        "token_pin",
+        "retirement_drain",
+        "ledger_staleness",
+        "no_stored_values"
+      ],
+      "description": "A closed registry (VDS S-7(5)). Adding a kind amends the specification and the invariant registry; it is not a script anyone may drop in."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["passed", "failed", "vacuous"],
+      "description": "vacuous means the check exited 0 over zero enforceable rows. A vacuous proof is not evidence for any warrant (VDS S-7(2)(4))."
+    },
+    "warrant_id": {
+      "type": ["string", "null"],
+      "pattern": "^(WARRANT-W[1-4]-[0-9]{3})?$",
+      "description": "Set when this proof is cited by a warrant. Null on a routine gate run."
+    },
+    "command": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The exact argv that produced this result. Re-running it must reproduce the same digest (VDS S-7(2)(1))."
+    },
+    "script": {
+      "type": "string",
+      "pattern": "^[^/].*$",
+      "description": "Repository-relative path of the proof script. Must appear in .vds/enforcement.lock when a lock is present (VDS S-8(3))."
+    },
+    "script_digest": {
+      "$ref": "#/$defs/sha256",
+      "description": "sha256 of the script at run time, compared against the enforcement lock."
+    },
+    "exit_code": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "rows_considered": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Every row the check looked at, including rows it could not enforce."
+    },
+    "rows_enforced": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Rows in an enforceable state. Zero with exit_code 0 is vacuous, never passed (VDS S-7(2)(4))."
+    },
+    "rows_skipped_reasons": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "description": "Count per reason a row was considered but not enforced, so a vacuous pass is diagnosable rather than merely flagged."
+    },
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["location", "rule", "expected", "actual"],
+        "properties": {
+          "location": {
+            "type": "string",
+            "minLength": 1,
+            "description": "file:line, or a route plus a component id."
+          },
+          "rule": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The invariant id or statute section the violation offends."
+          },
+          "expected": {
+            "type": "string",
+            "minLength": 1
+          },
+          "actual": {
+            "type": "string",
+            "minLength": 1
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["fatal", "warning", "informational"],
+            "default": "fatal"
+          }
+        }
+      }
+    },
+    "inputs_digest": {
+      "$ref": "#/$defs/sha256",
+      "description": "Digest over every input the check read, so a result can be tied to the state it was produced from."
+    },
+    "digest": {
+      "$ref": "#/$defs/sha256",
+      "description": "Digest of the check's own normalised output. This is the value a warrant cites."
+    },
+    "designpack_digest": {
+      "$ref": "#/$defs/sha256",
+      "description": "The designpack digest in force when the check ran, from .vds/designpack.lock."
+    },
+    "captured_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "capture_mode": {
+      "type": "string",
+      "const": "automatic",
+      "description": "Fixed. A record claiming any other capture mode is not a proof (VDS S-7(2)(5))."
+    },
+    "invoked_by": {
+      "type": "string",
+      "enum": [
+        "githook_pre_commit",
+        "githook_pre_push",
+        "ci_workflow",
+        "package_script",
+        "build",
+        "manual"
+      ],
+      "description": "manual is recorded honestly and does not satisfy VDS S-7(2)(3)."
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "passed"
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "exit_code": {
+            "const": 0
+          },
+          "rows_enforced": {
+            "minimum": 1
+          },
+          "violations": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "vacuous"
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "rows_enforced": {
+            "const": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "failed"
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "exit_code": {
+            "minimum": 1
+          },
+          "violations": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "exit_code": {
+            "const": 0
+          },
+          "rows_enforced": {
+            "const": 0
+          }
+        },
+        "required": ["exit_code", "rows_enforced"]
+      },
+      "then": {
+        "properties": {
+          "status": {
+            "const": "vacuous"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vds.local/schema/enforcement-lock-entry.schema.json",
+  "title": "VDS enforcement lock entry",
+  "description": "One pinned proof script and the wiring that makes it enforcement. Governed by VDS S-8. The lock is held OUTSIDE the scripts it witnesses, so a weakening edit bumps a digest and trips a blocking finding rather than passing under its own possibly weakened logic. An entry cannot be written without naming the test that proves the script's FAILING direction, which is how VDS S-7(2)(2) is made structural rather than aspirational.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "path",
+    "digest",
+    "kind",
+    "invoked_by",
+    "proves",
+    "failing_direction_test",
+    "pinned_at",
+    "pinned_by"
+  ],
+  "properties": {
+    "path": {
+      "type": "string",
+      "pattern": "^[^/].*$",
+      "minLength": 1,
+      "description": "Repository-relative path, no leading slash. This is the file whose bytes are witnessed."
+    },
+    "digest": {
+      "$ref": "#/$defs/sha256",
+      "description": "sha256 of the file at pin time. Any difference is a fatal drift finding (VDS S-8(4))."
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "proof_script",
+        "ledger_generator",
+        "hook",
+        "schema",
+        "config"
+      ]
+    },
+    "invoked_by": {
+      "type": "array",
+      "minItems": 1,
+      "description": "What runs this script that is not the author choosing to run it (VDS S-7(2)(3)). An empty array is not representable, because an uninvoked gate is not enforcement.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["surface", "ref"],
+        "properties": {
+          "surface": {
+            "type": "string",
+            "enum": [
+              "githook_pre_commit",
+              "githook_pre_push",
+              "ci_workflow",
+              "package_script",
+              "build"
+            ]
+          },
+          "ref": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The exact invocation site, for example \".githooks/pre-push:106\" or \".github/workflows/ci.yml#design-gates\"."
+          },
+          "blocking": {
+            "type": "boolean",
+            "default": true,
+            "description": "False records honestly that this surface reports without blocking. A non-blocking surface alone does not satisfy VDS S-7(2)(3)."
+          }
+        }
+      }
+    },
+    "proves": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": [
+          "register_completeness",
+          "reconciliation",
+          "composition",
+          "contrast",
+          "states",
+          "parity",
+          "token_pin",
+          "retirement_drain",
+          "ledger_staleness",
+          "no_stored_values"
+        ]
+      },
+      "description": "The proof kinds this script produces. A script that produces no kind in the closed registry may not be pinned (VDS S-7(5))."
+    },
+    "failing_direction_test": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "test_name"],
+      "description": "The test that seeds a violation against a fixture and asserts the non-zero exit. Without it the script has proven only its happy path (VDS S-7(2)(2)).",
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^[^/].*$"
+        },
+        "test_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seeds": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What violation the test seeds, in one line, so a reviewer can tell whether the seeded violation is the one that matters."
+        }
+      }
+    },
+    "pinned_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "pinned_by": {
+      "type": "string",
+      "minLength": 1
+    },
+    "relock_rationale": {
+      "type": ["string", "null"],
+      "description": "Required when re-pinning after a deliberate gate change. Re-locking without recording why, and without self-filing under VDS S-12(3), is itself the breach the lock exists to make visible.",
+      "maxLength": 600
+    },
+    "supersedes_digest": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The digest this entry replaced, so a weakening re-lock is readable as a diff rather than as a fresh fact."
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "supersedes_digest": {
+            "type": "string"
+          }
+        },
+        "required": ["supersedes_digest"]
+      },
+      "then": {
+        "required": ["relock_rationale"],
+        "properties": {
+          "relock_rationale": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  ]
+}
