@@ -164,6 +164,28 @@ pub enum NameSource {
     NoneDecorative,
 }
 
+impl NameSource {
+    /// The wire form. Written out rather than derived from `Debug`, because
+    /// lowercasing `NoneDecorative` gives `nonedecorative`, which is not the
+    /// value the contract publishes and is not a word.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            NameSource::Children => "children",
+            NameSource::AriaLabel => "aria_label",
+            NameSource::AriaLabelledby => "aria_labelledby",
+            NameSource::Title => "title",
+            NameSource::Alt => "alt",
+            NameSource::NoneDecorative => "none_decorative",
+        }
+    }
+}
+
+impl std::fmt::Display for NameSource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct KeyboardContract {
@@ -201,6 +223,23 @@ pub enum FloorScope {
     Text,
     GraphicalObject,
     Decoration,
+}
+
+impl FloorScope {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            FloorScope::ControlBoundary => "control_boundary",
+            FloorScope::Text => "text",
+            FloorScope::GraphicalObject => "graphical_object",
+            FloorScope::Decoration => "decoration",
+        }
+    }
+}
+
+impl std::fmt::Display for FloorScope {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
 }
 
 /// How many routes consume this component. Measured, never estimated
@@ -486,6 +525,35 @@ mod tests {
             serde_json::from_value::<ComponentRecord>(value).is_err(),
             "an unknown field is where a realisation would smuggle itself in"
         );
+    }
+
+    #[test]
+    fn every_enum_as_str_matches_its_wire_form() {
+        for source in [
+            NameSource::Children,
+            NameSource::AriaLabel,
+            NameSource::AriaLabelledby,
+            NameSource::Title,
+            NameSource::Alt,
+            NameSource::NoneDecorative,
+        ] {
+            assert_eq!(
+                serde_json::to_string(&source).unwrap(),
+                format!("\"{}\"", source.as_str()),
+                "as_str and the wire form must not drift"
+            );
+        }
+        for scope in [
+            FloorScope::ControlBoundary,
+            FloorScope::Text,
+            FloorScope::GraphicalObject,
+            FloorScope::Decoration,
+        ] {
+            assert_eq!(
+                serde_json::to_string(&scope).unwrap(),
+                format!("\"{}\"", scope.as_str())
+            );
+        }
     }
 
     #[test]

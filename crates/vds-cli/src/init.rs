@@ -61,7 +61,12 @@ fn check_identifier(field: &str, value: &str) -> Result<()> {
 }
 
 pub fn run(ctx: &Context, args: &Args) -> Result<i32> {
+    // Canonicalise before reading the directory name. `--root .` has no file
+    // name, and the retired behaviour was to fall back to a placeholder, so a
+    // project initialised from its own directory was called "project" in every
+    // record it ever wrote.
     let root = ctx.init_root()?;
+    let root = root.canonicalize().unwrap_or(root);
     let vds_dir = root.join(vds_core::project::VDS_DIR);
     let config_path = vds_dir.join(vds_core::project::CONFIG_FILE);
 
@@ -77,7 +82,12 @@ pub fn run(ctx: &Context, args: &Args) -> Result<i32> {
     let directory_name = root
         .file_name()
         .and_then(|n| n.to_str())
-        .unwrap_or("project")
+        .ok_or_else(|| {
+            VdsError::precondition(
+                "could not read a directory name from the project root, so there is nothing to \
+                 name the jurisdiction after. Pass --jurisdiction and --repo-code explicitly.",
+            )
+        })?
         .to_owned();
     let jurisdiction = args.jurisdiction.clone().unwrap_or_else(|| directory_name.clone());
     let repo_code = args

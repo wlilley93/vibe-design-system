@@ -22,6 +22,7 @@ use clap::{Parser, Subcommand};
 use vds_core::{EXIT_PASSED, EXIT_PRECONDITION, Result, VdsError};
 
 mod doctor;
+mod figma;
 mod init;
 mod ledger;
 mod lock;
@@ -74,6 +75,13 @@ enum Command {
     Schema(schema::Args),
     /// Measure this project against the done criteria, without flattering it.
     Doctor(doctor::Args),
+    /// Read the decided-target Figma file into a ledger.
+    Figma(figma::FigmaArgs),
+    /// Emit the design brief: what an agent generating into Figma may draw.
+    Brief(figma::BriefArgs),
+    /// Emit one component's implementation contract: what the drawing must
+    /// become in code.
+    Impl(figma::ImplArgs),
 }
 
 fn main() -> ExitCode {
@@ -106,6 +114,9 @@ fn dispatch(cli: &Cli) -> Result<i32> {
         Command::Pack(args) => pack::run(&ctx, args),
         Command::Schema(args) => schema::run(&ctx, args),
         Command::Doctor(args) => doctor::run(&ctx, args),
+        Command::Figma(args) => figma::run_figma(&ctx, args),
+        Command::Brief(args) => figma::run_brief(&ctx, args),
+        Command::Impl(args) => figma::run_impl(&ctx, args),
     }
 }
 

@@ -13,6 +13,7 @@ vds-scan.workspace = true
 vds-store.workspace = true
 vds-proof.workspace = true
 vds-designpack.workspace = true
+vds-figma.workspace = true
 clap.workspace = true
 serde.workspace = true
 serde_json.workspace = true

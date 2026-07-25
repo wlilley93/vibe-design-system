@@ -1,0 +1,20 @@
+[package]
+name = "vds-figma"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "VDS Figma seam: the decided-target ledger, the generation brief and the implementation contract."
+
+[dependencies]
+vds-core.workspace = true
+vds-store.workspace = true
+vds-scan.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

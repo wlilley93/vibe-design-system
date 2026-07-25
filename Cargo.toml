@@ -5,6 +5,7 @@ members = [
     "crates/vds-designpack",
     "crates/vds-store",
     "crates/vds-scan",
+    "crates/vds-figma",
     "crates/vds-proof",
     "crates/vds-cli",
     "crates/vds-testkit",
@@ -22,6 +23,7 @@ vds-core = { path = "crates/vds-core" }
 vds-designpack = { path = "crates/vds-designpack" }
 vds-store = { path = "crates/vds-store" }
 vds-scan = { path = "crates/vds-scan" }
+vds-figma = { path = "crates/vds-figma" }
 vds-proof = { path = "crates/vds-proof" }
 vds-testkit = { path = "crates/vds-testkit" }
 

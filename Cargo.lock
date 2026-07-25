@@ -765,6 +765,7 @@ dependencies = [
  "thiserror",
  "vds-core",
  "vds-designpack",
+ "vds-figma",
  "vds-proof",
  "vds-scan",
  "vds-store",
@@ -800,6 +801,20 @@ dependencies = [
  "vds-core",
  "vds-testkit",
  "walkdir",
+]
+
+[[package]]
+name = "vds-figma"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "tempfile",
+ "thiserror",
+ "vds-core",
+ "vds-scan",
+ "vds-store",
 ]
 
 [[package]]
