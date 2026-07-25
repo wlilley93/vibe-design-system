@@ -1,0 +1,60 @@
+id: DECISION-0003
+at: 2026-07-25T15:10:00Z
+by: lexby
+decision: >-
+  Close the preimage limb of VDS S-2(8) limb 2 by enumerating the S-2(9) candidate
+  space against every sha256, sha1 and md5 digest harvested from the record, add it
+  to crates/vds-proof/src/no_stored_values.rs as rule R10, and re-pin that gate.
+court_required: false
+why: >-
+  It TIGHTENS and exempts nothing, which is the whole test for a decisive call. The
+  gate previously declared, on every record it captured, that a design value stored
+  as a digest of itself was not reached by the run and would pass it. That is not a
+  hypothetical form: it is the exact form the first token pin leaked in, because
+  VDS S-2(7) as originally drafted REQUIRED a pin to carry source_value_digest and
+  target_value_digest and called them what keeps the pin a gate rather than a store.
+  An adversarial reading recovered all 52 values from a 26-row pin in 27 seconds on
+  one core. The clause mandated the storing form it forbade, and the guard specified
+  to catch that would have certified it clean, because the guard greps for colour
+  literals and a digest is not a literal.
+
+  A rule the record admits it does not enforce is worth less than no rule, because a
+  reader takes a pass as a pass. So the guard now runs the recovery the attacker ran:
+  65,334,666 candidates (every 24-bit hex colour in four spellings, the three- and
+  four-digit forms, the 148 named colours, CSS lengths from -200 to 2000 at three
+  precisions, durations, easing keywords and generic families) streamed past the
+  digests found in the tree. Measured on the real record: 0.775 seconds wall for the
+  whole proof, 347 digest-shaped runs harvested, 89 distinct, zero recovered.
+
+  Three design points are load-bearing and each is a decision in its own right.
+
+  First, the harvested set is held and the candidate space is STREAMED, not the
+  other way round. A table from candidate digest to value needs two to three
+  gigabytes; a gate may not cost that.
+
+  Second, the space is sharded across cores and every part of the result is proved
+  independent of the shard count, because VDS S-7(2)(1) requires a re-runnable check
+  and a record whose numbers move with the machine is not one.
+
+  Third, sha2, sha1, md-5 and vds-proof are compiled with optimisation in the DEBUG
+  profile. Unoptimised, the sweep is five minutes and `cargo test` becomes something
+  nobody runs. A gate whose cost makes it unrunnable during development is a gate
+  that gets commented out, and a commented-out gate is the state VDS S-1(4) records
+  as the origin of both founding defects.
+
+  What is still not reached is named in the record rather than glossed: a salted
+  digest, an HMAC, a digest of a value concatenated with anything, an iterated or
+  key-derived digest, and the eight-digit hex colour with an alpha channel, whose
+  2^32 domain would add twenty seconds to every run. The note now says "discharges"
+  where it said "does not", and it still names all of that, because a note that
+  changed from an admission into an unqualified claim would be the overclaim about
+  the enforcement surface that VDS S-8(5) forbids.
+basis:
+  - VDS S-2(7)
+  - VDS S-2(8)
+  - VDS S-2(9)
+  - VDS S-7(2)(1)
+  - VDS S-7(2)(2)
+  - VDS S-8(4)
+  - VDS S-8(5)
+  - VDS S-12(3)

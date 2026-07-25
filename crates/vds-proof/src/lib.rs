@@ -19,6 +19,7 @@ pub mod composition;
 pub mod index;
 pub mod ledger_staleness;
 pub mod no_stored_values;
+pub mod preimage;
 pub mod reconciliation;
 pub mod register_completeness;
 pub mod retirement_drain;

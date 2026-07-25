@@ -38,6 +38,8 @@ regex = "1"
 walkdir = "2"
 schemars = "0.8"
 sha2 = "0.10"
+sha1 = "0.10"
+md-5 = "0.10"
 hex = "0.4"
 clap = { version = "4", features = ["derive"] }
 toml = "0.8"
@@ -46,3 +48,22 @@ tempfile = "3"
 [profile.release]
 opt-level = 3
 lto = true
+
+# The preimage limb of `no_stored_values` (VDS S-2(8) limb 2) enumerates about 65
+# million candidate strings and digests each one. Unoptimised, that is five
+# minutes and `cargo test` becomes something nobody runs; optimised it is a
+# fraction of a second. So these four packages carry optimisation into the debug
+# profile too.
+#
+# This is not a convenience. A gate whose cost makes it unrunnable during
+# development is a gate that gets commented out, and a commented-out gate is the
+# state VDS S-1(4) records as the origin of both founding defects. The rest of the
+# workspace stays unoptimised and debuggable.
+[profile.dev.package.sha2]
+opt-level = 3
+[profile.dev.package.sha1]
+opt-level = 3
+[profile.dev.package.md-5]
+opt-level = 3
+[profile.dev.package.vds-proof]
+opt-level = 3

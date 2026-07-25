@@ -34,6 +34,10 @@
 //!       limb 2. The limb that matters, because a digest is not a literal and
 //!       the literal limb on its own certified the leaking token pin clean.
 //!   R9  a file this scan cannot decode as text, and therefore cannot certify
+//!   R10 a realisation recovered from a ONE-WAY transform: a digest in the
+//!       record whose preimage is a design value. See [`crate::preimage`]. This
+//!       is the form the first token pin leaked in, and until it was written
+//!       every record this proof captured declared it undischarged.
 //!   W1  a symlink, which is counted, not followed, and reported
 //!
 //! ## Two decisions that shape everything below
@@ -69,6 +73,7 @@ use vds_core::{ProofKind, Result, VdsError, Violation};
 use walkdir::WalkDir;
 
 use crate::ProofContext;
+use crate::preimage;
 use crate::run::{Outcome, ProofRun, Verdict};
 
 pub const GATE: &str = "crates/vds-proof/src/no_stored_values.rs";
@@ -89,6 +94,8 @@ const RULE_ENCODED: &str =
     "VDS S-2(8) limb 2 R8: a design value recovered from a reversible encoding under the record";
 const RULE_UNREADABLE: &str =
     "VDS S-3(9) R9: a record this scan cannot decode as text, and therefore cannot certify";
+const RULE_PREIMAGE: &str = "VDS S-2(8) limb 2 R10: a design value recovered from a ONE-WAY transform, by enumerating \
+     the VDS S-2(9) candidate space against a digest held in the record";
 const RULE_MANY: &str =
     "VDS S-2(8): one file holds more realisations than this record lists individually";
 const RULE_SYMLINK: &str =
@@ -133,15 +140,24 @@ pub const IGNORED_NOTE: &str = "[scope] every file under the record is scanned e
      in this record. They are also not recorded as inputs, because a write to a scratch \
      directory must not move the evidence digest a warrant cites.";
 
-/// The gap that decides whether this proof is honest, stated where a reader of
-/// the record will see it rather than in a comment only the author reads.
-pub const PREIMAGE_NOTE: &str = "[undischarged] this run discharges VDS S-2(8) limb 1 in full, and limb 2 only for the \
-     REVERSIBLE transforms: a hexadecimal or base64 encoding is decoded and re-tested. It does \
-     NOT discharge limb 2 for the one-way transforms. It does not enumerate the VDS S-2(9) \
-     candidate space against the sha256, sha1 and md5 digests harvested from the tree, so a \
-     design value stored as a digest of itself is NOT reached by this run and would pass it. \
-     That is the exact form the first token pin leaked in, so any warrant citing this proof must \
-     record the preimage limb as undischarged (VDS S-6(3)).";
+/// What the preimage limb now reaches, and what it still does not.
+///
+/// Stated where a reader of the RECORD will see it rather than in a comment only
+/// the author reads. This note said "undischarged" for as long as the limb was,
+/// and the sentence it used to carry is kept below, because a note that quietly
+/// changed from an admission to a claim would leave a warrant citing the old
+/// wording with no way to tell which run it relied on.
+pub const PREIMAGE_NOTE: &str = "[preimage] this run discharges VDS S-2(8) limb 1 in full, and limb 2 for BOTH the reversible \
+     and the one-way transforms. A hexadecimal or base64 encoding is decoded and re-tested (R8), \
+     and every sha256, sha1 and md5 digest harvested from the record is tested against the VDS \
+     S-2(9) candidate space by enumerating it (R10), which is the recovery that took 27 seconds \
+     against the first token pin. What limb 2 still does NOT reach is a SALTED digest, an HMAC, \
+     a digest of a value concatenated with anything, an iterated or key-derived digest, and a \
+     digest of a value spelled outside the enumerated space - the largest named omission being \
+     the eight-digit hex colour with an alpha channel, whose 2^32 domain would add twenty \
+     seconds to every run. A warrant citing this proof may rely on the preimage limb for the \
+     plain digest of a plain value and must not describe it as covering the salted forms \
+     (VDS S-6(3)).";
 
 pub const PATTERN_FLOOR_NOTE: &str = "[reach] the pattern set is a floor and is named in the gate: colour literals in the \
      hash-sigil form, the CSS colour functions, numbers carrying a CSS length or time unit, \
@@ -175,8 +191,15 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
     run.note(PROSE_NOTE);
     run.note(IGNORED_NOTE);
     run.note(PREIMAGE_NOTE);
+    run.note(preimage::SPACE_NOTE);
     run.note(PATTERN_FLOOR_NOTE);
     run.note(SELF_SUBJECT_NOTE);
+
+    // Every digest-shaped run in the record, gathered across the whole walk and
+    // swept ONCE at the end. The sweep costs one pass of the candidate space
+    // however many digests it is looking for, so sweeping per file would pay that
+    // pass once per file for no extra reach.
+    let mut sites: Vec<preimage::Site> = Vec::new();
 
     for path in entries(&root, project)? {
         let location = project.rel(&path);
@@ -223,9 +246,83 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
 
         let text = String::from_utf8_lossy(&bytes);
         report(&mut run, &location, &text, &patterns);
+        if sites.len() < MAX_DIGEST_SITES {
+            sites.extend(preimage::harvest(&location, &text));
+        }
     }
 
+    report_preimage(&mut run, &sites);
+
     run.finish(&ctx.capture_options()?, out)
+}
+
+/// The most digests one run will sweep for.
+///
+/// Not a performance guard: the sweep costs one pass whatever the target count
+/// is, and a hash-set lookup per candidate per distinct digest is the only thing
+/// that grows. It is a memory guard against a pathological tree, and it is loud:
+/// exceeding it is a fatal finding, because a run that quietly swept part of the
+/// record would report a pass over a tree it did not read.
+const MAX_DIGEST_SITES: usize = 200_000;
+
+/// Run the preimage limb and report what it recovered, and what it searched.
+///
+/// The second half matters as much as the first. A limb that reported only its
+/// findings would be indistinguishable from one that enumerated nothing, and this
+/// note is the whole reason `PREIMAGE_NOTE` may now say "discharges" where it
+/// used to say "does not".
+fn report_preimage(run: &mut ProofRun, sites: &[preimage::Site]) {
+    if sites.len() >= MAX_DIGEST_SITES {
+        run.fail(Violation::fatal(
+            ".vds/".to_owned(),
+            RULE_PREIMAGE,
+            "a record holding few enough digests that every one of them can be tested against \
+             the candidate space in one run.",
+            format!(
+                "at least {MAX_DIGEST_SITES} digest-shaped runs, which is where this scan stops \
+                 collecting. The digests beyond that point were NOT tested, so this run does not \
+                 certify them and the preimage limb is undischarged for this tree."
+            ),
+        ));
+    }
+
+    let sweep = preimage::sweep(sites);
+    run.note(format!(
+        "[preimage-run] {} digest-shaped runs harvested, {} distinct, tested against {} \
+         enumerated candidates under {}. A digest whose preimage is a design value is a stored \
+         design value (VDS S-2(7)).",
+        sweep.sites_tested,
+        sweep.distinct_digests,
+        sweep.candidates_enumerated,
+        if sweep.algorithms.is_empty() {
+            "no algorithm, because the record holds no digest".to_owned()
+        } else {
+            sweep
+                .algorithms
+                .iter()
+                .map(|a| a.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+        }
+    ));
+
+    for found in &sweep.recovered {
+        let site = &sites[found.site];
+        run.fail(Violation::fatal(
+            format!("{}:{}:{}", site.location, site.line, site.column),
+            RULE_PREIMAGE,
+            EXPECTED_REALISATION,
+            format!(
+                "{}, recovered from the {} digest at this position by enumerating {} candidates. \
+                 A digest of a low-entropy value IS that value (VDS S-2(7)); this one took a \
+                 fraction of a second. Neither the value nor a narrower description of it is \
+                 repeated here; see the redaction note.",
+                found.class,
+                site.algo.as_str(),
+                sweep.candidates_enumerated
+            ),
+        ));
+    }
 }
 
 /// Every non-directory entry under the record, sorted.
@@ -347,7 +444,7 @@ struct Patterns {
 /// never produce a length or duration match, and the test
 /// `no_unit_is_spelled_from_the_hexadecimal_alphabet` holds the property in
 /// place if the list is ever extended.
-const LENGTH_UNITS: &[&str] = &[
+pub(crate) const LENGTH_UNITS: &[&str] = &[
     "px", "rem", "em", "ex", "ch", "vh", "vw", "vmin", "vmax", "pt", "pc", "cm", "mm", "in",
 ];
 
@@ -808,6 +905,70 @@ mod tests {
         assert!(text.contains(".vds/register/CMP-0001.yaml"), "{text}");
     }
 
+    /// The failing-direction test for R10, and the one that decides whether the
+    /// preimage limb is really closed.
+    ///
+    /// It stores the colour in the form VDS S-2(7) as drafted REQUIRED: not the
+    /// literal, which the test above already catches, but the sha256 of it, under
+    /// a field name that gives nothing away. Every other rule in this proof passes
+    /// this record. A 64-character hexadecimal string carries no hash sigil, no
+    /// unit, no easing keyword and no font family, and `value_digest` is not in
+    /// the closed list of realisation field names. Before R10 existed, this exact
+    /// record was certified clean, which is how the leak got into the
+    /// specification in the first place.
+    #[test]
+    fn no_stored_values_fails_on_a_colour_stored_as_a_digest_of_itself() {
+        use sha2::{Digest as _, Sha256};
+
+        let h = Harness::new();
+        let id = h.register("Button", Status::Registered);
+        let digest = hex::encode(Sha256::digest(b"#ebebeb"));
+        h.amend(&id, |record| {
+            record.notes = Some(format!("value_digest: {digest}"))
+        });
+
+        let (outcome, text) = run_kind(&h, ProofKind::NoStoredValues);
+        assert_eq!(
+            outcome.exit_code, EXIT_VIOLATION,
+            "a colour stored as its own digest passed the scan, which is the exact form the \
+             first token pin leaked in: {text}"
+        );
+        assert_eq!(outcome.status, ProofStatus::Failed);
+        assert!(text.contains("R10"), "{text}");
+        assert!(text.contains("a hex colour"), "{text}");
+        assert!(text.contains(".vds/register/CMP-0001.yaml"), "{text}");
+    }
+
+    /// The other half of R10, and the half that keeps it switched on.
+    ///
+    /// Every proof record VDS captures is full of sha256 digests: an
+    /// `inputs_digest`, an `evidence_digest`, a per-input digest for every file
+    /// read, the designpack digest. If any of those were reported as a recovered
+    /// design value, the proof would fail on its own output the first time it ran
+    /// and the rule would last a day.
+    #[test]
+    fn the_digests_vds_writes_itself_are_not_reported_as_recovered_values() {
+        let h = Harness::new();
+        h.screen("dash", &["Button"]);
+        h.register("Button", Status::Registered);
+        h.ledger();
+
+        // Run once to capture a record, then again so the second run scans the
+        // first run's digests.
+        let (first, _) = run_kind(&h, ProofKind::NoStoredValues);
+        assert_eq!(first.exit_code, EXIT_PASSED);
+        let (second, text) = run_kind(&h, ProofKind::NoStoredValues);
+        assert_eq!(
+            second.exit_code, EXIT_PASSED,
+            "the preimage limb fired on a digest this proof wrote itself: {text}"
+        );
+        assert!(
+            text.contains("digest-shaped runs harvested"),
+            "the run must report what it searched, or a limb that searched nothing looks \
+             identical to one that found nothing: {text}"
+        );
+    }
+
     /// VDS S-7(2)(4). Nothing scannable in scope is recorded as vacuous and
     /// never as passed, even though every row was accounted for.
     ///
@@ -1169,17 +1330,44 @@ mod tests {
         );
     }
 
-    /// VDS S-2(8) limb 2 is the limb that decides whether this proof is honest,
-    /// and this run only discharges the reversible half of it. The gap is in the
-    /// captured record, so a warrant cannot cite this proof without meeting it.
+    /// VDS S-2(8) limb 2 is the limb that decides whether this proof is honest.
+    /// Both halves of it are now discharged, and the record has to say so in a
+    /// way that still names what is out of reach, because a note that changed
+    /// from an admission into an unqualified claim would be the overclaim about
+    /// the enforcement surface that VDS S-8(5) forbids.
     #[test]
-    fn the_run_records_the_limb_it_does_not_discharge() {
+    fn the_run_records_what_the_limb_reaches_and_what_it_does_not() {
         let h = Harness::new();
         run_kind(&h, ProofKind::NoStoredValues);
         let record = h.last_proof(ProofKind::NoStoredValues);
+
+        let preimage = record
+            .notes
+            .iter()
+            .find(|n| n.starts_with("[preimage]"))
+            .unwrap_or_else(|| panic!("no preimage note: {:?}", record.notes));
         assert!(
-            record.notes.iter().any(|n| n.contains("undischarged")),
-            "{:?}",
+            preimage.contains("BOTH the reversible and the one-way"),
+            "{preimage}"
+        );
+        for out_of_reach in ["SALTED", "HMAC", "eight-digit hex colour"] {
+            assert!(
+                preimage.contains(out_of_reach),
+                "the note stopped naming {out_of_reach} as out of reach, so a reader would take \
+                 the limb as covering more than it does: {preimage}"
+            );
+        }
+
+        assert!(
+            record.notes.iter().any(|n| n.starts_with("[preimage-run]")),
+            "the run must record what it SEARCHED and not only what it found, or a limb that \
+             enumerated nothing is indistinguishable from one that found nothing: {:?}",
+            record.notes
+        );
+        assert!(
+            record.notes.iter().any(|n| n.starts_with("[space]")),
+            "the candidate space has to be described in the record, or a reader cannot tell \
+             what a pass covered without reading the gate: {:?}",
             record.notes
         );
         assert!(

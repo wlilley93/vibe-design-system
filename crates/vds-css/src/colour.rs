@@ -140,8 +140,11 @@ impl Colour {
     /// `f64::clamp` would propagate it into every later measurement.
     pub fn new(r: f64, g: f64, b: f64, alpha: f64) -> Result<Self, ColourError> {
         if !(r.is_finite() && g.is_finite() && b.is_finite() && alpha.is_finite()) {
+            // Named for the constructor rather than for `rgb()`, because a caller
+            // building a colour by hand needs to be told where the NaN was caught, not
+            // pointed at a function it never called.
             return Err(ColourError::NonFiniteComponent {
-                function: "rgb".to_string(),
+                function: "Colour::new".to_string(),
             });
         }
         Ok(Colour {
@@ -573,7 +576,8 @@ pub enum ColourError {
     /// A component that parsed as a number but is not finite.
     #[error("a component of `{function}()` is not a finite number")]
     NonFiniteComponent {
-        /// The function name, lowercased.
+        /// The colour function it appeared in, lowercased, or the constructor that
+        /// caught it.
         function: String,
     },
 
@@ -1214,8 +1218,8 @@ enum MixSpace {
 /// not a detail. `color-mix(in srgb, red 6%, transparent)` is red at alpha 0.06;
 /// interpolated without premultiplying it would be a near-black at alpha 0.06, and
 /// over white those two composite to `#fff0f0` and `#f1f1f1`, which are a different
-/// hue and a different luminance. Thirty-odd of the subject stylesheet's mixes have
-/// `transparent` as an operand, so this is the common case, not the corner.
+/// hue and a different luminance. Forty-five of the subject stylesheet's fifty-nine
+/// mixes have `transparent` as an operand, so this is the common case, not the corner.
 fn parse_color_mix(inner: &str, depth: u32) -> Result<Colour, ColourError> {
     let function = "color-mix";
     let malformed = |detail: String| ColourError::MalformedFunction {
@@ -1230,16 +1234,19 @@ fn parse_color_mix(inner: &str, depth: u32) -> Result<Colour, ColourError> {
         )));
     }
 
+    // Split rather than strip a `"in "` prefix, because CSS keywords are ASCII
+    // case-insensitive and `In srgb` is as valid as `in srgb`.
     let space_text = parts[0].trim();
-    let Some(rest) = space_text
-        .strip_prefix("in ")
-        .or_else(|| space_text.strip_prefix("IN "))
-    else {
+    let space_tokens = split_top_level_whitespace(space_text);
+    let names_a_space = space_tokens
+        .first()
+        .is_some_and(|first| first.eq_ignore_ascii_case("in"));
+    if !names_a_space || space_tokens.len() < 2 {
         return Err(malformed(format!(
             "`{space_text}` does not name an interpolation space"
         )));
-    };
-    let space_name = rest.trim().to_ascii_lowercase();
+    }
+    let space_name = space_tokens[1..].join(" ").to_ascii_lowercase();
     // A hue interpolation method (`in oklch shorter hue`) only applies to polar
     // spaces, none of which are implemented, so any extra token lands in the same
     // refusal and is named in full rather than silently ignored.
@@ -2138,6 +2145,28 @@ mod tests {
                 space: "hsl longer hue".to_string()
             }
         );
+    }
+
+    /// CSS keywords are ASCII case-insensitive, and a stylesheet that writes `In sRGB`
+    /// paints the same pixels as one that writes `in srgb`.
+    #[test]
+    fn the_interpolation_space_keyword_is_case_insensitive() {
+        assert_eq!(
+            parsed("color-mix(In sRGB, white, black)").to_css_hex(),
+            "#808080"
+        );
+    }
+
+    #[test]
+    fn a_mix_without_an_interpolation_space_is_refused() {
+        assert!(matches!(
+            parse("color-mix(red, blue)"),
+            Err(ColourError::MalformedFunction { .. })
+        ));
+        assert!(matches!(
+            parse("color-mix(in, red, blue)"),
+            Err(ColourError::MalformedFunction { .. })
+        ));
     }
 
     #[test]

@@ -1,5 +1,5 @@
 schema_version: 1
-generated_at: 2026-07-25T14:29:24Z
+generated_at: 2026-07-25T14:59:26Z
 entries:
 - path: crates/vds-proof/src/composition.rs
   digest: sha256:f0265e72bed6a05c7f524a93e2aad3990739fd48208699032ccb0413d323a078
@@ -38,7 +38,7 @@ entries:
   pinned_at: 2026-07-25T13:58:22Z
   pinned_by: jellytot
 - path: crates/vds-proof/src/no_stored_values.rs
-  digest: sha256:e12a2e738f70917e4eaacdd4425bdad45391f98d780fecb16c704d204597b405
+  digest: sha256:3436e78174fd5dceb6241756eb8fc8117cd52959595c7d825f81893085cf1fd5
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -53,8 +53,30 @@ entries:
     path: crates/vds-proof/src/no_stored_values.rs
     test_name: no_stored_values_fails_on_a_hex_colour_in_a_register_record
     seeds: a hex colour literal written into a register record
-  pinned_at: 2026-07-25T13:58:22Z
+  pinned_at: 2026-07-25T14:59:26Z
   pinned_by: jellytot
+  supersedes_digest: sha256:2e8ee2b2ef96e88880238268b7e7ddba59e37bc06f35767475f30fb536cfeea0
+  relock_rationale: 'R10: the preimage limb of VDS S-2(8) limb 2 is now discharged. no_stored_values.rs gains rule R10 and a rewritten PREIMAGE_NOTE; crates/vds-proof/src/preimage.rs is a new gate and is pinned for the first time, since the logic deciding what counts as a recovered design value lives there and an unwitnessed gate can be weakened without tripping a finding. Recorded at .vds/logs/decisions/DECISION-0003.yaml (VDS S-8(4), S-12(3)).'
+- path: crates/vds-proof/src/preimage.rs
+  digest: sha256:fcfcab1fcbed2616823fa040d824fa45819ae9f28a4745a39b345f9099d7d720
+  kind: proof_script
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Proofs
+    blocking: true
+  - surface: package_script
+    reference: make gates
+    blocking: true
+  proves:
+  - no_stored_values
+  failing_direction_test:
+    path: crates/vds-proof/src/preimage.rs
+    test_name: the_recovery_that_broke_the_first_pin_is_the_recovery_this_gate_runs
+    seeds: the sha256 of a hex colour, a length, a duration, an easing keyword and a generic font family, each of which must be recovered from its digest, alongside fifteen digests VDS writes itself which must not be
+  pinned_at: 2026-07-25T14:57:58Z
+  pinned_by: jellytot
+  supersedes_digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+  relock_rationale: 'R10: the preimage limb of VDS S-2(8) limb 2 is now discharged. no_stored_values.rs gains rule R10 and a rewritten PREIMAGE_NOTE; crates/vds-proof/src/preimage.rs is a new gate and is pinned for the first time, since the logic deciding what counts as a recovered design value lives there and an unwitnessed gate can be weakened without tripping a finding. Recorded at .vds/logs/decisions/DECISION-0003.yaml (VDS S-8(4), S-12(3)).'
 - path: crates/vds-proof/src/reconciliation.rs
   digest: sha256:41310adbc73c2d0cff2a649ecd96dfa4b6057a29dbe51e653f9d6e0a18b602b3
   kind: proof_script

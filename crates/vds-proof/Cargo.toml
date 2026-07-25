@@ -19,6 +19,16 @@ regex.workspace = true
 walkdir.workspace = true
 thiserror.workspace = true
 
+# The preimage limb (VDS S-2(8) limb 2, one-way transforms). A digest of a
+# low-entropy design value IS that value, so the gate has to run the recovery an
+# attacker would run. sha1 and md5 are here because the limb names all three
+# algorithms, and closing two of the three would leave the note claiming a
+# discharge it had not made.
+sha2.workspace = true
+sha1.workspace = true
+md-5.workspace = true
+hex.workspace = true
+
 chrono.workspace = true
 
 [dev-dependencies]
