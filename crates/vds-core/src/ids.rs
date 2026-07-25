@@ -14,7 +14,7 @@ use std::fmt;
 use std::path::Path;
 
 use schemars::JsonSchema;
-use schemars::gen::SchemaGenerator;
+use schemars::r#gen::SchemaGenerator;
 use schemars::schema::Schema;
 use serde::{Deserialize, Serialize};
 

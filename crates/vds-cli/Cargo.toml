@@ -1,0 +1,24 @@
+[package]
+name = "vds-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "VDS CLI: the front door. A convenience door over one wall (VDS S-11(5))."
+
+[dependencies]
+vds-core.workspace = true
+vds-scan.workspace = true
+vds-store.workspace = true
+vds-proof.workspace = true
+vds-designpack.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+chrono.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+vds-testkit.workspace = true

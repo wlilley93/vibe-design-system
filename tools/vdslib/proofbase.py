@@ -13,6 +13,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from . import scan
 from .core import (
     EXIT_PRECONDITION,
     LIFECYCLE,

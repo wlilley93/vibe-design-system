@@ -10,7 +10,7 @@ use std::fmt;
 
 use chrono::{DateTime, SecondsFormat, TimeZone, Utc};
 use schemars::JsonSchema;
-use schemars::gen::SchemaGenerator;
+use schemars::r#gen::SchemaGenerator;
 use schemars::schema::Schema;
 use serde::{Deserialize, Serialize};
 

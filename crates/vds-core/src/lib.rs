@@ -74,37 +74,35 @@ mod tests {
     }
 
     #[test]
-    fn no_type_in_the_artefact_set_names_a_realisation() {
+    fn no_artefact_type_declares_a_property_that_is_a_realisation() {
         // A structural guard, not a style check. If someone adds a `colour`,
-        // `length`, `font`, `duration`, `radius`, `shadow` or `easing` field to
-        // an artefact type, `.vds/` has become a store and VDS S-2(2) is broken
-        // at the type level, before any file is written.
-        let generator = schemars::gen::SchemaSettings::draft2019_09().into_generator();
-        let mut generator = generator;
+        // `fontFamily`, `duration`, `radius`, `shadow` or `easing` property to an
+        // artefact type, `.vds/` has become a store and VDS S-2(2) is broken at
+        // the type level, before any file is written. Checking the GENERATED
+        // schema rather than the source means a property added through a nested
+        // struct is caught too.
+        let mut generator = schemars::r#gen::SchemaSettings::draft2019_09().into_generator();
         let schemas = [
-            serde_json::to_string(&generator.root_schema_for::<ComponentRecord>()).unwrap(),
-            serde_json::to_string(&generator.root_schema_for::<Warrant>()).unwrap(),
-            serde_json::to_string(&generator.root_schema_for::<ProofResult>()).unwrap(),
-            serde_json::to_string(&generator.root_schema_for::<Pin>()).unwrap(),
-            serde_json::to_string(&generator.root_schema_for::<Submission>()).unwrap(),
-            serde_json::to_string(&generator.root_schema_for::<LockEntry>()).unwrap(),
+            ("component-record", serde_json::to_string(&generator.root_schema_for::<ComponentRecord>()).unwrap()),
+            ("warrant", serde_json::to_string(&generator.root_schema_for::<Warrant>()).unwrap()),
+            ("proof-result", serde_json::to_string(&generator.root_schema_for::<ProofResult>()).unwrap()),
+            ("pin", serde_json::to_string(&generator.root_schema_for::<Pin>()).unwrap()),
+            ("submission", serde_json::to_string(&generator.root_schema_for::<Submission>()).unwrap()),
+            ("enforcement-lock-entry", serde_json::to_string(&generator.root_schema_for::<LockEntry>()).unwrap()),
         ];
-        // Property NAMES only: a description may legitimately say the word
+        // Property NAMES only. A description may legitimately use the word
         // "colour" while explaining why there is no colour field.
         let forbidden = [
-            "\"colour\"", "\"color\"", "\"hex\"", "\"rgb\"", "\"hsl\"", "\"oklch\"",
-            "\"fontFamily\"", "\"fontSize\"", "\"lineHeight\"", "\"letterSpacing\"",
-            "\"radius\"", "\"borderRadius\"", "\"shadow\"", "\"boxShadow\"",
-            "\"duration\"", "\"easing\"", "\"cubicBezier\"", "\"spacing\"", "\"px\"",
+            "colour", "color", "hex", "rgb", "hsl", "oklch", "fontFamily", "fontSize",
+            "lineHeight", "letterSpacing", "radius", "borderRadius", "shadow", "boxShadow",
+            "duration", "easing", "cubicBezier", "spacing", "px", "rem", "opacity",
         ];
-        for schema in &schemas {
-            let properties: Vec<&str> = schema.match_indices("\"properties\":{").map(|(_, s)| s).collect();
-            let _ = properties;
-            for name in forbidden {
+        for (name, schema) in &schemas {
+            for property in &forbidden {
                 assert!(
-                    !schema.contains(&format!("{name}:{{")),
-                    "an artefact type declares a property named {name}, which is a \
-                     realisation and forbidden by VDS S-2(4)"
+                    !schema.contains(&format!("\"{property}\":{{")),
+                    "{name} declares a property named {property:?}, which is a realisation \
+                     and forbidden by VDS S-2(4)"
                 );
             }
         }

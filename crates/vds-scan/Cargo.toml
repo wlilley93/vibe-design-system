@@ -1,0 +1,20 @@
+[package]
+name = "vds-scan"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "VDS scan: the generated screens and library ledgers, and their staleness tests."
+
+[dependencies]
+vds-core.workspace = true
+serde.workspace = true
+serde_yaml.workspace = true
+regex.workspace = true
+walkdir.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+vds-testkit.workspace = true
