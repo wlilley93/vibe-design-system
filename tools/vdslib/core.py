@@ -501,6 +501,16 @@ class ProofRun:
             print("", file=out)
             print(f"captured: {self.project.rel(path)} (capture_mode: automatic)", file=out)
             print(f"digest:   {record['digest']}", file=out)
+        else:
+            # Printed even when nothing is written, because re-running a check
+            # and comparing this line to a stored record is how a record already
+            # on disk is shown to be the output of a real run rather than typed.
+            print("", file=out)
+            print(
+                "digest:   "
+                + self._result_record(status, exit_code, "PROOF-00000000-000000")["digest"],
+                file=out,
+            )
         print(f"status:   {status}    exit: {exit_code}", file=out)
         return exit_code
 

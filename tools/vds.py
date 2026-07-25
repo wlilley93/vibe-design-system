@@ -818,16 +818,76 @@ def proof_core_digest(record: dict) -> str:
     return digest_of(core)
 
 
-def verify_proof_record(project: Project, proof_id: str, record: dict) -> dict:
+PROOF_DIGEST_LINE = re.compile(r"^digest:\s+(sha256:[0-9a-f]{64})\s*$", re.MULTILINE)
+
+
+def reexecute_proof(project: Project, script_path: Path, record: dict, where: str) -> None:
+    """Run the named check again and require the same digest (VDS S-7(2)(1)).
+
+    The script binding says which bytes were meant to have run. It does not say
+    they ran: a record naming the canonical script, its true digest and a
+    self-consistent result digest can still be typed out by hand. The only thing
+    that separates a record from an assertion is re-running the check and
+    getting the same answer, so that is what happens here. The re-run writes
+    nothing (--no-capture); it is a comparison, not a new claim.
+    """
+    command = [sys.executable, str(script_path), "--root", str(project.root), "--no-capture"]
+    print(
+        f"re-running {project.rel(script_path)} to confirm {where} reproduces ...",
+        flush=True,
+    )
+    try:
+        completed = subprocess.run(
+            command, capture_output=True, text=True, timeout=1800, check=False
+        )
+    except OSError as exc:
+        raise VdsError(
+            f"{where} could not be re-run ({exc}). A proof record is citable only when the "
+            "check behind it can be re-run and compared; if it cannot be run here, it "
+            "cannot be relied on here."
+        ) from exc
+
+    found = PROOF_DIGEST_LINE.search(completed.stdout or "")
+    if not found:
+        detail = (completed.stderr or completed.stdout or "").strip().splitlines()
+        tail = "\n    ".join(detail[-6:]) if detail else "(no output)"
+        raise VdsError(
+            f"{where} was re-run and the check did not produce a digest (exit "
+            f"{completed.returncode}). It proves nothing until it runs cleanly:\n    {tail}"
+        )
+    if found.group(1) != record.get("digest"):
+        raise VdsError(
+            f"{where} DOES NOT REPRODUCE. The record states {record.get('digest')} and "
+            f"re-running {project.rel(script_path)} over this tree right now yields "
+            f"{found.group(1)}. Either the record was not produced by that run, or the "
+            "tree has moved since. VDS S-7(2)(1): re-running the command must reproduce "
+            "the same digest."
+        )
+
+
+def verify_proof_record(
+    project: Project, proof_id: str, record: dict, reexecute: bool = False
+) -> dict:
     """Refuse a proof record that is not bound to a real run of a real script.
 
     VDS S-7(2)(5) says a hand-written proof record is void. Fixing capture_mode
     to one enum value did not make that true: the field is a string an author
-    types, so it asserted the property it was supposed to prove. What binds a
-    record to an execution is the script: the kind must be one VDS actually
-    implements, the record must name the canonical script for that kind, that
-    script must be on disk, and its digest must still match the digest recorded
-    when the record was captured. Returns the evidence entry to cite.
+    types, so it asserted the property it was supposed to prove. Four things
+    bind a record to an execution instead, in cost order:
+
+      1. the kind must be one VDS actually implements;
+      2. the record must name the canonical script for that kind, and that
+         script must be on disk, so a record cannot borrow a digest it did not
+         earn or name a script that never existed;
+      3. the script's digest must still match the one recorded at capture, so a
+         record whose check has since changed is stale rather than good;
+      4. the record must digest to its own stated digest, so an edited
+         rows_enforced, status or violations list is caught.
+
+    With `reexecute`, the check is run again and required to reproduce the same
+    digest. That is the only limb that distinguishes a record from an assertion,
+    so `warrant record` sets it. `warrant status` is a report and does not.
+    Returns the evidence entry to cite.
     """
     where = f"{proof_id} ({project.rel(Path(record.get('__path', proof_id)))})"
 
@@ -906,6 +966,9 @@ def verify_proof_record(project: Project, proof_id: str, record: dict) -> dict:
             f"{where} records exit_code {record.get('exit_code')!r} with status passed. "
             "The exit code is the contract a caller reads; the two must agree."
         )
+
+    if reexecute:
+        reexecute_proof(project, script_path, record, where)
 
     return {
         "proof_id": proof_id,
@@ -1196,7 +1259,8 @@ def _warrant_status(project: Project) -> int:
                         # equality: the script the record names may have changed
                         # or gone since, and a warrant standing on a proof that
                         # can no longer be shown to have run is a warrant on
-                        # nothing (VDS S-7(2)(5)).
+                        # nothing (VDS S-7(2)(5)). This is a report, so it does
+                        # NOT re-execute the checks; `warrant record` does that.
                         try:
                             verify_proof_record(
                                 project, str(item.get("proof_id")), on_disk
@@ -1274,7 +1338,7 @@ def _warrant_record(project: Project, args) -> int:
         proof = proofs.get(proof_id)
         if proof is None:
             raise VdsError(f"no proof record {proof_id!r} on disk")
-        evidence.append(verify_proof_record(project, proof_id, proof))
+        evidence.append(verify_proof_record(project, proof_id, proof, reexecute=True))
     have = {e["kind"] for e in evidence}
     # A refusal is a record that the stage was NOT granted, and the usual reason
     # to refuse is that this very evidence is missing. Requiring the full set

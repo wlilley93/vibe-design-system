@@ -19,6 +19,8 @@ regex.workspace = true
 walkdir.workspace = true
 thiserror.workspace = true
 
+chrono.workspace = true
+
 [dev-dependencies]
 tempfile.workspace = true
 vds-testkit.workspace = true
