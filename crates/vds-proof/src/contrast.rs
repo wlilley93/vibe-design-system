@@ -85,17 +85,14 @@ use crate::run::{Outcome, ProofRun, Verdict};
 
 pub const GATE: &str = "crates/vds-proof/src/contrast.rs";
 
-/// The stylesheet this proof measures.
+/// The default shipped stylesheet, where `[surface] stylesheet` says nothing.
 ///
-/// Not configurable in this build, and named here rather than guessed: VDS
-/// S-2(3) fixes `app/globals.css` as the system of record for what ships, and
-/// that table is not VDS's to move. The alternative on offer was to mine
-/// `[governance] permit_required` for entries ending in `.css`, which is worse
-/// than a constant: that list declares what a permit covers, so adding a
-/// stylesheet to it would silently change what this proof measures, and a gate
-/// whose subject moves when an unrelated list is edited is a gate nobody can
-/// reason about. A `[surface] stylesheet` key is the right home and adding one
-/// amends `config.rs`, which this gate may not do.
+/// The key now exists and this constant is only its default, which is the path
+/// VDS S-2(3) fixes as the system of record for what ships. It is deliberately
+/// NOT mined out of `[governance] permit_required`: that list declares what a
+/// permit covers, so adding a stylesheet to it would change what this proof
+/// measures as a side effect, and a gate whose subject moves when an unrelated
+/// list is edited is a gate nobody can reason about.
 pub const SHIPPED_STYLESHEET: &str = "app/globals.css";
 
 const RULE_BELOW_FLOOR: &str = "VDS S-7(5) contrast R1: every registered component's boundaries clear their floors in \
@@ -262,15 +259,24 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
         run.note(EMPTY_REGISTER_NOTE);
         None
     } else {
-        let path = project.root.join(SHIPPED_STYLESHEET);
+        let path = project.root.join(&project.config.surface.stylesheet);
         let sheet = read_sheet(project, &path, to_measure)?;
         run.input_file(&path)?;
         run.note(format!(
-            "[record] the stylesheet is not configurable in this build: it is {}, the record VDS \
-             S-2(3) fixes for what ships. A project that ships its tokens from another file is \
-             NOT covered by this run, and pointing this gate elsewhere is a configuration \
-             change, not a flag.",
-            project.rel(&path)
+            "[record] this run measured {}, which is `[surface] stylesheet` in the project \
+             configuration{}. It is the ONE record measured: a project that ships some of its \
+             tokens from another file is NOT covered by this run, and pointing this gate \
+             elsewhere is a configuration change recorded in a diff, never a flag on the \
+             command.",
+            project.rel(&path),
+            if project.config.surface.stylesheet == std::path::Path::new(SHIPPED_STYLESHEET) {
+                format!(", left at the default VDS S-2(3) names ({SHIPPED_STYLESHEET})")
+            } else {
+                format!(
+                    ", moved off the default VDS S-2(3) names ({SHIPPED_STYLESHEET}). A warrant \
+                     citing this run is bounded by that choice"
+                )
+            }
         ));
         Some(sheet)
     };

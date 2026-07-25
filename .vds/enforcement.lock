@@ -1,5 +1,5 @@
 schema_version: 1
-generated_at: 2026-07-25T16:37:48Z
+generated_at: 2026-07-25T16:45:51Z
 entries:
 - path: crates/vds-proof/src/composition.rs
   digest: sha256:f0265e72bed6a05c7f524a93e2aad3990739fd48208699032ccb0413d323a078
@@ -20,7 +20,7 @@ entries:
   pinned_at: 2026-07-25T13:58:22Z
   pinned_by: jellytot
 - path: crates/vds-proof/src/contrast.rs
-  digest: sha256:6b93ad08e40fcbb7d1e76393720a688d309a16a7e9b124103c6beaf61872272a
+  digest: sha256:cb7d188e20124fba772d9a5f84a77d4d1d00fa6e62fce376c2da3006b81f66a5
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -35,10 +35,10 @@ entries:
     path: crates/vds-proof/src/contrast.rs
     test_name: contrast_fails_on_a_boundary_below_its_floor_in_one_theme
     seeds: a boundary that clears its floor in one theme and falls below it in another
-  pinned_at: 2026-07-25T16:33:55Z
+  pinned_at: 2026-07-25T16:44:57Z
   pinned_by: jellytot
-  supersedes_digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
-  relock_rationale: 'contrast and parity implemented: all ten kinds in the closed registry at VDS S-7(5) now dispatch. crates/vds-proof/src/contrast.rs and parity.rs are new gates, pinned for the first time; lib.rs and vds-core/types/proof.rs move because both kinds are dispatched and neither reports itself unimplemented. contrast depends on the vds-css crate, which is why crates/vds-proof/Cargo.toml gains a dependency.'
+  supersedes_digest: sha256:6b93ad08e40fcbb7d1e76393720a688d309a16a7e9b124103c6beaf61872272a
+  relock_rationale: 'R5: a pin''s digest is now derived by vds_core::Pin::compute_content_digest and VERIFIED by token_pin, so a hand-edited agreement flag is refused at the door rather than detected afterwards. token_pin.rs drops its own canonicalisation and calls the core one, because two canonicalisations of one shape drift. contrast.rs stops hardcoding the stylesheet and reads [surface] stylesheet, which config.rs gains with the path S-2(3) names as its default.'
 - path: crates/vds-proof/src/ledger_staleness.rs
   digest: sha256:a72abd79274246e9b3b35f66d05eac15495d74bd4cb7c912adda92089e5fcdde
   kind: proof_script
@@ -190,7 +190,7 @@ entries:
   pinned_at: 2026-07-25T13:58:22Z
   pinned_by: jellytot
 - path: crates/vds-proof/src/token_pin.rs
-  digest: sha256:9c69203f40b67c5a38288a9bca0049e0ba414002ba7ed6e3872f21116262e30c
+  digest: sha256:6ab1121588fe85ac187c06962a7b03e553c86117d8145565e4f646cbeb3b4d61
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -205,10 +205,10 @@ entries:
     path: crates/vds-proof/src/token_pin.rs
     test_name: token_pin_fails_on_a_row_the_pin_declares_aligned_that_does_not_agree
     seeds: a pin row the pin declares aligned whose two named records do not agree
-  pinned_at: 2026-07-25T16:33:55Z
+  pinned_at: 2026-07-25T16:45:51Z
   pinned_by: jellytot
-  supersedes_digest: sha256:b2d7371881cf41e1d29865a091e0bfaa28b53a20ec2aa5ae86e280f2bb13d1d1
-  relock_rationale: 'contrast and parity implemented: all ten kinds in the closed registry at VDS S-7(5) now dispatch. crates/vds-proof/src/contrast.rs and parity.rs are new gates, pinned for the first time; lib.rs and vds-core/types/proof.rs move because both kinds are dispatched and neither reports itself unimplemented. contrast depends on the vds-css crate, which is why crates/vds-proof/Cargo.toml gains a dependency.'
+  supersedes_digest: sha256:b646909c65ba441e039e260ee3f89c546dce7cc098e2969d77f245685854ca33
+  relock_rationale: 'R5: a pin''s digest is now derived by vds_core::Pin::compute_content_digest and VERIFIED by token_pin, so a hand-edited agreement flag is refused at the door rather than detected afterwards. token_pin.rs drops its own canonicalisation and calls the core one, because two canonicalisations of one shape drift. contrast.rs stops hardcoding the stylesheet and reads [surface] stylesheet, which config.rs gains with the path S-2(3) names as its default.'
 - path: crates/vds-scan/src/glob.rs
   digest: sha256:ab8189e8d4d8e56cfbf0a4eca9d738b3c13438ae190ad6179e057368ceea40d3
   kind: ledger_generator

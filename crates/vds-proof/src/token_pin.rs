@@ -44,6 +44,10 @@
 //!       can be derived for it and none of its rows can be relied on.
 //!   R4  the pin contradicts itself: it does not fail closed, or its own counts
 //!       disagree with the rows it holds (`Pin::defects`).
+//!   R5  the pin's `digest` does not match what the pin says, so it was edited
+//!       after it was generated. A pin is a generated artefact and never
+//!       hand-edited, and without this rule flipping `agrees: false` to `true` in
+//!       a committed pin produced a PASSING run.
 //!   W1  coverage. The pin holds fewer enforced rows than the shipped record
 //!       declares custom properties, so it is evidence about at most that many
 //!       and about none of the rest. A warning and not a failure: a pin scoped to
@@ -75,7 +79,6 @@ use std::path::{Component, Path, PathBuf};
 use std::sync::OnceLock;
 
 use regex::Regex;
-use serde::Serialize;
 use vds_core::{Digest, PathRole, Pin, PinRow, Project, ProofKind, Result, VdsError, Violation};
 
 use crate::ProofContext;
@@ -91,6 +94,8 @@ const RULE_UNREADABLE_SOURCE: &str = "VDS S-2(3) token_pin R3: a pin names the s
      can read that record";
 const RULE_SELF_CONTRADICTORY: &str =
     "VDS S-2(5)(2) token_pin R4: a pin fails closed and its own counts match the rows it holds";
+const RULE_DIGEST_MISMATCH: &str = "VDS S-2(5)(4) token_pin R5: a pin's digest matches what the pin says, so a generated \
+     agreement can be told from a hand-edited one";
 const RULE_COVERAGE: &str = "VDS S-7(2)(4) token_pin W1: a pin is evidence about the rows it holds and about nothing \
      else";
 const RULE_DECLINED: &str = "VDS S-7(2)(4) token_pin I1: a row the pin declined to enforce is named and counted, so \
@@ -101,6 +106,7 @@ const RULE_DECLINED: &str = "VDS S-7(2)(4) token_pin I1: a row the pin declined 
 const SKIP_DECLINED: &str = "row_the_pin_declined_to_enforce";
 const SKIP_NOT_CURRENT: &str = "pin_not_current_with_the_shipped_record";
 const SKIP_SOURCE_UNREADABLE: &str = "pin_names_a_shipped_record_this_build_cannot_read";
+const SKIP_DIGEST_MISMATCH: &str = "pin_edited_after_it_was_generated";
 
 pub const DERIVATION_NOTE: &str = "[derived] freshness against the local half is DERIVED and not trusted: the shipped record \
      named by the pin is re-digested by this run and compared with the digest the pin recorded \
@@ -124,13 +130,15 @@ pub const REDACTION_NOTE: &str = "[redaction] a finding names the pin file, the 
      withholding a safe name costs a reader one file open, and repeating an unsafe one costs a \
      gate that can never go green again.";
 
-pub const SELF_DIGEST_NOTE: &str = "[integrity] this run cannot tell a hand-edited agreement flag from a generated one. A pin \
-     carries a `digest` field, and no code in this build derives it, so there is nothing to \
-     recompute it against and nothing to compare it with. Both the pin's row set and the shipped \
-     record's bytes are recorded as inputs, so an edit MOVES this proof's evidence digest and a \
-     warrant pinned to the old one no longer matches, which is detection after the fact rather \
-     than refusal at the door. Closing it properly needs the pin type to derive its own content \
-     digest the way the Figma ledger already does.";
+pub const SELF_DIGEST_NOTE: &str = "[integrity] a hand-edited agreement flag is REFUSED, not merely detected. Every pin's \
+     `digest` is recomputed here from what the pin says (its subject, direction, both records, \
+     rows, counts, fails_closed and generated_by, and deliberately not its `generated_at`), and \
+     a pin whose digest does not match its own contents has its rows skipped rather than \
+     enforced (R5). Flipping `agrees: false` to `true` in a committed pin therefore produces a \
+     run that enforces nothing about that pin and says why, instead of a pass. What this does \
+     NOT establish is that the generator computed the rows correctly in the first place: it \
+     binds the pin to itself, not to the two records it claims to have compared. The source \
+     side is separately re-derived (see the derived note); the decided-target side cannot be.";
 
 pub const READER_NOTE: &str = "[scope] the pins directory is read as `*.yaml` exactly, so a pin in a subdirectory, or \
      one saved as `.yml`, is invisible to this run rather than reported by it. The register \
@@ -221,6 +229,54 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
                  not_enforced_because",
                 defect,
             ));
+        }
+
+        // R5. Before anything is read on the pin's authority: a pin whose digest
+        // does not match what it says was edited after it was generated, and the
+        // edit that matters is `agrees: false` becoming `agrees: true`. Its rows
+        // are skipped rather than enforced, because enforcing a row that a hand
+        // may have written is the storing form wearing a boolean.
+        //
+        // Skipped and not failed-then-enforced: crediting rows that establish
+        // nothing is the arithmetic half of the [2026] VJS-CC-OPBOX 3 D3 defect.
+        match pin.digest_matches() {
+            Ok(true) => {}
+            Ok(false) => {
+                run.fail(Violation::fatal(
+                    where_from.clone(),
+                    RULE_DIGEST_MISMATCH,
+                    "a `digest` equal to the digest of what the pin says: its subject, \
+                     direction, both records, rows, counts, fails_closed and generated_by. A pin \
+                     is a GENERATED artefact (VDS S-2(5)(4)) and is regenerated, never edited.",
+                    format!(
+                        "the pin's digest does not match its own contents, so it was edited \
+                         after it was generated. None of its {} row(s) is relied on by this \
+                         run. Regenerate it with the command in its own `generated_by` field.",
+                        pin.rows.len()
+                    ),
+                ));
+                for _ in &pin.rows {
+                    run.row(Verdict::Skipped(SKIP_DIGEST_MISMATCH));
+                }
+                continue;
+            }
+            Err(error) => {
+                run.fail(Violation::fatal(
+                    where_from.clone(),
+                    RULE_DIGEST_MISMATCH,
+                    "a pin this build can digest, so that a generated agreement can be told \
+                     from a hand-edited one.",
+                    format!(
+                        "the pin could not be digested ({error}), so whether it was edited \
+                         cannot be established and none of its {} row(s) is relied on.",
+                        pin.rows.len()
+                    ),
+                ));
+                for _ in &pin.rows {
+                    run.row(Verdict::Skipped(SKIP_DIGEST_MISMATCH));
+                }
+                continue;
+            }
         }
 
         let record = match resolve_shipped(project, &pin.source_of_record.locator) {
@@ -655,42 +711,18 @@ fn quoted(text: &str) -> String {
 /// This is emphatically NOT a recomputation of `pin.digest`. The generator's
 /// canonicalisation is unknown here, and asserting that this one is it would fail
 /// every real pin for a reason that has nothing to do with the records.
+/// The pin's own content digest, computed by `vds_core::Pin` and never here.
+///
+/// One definition. This module used to hold its own canonicalisation, and two
+/// canonicalisations of one shape drift: the drift shows up as a pin that passes
+/// this gate and fails its own generator, which is the worst possible place for
+/// a disagreement about what a record says.
 fn content_digest(pin: &Pin, where_from: &str) -> Result<Digest> {
-    #[derive(Serialize)]
-    struct Content<'a> {
-        subject: &'a str,
-        direction: &'a vds_core::PinDirection,
-        source: [&'a str; 3],
-        target: [&'a str; 3],
-        rows: &'a [PinRow],
-        rows_considered: u64,
-        rows_enforced: u64,
-        fails_closed: bool,
-        generated_by: &'a str,
-    }
-    Digest::of_value(&Content {
-        subject: &pin.subject,
-        direction: &pin.direction,
-        source: [
-            &pin.source_of_record.authority_for,
-            &pin.source_of_record.locator,
-            pin.source_of_record.digest.as_str(),
-        ],
-        target: [
-            &pin.target_of_record.authority_for,
-            &pin.target_of_record.locator,
-            pin.target_of_record.digest.as_str(),
-        ],
-        rows: &pin.rows,
-        rows_considered: pin.rows_considered,
-        rows_enforced: pin.rows_enforced,
-        fails_closed: pin.fails_closed,
-        generated_by: &pin.generated_by,
-    })
-    .map_err(|e| VdsError::Artefact {
-        path: where_from.to_owned(),
-        message: format!("could not be digested, so this run cannot witness what it read: {e}"),
-    })
+    pin.compute_content_digest()
+        .map_err(|e| VdsError::Artefact {
+            path: where_from.to_owned(),
+            message: format!("could not be digested, so this run cannot witness what it read: {e}"),
+        })
 }
 
 #[cfg(test)]
@@ -759,8 +791,15 @@ mod tests {
             fails_closed: true,
             generated_at: Timestamp::fixed(2026, 7, 25, 10, 0, 0),
             generated_by: "the out-of-band pin generator".into(),
-            digest: Digest::of_text("the generator's own digest, which this build cannot derive"),
+            // A placeholder, replaced below. A generator computes this from what
+            // it wrote, and R5 refuses a pin whose digest does not match, so a
+            // fixture that skipped it would be testing a hand-edited pin.
+            digest: Digest::of_text("placeholder"),
             proof_id: None,
+        };
+        let pin = Pin {
+            digest: pin.compute_content_digest().expect("a pin digests"),
+            ..pin
         };
         store
             .create(&store.pins_dir().join(format!("{id}.yaml")), &pin)
@@ -1393,13 +1432,63 @@ mod tests {
              record rather than in a comment: {:?}",
             record.notes
         );
+        let integrity = record
+            .notes
+            .iter()
+            .find(|note| note.starts_with("[integrity]"))
+            .unwrap_or_else(|| panic!("no integrity note: {:?}", record.notes));
         assert!(
-            record
-                .notes
-                .iter()
-                .any(|note| note.contains("cannot tell a hand-edited agreement flag")),
-            "{:?}",
-            record.notes
+            integrity.contains("REFUSED, not merely detected"),
+            "{integrity}"
+        );
+        assert!(
+            integrity.contains("binds the pin to itself, not to the two records"),
+            "the note must not overclaim: R5 establishes that the pin was not edited, and \
+             nothing about whether the generator compared the records correctly: {integrity}"
+        );
+    }
+
+    /// The failing-direction test for R5, and the reason the rule exists.
+    ///
+    /// A pin recording a disagreement, edited by hand so it records agreement.
+    /// Every other rule passes this pin: the shipped record is current, the
+    /// counts add up, it fails closed, and its source resolves. Before R5 the run
+    /// came back PASSED, which is the whole of the gate defeated by one boolean.
+    #[test]
+    fn a_pin_edited_from_disagreement_to_agreement_is_refused_rather_than_believed() {
+        let h = Harness::new();
+        shipped_record(&h, &["--control-border"]);
+        let id = pin_over_shipped(
+            &h,
+            vec![PinRow {
+                name: "control-border".into(),
+                agrees: false,
+                not_enforced_because: None,
+            }],
+        );
+
+        // It fails honestly first, which is what makes the edit worth making.
+        let (before, text) = run_kind(&h, ProofKind::TokenPin);
+        assert_eq!(before.exit_code, EXIT_VIOLATION, "{text}");
+
+        let path = h.store().pins_dir().join(format!("{id}.yaml"));
+        let edited = std::fs::read_to_string(&path)
+            .unwrap()
+            .replace("agrees: false", "agrees: true");
+        std::fs::write(&path, edited).unwrap();
+
+        let (after, text) = run_kind(&h, ProofKind::TokenPin);
+        assert_eq!(
+            after.exit_code, EXIT_VIOLATION,
+            "a pin edited from disagreement to agreement passed, so one boolean defeats the \
+             gate: {text}"
+        );
+        assert!(text.contains("R5"), "{text}");
+        assert!(text.contains("edited after it was generated"), "{text}");
+        assert_eq!(
+            after.rows_enforced, 0,
+            "an edited pin's rows must be SKIPPED and not enforced: crediting a row that \
+             establishes nothing is the arithmetic half of the defect: {text}"
         );
     }
 }

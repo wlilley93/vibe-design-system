@@ -80,6 +80,25 @@ pub struct SurfaceConfig {
     /// File extensions the library scan treats as a component module.
     #[serde(default = "default_component_extensions")]
     pub component_extensions: Vec<String>,
+    /// The shipped stylesheet: the record VDS S-2(3) fixes as the system of
+    /// record for what a token resolves to. The `contrast` proof measures every
+    /// floor against it.
+    ///
+    /// Configurable, and `#[serde(default)]` so an existing config keeps working.
+    /// The default is the path S-2(3) names, so a project that follows the
+    /// specification writes nothing and a project that ships its tokens from
+    /// somewhere else says so ONCE, here, rather than being silently unmeasured.
+    ///
+    /// It is deliberately not mined out of `[governance] permit_required`. That
+    /// list declares what a permit covers, so adding a stylesheet to it would
+    /// change what `contrast` measures as a side effect, and a gate whose subject
+    /// moves when an unrelated list is edited is a gate nobody can reason about.
+    #[serde(default = "default_stylesheet")]
+    pub stylesheet: PathBuf,
+}
+
+fn default_stylesheet() -> PathBuf {
+    PathBuf::from("app/globals.css")
 }
 
 fn default_component_extensions() -> Vec<String> {
@@ -94,6 +113,7 @@ impl Default for SurfaceConfig {
             library_dirs: vec!["src/components/ui".into()],
             screens_ledger: ".vds/ledgers/screens.yaml".into(),
             component_extensions: default_component_extensions(),
+            stylesheet: default_stylesheet(),
         }
     }
 }
@@ -267,6 +287,12 @@ governed_import_prefixes = ["@/components/"]
 library_dirs = ["src/components/ui"]
 screens_ledger = ".vds/ledgers/screens.yaml"
 component_extensions = ["tsx", "jsx"]
+# The shipped stylesheet: the system of record for what a token RESOLVES to
+# (VDS S-2(3)). `contrast` measures every floor in the register against it, in
+# every theme it declares. The value here is the path the specification names;
+# change it only if your project genuinely ships its tokens elsewhere, and know
+# that nothing else is measured.
+stylesheet = "app/globals.css"
 
 [governance]
 # VDS S-3(8): the enforcement machinery must not be editable without a permit.

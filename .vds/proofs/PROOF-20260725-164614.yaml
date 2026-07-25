@@ -1,4 +1,4 @@
-id: PROOF-20260725-141015
+id: PROOF-20260725-164614
 kind: register_completeness
 status: vacuous
 warrant_id: null
@@ -18,7 +18,7 @@ notes:
 inputs_digest: sha256:f04ba0450ed84a7adc11c2fe1ec552fba2255cfa060c113d91fc5618946840e7
 digest: sha256:cc00d5492d300bd0d875510ee3b10b14bb1fcd543d3ce1756c7053201b194bef
 designpack_digest: sha256:f9c369f3175c15169dafde47c01d7efc2f45c64090444f17f5b3f480e710ec5a
-captured_at: 2026-07-25T14:10:15Z
+captured_at: 2026-07-25T16:46:14Z
 capture_mode: automatic
 invoked_by: package_script
 duration_ms: 0

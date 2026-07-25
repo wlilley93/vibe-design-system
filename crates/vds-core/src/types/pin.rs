@@ -144,6 +144,67 @@ pub struct Pin {
 }
 
 impl Pin {
+    /// The digest of what this pin SAYS, which is what `digest` must equal.
+    ///
+    /// Over the subject, the direction, both records, the rows, the counts,
+    /// `fails_closed` and `generated_by`. Deliberately NOT over `generated_at`,
+    /// `id`, `digest` or `proof_id`.
+    ///
+    /// Excluding `generated_at` is the load-bearing part. A regeneration over an
+    /// unchanged pair of records restamps it, and digesting the stamp would move
+    /// this value on a pin whose verdict did not change, which makes every
+    /// warrant citing it look spent and teaches a reader to ignore the field
+    /// (VDS S-7(2)(1)).
+    ///
+    /// Why it exists at all: without it nothing could tell a generated agreement
+    /// from a hand-edited one. Flipping `agrees: false` to `true` in a committed
+    /// pin produced a PASSING `token_pin` run, because no code derived this field
+    /// and there was nothing to compare it with. A pin is a generated artefact
+    /// and never hand-edited, and this is what makes that a refusal at the door
+    /// rather than a hope.
+    ///
+    /// It lives HERE and not in the proof so there is one definition. Two
+    /// canonicalisations of one shape drift, and the drift shows up as a pin that
+    /// passes the gate and fails its own generator.
+    pub fn compute_content_digest(&self) -> crate::Result<Digest> {
+        #[derive(Serialize)]
+        struct Content<'a> {
+            subject: &'a str,
+            direction: &'a PinDirection,
+            source: [&'a str; 3],
+            target: [&'a str; 3],
+            rows: &'a [PinRow],
+            rows_considered: u64,
+            rows_enforced: u64,
+            fails_closed: bool,
+            generated_by: &'a str,
+        }
+        Digest::of_value(&Content {
+            subject: &self.subject,
+            direction: &self.direction,
+            source: [
+                &self.source_of_record.authority_for,
+                &self.source_of_record.locator,
+                self.source_of_record.digest.as_str(),
+            ],
+            target: [
+                &self.target_of_record.authority_for,
+                &self.target_of_record.locator,
+                self.target_of_record.digest.as_str(),
+            ],
+            rows: &self.rows,
+            rows_considered: self.rows_considered,
+            rows_enforced: self.rows_enforced,
+            fails_closed: self.fails_closed,
+            generated_by: &self.generated_by,
+        })
+    }
+
+    /// Whether this pin still says what its digest says it says.
+    pub fn digest_matches(&self) -> crate::Result<bool> {
+        Ok(self.compute_content_digest()? == self.digest)
+    }
+
     pub fn disagreements(&self) -> impl Iterator<Item = &PinRow> {
         self.rows.iter().filter(|r| r.is_enforced() && !r.agrees)
     }
