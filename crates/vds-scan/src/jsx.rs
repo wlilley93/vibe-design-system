@@ -705,9 +705,28 @@ fn scan_tags(code: &str, starts: &[usize], found: &mut Scanned) {
             i = j;
             continue;
         }
-        // A `<` that is not opening a tag: `a < b`, or a generic parameter list
-        // `useState<Foo>(...)`. A real JSX tag is followed by whitespace, `/`,
-        // `>` or an attribute name.
+        // A generic type argument list, not a tag. The discriminator is what
+        // comes immediately BEFORE the `<`: a generic's `<` binds tightly to the
+        // identifier or call it parameterises (`useState<`, `Array<`, `Map<`,
+        // `)<`), while a JSX tag's `<` sits in an expression position and is
+        // preceded by whitespace, `(`, `{`, `[`, `,`, `=`, `>` or `}`.
+        //
+        // Found by adopting. Running against a real 217-screen application,
+        // `useState<BillingData | null>` and `useRef<HTMLInputElement>` were
+        // counted as component references named `BillingData` and
+        // `HTMLInputElement`, because the earlier guard only refused the exact
+        // shape `<T>(`. That inflated every row count and filled the
+        // defined-inline work list with type names.
+        if name_start >= 2 {
+            let before = chars[name_start - 2];
+            if is_ident_char(before) || before == ')' {
+                i = j;
+                continue;
+            }
+        }
+
+        // A `<` that is not opening a tag: `a < b`. A real JSX tag is followed
+        // by whitespace, `/`, `>` or an attribute name.
         let follows = chars.get(j).copied();
         let opens_a_tag = matches!(follows, Some(c) if c.is_whitespace() || c == '>' || c == '/');
         if !opens_a_tag {
@@ -1010,6 +1029,54 @@ export default function P() { return <Button />; }
     fn a_generic_call_is_not_a_tag() {
         let scanned = scan("const [s] = useState<Foo>(null);\n");
         assert!(scanned.tags.is_empty(), "{:?}", scanned.tags);
+    }
+
+    /// Found by adopting: a real application's generics were being counted as
+    /// components, inflating every row count with type names.
+    #[test]
+    fn a_generic_type_argument_is_not_a_tag() {
+        for source in [
+            "const [b, setB] = useState<BillingData | null>(null);",
+            "const r = useRef<HTMLInputElement>(null);",
+            "const m: Map<string, Widget> = new Map();",
+            "const a: Array<Thing> = [];",
+            "type X = Record<string, Config>;",
+            "const c = new Set<Connector>();",
+            "function f<Props>(p: Props) {}",
+            "const v = fn()<Generic>();",
+        ] {
+            let scanned = scan(source);
+            assert!(
+                scanned.tags.iter().all(|t| !t.is_component),
+                "{source:?} produced {:?}",
+                scanned.tags
+            );
+        }
+    }
+
+    #[test]
+    fn a_tag_in_every_ordinary_expression_position_is_still_a_tag() {
+        for (source, expected) in [
+            ("return <Button />;", "Button"),
+            ("const x = <Button />;", "Button"),
+            ("f(<Button />)", "Button"),
+            ("[<Button />]", "Button"),
+            ("{cond && <Button />}", "Button"),
+            ("<div><Button /></div>", "Button"),
+            ("<div>{x}<Button /></div>", "Button"),
+            ("const f = () => <Button />;", "Button"),
+            ("a ? <Button /> : null", "Button"),
+        ] {
+            let scanned = scan(source);
+            assert!(
+                scanned
+                    .tags
+                    .iter()
+                    .any(|t| t.is_component && t.name == expected),
+                "{source:?} lost {expected}: {:?}",
+                scanned.tags
+            );
+        }
     }
 
     #[test]

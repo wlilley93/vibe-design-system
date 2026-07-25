@@ -1,0 +1,25 @@
+id: DECISION-0002
+at: 2026-07-25T14:45:00Z
+by: lexby
+decision: >-
+  Discriminate a TypeScript generic argument list from a JSX tag by the character
+  immediately preceding the `<`, and pin crates/vds-scan/src/jsx.rs and
+  crates/vds-scan/src/glob.rs in the enforcement lock.
+court_required: false
+why: >-
+  Reversible and low blast radius, and it TIGHTENS rather than relaxes: it removes
+  false positives and adds no exemption. Measured against the Opbox frontend the
+  change dropped 80 phantom component references (3,438 to 3,358) and 79 phantom
+  unresolved imports (502 to 423), all of them TypeScript type names such as
+  HTMLInputElement, BillingData and AbortController that `useState<Foo | null>`
+  had been producing.
+
+  Pinning jsx.rs and glob.rs closes a gap in the lock itself. The ledger generator
+  was pinned at crates/vds-scan/src/lib.rs, but the logic that decides what a
+  component reference IS lives in jsx.rs, and the logic that decides which files
+  are on the declared surface lives in glob.rs. Neither was witnessed, so either
+  could have been weakened without tripping a finding.
+basis:
+  - VDS S-7(2)(2)
+  - VDS S-8(1)
+  - VDS S-12(2)

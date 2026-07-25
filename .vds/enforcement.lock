@@ -1,5 +1,5 @@
 schema_version: 1
-generated_at: 2026-07-25T14:24:27Z
+generated_at: 2026-07-25T14:29:24Z
 entries:
 - path: crates/vds-proof/src/composition.rs
   digest: sha256:f0265e72bed6a05c7f524a93e2aad3990739fd48208699032ccb0413d323a078
@@ -127,6 +127,38 @@ entries:
     seeds: a registered component with a required state that is not drawn
   pinned_at: 2026-07-25T13:58:22Z
   pinned_by: jellytot
+- path: crates/vds-scan/src/glob.rs
+  digest: sha256:ab8189e8d4d8e56cfbf0a4eca9d738b3c13438ae190ad6179e057368ceea40d3
+  kind: ledger_generator
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Regenerate the declared surface
+    blocking: true
+  proves:
+  - ledger_staleness
+  failing_direction_test:
+    path: crates/vds-scan/src/glob.rs
+    test_name: a_pattern_this_matcher_cannot_read_is_refused
+    seeds: a brace or character-class glob the matcher does not implement and must refuse rather than half-match
+  pinned_at: 2026-07-25T14:28:57Z
+  pinned_by: jellytot
+- path: crates/vds-scan/src/jsx.rs
+  digest: sha256:6b4c0ee4c5707cab80ea38d023cf5185ed2e0446798912fe2f8a4bc766ecc17a
+  kind: ledger_generator
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Regenerate the declared surface
+    blocking: true
+  proves:
+  - ledger_staleness
+  failing_direction_test:
+    path: crates/vds-scan/src/jsx.rs
+    test_name: a_generic_type_argument_is_not_a_tag
+    seeds: a TypeScript generic argument that the scanner must not count as a component reference
+  pinned_at: 2026-07-25T14:29:24Z
+  pinned_by: jellytot
+  supersedes_digest: sha256:c9dbbdcff535da936db134c187c51e377029f712df76302b42554c9e7712fcaf
+  relock_rationale: rustfmt applied to the generic-argument test added in DECISION-0002; no logic change
 - path: crates/vds-scan/src/lib.rs
   digest: sha256:18218d12c5ec737660fa53a8cb6aa36abf241243191666f7e0951c0da41aa34d
   kind: ledger_generator
