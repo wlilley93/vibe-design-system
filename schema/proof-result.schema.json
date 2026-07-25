@@ -1,151 +1,423 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://vds.local/schema/proof-result.schema.json",
-  "title": "VDS proof result",
-  "description": "Machine output a warrant was granted against. Governed by VDS S-7. Written by the checker as a side effect of running. A hand-written proof record is void (VDS S-7(2)(5)), and this schema does NOT establish that on its own: capture_mode is a string an author can type, so fixing it to one value only makes a forgery say the right word. What binds a record to an execution is the pair (script, script_digest), both required here and both re-checked against the file on disk before the record may be cited as evidence, plus `digest`, which covers the record's own result fields.",
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "ProofResult",
+  "description": "The machine output a warrant is granted against.",
   "type": "object",
-  "additionalProperties": false,
   "required": [
-    "id",
-    "kind",
-    "status",
+    "capture_mode",
+    "captured_at",
     "command",
+    "designpack_digest",
+    "digest",
     "exit_code",
+    "id",
+    "inputs_digest",
+    "kind",
     "rows_considered",
     "rows_enforced",
-    "violations",
-    "inputs_digest",
-    "digest",
-    "captured_at",
-    "capture_mode",
     "script",
-    "script_digest",
-    "designpack_digest"
+    "status",
+    "violations"
   ],
   "properties": {
-    "id": {
-      "type": "string",
-      "pattern": "^PROOF-[0-9]{8}-[0-9]{6}$",
-      "description": "PROOF-YYYYMMDD-HHMMSS, allocated from disk (VDS S-4(4))."
+    "capture_mode": {
+      "$ref": "#/definitions/CaptureMode"
     },
-    "kind": {
-      "type": "string",
-      "enum": [
-        "register_completeness",
-        "reconciliation",
-        "composition",
-        "contrast",
-        "states",
-        "parity",
-        "token_pin",
-        "retirement_drain",
-        "ledger_staleness",
-        "no_stored_values"
-      ],
-      "description": "A closed registry (VDS S-7(5)). Adding a kind amends the specification and the invariant registry; it is not a script anyone may drop in."
-    },
-    "status": {
-      "type": "string",
-      "enum": ["passed", "failed", "vacuous"],
-      "description": "vacuous means the check exited 0 over zero enforceable rows. A vacuous proof is not evidence for any warrant (VDS S-7(2)(4))."
-    },
-    "warrant_id": {
-      "type": ["string", "null"],
-      "pattern": "^(WARRANT-W[1-4]-[0-9]{3})?$",
-      "description": "Set when this proof is cited by a warrant. Null on a routine gate run."
+    "captured_at": {
+      "$ref": "#/definitions/Timestamp"
     },
     "command": {
-      "type": "string",
-      "minLength": 1,
-      "description": "The exact argv that produced this result. Re-running it must reproduce the same digest (VDS S-7(2)(1))."
+      "description": "The exact command that produced it, so VDS S-7(2)(1) is checkable.",
+      "type": "string"
     },
-    "script": {
-      "type": "string",
-      "pattern": "^tools/proofs/[a-z_]+\\.py$",
-      "description": "Path of the proof script that produced this record, relative to the repository that holds it. It must be the canonical script for `kind` (tools/proofs/<kind>.py), so a record cannot cite a real script's digest under a kind that script does not implement. Must appear in .vds/enforcement.lock when a lock is present (VDS S-8(3))."
+    "designpack_digest": {
+      "type": "string"
     },
-    "script_digest": {
-      "$ref": "#/$defs/sha256",
-      "description": "sha256 of the script as it was when this record was captured. Required. Re-checked against the file on disk before the record may be cited as warrant evidence: if the script has changed, this record is stale evidence and is refused, and if the script does not exist at all the record is refused as a record of nothing."
+    "digest": {
+      "description": "The digest a warrant cites. Covers the run's FINDINGS and inputs, and deliberately not its timing, so an unchanged input re-run cites the same evidence (VDS S-7(2)(1)).",
+      "type": "string"
+    },
+    "duration_ms": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "minimum": 0.0
     },
     "exit_code": {
       "type": "integer",
-      "minimum": 0,
-      "maximum": 255
+      "format": "int32"
+    },
+    "id": {
+      "$ref": "#/definitions/ProofId"
+    },
+    "inputs_digest": {
+      "type": "string"
+    },
+    "invoked_by": {
+      "default": "manual",
+      "$ref": "#/definitions/InvokedBy"
+    },
+    "kind": {
+      "$ref": "#/definitions/ProofKind"
+    },
+    "notes": {
+      "description": "Lines the run printed that are not violations: reliance on a reserved clause, a deprecated consumer, a carve-out that was taken.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     },
     "rows_considered": {
       "type": "integer",
-      "minimum": 0,
-      "description": "Every row the check looked at, including rows it could not enforce."
+      "format": "uint64",
+      "minimum": 0.0
     },
     "rows_enforced": {
       "type": "integer",
-      "minimum": 0,
-      "description": "Rows in an enforceable state. Zero with exit_code 0 is vacuous, never passed (VDS S-7(2)(4))."
+      "format": "uint64",
+      "minimum": 0.0
     },
     "rows_skipped_reasons": {
+      "description": "Count per reason a row was considered but not enforced, so a vacuous pass is diagnosable rather than merely flagged.",
+      "default": {},
       "type": "object",
       "additionalProperties": {
         "type": "integer",
-        "minimum": 0
-      },
-      "description": "Count per reason a row was considered but not enforced, so a vacuous pass is diagnosable rather than merely flagged."
+        "format": "uint64",
+        "minimum": 0.0
+      }
+    },
+    "script": {
+      "description": "The gate that ran, repository-relative.",
+      "type": "string"
+    },
+    "script_digest": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "$ref": "#/definitions/ProofStatus"
     },
     "violations": {
       "type": "array",
       "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["location", "rule", "expected", "actual"],
-        "properties": {
-          "location": {
-            "type": "string",
-            "minLength": 1,
-            "description": "file:line, or a route plus a component id."
-          },
-          "rule": {
-            "type": "string",
-            "minLength": 1,
-            "description": "The invariant id or statute section the violation offends."
-          },
-          "expected": {
-            "type": "string",
-            "minLength": 1
-          },
-          "actual": {
-            "type": "string",
-            "minLength": 1
-          },
-          "severity": {
-            "type": "string",
-            "enum": ["fatal", "warning", "informational"],
-            "default": "fatal"
-          }
-        }
+        "$ref": "#/definitions/Violation"
       }
     },
-    "inputs_digest": {
-      "$ref": "#/$defs/sha256",
-      "description": "Digest over every input the check read, so a result can be tied to the state it was produced from."
+    "warrant_id": {
+      "description": "Set when a warrant cites this record. Null until then.",
+      "default": null,
+      "anyOf": [
+        {
+          "$ref": "#/definitions/WarrantId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "AcceptanceEvent": {
+      "type": "object",
+      "required": [
+        "accepted_at",
+        "accepted_by",
+        "digest",
+        "path",
+        "surface_digest"
+      ],
+      "properties": {
+        "accepted_at": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "accepted_by": {
+          "type": "string"
+        },
+        "digest": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "surface_digest": {
+          "description": "The digest of exactly what was accepted, so a later claim that a screen was accepted is checkable against the bytes (VDS S-6(7)).",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
     },
-    "digest": {
-      "$ref": "#/$defs/sha256",
-      "description": "Digest of the check's own normalised output. This is the value a warrant cites."
+    "Accessibility": {
+      "type": "object",
+      "required": [
+        "accessibleNameSource",
+        "contrastFloors",
+        "keyboard"
+      ],
+      "properties": {
+        "accessibleNameSource": {
+          "$ref": "#/definitions/NameSource"
+        },
+        "contrastFloors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ContrastFloor"
+          }
+        },
+        "keyboard": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/KeyboardContract"
+          }
+        },
+        "role": {
+          "description": "ARIA role, or null where the component is a layout container with none.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
     },
-    "designpack_digest": {
-      "$ref": "#/$defs/sha256",
-      "description": "The designpack digest in force when the check ran, from .vds/designpack.lock."
+    "Amendment": {
+      "type": "object",
+      "required": [
+        "at",
+        "by",
+        "contractVersion",
+        "kind",
+        "what"
+      ],
+      "properties": {
+        "at": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "by": {
+          "type": "string"
+        },
+        "contractVersion": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "decisionLogId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "$ref": "#/definitions/AmendmentKind"
+        },
+        "proofId": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ProofId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "warrantId": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/WarrantId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "what": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
     },
-    "captured_at": {
+    "AmendmentKind": {
       "type": "string",
-      "format": "date-time"
+      "enum": [
+        "non_breaking",
+        "breaking"
+      ]
     },
-    "capture_mode": {
+    "AssentSource": {
       "type": "string",
-      "const": "automatic",
-      "description": "Fixed. A record claiming any other capture mode is not a proof (VDS S-7(2)(5)). This field is a declaration, not a guarantee: it is the script binding above that makes it checkable."
+      "enum": [
+        "sovereign_assent",
+        "standing_bounded_assent",
+        "principal_acceptance"
+      ]
     },
-    "invoked_by": {
+    "CaptureMode": {
+      "description": "VDS S-7(2)(5): a hand-written proof record is void, and the contract enforces it by admitting exactly one value.",
+      "type": "string",
+      "enum": [
+        "automatic"
+      ]
+    },
+    "CodeCounterpart": {
+      "type": "object",
+      "required": [
+        "exportName",
+        "importPath",
+        "sourceFile"
+      ],
+      "properties": {
+        "exportName": {
+          "type": "string"
+        },
+        "importPath": {
+          "description": "The module specifier a screen imports from, as written in the import.",
+          "type": "string"
+        },
+        "sourceFile": {
+          "description": "Repository-relative path, no leading slash.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ComponentId": {
+      "description": "A registered component, allocated as the highest on disk plus one (VDS S-4(4)).",
+      "type": "string",
+      "pattern": "^CMP-[0-9]{4}$"
+    },
+    "ContrastFloor": {
+      "description": "A contrast floor: a REQUIREMENT, never a realisation (VDS S-2(6)).\n\n`boundary` and `against` name tokens or edges BY NAME. A literal value in either is a storing-form violation of VDS S-2(2), and `no_stored_values` looks for exactly that.",
+      "type": "object",
+      "required": [
+        "against",
+        "basis",
+        "boundary",
+        "minRatio"
+      ],
+      "properties": {
+        "against": {
+          "type": "string"
+        },
+        "basis": {
+          "description": "Where the requirement comes from, e.g. \"WCAG 2.2 SC 1.4.11\".",
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "minRatio": {
+          "type": "number",
+          "format": "double"
+        },
+        "scope": {
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/FloorScope"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Demand": {
+      "description": "How many routes consume this component. Measured, never estimated (VDS S-5(7)), which is why the command that measured it is part of the value.",
+      "type": "object",
+      "required": [
+        "measuredAt",
+        "measuredBy",
+        "routes"
+      ],
+      "properties": {
+        "measuredAt": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "measuredBy": {
+          "description": "The exact command that produced the count.",
+          "type": "string"
+        },
+        "routes": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "EvidenceEntry": {
+      "description": "One proof a warrant rests on.\n\n`digest` is copied from the record on disk and never from a caller: a warrant that cites a digest the caller supplied proves the caller.",
+      "type": "object",
+      "required": [
+        "digest",
+        "kind",
+        "proof_id",
+        "status"
+      ],
+      "properties": {
+        "digest": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/definitions/ProofKind"
+        },
+        "proof_id": {
+          "$ref": "#/definitions/ProofId"
+        },
+        "status": {
+          "$ref": "#/definitions/ProofStatus"
+        }
+      },
+      "additionalProperties": false
+    },
+    "FigmaNode": {
+      "type": "object",
+      "required": [
+        "capturedAt",
+        "fileKey",
+        "nodeId"
+      ],
+      "properties": {
+        "capturedAt": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "fileKey": {
+          "type": "string"
+        },
+        "nodeId": {
+          "description": "A Figma node id, which is `<digits>:<digits>` in a file URL and `<digits>-<digits>` in a deep link. Both spellings are accepted because both are what a designer actually copies.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "FloorScope": {
+      "description": "What kind of thing the boundary is.\n\nVDS S-9(5): where a lower floor is genuinely correct, the lawful move is to change the component's SCOPE and state the basis, not to loosen the ratio. A factual claim about scope is contestable by a reviewer; a quietly lowered floor is not. That is why this field exists at all.",
+      "type": "string",
+      "enum": [
+        "control_boundary",
+        "text",
+        "graphical_object",
+        "decoration"
+      ]
+    },
+    "GrantedBy": {
+      "type": "string",
+      "enum": [
+        "vjs_court",
+        "principal"
+      ]
+    },
+    "InvokedBy": {
+      "description": "What invoked the run. VDS S-7(2)(3) requires something other than the author choosing to run it, and VDS S-7(3) holds that a hook is not CI.",
       "type": "string",
       "enum": [
         "githook_pre_commit",
@@ -154,100 +426,306 @@
         "package_script",
         "build",
         "manual"
+      ]
+    },
+    "KeyboardContract": {
+      "type": "object",
+      "required": [
+        "effect",
+        "key"
       ],
-      "description": "manual is recorded honestly and does not satisfy VDS S-7(2)(3)."
+      "properties": {
+        "effect": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
     },
-    "duration_ms": {
-      "type": "integer",
-      "minimum": 0
-    }
-  },
-  "$defs": {
-    "sha256": {
+    "NameSource": {
       "type": "string",
-      "pattern": "^sha256:[0-9a-f]{64}$"
+      "enum": [
+        "children",
+        "aria_label",
+        "aria_labelledby",
+        "title",
+        "alt",
+        "none_decorative"
+      ]
+    },
+    "ProofId": {
+      "description": "A captured proof result, stamped with the UTC second it was captured.",
+      "type": "string",
+      "pattern": "^PROOF-[0-9]{8}-[0-9]{6}$"
+    },
+    "ProofKind": {
+      "description": "The closed registry at VDS S-7(5).",
+      "oneOf": [
+        {
+          "description": "Every component referenced by any declared screen exists in the register.",
+          "type": "string",
+          "enum": [
+            "register_completeness"
+          ]
+        },
+        {
+          "description": "The register agrees with the codebase and with Figma, both directions.",
+          "type": "string",
+          "enum": [
+            "reconciliation"
+          ]
+        },
+        {
+          "description": "No screen uses an unregistered component. The anti-drift proof.",
+          "type": "string",
+          "enum": [
+            "composition"
+          ]
+        },
+        {
+          "description": "Every registered component's boundaries clear their floors in every theme.",
+          "type": "string",
+          "enum": [
+            "contrast"
+          ]
+        },
+        {
+          "description": "Every required state of every registered component is drawn.",
+          "type": "string",
+          "enum": [
+            "states"
+          ]
+        },
+        {
+          "description": "Each registered component's code counterpart matches its contract.",
+          "type": "string",
+          "enum": [
+            "parity"
+          ]
+        },
+        {
+          "description": "The two named records agree where the pin declares them aligned.",
+          "type": "string",
+          "enum": [
+            "token_pin"
+          ]
+        },
+        {
+          "description": "A component proposed for retirement has zero remaining consumers.",
+          "type": "string",
+          "enum": [
+            "retirement_drain"
+          ]
+        },
+        {
+          "description": "Each generated ledger is current with its source.",
+          "type": "string",
+          "enum": [
+            "ledger_staleness"
+          ]
+        },
+        {
+          "description": "`.vds/**` holds no realisation.",
+          "type": "string",
+          "enum": [
+            "no_stored_values"
+          ]
+        }
+      ]
+    },
+    "ProofStatus": {
+      "description": "The three outcomes a proof record may carry.\n\nThere is no \"skipped\" and no \"warning\". VDS S-7(2)(4) requires a pass over zero enforceable rows to be recorded as `vacuous` and never as `passed`, and the absence of a fourth variant is what makes that structural.",
+      "type": "string",
+      "enum": [
+        "passed",
+        "failed",
+        "vacuous"
+      ]
+    },
+    "PropContract": {
+      "type": "object",
+      "required": [
+        "name",
+        "required",
+        "type"
+      ],
+      "properties": {
+        "figmaProperty": {
+          "description": "The corresponding Figma variant property, or null where the prop has no visual counterpart.",
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "type": {
+          "description": "The TypeScript type expression, or a closed union written `a|b|c`.\n\nSerialised as `type`, which is the field name the contract publishes and a reserved word in Rust. The rename keeps the published shape rather than letting an implementation-language constraint leak into the artefact.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Severity": {
+      "type": "string",
+      "enum": [
+        "fatal",
+        "warning",
+        "informational"
+      ]
+    },
+    "Stage": {
+      "type": "string",
+      "enum": [
+        "W1_REGISTER_COMPLETE",
+        "W2_DESIGN_COMPLETE",
+        "W3_PRINCIPAL_ACCEPTED",
+        "W4_PARITY"
+      ]
+    },
+    "State": {
+      "description": "The nine states, fixed by VDS S-5(3). A record may require a subset. It may not invent a tenth, and here it cannot.",
+      "type": "string",
+      "enum": [
+        "default",
+        "hover",
+        "focus",
+        "active",
+        "selected",
+        "disabled",
+        "loading",
+        "error",
+        "success"
+      ]
+    },
+    "StateContract": {
+      "description": "Which of the nine states are required, which are drawn, which are built.\n\nStored as sorted, deduplicated vectors rather than sets so the serialised form is stable: a record's bytes must not depend on hash iteration order, or the register digest moves without the register moving.",
+      "type": "object",
+      "required": [
+        "built",
+        "drawn",
+        "required"
+      ],
+      "properties": {
+        "built": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/State"
+          }
+        },
+        "drawn": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/State"
+          }
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/State"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "Status": {
+      "description": "The lifecycle at VDS S-5(4). A directed path where skipping is forbidden.",
+      "type": "string",
+      "enum": [
+        "proposed",
+        "designed",
+        "registered",
+        "built",
+        "verified",
+        "deprecated",
+        "retired"
+      ]
+    },
+    "Surface": {
+      "description": "The surface a warrant was granted over. VDS S-6(4): a change to either digest spends the warrant.\n\nBoth digests are computed from LIVE state, never read back from a generated artefact. A surface digest taken from a ledger would go stale exactly when a screen changed and the ledger was not regenerated, which is the one moment it has to be right.",
+      "type": "object",
+      "required": [
+        "register_digest",
+        "screens_digest"
+      ],
+      "properties": {
+        "register_digest": {
+          "type": "string"
+        },
+        "screens_digest": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Timestamp": {
+      "description": "UTC, second resolution, trailing Z. The one canonical form VDS writes.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "Violation": {
+      "description": "One finding. `expected` and `actual` are both required and both non-empty, because a finding that says only what is wrong makes the reader guess at what right would have been.",
+      "type": "object",
+      "required": [
+        "actual",
+        "expected",
+        "location",
+        "rule"
+      ],
+      "properties": {
+        "actual": {
+          "type": "string"
+        },
+        "expected": {
+          "type": "string"
+        },
+        "location": {
+          "description": "`file:line`, or a route plus a component id.",
+          "type": "string"
+        },
+        "rule": {
+          "description": "The invariant id or statute section the violation offends.",
+          "type": "string"
+        },
+        "severity": {
+          "default": "fatal",
+          "$ref": "#/definitions/Severity"
+        }
+      },
+      "additionalProperties": false
+    },
+    "WarrantId": {
+      "description": "A warrant record. The stage number is part of the identifier so the four series are independent.",
+      "type": "string",
+      "pattern": "^WARRANT-W[1-4]-[0-9]{3}$"
+    },
+    "WarrantStatus": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "granted",
+            "refused",
+            "superseded",
+            "revoked"
+          ]
+        },
+        {
+          "description": "The surface it was granted over changed (VDS S-6(4)). Recorded, never deleted.",
+          "type": "string",
+          "enum": [
+            "spent"
+          ]
+        }
+      ]
     }
-  },
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "status": {
-            "const": "passed"
-          }
-        },
-        "required": ["status"]
-      },
-      "then": {
-        "properties": {
-          "exit_code": {
-            "const": 0
-          },
-          "rows_enforced": {
-            "minimum": 1
-          },
-          "violations": {
-            "maxItems": 0
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "status": {
-            "const": "vacuous"
-          }
-        },
-        "required": ["status"]
-      },
-      "then": {
-        "properties": {
-          "rows_enforced": {
-            "const": 0
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "status": {
-            "const": "failed"
-          }
-        },
-        "required": ["status"]
-      },
-      "then": {
-        "properties": {
-          "exit_code": {
-            "minimum": 1
-          },
-          "violations": {
-            "minItems": 1
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "exit_code": {
-            "const": 0
-          },
-          "rows_enforced": {
-            "const": 0
-          }
-        },
-        "required": ["exit_code", "rows_enforced"]
-      },
-      "then": {
-        "properties": {
-          "status": {
-            "const": "vacuous"
-          }
-        }
-      }
-    }
-  ]
+  }
 }
