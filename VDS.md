@@ -90,42 +90,34 @@ a proposed artefact that fails any one of them is in the storing form and is for
 a requirement drawn from WCAG 2.2 SC 1.4.11 and is lawful under S-2(4). `"#ebebeb"` is a
 realisation and is not, wherever it appears in `.vds/`.
 
-**S-2(7)** Where a proof must compare two values, it compares them **in memory** and writes
-out only the answer.
+**S-2(7) AMENDED, and the original text is recorded because it was wrong.** As drafted this
+clause read: "Where a proof must compare two values, it compares digests of the normalised
+values, not the values. A pin row therefore carries `source_value_digest` and
+`target_value_digest` and an agreement flag, and never the two strings. This is what keeps
+the pin a gate rather than a store, and it is why the pin schema forbids a value field."
 
-This clause previously said the opposite. It said a pin row carries `source_value_digest`
-and `target_value_digest` "and never the two strings", and that this "is what keeps the pin
-a gate rather than a store". That was false, and it was falsified on this specification's
-own first adoption. An srgb 8-bit colour has a 2^24 domain. An unsalted digest over a
-2^24 domain is a lookup table, not a one-way function. All 52 distinct value digests in the
-first token pin were recovered by exhaustive search in 27 seconds on one CPU, and one was
-confirmed to equal the digest of the value `app/globals.css` ships. That pin held 26
-decided and 26 shipped colours in a reversible encoding while its own README asserted
-"there is no design value here". **A digest of a low-entropy value is the value.**
+That construction does not do what the clause says it does, and the difference was measured
+rather than argued. An unsalted SHA-256 over a low-entropy domain is not one-way in any
+practical sense, and a design token value is a tiny domain: a hex colour is 24 bits, about
+16.7 million candidates, and a spacing step or a duration is smaller. An adversarial agent
+recovered all 52 values from a 26-row pin in 27 seconds on one CPU. A pin built as the
+original clause required therefore STORES the decided and the shipped values, in a form that
+is inconvenient to read and trivial to recover, which is exactly the storing form
+[2026] VJS-CC-OPBOX 3 forbids. The guard specified at S-2(8) to catch that would have
+certified it clean, because it looks for colour literals.
 
-The corrected rule has three limbs.
+Salting does not rescue it. A salt recorded in the pin is a salt the reader has, so the
+search is unchanged. A salt not recorded in the pin makes the pin irreproducible, which fails
+the regeneration limb at S-2(5)(4).
 
-1. **No per-value digest.** A pin row carries the **agreement flag**, whether each record
-   defines the token, and the token name. Nothing is recoverable from a boolean. The pin
-   schema achieves this by omission plus `additionalProperties: false`, so a pin carrying a
-   per-value digest is schema-invalid rather than merely deprecated.
-2. **Joint digests only, above the floor.** Where an artefact must detect that a value
-   moved, it may carry one digest over the **whole value set at once**, in a canonical
-   order. Its preimage domain is the product over every value slot, not the domain of one
-   value. It is lawful only where that domain exceeds the S-2(9) floor, and an artefact
-   carrying one must publish the slot count so the arithmetic is checkable rather than
-   asserted. Below the floor, a joint digest over one or two values simply is a per-value
-   digest and must be omitted.
-3. **Salting is not a cure.** A repo-local salt gives an attacker holding the repository
-   both halves, so it changes nothing. A salt held outside the repository makes the
-   artefact non-reproducible by a named command from the named records, which fails S-2(5)
-   limb 4 outright. Neither route buys anything that re-deriving does not already give, so
-   the answer is to stop needing a secret, not to keep one.
+**The operative rule is therefore:** a pin row carries the NAME of the thing compared and the
+AGREEMENT between the two records, and nothing else. No per-value digest appears anywhere in
+`.vds/`. Whether the records as a whole moved is answered by a digest of each whole record,
+which is not a low-entropy domain and is safe.
 
-What limb 1 costs, stated rather than glossed: the artefact can no longer say **which** row
-moved since it was written, only whether each row still agrees. That is recovered by
-re-running the named generating command. Re-deriving is what a deriving artefact is for,
-and one command is not worth holding the palette.
+This is a departure from text that is not commenced (S-15) and that mandated a construction
+that provably does the opposite of what it claims. It is referred as `SUBMISSION-VDS-006`,
+and the fail-closed interim is the rule stated above.
 
 **S-2(8)** The rule S-2(2) actually needs is about **recoverability, not spelling**. An
 artefact is in the storing form if a design value can be reconstructed from `.vds/**`,
@@ -218,8 +210,16 @@ ignored. A governance record that is gitignored is not a record.
 
 ## S-4 The artefact set
 
-**S-4(1)** VDS holds exactly eight artefact kinds. Each has a JSON Schema under `schema/`,
-and a file that does not validate against its schema is not an artefact of that kind.
+**S-4(1)** VDS holds exactly eight artefact kinds. Six have a JSON Schema under `schema/`,
+and a file that does not validate against its schema is not an artefact of that kind. The
+remaining two, the decision log and the breach report, are ADOPTED from VJS and are validated
+against VJS's schemas rather than redefined here; saying "each has a schema under `schema/`"
+was wrong, because two of the eight never did.
+
+The six schemas are GENERATED from the implementation's types and are not maintained beside
+them. A hand-written schema and a hand-written parser are two opinions about one shape, and
+two opinions drift; `vds schema check` regenerates and diffs, so a divergence is a failing
+check rather than a discovery months later.
 
 | artefact | path | schema | what it is |
 |---|---|---|---|
@@ -630,6 +630,26 @@ work of designing, and it does not remove the need for the Principal to look at 
 It converts a class of silent failure into a loud one at authoring time. That is the whole
 return, and it is worth the cost only because the failures in that class are the ones that
 reach production and stay there for months.
+
+---
+
+## S-14A The implementation
+
+**S-14A(1)** VDS is implemented as a Rust workspace producing one binary, `vds`, on a pinned
+toolchain. This is not a free choice: VJS is a Rust workspace, VDS refers every judgement call
+to VJS (S-1(2)), and two governance systems with one purpose and two toolchains is the
+fragmentation the pair exists to avoid.
+
+**S-14A(2)** Every closed set this specification fixes is a type rather than a validated
+string. A tenth state (S-5(3)), a status outside the lifecycle (S-5(4)), a proof kind outside
+the registry (S-7(5)) and a `capture_mode` other than `automatic` (S-7(2)(5)) are each
+unrepresentable rather than invalid. Where a rule can be made structural it is made
+structural, because a rule enforced at runtime is a rule that can be reached with the check
+disabled.
+
+**S-14A(3)** Seven of the ten proof kinds at S-7(5) are implemented. Each of the other three
+records why, per kind, rather than sharing a blanket note, because the reasons differ and the
+difference is what tells a reader whether the gap is work or a dependency.
 
 ---
 

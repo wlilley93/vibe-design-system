@@ -63,31 +63,49 @@ leave it red and cite it.
 
 ## Quick reference
 
-The CLI is `tools/vds.py`, and it has six subcommands: `init`, `ledger`, `register`, `proof`,
-`warrant`, `lock`. Anything else you have seen written down (`vds route`, `vds submit`,
-`vds log`, `vds validate`) does **not** exist. A command written in a doc is not a command that
-runs; do the equivalent by hand and say so in the log.
+These commands exist and are tested. Anything not listed here does not exist.
 
 ```bash
-# Scaffold a project's .vds/
-tools/vds.py --root <repo> init
+# Set up
+vds init                              # scaffold .vds/
+vds doctor                            # measure against the ten done criteria
 
-# Regenerate the declared surface, then run every implemented proof
-tools/vds.py --root <repo> ledger screens
-tools/vds.py --root <repo> proof --all       # captures its own records; never hand-write one
+# The register. Register BEFORE designing (VDS S-6(2)).
+vds register add --name Button --import-path @/components/ui \
+    --source-file src/components/ui/button.tsx --export-name Button \
+    --require default,focus --floor 'control-border:surface:3.0:WCAG 2.2 SC 1.4.11'
+vds register list | show <id> | measure-demand --all
+vds register set-status <id> <status>          # one step, no skipping
+vds register amend <id> --kind non_breaking --what "..."
+vds register deprecate <id> --superseded-by <id> | --withdraw
+vds register retire <id> --drain-proof PROOF-...
 
-# What is granted, on what evidence, over which surface
-tools/vds.py --root <repo> warrant status
+# The declared surface and the proofs
+vds ledger screens
+vds proof --list                      # the closed registry, and why three are unbuilt
+vds proof <kind> | --all [--invoked-by ci_workflow] [--allow-vacuous] [--no-capture]
 
-# What is actually wired, by digest
-tools/vds.py --root <repo> lock verify
+# The design round trip
+vds brief                             # what an agent may draw into Figma
+vds figma pull [--from response.json] # measure what it actually drew
+vds impl <id>                         # what that drawing must become in code
+
+# Warrants. VDS grants nothing; `record` writes down a grant made elsewhere.
+vds warrant status | record --stage W1 ... | spend <id>
+
+# The enforcement surface
+vds lock verify | add <path> --invoked-by ... --test-path ... --test-name ...
+vds lock repin --rationale "..."
+vds pack verify | pin
+vds schema emit | check               # schemas are GENERATED from the Rust types
 ```
 
-Three of the ten proof kinds are implemented (`register_completeness`, `composition`, `states`).
-`tools/vds.py proof --list` prints which, and the seven that are not. Because `reconciliation`
-and `contrast` are among the seven, **no warrant can currently be recorded as `granted` by
-anyone**: W1 and W2 both require evidence of a kind that has no script. That is the true state
-of the record, not a tooling gap to route around.
+**Not implemented, and named so nobody looks for them:** the permit lifecycle
+(VDS S-12(1)), `install.lock` (VDS S-11(4)), decision logs and breach reports as
+commands, and a `submit` command for referrals. Submissions are hand-authored
+into `.vds/submissions/filed/` and validated on read. Where the machinery does
+not exist, do the equivalent by hand and say so in the log; a command written in
+a doc is not a command that runs.
 
 ## Lifecycle
 
@@ -182,3 +200,21 @@ VDS does NOT:
   a declared surface named by digest in the warrant that relies on it
 
 VDS IS a deterministic artefact store and proof producer.
+
+## This repository
+
+A Rust workspace, edition 2024, toolchain pinned to 1.95.0 in `rust-toolchain.toml`, matching
+VJS. Two governance systems with one purpose should not have two toolchains.
+
+| crate | what it holds |
+|---|---|
+| `vds-core` | artefact types, digests, identifiers, project discovery |
+| `vds-designpack` | the vendored normative corpus and its lock |
+| `vds-store` | reading and writing `.vds/`, and the enforcement lock |
+| `vds-scan` | the screens ledger, the JSX scanner, the staleness test |
+| `vds-figma` | the decided-target ledger, the brief and the implementation contract |
+| `vds-proof` | the closed registry of proof kinds and the capture that records them |
+| `vds-cli` | the `vds` binary |
+
+`make check` runs what CI runs, in the same order. Where they differ, CI wins: VDS S-7(3)
+holds that a hook is not CI, and the same is true of a Makefile.
