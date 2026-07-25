@@ -1,5 +1,5 @@
 schema_version: 1
-generated_at: 2026-07-25T13:58:22Z
+generated_at: 2026-07-25T14:24:27Z
 entries:
 - path: crates/vds-proof/src/composition.rs
   digest: sha256:f0265e72bed6a05c7f524a93e2aad3990739fd48208699032ccb0413d323a078
@@ -128,7 +128,7 @@ entries:
   pinned_at: 2026-07-25T13:58:22Z
   pinned_by: jellytot
 - path: crates/vds-scan/src/lib.rs
-  digest: sha256:1f18ed441ea487c5f629976a641ad6bfd1cf8435a26db45c44d3a295a6725e1b
+  digest: sha256:18218d12c5ec737660fa53a8cb6aa36abf241243191666f7e0951c0da41aa34d
   kind: ledger_generator
   invoked_by:
   - surface: ci_workflow
@@ -140,8 +140,10 @@ entries:
     path: crates/vds-scan/src/lib.rs
     test_name: a_hand_edited_ledger_is_refused_even_though_its_sources_are_untouched
     seeds: a ledger row deleted by hand while its source files are untouched
-  pinned_at: 2026-07-25T13:58:22Z
+  pinned_at: 2026-07-25T14:24:27Z
   pinned_by: jellytot
+  supersedes_digest: sha256:1f18ed441ea487c5f629976a641ad6bfd1cf8435a26db45c44d3a295a6725e1b
+  relock_rationale: added the vds-scan library module that backs `vds register import`; the gate this entry witnesses is unchanged and its failing-direction test still passes. Recorded at .vds/logs/decisions/DECISION-0001.yaml (VDS S-8(4), S-12(2)).
 - path: crates/vds-store/src/lock.rs
   digest: sha256:54c7bb983fbfa44c99ea1c517c4bc624004872776e9b3f1c10a3a86529356f69
   kind: config

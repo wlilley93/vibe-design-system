@@ -1,0 +1,12 @@
+[package]
+name = "vds-css"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "VDS css: custom properties extracted per theme, and colour, for the contrast proof."
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true

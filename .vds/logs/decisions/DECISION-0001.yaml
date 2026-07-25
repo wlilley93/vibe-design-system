@@ -1,0 +1,24 @@
+id: DECISION-0001
+at: 2026-07-25T14:30:00Z
+by: lexby
+decision: >-
+  Re-pin crates/vds-scan/src/lib.rs in .vds/enforcement.lock after adding the
+  `library` module that `vds register import` reads.
+court_required: false
+why: >-
+  Reversible and low blast radius. The pinned file is a ledger generator, and the
+  change adds a module declaration and a public `Reference::is_governed` helper;
+  it removes no check and weakens none. The gate the entry witnesses,
+  ledger_staleness, and its named failing-direction test,
+  a_hand_edited_ledger_is_refused_even_though_its_sources_are_untouched, are both
+  unchanged and both still pass.
+
+  Recorded rather than assumed because VDS S-8(4) makes re-pinning a deliberate
+  act and VDS S-8(5) is explicit that the lock cannot stop an author who edits a
+  gate and re-locks it in the same commit. This log is the non-machine backstop
+  that residue leaves behind: the act is visible in a diff, and here is the
+  reason next to it.
+basis:
+  - VDS S-8(4)
+  - VDS S-12(2)
+supersedes_digest: sha256:1f18ed441ea487c5f629976a641ad6bfd1cf8435a26db45c44d3a295a6725e1b
