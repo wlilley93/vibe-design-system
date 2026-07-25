@@ -32,9 +32,6 @@ pub mod token_pin;
 #[cfg(test)]
 pub mod testing;
 
-#[cfg(test)]
-mod zzprobe;
-
 pub use run::{
     Capture, Outcome, ProofRun, Row, Verdict, aggregate_exit, evidence_digest, guarded,
     verify_record,
