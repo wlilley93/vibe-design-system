@@ -28,6 +28,13 @@ use crate::ledger::{
 pub trait FigmaSource {
     /// The raw `GET /v1/files/:key` response body.
     fn fetch_file(&self, file_key: &str) -> Result<String>;
+    /// The raw `GET /v1/files/:key/variables/local` response body.
+    ///
+    /// A separate endpoint, and the one the PIN generator reads. Variables carry
+    /// a name and a value per mode, which is one-to-one with a CSS custom
+    /// property carrying a value per theme; the file tree carries rendered
+    /// instances, which is a different question with a different answer.
+    fn fetch_variables(&self, file_key: &str) -> Result<String>;
     /// A sentence naming the source, recorded on the ledger.
     fn describe(&self) -> String;
 }
@@ -42,6 +49,9 @@ pub struct SavedResponse {
 
 impl FigmaSource for SavedResponse {
     fn fetch_file(&self, _file_key: &str) -> Result<String> {
+        std::fs::read_to_string(&self.path).map_err(|e| VdsError::io(self.path.display(), e))
+    }
+    fn fetch_variables(&self, _file_key: &str) -> Result<String> {
         std::fs::read_to_string(&self.path).map_err(|e| VdsError::io(self.path.display(), e))
     }
     fn describe(&self) -> String {
@@ -86,7 +96,48 @@ impl FigmaApi {
     }
 }
 
+impl FigmaApi {
+    fn get(&self, url: &str, what: &str) -> Result<String> {
+        let output = std::process::Command::new("curl")
+            .arg("--silent")
+            .arg("--show-error")
+            .arg("--fail")
+            .arg("--max-time")
+            .arg("60")
+            .arg("--header")
+            .arg(format!("X-Figma-Token: {}", self.token))
+            .arg(url)
+            .output()
+            .map_err(|e| {
+                VdsError::precondition(format!(
+                    "could not run curl to reach the Figma API: {e}\n  \
+                     Install curl, or work from a saved response, which needs neither a token \
+                     nor a network."
+                ))
+            })?;
+        if !output.status.success() {
+            return Err(VdsError::precondition(format!(
+                "the Figma API refused the request for {what}: {}\n  \
+                 Check FIGMA_TOKEN and that the token can read this file. The variables \
+                 endpoint additionally needs an Enterprise plan and the `file_variables:read` \
+                 scope, and returns 403 rather than an empty result without them.",
+                String::from_utf8_lossy(&output.stderr).trim()
+            )));
+        }
+        String::from_utf8(output.stdout).map_err(|e| {
+            VdsError::precondition(format!("the Figma API returned invalid UTF-8: {e}"))
+        })
+    }
+}
+
 impl FigmaSource for FigmaApi {
+    fn fetch_variables(&self, file_key: &str) -> Result<String> {
+        self.get(
+            &format!("https://api.figma.com/v1/files/{file_key}/variables/local"),
+            &format!("the local variables of file {file_key}"),
+        )
+    }
+
     fn fetch_file(&self, file_key: &str) -> Result<String> {
         let output = std::process::Command::new("curl")
             .arg("--silent")

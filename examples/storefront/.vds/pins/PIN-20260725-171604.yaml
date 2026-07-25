@@ -1,0 +1,31 @@
+id: PIN-20260725-171604
+subject: the storefront control palette
+direction: one_way_derived
+source_of_record:
+  authority_for: what ships
+  locator: app/globals.css
+  digest: sha256:aab9e1b614effdf45840a16e048bee9696733ca92bf4918791fd97b6ade59bb0
+target_of_record:
+  authority_for: what is decided
+  locator: SFDEMO
+  digest: sha256:c6e4b6606cd3107a35ff2181e8f32490e85fcd40cf8972bdc7fc9b271275addf
+rows:
+- name: sf-control-bg @ Dark
+  agrees: true
+- name: sf-control-bg @ Light
+  agrees: true
+- name: sf-control-fg @ Dark
+  agrees: true
+- name: sf-control-fg @ Light
+  agrees: true
+- name: sf-surface @ Dark
+  agrees: true
+- name: sf-surface @ Light
+  agrees: true
+rows_considered: 6
+rows_enforced: 6
+fails_closed: true
+generated_at: 2026-07-25T17:16:04Z
+generated_by: vds pin generate --file-key SFDEMO --from examples/storefront/figma/variables-SFDEMO.json --prefix ""
+digest: sha256:3dc4e892ee0ccdaa6fa880c26e26893edd80b23e5a8bac0bf5c4649e7f33c603
+proof_id: null

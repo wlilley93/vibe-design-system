@@ -1,0 +1,53 @@
+{
+  "meta": {
+    "variableCollections": {
+      "VariableCollectionId:1:2": {
+        "id": "VariableCollectionId:1:2",
+        "name": "Theme",
+        "modes": [
+          { "modeId": "1:0", "name": "Light" },
+          { "modeId": "1:1", "name": "Dark" }
+        ]
+      }
+    },
+    "variables": {
+      "VariableID:2:1": {
+        "id": "VariableID:2:1",
+        "name": "sf/control/bg",
+        "resolvedType": "COLOR",
+        "variableCollectionId": "VariableCollectionId:1:2",
+        "valuesByMode": {
+          "1:0": { "r": 0.1137, "g": 0.3059, "b": 0.8471, "a": 1 },
+          "1:1": { "r": 0.3098, "g": 0.4745, "b": 0.9412, "a": 1 }
+        }
+      },
+      "VariableID:2:2": {
+        "id": "VariableID:2:2",
+        "name": "sf/control/fg",
+        "resolvedType": "COLOR",
+        "variableCollectionId": "VariableCollectionId:1:2",
+        "valuesByMode": {
+          "1:0": { "r": 1, "g": 1, "b": 1, "a": 1 },
+          "1:1": { "r": 0.0431, "g": 0.0510, "b": 0.0627, "a": 1 }
+        }
+      },
+      "VariableID:2:3": {
+        "id": "VariableID:2:3",
+        "name": "sf/surface",
+        "resolvedType": "COLOR",
+        "variableCollectionId": "VariableCollectionId:1:2",
+        "valuesByMode": {
+          "1:0": { "r": 1, "g": 1, "b": 1, "a": 1 },
+          "1:1": { "r": 0.0627, "g": 0.0706, "b": 0.0824, "a": 1 }
+        }
+      },
+      "VariableID:2:4": {
+        "id": "VariableID:2:4",
+        "name": "sf/gap",
+        "resolvedType": "FLOAT",
+        "variableCollectionId": "VariableCollectionId:1:2",
+        "valuesByMode": { "1:0": 12, "1:1": 12 }
+      }
+    }
+  }
+}

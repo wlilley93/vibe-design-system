@@ -117,10 +117,11 @@ jobs:
       # so a vacuity in any of them is a red build rather than a footnote. This is
       # the step that makes `vds doctor` D1, D2 and D3 answerable at all.
       #
-      # `token_pin` is the tenth and is absent from the loop on purpose. It CHECKS
-      # a pin and nothing in this build PRODUCES one, because one of the two
-      # records it compares is behind a network call VDS S-7(2)(1) forbids inside
-      # a proof. Its run is recorded as `vacuous` and is not evidence.
+      # `token_pin` follows the loop rather than sitting in it, because it needs
+      # a pin GENERATED first. That generation is out of band by design: one of
+      # the two records it compares is behind a network call VDS S-7(2)(1)
+      # forbids inside a proof, so the comparison happens in `vds pin generate`
+      # and the gate checks what came out.
       - name: The worked example, with no exemption
         run: |
           ./target/release/vds ledger screens --root examples/storefront
@@ -129,6 +130,14 @@ jobs:
                       parity retirement_drain ledger_staleness no_stored_values; do
             ./target/release/vds proof "$kind" --root examples/storefront --invoked-by ci_workflow
           done
+          # The tenth kind. The pin is regenerated from a response committed
+          # outside `.vds/` and then checked, which is two acts: generating
+          # proves the derivation still runs against the shipped stylesheet,
+          # checking proves the two named records still agree.
+          ./target/release/vds pin generate --root examples/storefront --file-key SFDEMO \
+            --from examples/storefront/figma/variables-SFDEMO.json \
+            --subject "the storefront control palette"
+          ./target/release/vds proof token_pin --root examples/storefront --invoked-by ci_workflow
 
       # The honest position, printed on every run so a regression in a criterion
       # is visible in the log rather than discovered at a review.

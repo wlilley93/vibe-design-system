@@ -72,6 +72,8 @@ enum Command {
     /// Run one proof kind, or every implemented kind.
     /// The governance logs: a decisive call, or a self-reported breach.
     Log(log::Args),
+    /// Derive a pin between the shipped record and the decided target.
+    Pin(figma::PinArgs),
     Proof(proof::Args),
     /// Bound the proof working set: remove passing, uncited, superseded records.
     Prune(prune::Args),
@@ -119,6 +121,7 @@ fn dispatch(cli: &Cli) -> Result<i32> {
         Command::Ledger(args) => ledger::run(&ctx, args),
         Command::Register(args) => register::run(&ctx, args),
         Command::Log(args) => log::run(&ctx, args),
+        Command::Pin(args) => figma::run_pin(&ctx, args),
         Command::Proof(args) => proof::run(&ctx, args),
         Command::Prune(args) => prune::run(&ctx, args),
         Command::Warrant(args) => warrant::run(&ctx, args),

@@ -46,6 +46,14 @@ impl Fixture {
         Store::new(&self.project)
     }
 
+    /// Write a file into the fixture, creating its parents.
+    pub fn write(&self, relative: &str, contents: &str) -> PathBuf {
+        let path = self.project.root.join(relative);
+        std::fs::create_dir_all(path.parent().expect("a parent")).unwrap();
+        std::fs::write(&path, contents).unwrap();
+        path
+    }
+
     pub fn register(&self, name: &str, status: Status) -> ComponentId {
         let store = self.store();
         let id = ComponentId::allocate(&store.register_dir()).unwrap();

@@ -842,6 +842,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "vds-core",
+ "vds-css",
  "vds-scan",
  "vds-store",
 ]

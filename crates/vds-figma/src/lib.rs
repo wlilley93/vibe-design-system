@@ -38,6 +38,7 @@
 pub mod brief;
 pub mod contract;
 pub mod ledger;
+pub mod pin;
 pub mod pull;
 
 #[cfg(test)]

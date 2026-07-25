@@ -51,6 +51,44 @@ enum FigmaAction {
 }
 
 #[derive(ClapArgs)]
+pub struct PinArgs {
+    #[command(subcommand)]
+    action: PinAction,
+}
+
+#[derive(Subcommand)]
+enum PinAction {
+    /// Derive a pin: compare the shipped stylesheet against the decided-target
+    /// file's variables, and record the verdicts.
+    Generate(PinGenerateArgs),
+}
+
+#[derive(ClapArgs)]
+pub struct PinGenerateArgs {
+    /// The decided-target file. Defaults to the one every record names.
+    #[arg(long)]
+    file_key: Option<String>,
+    /// Compare against a saved `variables/local` response instead of calling the
+    /// API. Needs no token and no network, and is byte-reproducible.
+    #[arg(long, value_name = "PATH")]
+    from: Option<PathBuf>,
+    /// The prefix this project puts on its custom properties, e.g. `sf-`.
+    ///
+    /// A Figma variable `control/border` becomes `--<prefix>control-border`.
+    /// That correspondence is a convention nobody has written down, so it is
+    /// applied, labelled as DERIVED in the report, and any variable it cannot
+    /// place becomes a row the pin declines to enforce with the reason on it.
+    #[arg(long, default_value = "")]
+    prefix: String,
+    /// What this pin is about, recorded on it.
+    #[arg(
+        long,
+        default_value = "the shipped stylesheet against the decided-target variables"
+    )]
+    subject: String,
+}
+
+#[derive(ClapArgs)]
 pub struct PullArgs {
     /// The decided-target file. Defaults to the one every record names.
     #[arg(long)]
@@ -59,6 +97,88 @@ pub struct PullArgs {
     /// calling the API. Needs no token and no network, and is byte-reproducible.
     #[arg(long, value_name = "PATH")]
     from: Option<PathBuf>,
+}
+
+pub fn run_pin(ctx: &Context, args: &PinArgs) -> Result<i32> {
+    let project = ctx.project()?;
+    let store = Store::new(&project);
+    match &args.action {
+        PinAction::Generate(a) => pin_generate(&store, a),
+    }
+}
+
+/// Fetch or read the decided-target variables, CACHE them, and compare.
+///
+/// The cache is the whole reason this is lawful. Comparing two realisations
+/// needs both in hand, and VDS S-2(2) forbids `.vds/` holding either. S-3(9)
+/// names `.vds/cache/` as one of two ignored directories, gitignored and skipped
+/// by name by `no_stored_values`, so the raw response lives there and only the
+/// verdicts reach a record. Nothing about S-2 needed amending: the cache is the
+/// escape hatch the specification already provided, and this is what it is for.
+fn pin_generate(store: &Store, args: &PinGenerateArgs) -> Result<i32> {
+    let project = store.project;
+    let file_key = resolve_file_key(store, &args.file_key)?;
+    let cached = vds_figma::pin::cached_variables_path(project, &file_key);
+    std::fs::create_dir_all(vds_figma::pin::cache_dir(project))
+        .map_err(|e| VdsError::io(project.rel(&vds_figma::pin::cache_dir(project)), e))?;
+
+    let source = match &args.from {
+        Some(path) => vds_figma::pin::Source::Saved(path.as_path()),
+        None => vds_figma::pin::Source::Network,
+    };
+    let body = match &args.from {
+        Some(path) => {
+            if !path.is_file() {
+                return Err(VdsError::precondition(format!(
+                    "--from {} does not exist",
+                    path.display()
+                )));
+            }
+            std::fs::read_to_string(path).map_err(|e| VdsError::io(path.display(), e))?
+        }
+        None => {
+            let api = pull::FigmaApi::from_env()?;
+            println!("reading the decided-target variables over the network...");
+            pull::FigmaSource::fetch_variables(&api, &file_key)?
+        }
+    };
+    std::fs::write(&cached, &body).map_err(|e| VdsError::io(project.rel(&cached), e))?;
+
+    let generated = vds_figma::pin::generate(
+        store,
+        &file_key,
+        &cached,
+        source,
+        &args.prefix,
+        &args.subject,
+    )?;
+
+    println!(
+        "cached the decided-target response at {}",
+        project.rel(&cached)
+    );
+    println!(
+        "  That directory is one of the two VDS S-3(9) ignores: gitignored, skipped by name by"
+    );
+    println!(
+        "  `no_stored_values`, and counted. It is the only place in VDS a design value may sit,"
+    );
+    println!("  and it is why this comparison is lawful without amending VDS S-2.");
+    println!();
+    for line in &generated.report {
+        println!("{line}");
+    }
+    println!();
+    println!("wrote {}", project.rel(&generated.path));
+    println!(
+        "  {} rows, {} enforced. Every row carries a NAME and an AGREEMENT and nothing a brute",
+        generated.pin.rows_considered, generated.pin.rows_enforced
+    );
+    println!("  force could invert (VDS S-2(7), SUBMISSION-VDS-006).");
+    println!();
+    println!("Now check it, which is a different act from generating it:");
+    println!("  vds proof token_pin");
+    Ok(PASSED)
 }
 
 pub fn run_figma(ctx: &Context, args: &FigmaArgs) -> Result<i32> {

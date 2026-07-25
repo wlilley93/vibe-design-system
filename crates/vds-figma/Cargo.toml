@@ -9,6 +9,7 @@ description = "VDS Figma seam: the decided-target ledger, the generation brief a
 
 [dependencies]
 vds-core.workspace = true
+vds-css.workspace = true
 vds-store.workspace = true
 vds-scan.workspace = true
 serde.workspace = true
