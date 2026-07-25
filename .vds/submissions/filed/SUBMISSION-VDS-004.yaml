@@ -1,0 +1,26 @@
+id: SUBMISSION-VDS-004
+status: filed
+question: "May a component be retired against a forced-drain deadline while shipped routes still consume it?"
+trigger: first_impression
+why_first_impression: "The drain condition as drafted is absolute, and a component nobody will migrate off can then never be retired, so the register only ever grows."
+citator_checked:
+  - citation: "[2026] VJS-CC-OPBOX 3"
+    why_not_on_all_fours: "It fixes the storing/deriving line for a token kernel and names the systems of record. It does not reach this question."
+  - citation: "[2026] VJS-CC-OPBOX 1"
+    why_not_on_all_fours: "The locus ratio fixes where a domain lives, not how a design warrant is earned."
+options:
+  - option: "absolute drain, as now"
+    consequence: "retirement is always earned, and a stalled migration blocks it forever"
+  - option: "a deadline ordered by VJS may force retirement over a non-zero demand"
+    consequence: "unblocks the register, and makes composition fail on shipped code that was lawful yesterday"
+evidence:
+  - "VDS.md, the clause named in reserved_clause"
+  - "docs/GOAL.md, the done criterion the clause bears on"
+case_file_digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+reserved_clause: "S-9(9)"
+fail_closed_interim: "the drain condition is absolute and no deadline overrides a non-zero measured demand"
+filed_to: vjs
+vjs_submission_id: null
+created_at: 2026-07-25T13:00:00Z
+filed_at: 2026-07-25T13:00:00Z
+answer: null

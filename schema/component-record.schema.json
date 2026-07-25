@@ -1,38 +1,466 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://vds.local/schema/component-record.schema.json",
-  "title": "VDS component record",
-  "description": "One registered component, its contract and its lineage. Governed by VDS S-5 and S-9. Per VDS S-2(4) a record may hold a REQUIREMENT (a floor, a contract, a duty) and may never hold a REALISATION (a colour, a length, a radius, a font, a duration, an easing curve).",
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "ComponentRecord",
   "type": "object",
-  "additionalProperties": false,
   "required": [
+    "a11y",
+    "amendments",
+    "basis",
+    "contractVersion",
+    "demand",
     "id",
     "name",
-    "status",
-    "contractVersion",
-    "figma",
-    "code",
     "props",
     "states",
-    "a11y",
-    "demand",
-    "supersedes",
-    "supersededBy",
-    "amendments",
-    "basis"
+    "status",
+    "supersedes"
   ],
   "properties": {
+    "a11y": {
+      "$ref": "#/definitions/Accessibility"
+    },
+    "amendments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Amendment"
+      }
+    },
+    "basis": {
+      "description": "The authorities this registration rests on.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "code": {
+      "description": "The built counterpart. Null while unbuilt.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/CodeCounterpart"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "contractVersion": {
+      "description": "Bumped on every amendment, so a contract change is a versioned event and never a silent edit (VDS S-9(2)).",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    },
+    "demand": {
+      "$ref": "#/definitions/Demand"
+    },
+    "deprecatedAt": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Timestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "figma": {
+      "description": "The node in the decided-target Figma file. Null only while unproposed or unresolved; a proof reports the absence rather than assuming it away.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/FigmaNode"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "id": {
-      "type": "string",
-      "pattern": "^CMP-[0-9]{4}$",
-      "description": "Allocated by reading the live register off disk, max plus one (VDS S-4(4)). Never reused, including after retirement (VDS S-9(1))."
+      "$ref": "#/definitions/ComponentId"
     },
     "name": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 80
+      "type": "string"
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "props": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/PropContract"
+      }
+    },
+    "retiredAt": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Timestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "retirementProofId": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ProofId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "states": {
+      "$ref": "#/definitions/StateContract"
     },
     "status": {
+      "$ref": "#/definitions/Status"
+    },
+    "supersededBy": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ComponentId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "supersedes": {
+      "description": "Predecessors this component absorbed. An array because a successor may absorb several (VDS S-9(6)(3)).",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ComponentId"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "Accessibility": {
+      "type": "object",
+      "required": [
+        "accessibleNameSource",
+        "contrastFloors",
+        "keyboard"
+      ],
+      "properties": {
+        "accessibleNameSource": {
+          "$ref": "#/definitions/NameSource"
+        },
+        "contrastFloors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ContrastFloor"
+          }
+        },
+        "keyboard": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/KeyboardContract"
+          }
+        },
+        "role": {
+          "description": "ARIA role, or null where the component is a layout container with none.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Amendment": {
+      "type": "object",
+      "required": [
+        "at",
+        "by",
+        "contractVersion",
+        "kind",
+        "what"
+      ],
+      "properties": {
+        "at": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "by": {
+          "type": "string"
+        },
+        "contractVersion": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "decisionLogId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "$ref": "#/definitions/AmendmentKind"
+        },
+        "proofId": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ProofId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "warrantId": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/WarrantId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "what": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "AmendmentKind": {
+      "type": "string",
+      "enum": [
+        "non_breaking",
+        "breaking"
+      ]
+    },
+    "CodeCounterpart": {
+      "type": "object",
+      "required": [
+        "exportName",
+        "importPath",
+        "sourceFile"
+      ],
+      "properties": {
+        "exportName": {
+          "type": "string"
+        },
+        "importPath": {
+          "description": "The module specifier a screen imports from, as written in the import.",
+          "type": "string"
+        },
+        "sourceFile": {
+          "description": "Repository-relative path, no leading slash.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ComponentId": {
+      "description": "A registered component, allocated as the highest on disk plus one (VDS S-4(4)).",
+      "type": "string",
+      "pattern": "^CMP-[0-9]{4}$"
+    },
+    "ContrastFloor": {
+      "description": "A contrast floor: a REQUIREMENT, never a realisation (VDS S-2(6)).\n\n`boundary` and `against` name tokens or edges BY NAME. A literal value in either is a storing-form violation of VDS S-2(2), and `no_stored_values` looks for exactly that.",
+      "type": "object",
+      "required": [
+        "against",
+        "basis",
+        "boundary",
+        "minRatio"
+      ],
+      "properties": {
+        "against": {
+          "type": "string"
+        },
+        "basis": {
+          "description": "Where the requirement comes from, e.g. \"WCAG 2.2 SC 1.4.11\".",
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "minRatio": {
+          "type": "number",
+          "format": "double"
+        },
+        "scope": {
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/FloorScope"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Demand": {
+      "description": "How many routes consume this component. Measured, never estimated (VDS S-5(7)), which is why the command that measured it is part of the value.",
+      "type": "object",
+      "required": [
+        "measuredAt",
+        "measuredBy",
+        "routes"
+      ],
+      "properties": {
+        "measuredAt": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "measuredBy": {
+          "description": "The exact command that produced the count.",
+          "type": "string"
+        },
+        "routes": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "FigmaNode": {
+      "type": "object",
+      "required": [
+        "capturedAt",
+        "fileKey",
+        "nodeId"
+      ],
+      "properties": {
+        "capturedAt": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "fileKey": {
+          "type": "string"
+        },
+        "nodeId": {
+          "description": "A Figma node id, which is `<digits>:<digits>` in a file URL and `<digits>-<digits>` in a deep link. Both spellings are accepted because both are what a designer actually copies.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "FloorScope": {
+      "description": "What kind of thing the boundary is.\n\nVDS S-9(5): where a lower floor is genuinely correct, the lawful move is to change the component's SCOPE and state the basis, not to loosen the ratio. A factual claim about scope is contestable by a reviewer; a quietly lowered floor is not. That is why this field exists at all.",
+      "type": "string",
+      "enum": [
+        "control_boundary",
+        "text",
+        "graphical_object",
+        "decoration"
+      ]
+    },
+    "KeyboardContract": {
+      "type": "object",
+      "required": [
+        "effect",
+        "key"
+      ],
+      "properties": {
+        "effect": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "NameSource": {
+      "type": "string",
+      "enum": [
+        "children",
+        "aria_label",
+        "aria_labelledby",
+        "title",
+        "alt",
+        "none_decorative"
+      ]
+    },
+    "ProofId": {
+      "description": "A captured proof result, stamped with the UTC second it was captured.",
+      "type": "string",
+      "pattern": "^PROOF-[0-9]{8}-[0-9]{6}$"
+    },
+    "PropContract": {
+      "type": "object",
+      "required": [
+        "name",
+        "required",
+        "type"
+      ],
+      "properties": {
+        "figmaProperty": {
+          "description": "The corresponding Figma variant property, or null where the prop has no visual counterpart.",
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "type": {
+          "description": "The TypeScript type expression, or a closed union written `a|b|c`.\n\nSerialised as `type`, which is the field name the contract publishes and a reserved word in Rust. The rename keeps the published shape rather than letting an implementation-language constraint leak into the artefact.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "State": {
+      "description": "The nine states, fixed by VDS S-5(3). A record may require a subset. It may not invent a tenth, and here it cannot.",
+      "type": "string",
+      "enum": [
+        "default",
+        "hover",
+        "focus",
+        "active",
+        "selected",
+        "disabled",
+        "loading",
+        "error",
+        "success"
+      ]
+    },
+    "StateContract": {
+      "description": "Which of the nine states are required, which are drawn, which are built.\n\nStored as sorted, deduplicated vectors rather than sets so the serialised form is stable: a record's bytes must not depend on hash iteration order, or the register digest moves without the register moving.",
+      "type": "object",
+      "required": [
+        "built",
+        "drawn",
+        "required"
+      ],
+      "properties": {
+        "built": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/State"
+          }
+        },
+        "drawn": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/State"
+          }
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/State"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "Status": {
+      "description": "The lifecycle at VDS S-5(4). A directed path where skipping is forbidden.",
       "type": "string",
       "enum": [
         "proposed",
@@ -42,433 +470,18 @@
         "verified",
         "deprecated",
         "retired"
-      ],
-      "description": "The directed lifecycle path of VDS S-5(4). Skipping a stage is forbidden."
-    },
-    "contractVersion": {
-      "type": "integer",
-      "minimum": 1,
-      "description": "Increments on every amendment (VDS S-9(2))."
-    },
-    "figma": {
-      "description": "Node in the decided-target file. Null only while status is proposed.",
-      "oneOf": [
-        {
-          "type": "null"
-        },
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["fileKey", "nodeId", "capturedAt"],
-          "properties": {
-            "fileKey": {
-              "type": "string",
-              "minLength": 1
-            },
-            "nodeId": {
-              "type": "string",
-              "pattern": "^[0-9]+[:-][0-9]+$"
-            },
-            "capturedAt": {
-              "type": "string",
-              "format": "date-time"
-            }
-          }
-        }
       ]
     },
-    "code": {
-      "description": "The built counterpart. Null while unbuilt. Required non-null once status is built or later.",
-      "oneOf": [
-        {
-          "type": "null"
-        },
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["importPath", "sourceFile", "exportName"],
-          "properties": {
-            "importPath": {
-              "type": "string",
-              "minLength": 1
-            },
-            "sourceFile": {
-              "type": "string",
-              "pattern": "^[^/].*$",
-              "description": "Repository-relative path, no leading slash."
-            },
-            "exportName": {
-              "type": "string",
-              "minLength": 1
-            }
-          }
-        }
-      ]
-    },
-    "props": {
-      "type": "array",
-      "description": "The prop contract, so Figma variant properties and code props are comparable by the parity proof.",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["name", "type", "required"],
-        "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1
-          },
-          "type": {
-            "type": "string",
-            "minLength": 1,
-            "description": "The TypeScript type expression or a closed union written as a|b|c."
-          },
-          "required": {
-            "type": "boolean"
-          },
-          "figmaProperty": {
-            "type": ["string", "null"],
-            "description": "The corresponding Figma variant property name, or null where the prop has no visual counterpart."
-          }
-        }
-      }
-    },
-    "states": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["required", "drawn", "built"],
-      "description": "The nine states are fixed by VDS S-5(3). A record may require a subset. It may not invent a tenth.",
-      "properties": {
-        "required": {
-          "$ref": "#/$defs/stateSet"
-        },
-        "drawn": {
-          "$ref": "#/$defs/stateSet"
-        },
-        "built": {
-          "$ref": "#/$defs/stateSet"
-        }
-      }
-    },
-    "a11y": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["role", "accessibleNameSource", "keyboard", "contrastFloors"],
-      "properties": {
-        "role": {
-          "type": ["string", "null"],
-          "description": "ARIA role, or null where the component is a layout container with no role."
-        },
-        "accessibleNameSource": {
-          "type": "string",
-          "enum": [
-            "children",
-            "aria_label",
-            "aria_labelledby",
-            "title",
-            "alt",
-            "none_decorative"
-          ]
-        },
-        "keyboard": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["key", "effect"],
-            "properties": {
-              "key": {
-                "type": "string",
-                "minLength": 1
-              },
-              "effect": {
-                "type": "string",
-                "minLength": 1
-              }
-            }
-          }
-        },
-        "contrastFloors": {
-          "type": "array",
-          "description": "Requirements, not realisations (VDS S-2(6)). A floor may be tightened and never loosened below the inherited designpack floor (VDS S-9(5)).",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["boundary", "against", "minRatio", "basis"],
-            "properties": {
-              "boundary": {
-                "type": "string",
-                "minLength": 1,
-                "description": "The named token or edge under test, by name only. A literal value here is a storing-form violation of VDS S-2(2)."
-              },
-              "against": {
-                "type": "string",
-                "minLength": 1,
-                "description": "The named plane it is measured against, by name only."
-              },
-              "minRatio": {
-                "type": "number",
-                "minimum": 1,
-                "maximum": 21
-              },
-              "basis": {
-                "type": "string",
-                "minLength": 1,
-                "description": "The external or statutory source of the floor, for example \"WCAG 2.2 SC 1.4.11\"."
-              },
-              "scope": {
-                "type": "string",
-                "enum": ["control_boundary", "text", "graphical_object", "decoration"],
-                "description": "Where a lower floor is genuinely correct, change the scope and state the basis (VDS S-9(5)). Never lower the ratio quietly."
-              }
-            }
-          }
-        }
-      }
-    },
-    "demand": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["routes", "measuredAt", "measuredBy"],
-      "description": "Measured, never estimated (VDS S-5(7)).",
-      "properties": {
-        "routes": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "measuredAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "measuredBy": {
-          "type": "string",
-          "minLength": 1,
-          "description": "The exact command that produced the count."
-        }
-      }
-    },
-    "supersedes": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "pattern": "^CMP-[0-9]{4}$"
-      },
-      "description": "Predecessors this component absorbs. An array because a successor may absorb several (VDS S-9(6))."
-    },
-    "supersededBy": {
-      "description": "The successor, or null where the component is withdrawn outright with no replacement. The field is always present.",
-      "oneOf": [
-        {
-          "type": "null"
-        },
-        {
-          "type": "string",
-          "pattern": "^CMP-[0-9]{4}$"
-        }
-      ]
-    },
-    "amendments": {
-      "type": "array",
-      "description": "The contract's own history (VDS S-9(2)).",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["at", "by", "kind", "what", "contractVersion"],
-        "properties": {
-          "at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "by": {
-            "type": "string",
-            "minLength": 1
-          },
-          "kind": {
-            "type": "string",
-            "enum": ["non_breaking", "breaking"],
-            "description": "Breaking per VDS S-9(4): removes or renames a prop, removes a required state, changes role or accessible-name source, or lowers a contrast floor."
-          },
-          "what": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 400
-          },
-          "contractVersion": {
-            "type": "integer",
-            "minimum": 1,
-            "description": "The version this amendment produced."
-          },
-          "proofId": {
-            "type": ["string", "null"],
-            "pattern": "^(PROOF-[0-9]{8}-[0-9]{6})?$"
-          },
-          "warrantId": {
-            "type": ["string", "null"],
-            "pattern": "^(WARRANT-W[1-4]-[0-9]{3})?$"
-          },
-          "decisionLogId": {
-            "type": ["string", "null"]
-          }
-        },
-        "allOf": [
-          {
-            "if": {
-              "properties": {
-                "kind": {
-                  "const": "breaking"
-                }
-              },
-              "required": ["kind"]
-            },
-            "then": {
-              "required": ["warrantId"],
-              "properties": {
-                "warrantId": {
-                  "type": "string",
-                  "pattern": "^WARRANT-W[1-4]-[0-9]{3}$"
-                }
-              }
-            }
-          }
-        ]
-      }
-    },
-    "deprecatedAt": {
-      "type": ["string", "null"],
-      "format": "date-time"
-    },
-    "retiredAt": {
-      "type": ["string", "null"],
-      "format": "date-time"
-    },
-    "retirementProofId": {
-      "type": ["string", "null"],
-      "pattern": "^(PROOF-[0-9]{8}-[0-9]{6})?$",
-      "description": "The retirement_drain proof that measured demand.routes at zero (VDS S-9(6))."
-    },
-    "basis": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "string",
-        "pattern": "^(ACT|REG)-[A-Z0-9-]+(:s[0-9]+)?$"
-      },
-      "description": "The designpack statute sections or regulations this registration is made under."
-    },
-    "notes": {
+    "Timestamp": {
+      "description": "UTC, second resolution, trailing Z. The one canonical form VDS writes.",
       "type": "string",
-      "maxLength": 1000
-    }
-  },
-  "$defs": {
-    "stateSet": {
-      "type": "array",
-      "uniqueItems": true,
-      "items": {
-        "type": "string",
-        "enum": [
-          "default",
-          "hover",
-          "focus",
-          "active",
-          "selected",
-          "disabled",
-          "loading",
-          "error",
-          "success"
-        ]
-      }
-    }
-  },
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "status": {
-            "enum": ["built", "verified", "deprecated", "retired"]
-          }
-        },
-        "required": ["status"]
-      },
-      "then": {
-        "properties": {
-          "code": {
-            "type": "object"
-          }
-        }
-      }
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
     },
-    {
-      "if": {
-        "properties": {
-          "status": {
-            "enum": ["registered", "built", "verified"]
-          }
-        },
-        "required": ["status"]
-      },
-      "then": {
-        "properties": {
-          "figma": {
-            "type": "object"
-          },
-          "supersededBy": {
-            "type": "null"
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "status": {
-            "const": "deprecated"
-          }
-        },
-        "required": ["status"]
-      },
-      "then": {
-        "required": ["deprecatedAt"],
-        "properties": {
-          "deprecatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "status": {
-            "const": "retired"
-          }
-        },
-        "required": ["status"]
-      },
-      "then": {
-        "required": ["deprecatedAt", "retiredAt", "retirementProofId"],
-        "properties": {
-          "deprecatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "retiredAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "retirementProofId": {
-            "type": "string",
-            "pattern": "^PROOF-[0-9]{8}-[0-9]{6}$"
-          },
-          "demand": {
-            "properties": {
-              "routes": {
-                "const": 0
-              }
-            }
-          }
-        }
-      }
+    "WarrantId": {
+      "description": "A warrant record. The stage number is part of the identifier so the four series are independent.",
+      "type": "string",
+      "pattern": "^WARRANT-W[1-4]-[0-9]{3}$"
     }
-  ]
+  }
 }

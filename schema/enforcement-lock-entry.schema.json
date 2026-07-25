@@ -1,32 +1,457 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://vds.local/schema/enforcement-lock-entry.schema.json",
-  "title": "VDS enforcement lock entry",
-  "description": "One pinned proof script and the wiring that makes it enforcement. Governed by VDS S-8. The lock is held OUTSIDE the scripts it witnesses, so a weakening edit bumps a digest and trips a blocking finding rather than passing under its own possibly weakened logic. An entry cannot be written without naming the test that proves the script's FAILING direction, which is how VDS S-7(2)(2) is made structural rather than aspirational.",
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "LockEntry",
   "type": "object",
-  "additionalProperties": false,
   "required": [
-    "path",
     "digest",
-    "kind",
-    "invoked_by",
-    "proves",
     "failing_direction_test",
+    "invoked_by",
+    "kind",
+    "path",
     "pinned_at",
-    "pinned_by"
+    "pinned_by",
+    "proves"
   ],
   "properties": {
-    "path": {
-      "type": "string",
-      "pattern": "^[^/].*$",
-      "minLength": 1,
-      "description": "Repository-relative path, no leading slash. This is the file whose bytes are witnessed."
-    },
     "digest": {
-      "$ref": "#/$defs/sha256",
-      "description": "sha256 of the file at pin time. Any difference is a fatal drift finding (VDS S-8(4))."
+      "type": "string"
+    },
+    "failing_direction_test": {
+      "$ref": "#/definitions/FailingDirectionTest"
+    },
+    "invoked_by": {
+      "description": "At least one. An empty list is not representable in a valid entry, because an uninvoked gate is not enforcement.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Invocation"
+      }
     },
     "kind": {
+      "$ref": "#/definitions/LockKind"
+    },
+    "path": {
+      "description": "Repository-relative, no leading slash.",
+      "type": "string"
+    },
+    "pinned_at": {
+      "$ref": "#/definitions/Timestamp"
+    },
+    "pinned_by": {
+      "type": "string"
+    },
+    "proves": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ProofKind"
+      }
+    },
+    "relock_rationale": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "supersedes_digest": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "AcceptanceEvent": {
+      "type": "object",
+      "required": [
+        "accepted_at",
+        "accepted_by",
+        "digest",
+        "path",
+        "surface_digest"
+      ],
+      "properties": {
+        "accepted_at": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "accepted_by": {
+          "type": "string"
+        },
+        "digest": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "surface_digest": {
+          "description": "The digest of exactly what was accepted, so a later claim that a screen was accepted is checkable against the bytes (VDS S-6(7)).",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Accessibility": {
+      "type": "object",
+      "required": [
+        "accessibleNameSource",
+        "contrastFloors",
+        "keyboard"
+      ],
+      "properties": {
+        "accessibleNameSource": {
+          "$ref": "#/definitions/NameSource"
+        },
+        "contrastFloors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ContrastFloor"
+          }
+        },
+        "keyboard": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/KeyboardContract"
+          }
+        },
+        "role": {
+          "description": "ARIA role, or null where the component is a layout container with none.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Amendment": {
+      "type": "object",
+      "required": [
+        "at",
+        "by",
+        "contractVersion",
+        "kind",
+        "what"
+      ],
+      "properties": {
+        "at": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "by": {
+          "type": "string"
+        },
+        "contractVersion": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "decisionLogId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "$ref": "#/definitions/AmendmentKind"
+        },
+        "proofId": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ProofId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "warrantId": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/WarrantId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "what": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "AmendmentKind": {
+      "type": "string",
+      "enum": [
+        "non_breaking",
+        "breaking"
+      ]
+    },
+    "AssentSource": {
+      "type": "string",
+      "enum": [
+        "sovereign_assent",
+        "standing_bounded_assent",
+        "principal_acceptance"
+      ]
+    },
+    "CaptureMode": {
+      "description": "VDS S-7(2)(5): a hand-written proof record is void, and the contract enforces it by admitting exactly one value.",
+      "type": "string",
+      "enum": [
+        "automatic"
+      ]
+    },
+    "CitatorEntry": {
+      "description": "One near authority the drafter considered, and why it is not on all fours.",
+      "type": "object",
+      "required": [
+        "citation",
+        "why_not_on_all_fours"
+      ],
+      "properties": {
+        "citation": {
+          "type": "string"
+        },
+        "why_not_on_all_fours": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "CodeCounterpart": {
+      "type": "object",
+      "required": [
+        "exportName",
+        "importPath",
+        "sourceFile"
+      ],
+      "properties": {
+        "exportName": {
+          "type": "string"
+        },
+        "importPath": {
+          "description": "The module specifier a screen imports from, as written in the import.",
+          "type": "string"
+        },
+        "sourceFile": {
+          "description": "Repository-relative path, no leading slash.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ComponentId": {
+      "description": "A registered component, allocated as the highest on disk plus one (VDS S-4(4)).",
+      "type": "string",
+      "pattern": "^CMP-[0-9]{4}$"
+    },
+    "ContrastFloor": {
+      "description": "A contrast floor: a REQUIREMENT, never a realisation (VDS S-2(6)).\n\n`boundary` and `against` name tokens or edges BY NAME. A literal value in either is a storing-form violation of VDS S-2(2), and `no_stored_values` looks for exactly that.",
+      "type": "object",
+      "required": [
+        "against",
+        "basis",
+        "boundary",
+        "minRatio"
+      ],
+      "properties": {
+        "against": {
+          "type": "string"
+        },
+        "basis": {
+          "description": "Where the requirement comes from, e.g. \"WCAG 2.2 SC 1.4.11\".",
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "minRatio": {
+          "type": "number",
+          "format": "double"
+        },
+        "scope": {
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/FloorScope"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Demand": {
+      "description": "How many routes consume this component. Measured, never estimated (VDS S-5(7)), which is why the command that measured it is part of the value.",
+      "type": "object",
+      "required": [
+        "measuredAt",
+        "measuredBy",
+        "routes"
+      ],
+      "properties": {
+        "measuredAt": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "measuredBy": {
+          "description": "The exact command that produced the count.",
+          "type": "string"
+        },
+        "routes": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "EvidenceEntry": {
+      "description": "One proof a warrant rests on.\n\n`digest` is copied from the record on disk and never from a caller: a warrant that cites a digest the caller supplied proves the caller.",
+      "type": "object",
+      "required": [
+        "digest",
+        "kind",
+        "proof_id",
+        "status"
+      ],
+      "properties": {
+        "digest": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/definitions/ProofKind"
+        },
+        "proof_id": {
+          "$ref": "#/definitions/ProofId"
+        },
+        "status": {
+          "$ref": "#/definitions/ProofStatus"
+        }
+      },
+      "additionalProperties": false
+    },
+    "FailingDirectionTest": {
+      "description": "The test that proves the gate's FAILING direction.\n\nVDS S-7(2)(2): a check whose failing direction is asserted nowhere has proven only its happy path. This field is not optional, which is how that condition is made structural rather than requested: an entry cannot be written without naming the test.",
+      "type": "object",
+      "required": [
+        "path",
+        "test_name"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "seeds": {
+          "description": "What violation the test seeds, in one line, where a reviewer will see it.\n\nVDS docs/GOAL.md is explicit that the failing-direction test proves the check CAN fail and not that the seeded violation is the one that matters. That remains a review question, and this line is what a reviewer reads to answer it.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "test_name": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "FigmaNode": {
+      "type": "object",
+      "required": [
+        "capturedAt",
+        "fileKey",
+        "nodeId"
+      ],
+      "properties": {
+        "capturedAt": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "fileKey": {
+          "type": "string"
+        },
+        "nodeId": {
+          "description": "A Figma node id, which is `<digits>:<digits>` in a file URL and `<digits>-<digits>` in a deep link. Both spellings are accepted because both are what a designer actually copies.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "FiledTo": {
+      "description": "Always `vjs`. VDS refers and never decides, so there is nowhere else to file.",
+      "type": "string",
+      "enum": [
+        "vjs"
+      ]
+    },
+    "FloorScope": {
+      "description": "What kind of thing the boundary is.\n\nVDS S-9(5): where a lower floor is genuinely correct, the lawful move is to change the component's SCOPE and state the basis, not to loosen the ratio. A factual claim about scope is contestable by a reviewer; a quietly lowered floor is not. That is why this field exists at all.",
+      "type": "string",
+      "enum": [
+        "control_boundary",
+        "text",
+        "graphical_object",
+        "decoration"
+      ]
+    },
+    "GrantedBy": {
+      "type": "string",
+      "enum": [
+        "vjs_court",
+        "principal"
+      ]
+    },
+    "Invocation": {
+      "description": "Something that runs the gate which is not the author choosing to run it. VDS S-7(2)(3).",
+      "type": "object",
+      "required": [
+        "reference",
+        "surface"
+      ],
+      "properties": {
+        "blocking": {
+          "description": "False where the surface runs the gate but does not block on it.",
+          "default": true,
+          "type": "boolean"
+        },
+        "reference": {
+          "description": "Where it is wired: a workflow file and job, a hook path and line, a package script name.",
+          "type": "string"
+        },
+        "surface": {
+          "$ref": "#/definitions/InvokedBy"
+        }
+      },
+      "additionalProperties": false
+    },
+    "InvokedBy": {
+      "description": "What invoked the run. VDS S-7(2)(3) requires something other than the author choosing to run it, and VDS S-7(3) holds that a hook is not CI.",
+      "type": "string",
+      "enum": [
+        "githook_pre_commit",
+        "githook_pre_push",
+        "ci_workflow",
+        "package_script",
+        "build",
+        "manual"
+      ]
+    },
+    "KeyboardContract": {
+      "type": "object",
+      "required": [
+        "effect",
+        "key"
+      ],
+      "properties": {
+        "effect": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "LockKind": {
       "type": "string",
       "enum": [
         "proof_script",
@@ -36,129 +461,417 @@
         "config"
       ]
     },
-    "invoked_by": {
-      "type": "array",
-      "minItems": 1,
-      "description": "What runs this script that is not the author choosing to run it (VDS S-7(2)(3)). An empty array is not representable, because an uninvoked gate is not enforcement.",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["surface", "ref"],
-        "properties": {
-          "surface": {
-            "type": "string",
-            "enum": [
-              "githook_pre_commit",
-              "githook_pre_push",
-              "ci_workflow",
-              "package_script",
-              "build"
-            ]
-          },
-          "ref": {
-            "type": "string",
-            "minLength": 1,
-            "description": "The exact invocation site, for example \".githooks/pre-push:106\" or \".github/workflows/ci.yml#design-gates\"."
-          },
-          "blocking": {
-            "type": "boolean",
-            "default": true,
-            "description": "False records honestly that this surface reports without blocking. A non-blocking surface alone does not satisfy VDS S-7(2)(3)."
-          }
-        }
-      }
-    },
-    "proves": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "string",
-        "enum": [
-          "register_completeness",
-          "reconciliation",
-          "composition",
-          "contrast",
-          "states",
-          "parity",
-          "token_pin",
-          "retirement_drain",
-          "ledger_staleness",
-          "no_stored_values"
-        ]
-      },
-      "description": "The proof kinds this script produces. A script that produces no kind in the closed registry may not be pinned (VDS S-7(5))."
-    },
-    "failing_direction_test": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["path", "test_name"],
-      "description": "The test that seeds a violation against a fixture and asserts the non-zero exit. Without it the script has proven only its happy path (VDS S-7(2)(2)).",
-      "properties": {
-        "path": {
-          "type": "string",
-          "pattern": "^[^/].*$"
-        },
-        "test_name": {
-          "type": "string",
-          "minLength": 1
-        },
-        "seeds": {
-          "type": "string",
-          "minLength": 1,
-          "description": "What violation the test seeds, in one line, so a reviewer can tell whether the seeded violation is the one that matters."
-        }
-      }
-    },
-    "pinned_at": {
+    "NameSource": {
       "type": "string",
-      "format": "date-time"
+      "enum": [
+        "children",
+        "aria_label",
+        "aria_labelledby",
+        "title",
+        "alt",
+        "none_decorative"
+      ]
     },
-    "pinned_by": {
-      "type": "string",
-      "minLength": 1
-    },
-    "relock_rationale": {
-      "type": ["string", "null"],
-      "description": "Required when re-pinning after a deliberate gate change. Re-locking without recording why, and without self-filing under VDS S-12(3), is itself the breach the lock exists to make visible.",
-      "maxLength": 600
-    },
-    "supersedes_digest": {
+    "PinDirection": {
       "oneOf": [
         {
-          "$ref": "#/$defs/sha256"
+          "description": "The only lawful direction. A pin derives one way, from the named records, and never feeds a value back into either.",
+          "type": "string",
+          "enum": [
+            "one_way_derived"
+          ]
+        }
+      ]
+    },
+    "PinId": {
+      "description": "A derived one-way agreement assertion between two named records.",
+      "type": "string",
+      "pattern": "^PIN-[0-9]{8}-[0-9]{6}$"
+    },
+    "PinRow": {
+      "description": "One compared row.\n\nThe name of the thing compared, and whether the two records agreed about it. There is deliberately nowhere here to put a value or a digest of one; see the module documentation.",
+      "type": "object",
+      "required": [
+        "agrees",
+        "name"
+      ],
+      "properties": {
+        "agrees": {
+          "type": "boolean"
+        },
+        "name": {
+          "description": "The NAME of the token, boundary or property compared. A name, never a value: `control-border`, not `#ebebeb`.",
+          "type": "string"
+        },
+        "not_enforced_because": {
+          "description": "Present only where the row was NOT enforced, saying why. A row silently excluded is a row nobody can audit, and a pin full of them looks identical to a pin that passed.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ProofId": {
+      "description": "A captured proof result, stamped with the UTC second it was captured.",
+      "type": "string",
+      "pattern": "^PROOF-[0-9]{8}-[0-9]{6}$"
+    },
+    "ProofKind": {
+      "description": "The closed registry at VDS S-7(5).",
+      "oneOf": [
+        {
+          "description": "Every component referenced by any declared screen exists in the register.",
+          "type": "string",
+          "enum": [
+            "register_completeness"
+          ]
         },
         {
-          "type": "null"
+          "description": "The register agrees with the codebase and with Figma, both directions.",
+          "type": "string",
+          "enum": [
+            "reconciliation"
+          ]
+        },
+        {
+          "description": "No screen uses an unregistered component. The anti-drift proof.",
+          "type": "string",
+          "enum": [
+            "composition"
+          ]
+        },
+        {
+          "description": "Every registered component's boundaries clear their floors in every theme.",
+          "type": "string",
+          "enum": [
+            "contrast"
+          ]
+        },
+        {
+          "description": "Every required state of every registered component is drawn.",
+          "type": "string",
+          "enum": [
+            "states"
+          ]
+        },
+        {
+          "description": "Each registered component's code counterpart matches its contract.",
+          "type": "string",
+          "enum": [
+            "parity"
+          ]
+        },
+        {
+          "description": "The two named records agree where the pin declares them aligned.",
+          "type": "string",
+          "enum": [
+            "token_pin"
+          ]
+        },
+        {
+          "description": "A component proposed for retirement has zero remaining consumers.",
+          "type": "string",
+          "enum": [
+            "retirement_drain"
+          ]
+        },
+        {
+          "description": "Each generated ledger is current with its source.",
+          "type": "string",
+          "enum": [
+            "ledger_staleness"
+          ]
+        },
+        {
+          "description": "`.vds/**` holds no realisation.",
+          "type": "string",
+          "enum": [
+            "no_stored_values"
+          ]
         }
-      ],
-      "description": "The digest this entry replaced, so a weakening re-lock is readable as a diff rather than as a fresh fact."
-    }
-  },
-  "$defs": {
-    "sha256": {
+      ]
+    },
+    "ProofStatus": {
+      "description": "The three outcomes a proof record may carry.\n\nThere is no \"skipped\" and no \"warning\". VDS S-7(2)(4) requires a pass over zero enforceable rows to be recorded as `vacuous` and never as `passed`, and the absence of a fourth variant is what makes that structural.",
       "type": "string",
-      "pattern": "^sha256:[0-9a-f]{64}$"
-    }
-  },
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "supersedes_digest": {
-            "type": "string"
+      "enum": [
+        "passed",
+        "failed",
+        "vacuous"
+      ]
+    },
+    "PropContract": {
+      "type": "object",
+      "required": [
+        "name",
+        "required",
+        "type"
+      ],
+      "properties": {
+        "figmaProperty": {
+          "description": "The corresponding Figma variant property, or null where the prop has no visual counterpart.",
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "type": {
+          "description": "The TypeScript type expression, or a closed union written `a|b|c`.\n\nSerialised as `type`, which is the field name the contract publishes and a reserved word in Rust. The rename keeps the published shape rather than letting an implementation-language constraint leak into the artefact.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "RecordOfTruth": {
+      "description": "A named system of record. VDS S-2(3) fixes the set, and it is not VDS's to move: relocating a source of truth is a referral, not an implementation.",
+      "type": "object",
+      "required": [
+        "authority_for",
+        "digest",
+        "locator"
+      ],
+      "properties": {
+        "authority_for": {
+          "description": "What this record is the system of record FOR, e.g. \"what ships\".",
+          "type": "string"
+        },
+        "digest": {
+          "description": "The digest of the record AS A WHOLE, as read when the pin was generated.\n\nSafe where a per-value digest is not: a file is not a low-entropy domain, so this cannot be inverted to recover any value inside it. It answers \"did this record move\", which is a different question from \"what does this record say\".",
+          "type": "string"
+        },
+        "locator": {
+          "description": "How to reach it: a repository-relative path, or a Figma file key.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Severity": {
+      "type": "string",
+      "enum": [
+        "fatal",
+        "warning",
+        "informational"
+      ]
+    },
+    "Stage": {
+      "type": "string",
+      "enum": [
+        "W1_REGISTER_COMPLETE",
+        "W2_DESIGN_COMPLETE",
+        "W3_PRINCIPAL_ACCEPTED",
+        "W4_PARITY"
+      ]
+    },
+    "State": {
+      "description": "The nine states, fixed by VDS S-5(3). A record may require a subset. It may not invent a tenth, and here it cannot.",
+      "type": "string",
+      "enum": [
+        "default",
+        "hover",
+        "focus",
+        "active",
+        "selected",
+        "disabled",
+        "loading",
+        "error",
+        "success"
+      ]
+    },
+    "StateContract": {
+      "description": "Which of the nine states are required, which are drawn, which are built.\n\nStored as sorted, deduplicated vectors rather than sets so the serialised form is stable: a record's bytes must not depend on hash iteration order, or the register digest moves without the register moving.",
+      "type": "object",
+      "required": [
+        "built",
+        "drawn",
+        "required"
+      ],
+      "properties": {
+        "built": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/State"
           }
         },
-        "required": ["supersedes_digest"]
-      },
-      "then": {
-        "required": ["relock_rationale"],
-        "properties": {
-          "relock_rationale": {
-            "type": "string",
-            "minLength": 1
+        "drawn": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/State"
+          }
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/State"
           }
         }
-      }
+      },
+      "additionalProperties": false
+    },
+    "Status": {
+      "description": "The lifecycle at VDS S-5(4). A directed path where skipping is forbidden.",
+      "type": "string",
+      "enum": [
+        "proposed",
+        "designed",
+        "registered",
+        "built",
+        "verified",
+        "deprecated",
+        "retired"
+      ]
+    },
+    "SubmissionAnswer": {
+      "type": "object",
+      "required": [
+        "answered_at",
+        "citation",
+        "ratio"
+      ],
+      "properties": {
+        "answered_at": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "citation": {
+          "description": "The VJS citation, e.g. `[2026] VJS-CC-VDS 1`.",
+          "type": "string"
+        },
+        "ratio": {
+          "description": "The ratio, which is the only part that binds. Obiter is persuasive.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "SubmissionId": {
+      "description": "A question referred to VJS. The VDS-nnn series is reserved for the matters at VDS S-13.",
+      "type": "string",
+      "pattern": "^SUBMISSION-(VDS-[0-9]{3}|[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6})$"
+    },
+    "SubmissionOption": {
+      "description": "An option the bench may take, with its consequence stated by the drafter.\n\nA submission that offers one option has not asked a question, it has requested a rubber stamp, which is why the schema requires at least two.",
+      "type": "object",
+      "required": [
+        "consequence",
+        "option"
+      ],
+      "properties": {
+        "consequence": {
+          "type": "string"
+        },
+        "option": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "SubmissionStatus": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "filed",
+        "answered",
+        "withdrawn"
+      ]
+    },
+    "SubmissionTrigger": {
+      "description": "The enumerated triggers at VDS S-10(3). Everything else is a decision log under VDS S-12(2), which is what keeps referral cheap enough to actually use.",
+      "type": "string",
+      "enum": [
+        "first_impression",
+        "genuine_distinction",
+        "proposal_to_overrule",
+        "instruction_conflicts_with_designpack",
+        "discovered_breach"
+      ]
+    },
+    "Surface": {
+      "description": "The surface a warrant was granted over. VDS S-6(4): a change to either digest spends the warrant.\n\nBoth digests are computed from LIVE state, never read back from a generated artefact. A surface digest taken from a ledger would go stale exactly when a screen changed and the ledger was not regenerated, which is the one moment it has to be right.",
+      "type": "object",
+      "required": [
+        "register_digest",
+        "screens_digest"
+      ],
+      "properties": {
+        "register_digest": {
+          "type": "string"
+        },
+        "screens_digest": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Timestamp": {
+      "description": "UTC, second resolution, trailing Z. The one canonical form VDS writes.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "Violation": {
+      "description": "One finding. `expected` and `actual` are both required and both non-empty, because a finding that says only what is wrong makes the reader guess at what right would have been.",
+      "type": "object",
+      "required": [
+        "actual",
+        "expected",
+        "location",
+        "rule"
+      ],
+      "properties": {
+        "actual": {
+          "type": "string"
+        },
+        "expected": {
+          "type": "string"
+        },
+        "location": {
+          "description": "`file:line`, or a route plus a component id.",
+          "type": "string"
+        },
+        "rule": {
+          "description": "The invariant id or statute section the violation offends.",
+          "type": "string"
+        },
+        "severity": {
+          "default": "fatal",
+          "$ref": "#/definitions/Severity"
+        }
+      },
+      "additionalProperties": false
+    },
+    "WarrantId": {
+      "description": "A warrant record. The stage number is part of the identifier so the four series are independent.",
+      "type": "string",
+      "pattern": "^WARRANT-W[1-4]-[0-9]{3}$"
+    },
+    "WarrantStatus": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "granted",
+            "refused",
+            "superseded",
+            "revoked"
+          ]
+        },
+        {
+          "description": "The surface it was granted over changed (VDS S-6(4)). Recorded, never deleted.",
+          "type": "string",
+          "enum": [
+            "spent"
+          ]
+        }
+      ]
     }
-  ]
+  }
 }

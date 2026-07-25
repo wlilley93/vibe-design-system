@@ -28,28 +28,84 @@ one of them is in the storing form and is forbidden.
 | authorship | can a reader change a shipped pixel by editing only this artefact? then it is an authority. |
 | regeneration | is a pin or ledger byte-reproducible by a named command from the named records? |
 
-## Quick reference
+## Run the tests
 
-**None of these commands exist yet.** They are the intended front door, recorded so that the
-front door and the wall are designed together. Until they exist, do the equivalent by hand and
-say so in the log. A command written in a doc is not a command that runs.
+**One command:**
 
 ```bash
-# Before governed design work
-vds route --stage <W1|W2|W3|W4> --intent "<description>"
-
-# Run a proof (captures its own result record; never hand-write one)
-vds proof run <kind>
-
-# Refer a judgement call to VJS
-vds submit --trigger <first-impression|distinction|overrule|conflict|breach> --question "<q>"
-
-# After a reversible call
-vds log decision --decision "<decision>" --basis <authority> --why "<reason>"
-
-# Before commit
-vds validate --staged
+tools/run-tests.sh            # the whole suite
+tools/run-tests.sh test_cli   # one module, by prefix
+make test-py                  # the same thing through make
+make test-py T=test_cli_lock  # one module through make
 ```
+
+`make test` is the Rust workspace. `make test-py` / `tools/run-tests.sh` is the Python tooling
+under `tools/`, which needs `python3` and nothing else: no install step, no third-party runner.
+
+The suite lives in `tools/tests/` and exists because of VDS S-7(2)(2): a check is a proof only
+if **a named test seeds a violation against a fixture and asserts the non-zero exit**. On
+2026-07-25 `ls -A tools/tests` returned 0, so by VDS's own statute none of the three implemented
+proofs was a proof and none could lawfully be named as evidence. Every test therefore seeds a
+real violation, runs the real script in a real subprocess, and asserts the real exit code.
+
+Two properties the runner enforces around the whole run, not merely per test:
+
+- **Fenced.** Every fixture is built under `mkdtemp` and torn down. `tools/` and `schema/` are
+  re-digested after every single test, so a test that crashes half way cannot leave the tool it
+  was testing broken. Point `VDS_TEST_PROTECT` at an adopting repository's `.vds/` to fence that
+  too: `VDS_TEST_PROTECT=/path/to/repo/.vds tools/run-tests.sh`.
+- **Not vacuous.** The runner refuses to start if its own manifest digested nothing, because an
+  empty manifest compares equal to an empty manifest forever.
+
+A test whose docstring says **KNOWN RED** is failing on purpose: it asserts the behaviour VDS
+ought to have and does not. Do not delete it and do not weaken it to green. Fix the tool, or
+leave it red and cite it.
+
+## Quick reference
+
+These commands exist and are tested. Anything not listed here does not exist.
+
+```bash
+# Set up
+vds init                              # scaffold .vds/
+vds doctor                            # measure against the ten done criteria
+
+# The register. Register BEFORE designing (VDS S-6(2)).
+vds register add --name Button --import-path @/components/ui \
+    --source-file src/components/ui/button.tsx --export-name Button \
+    --require default,focus --floor 'control-border:surface:3.0:WCAG 2.2 SC 1.4.11'
+vds register list | show <id> | measure-demand --all
+vds register set-status <id> <status>          # one step, no skipping
+vds register amend <id> --kind non_breaking --what "..."
+vds register deprecate <id> --superseded-by <id> | --withdraw
+vds register retire <id> --drain-proof PROOF-...
+
+# The declared surface and the proofs
+vds ledger screens
+vds proof --list                      # the closed registry, and why three are unbuilt
+vds proof <kind> | --all [--invoked-by ci_workflow] [--allow-vacuous] [--no-capture]
+
+# The design round trip
+vds brief                             # what an agent may draw into Figma
+vds figma pull [--from response.json] # measure what it actually drew
+vds impl <id>                         # what that drawing must become in code
+
+# Warrants. VDS grants nothing; `record` writes down a grant made elsewhere.
+vds warrant status | record --stage W1 ... | spend <id>
+
+# The enforcement surface
+vds lock verify | add <path> --invoked-by ... --test-path ... --test-name ...
+vds lock repin --rationale "..."
+vds pack verify | pin
+vds schema emit | check               # schemas are GENERATED from the Rust types
+```
+
+**Not implemented, and named so nobody looks for them:** the permit lifecycle
+(VDS S-12(1)), `install.lock` (VDS S-11(4)), decision logs and breach reports as
+commands, and a `submit` command for referrals. Submissions are hand-authored
+into `.vds/submissions/filed/` and validated on read. Where the machinery does
+not exist, do the equivalent by hand and say so in the log; a command written in
+a doc is not a command that runs.
 
 ## Lifecycle
 
@@ -71,7 +127,11 @@ asked whether the thing being used was registered.
 
 - No design value in `.vds/`. Requirements only.
 - No self-granted warrant. W1, W2 and W4 are referred to VJS; W3 is the Principal's alone.
-- No hand-written proof record. `capture_mode` is fixed to `automatic` by schema.
+- No hand-written proof record. Fixing `capture_mode` to the single value `automatic` never
+  made that true: it is a string an author types, so it asserted the property it was meant to
+  prove. What makes it true is that `warrant record` re-runs the named check and requires the
+  same digest, after checking the kind is implemented, the script is the canonical one for that
+  kind, its digest still matches, and the record digests to its own stated digest.
 - No proof kind outside the closed registry at VDS S-7(5). Adding one is an amendment to the
   specification and the invariant registry, not a script anyone may drop in.
 - No identifier asserted by hand. Read the live record off disk, take the maximum plus one. A
@@ -140,3 +200,21 @@ VDS does NOT:
   a declared surface named by digest in the warrant that relies on it
 
 VDS IS a deterministic artefact store and proof producer.
+
+## This repository
+
+A Rust workspace, edition 2024, toolchain pinned to 1.95.0 in `rust-toolchain.toml`, matching
+VJS. Two governance systems with one purpose should not have two toolchains.
+
+| crate | what it holds |
+|---|---|
+| `vds-core` | artefact types, digests, identifiers, project discovery |
+| `vds-designpack` | the vendored normative corpus and its lock |
+| `vds-store` | reading and writing `.vds/`, and the enforcement lock |
+| `vds-scan` | the screens ledger, the JSX scanner, the staleness test |
+| `vds-figma` | the decided-target ledger, the brief and the implementation contract |
+| `vds-proof` | the closed registry of proof kinds and the capture that records them |
+| `vds-cli` | the `vds` binary |
+
+`make check` runs what CI runs, in the same order. Where they differ, CI wins: VDS S-7(3)
+holds that a hook is not CI, and the same is true of a Makefile.

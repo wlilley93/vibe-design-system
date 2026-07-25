@@ -1,0 +1,26 @@
+id: SUBMISSION-VDS-002
+status: filed
+question: "Who may grant W2 DESIGN-COMPLETE, given that composition is fully machine-checkable?"
+trigger: first_impression
+why_first_impression: "Composition, states and contrast are all machine-checkable, so granting by proof alone with no bench is cheaper and faster. A self-granted warrant is also the laundering vector the VJS assent-resolution line closed."
+citator_checked:
+  - citation: "[2026] VJS-CC-OPBOX 3"
+    why_not_on_all_fours: "It fixes the storing/deriving line for a token kernel and names the systems of record. It does not reach this question."
+  - citation: "[2026] VJS-CC-OPBOX 1"
+    why_not_on_all_fours: "The locus ratio fixes where a domain lives, not how a design warrant is earned."
+options:
+  - option: "referred to VJS like W1 and W4"
+    consequence: "slow, and consistent with VDS S-1(2): VDS decides nothing"
+  - option: "granted by proof alone, recorded and not adjudicated"
+    consequence: "fast, and makes VDS the grantor of one of its own gates"
+evidence:
+  - "VDS.md, the clause named in reserved_clause"
+  - "docs/GOAL.md, the done criterion the clause bears on"
+case_file_digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+reserved_clause: "S-6(6)"
+fail_closed_interim: "W2 is referred to VJS, and VDS may record a proof-only candidate but may never treat it as granted"
+filed_to: vjs
+vjs_submission_id: null
+created_at: 2026-07-25T13:00:00Z
+filed_at: 2026-07-25T13:00:00Z
+answer: null

@@ -107,39 +107,71 @@ behind it.
 
 Settled by: a cross-check between VDS S-13 and `.vds/submissions/`.
 
-## Current state (measured 2026-07-25)
+## Current state (measured 2026-07-25, after the Rust port)
 
-**Nothing is built.** The specification is drafted and not commenced (VDS S-15). No
-designpack exists, no `.vds/` exists in any project, no warrant has been granted, and no
-VDS proof has ever run. Ten of ten done criteria are therefore unmet. The honest summary is
-that this repository currently contains a specification and six schemas, and that is all.
+Measured by `vds doctor` against this repository, and by `cargo test` against the workspace.
+Every number below was produced by a command; none is asserted.
 
-The measurements below are of the Opbox frontend as it stands, and they are what the
-criteria will be run against first.
+**6 of 10 criteria met.** The four unmet are unmet for a reason that is not a defect: VDS is
+a governance kernel with no design surface of its own, so the register proofs are legitimately
+vacuous here, and nothing is warranted because VDS is not commenced (VDS S-15).
+
+| criterion | verdict | measured |
+|---|---|---|
+| D1 register reconciles | UNMET | `reconciliation` last run vacuous, rows_enforced 0: no library directories |
+| D2 all five limbs, all ten kinds | UNMET | 2 of 10. Three kinds unimplemented; five vacuous here |
+| D3 no vacuous passes | UNMET | 5 kinds' most recent result is vacuous |
+| D4 every gate invoked by CI | **MET** | 9 pinned gates, every one with a blocking `ci_workflow` invocation |
+| D5 zero enforcement drift | **MET** | every pinned path matches its digest |
+| D6 warrant chain complete | UNMET | W1..W4 all not granted, correctly: VDS is not commenced |
+| D7 `.vds/` holds no design value | **MET** | `no_stored_values` passed over 17 files, 0 findings |
+| D8 every ledger current | **MET** | `ledger_staleness` passed over 1 ledger |
+| D9 proofs keep pace | **MET** | 13 proof records against 0 granted warrants |
+| D10 reserved clauses have submissions | **MET** | 6 clauses, 6 filed submissions, 0 defective |
+
+| measurement | value | how measured |
+|---|---|---|
+| tests | 382 | `cargo test --workspace` |
+| clippy warnings | 0 | `cargo clippy --workspace --all-targets -- -D warnings` |
+| proof kinds implemented | 7 of 10 | `vds proof --list` |
+| proof kinds with a named failing-direction test | 7 of 7 implemented | `vds lock verify` |
+| gates pinned in the enforcement lock | 9 | `vds lock verify` |
+| gates with a blocking CI invocation | 9 of 9 | `vds lock verify` |
+| JSON Schemas, generated from the types | 6 | `vds schema check` |
+| reserved matters filed | 6 | `vds doctor` D10 |
+
+Three things this table says plainly.
+
+1. **D3 is unmet and that is the honest result, not a failure to hide.** Five kinds come out
+   vacuous against VDS itself because VDS has no screens and no component library. A vacuous
+   run is recorded as `vacuous` and is never evidence (VDS S-7(2)(4)), so nothing here claims
+   a warrant it has not earned. The alternative, configuring the surface to point somewhere
+   that produces rows, would be arranging for the number to look better.
+2. **D2 counts three kinds as unmet for being unimplemented, and that count is deliberate.**
+   `contrast`, `parity` and `token_pin` each need a named record VDS reads and does not own.
+   Counting them as "not applicable" would make the ratio look like 7 of 7.
+3. **The first commit was audited and found unsound**, and the record of that is kept in
+   `AUDIT-2026-07-25.md` rather than removed. Seven defects, three critical, including a pin
+   construction the specification itself mandated that stored the values it claimed not to
+   store. Every one of them is closed, each by a check with a test that seeds the original
+   attack.
+
+### The subject project
+
+The measurements the criteria will be run against first, from the Opbox frontend, unchanged
+from the original drafting:
 
 | measurement | value | how measured |
 |---|---|---|
 | `component-map.json` component entries | 56 | `json.load(...)['components']` length |
 | `.tsx` files in `src/components/ui` | 55 | `ls src/components/ui/*.tsx \| wc -l` |
 | `.tsx` files in `src/components/onyx` | 35 | `ls src/components/onyx/*.tsx \| wc -l` |
-| `SCREEN_MANIFEST.csv` data rows | 1206 | `csv.reader` row count minus header |
-| `CONTROL_BOUNDARY_LEDGER.md` table rows | 5118 | `grep -c "^| "` |
-| design gates invoked from `.githooks/pre-push` | 2, at lines 106 and 123 | `grep -n` over `.githooks/pre-push` |
-| design gates invoked from CI workflows | 0 of 10 workflows | `grep -rln` over `.github/` |
-| proof kinds with a failing-direction test | 0 of 10 | none exists yet |
+| design gates invoked from CI workflows | 0 of 10 | `grep -rln` over `.github/` |
 
-Three things that table says plainly:
-
-1. **56 entries against 90 files is not a contradiction, and that is the problem.** One
-   entry may legitimately cover several files, and not every file is a component. But no
-   command derives either number from the other, so nobody can say which of the two is
-   wrong. D1 exists to make that question answerable rather than arguable.
-2. **The two existing gates satisfy the hook limb of VDS S-7(2)(3) and not the CI limb.**
-   They block a push and do not block a merge. That is a real improvement over the state
-   [2026] VJS-CC-OPBOX 3 found, where nothing invoked them at all, and it is not yet D4.
-3. **The founding defect is measured, not remembered.** The control boundary was 1.20:1
-   against both planes in light against a 3.0:1 requirement, worst at 1.15:1 in ember
-   (`internal-docs/design/CONTRAST_AUDIT.md`, lines 293, 294, 56, 377, 378).
+56 entries against 90 files is not a contradiction, and that is the problem: no command
+derives either number from the other, so nobody can say which is wrong. D1 exists to make
+that question answerable rather than arguable, and `reconciliation` limb (b) is the command
+that answers it.
 
 ## What VDS will still not be able to prove
 

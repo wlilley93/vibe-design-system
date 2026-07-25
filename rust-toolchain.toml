@@ -1,0 +1,8 @@
+# Pinned to an EXACT toolchain, for the same reason VJS pins one: a proof is valid
+# only if it is re-runnable and deterministic (VDS S-7(2)(1)). A moving "stable"
+# channel means a new compiler or a new clippy lint can silently change what passes,
+# and a gate whose verdict drifts with the toolchain is not a gate. Local and CI
+# build the same version. Bump deliberately, never by drift.
+[toolchain]
+channel = "1.95.0"
+components = ["rustfmt", "clippy"]

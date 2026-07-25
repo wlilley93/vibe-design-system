@@ -1,0 +1,74 @@
+# VDS project configuration for VDS ITSELF. The one fixed anchor (VDS S-3(7)).
+# This file holds NO design value (VDS S-2(2)). Paths, globs and governance only.
+#
+# VDS is a governance kernel, not a product with screens, and this configuration
+# says so rather than pointing at directories that do not exist. The honest
+# consequence, printed by `vds doctor` on every run, is that most of the proof
+# kinds are VACUOUS here:
+#
+#   register_completeness  vacuous: no screens, so no component references
+#   composition            vacuous: same
+#   states                 vacuous: an empty register has no states to check
+#   retirement_drain       vacuous: nothing is deprecated
+#   reconciliation         narrowed: no library directories to walk
+#   ledger_staleness       ENFORCED: the screens ledger has a staleness test
+#   no_stored_values       ENFORCED: `.vds/**` must hold no realisation
+#
+# A vacuous run is recorded as `vacuous` and is never evidence (VDS S-7(2)(4)),
+# so this project cannot and does not claim a warrant it has not earned. What
+# self-hosting DOES buy is the two kinds that are real here, the enforcement lock
+# over VDS's own gates, and the fact that every gate is exercised on every push
+# against a project that exists rather than only against a fixture.
+
+version = 1
+jurisdiction_id = "vibe-design-system"
+repo_code = "VDS"
+designpack = "none@0"
+
+[paths]
+register = ".vds/register"
+warrants = ".vds/warrants"
+proofs = ".vds/proofs"
+pins = ".vds/pins"
+ledgers = ".vds/ledgers"
+submissions = ".vds/submissions"
+logs = ".vds/logs"
+permits = ".vds/permits"
+
+[surface]
+# VDS ships no screens. The glob is kept rather than emptied because an empty
+# `screen_globs` is refused at load (a declared surface of nothing proves
+# nothing), and because a subscriber reading this file should see the shape of a
+# real declaration. It matches nothing here, and every proof bounded by it comes
+# out vacuous, which is the correct and honest result.
+screen_globs = ["app/**/page.tsx"]
+governed_import_prefixes = ["@/components/"]
+# Empty deliberately. VDS has no component library, and naming a directory that
+# does not exist makes `reconciliation` REFUSE to run rather than report a
+# narrowing, which is the right refusal and the wrong configuration. The
+# narrowing goes on the record instead.
+library_dirs = []
+screens_ledger = ".vds/ledgers/screens.yaml"
+component_extensions = ["tsx", "jsx"]
+
+[governance]
+# VDS S-3(8): the enforcement machinery must not be editable without a permit,
+# or the gate can be removed by the same hand it constrains. For VDS itself the
+# machinery IS the crates, so they are named here.
+#
+# Stated plainly, because VDS S-8(5) forbids overclaiming the enforcement
+# surface: the permit lifecycle at VDS S-12(1) is SPECIFIED AND NOT IMPLEMENTED
+# in this build. Nothing reads these globs yet. They are recorded so the surface
+# a permit will cover is declared before the machinery exists, and `vds doctor`
+# counts them toward no criterion.
+permit_required = [
+  "crates/vds-proof/**",
+  "crates/vds-core/src/types/**",
+  "VDS.md",
+  "designpack/**",
+  ".vds/register/**",
+  ".vds/config.toml",
+  ".vds/enforcement.lock",
+  ".github/workflows/vds-enforce.yml",
+]
+permit_exempt = [".vds/logs/**", ".vds/permits/**", ".vds/proofs/**"]

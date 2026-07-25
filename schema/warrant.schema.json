@@ -1,37 +1,605 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://vds.local/schema/warrant.schema.json",
-  "title": "VDS warrant",
-  "description": "A stage gate granted on an evidence digest. Governed by VDS S-6. The operative record is short enough to load at runtime; long rationale lives in designpack/v1/judgments/. A warrant carrying no evidence entry is a signature on nothing and is void on its face (VDS S-6(3)).",
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "Warrant",
   "type": "object",
-  "additionalProperties": false,
   "required": [
-    "id",
-    "stage",
-    "project",
-    "status",
-    "issue",
-    "holding",
-    "granted_by",
-    "assent_source",
-    "evidence",
-    "case_file_digest",
-    "directives",
-    "forbidden",
-    "supersedes",
-    "unlocks",
-    "runtime_summary",
-    "created_at",
     "appealable",
-    "reserved"
+    "assent_source",
+    "bench",
+    "case_file_digest",
+    "created_at",
+    "directives",
+    "evidence",
+    "forbidden",
+    "granted_by",
+    "holding",
+    "id",
+    "issue",
+    "project",
+    "reserved",
+    "runtime_summary",
+    "stage",
+    "status",
+    "supersedes",
+    "unlocks"
   ],
   "properties": {
+    "acceptance_event": {
+      "default": null,
+      "anyOf": [
+        {
+          "$ref": "#/definitions/AcceptanceEvent"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "appealable": {
+      "type": "boolean"
+    },
+    "assent_source": {
+      "$ref": "#/definitions/AssentSource"
+    },
+    "bench": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "case_file_digest": {
+      "description": "The sha256 of the case file the grant was made on. Repeated verbatim from the convening record, so what was decided on is provable after the fact (VDS S-10(5)).",
+      "type": "string"
+    },
+    "created_at": {
+      "$ref": "#/definitions/Timestamp"
+    },
+    "directives": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/EvidenceEntry"
+      }
+    },
+    "exceptions": {
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "forbidden": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "granted_at": {
+      "default": null,
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Timestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "granted_by": {
+      "$ref": "#/definitions/GrantedBy"
+    },
+    "grantor_citation": {
+      "description": "The VJS order that granted it. Null only for W3, which is the Principal's and has an acceptance event instead.",
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "holding": {
+      "type": "string"
+    },
     "id": {
-      "type": "string",
-      "pattern": "^WARRANT-W[1-4]-[0-9]{3}$",
-      "description": "Allocated from the live warrant directory on disk, max plus one (VDS S-4(4))."
+      "$ref": "#/definitions/WarrantId"
+    },
+    "issue": {
+      "type": "string"
+    },
+    "project": {
+      "type": "string"
+    },
+    "reserved": {
+      "description": "Every reserved clause this warrant relies on. VDS S-9(10) requires a warrant relying on the informational-bare-elements interim to say so.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "runtime_summary": {
+      "type": "string"
+    },
+    "source_opinion": {
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "stage": {
+      "$ref": "#/definitions/Stage"
+    },
+    "status": {
+      "$ref": "#/definitions/WarrantStatus"
+    },
+    "supersedes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/WarrantId"
+      }
+    },
+    "surface": {
+      "default": null,
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Surface"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "unlocks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "vote": {
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "AcceptanceEvent": {
+      "type": "object",
+      "required": [
+        "accepted_at",
+        "accepted_by",
+        "digest",
+        "path",
+        "surface_digest"
+      ],
+      "properties": {
+        "accepted_at": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "accepted_by": {
+          "type": "string"
+        },
+        "digest": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "surface_digest": {
+          "description": "The digest of exactly what was accepted, so a later claim that a screen was accepted is checkable against the bytes (VDS S-6(7)).",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Accessibility": {
+      "type": "object",
+      "required": [
+        "accessibleNameSource",
+        "contrastFloors",
+        "keyboard"
+      ],
+      "properties": {
+        "accessibleNameSource": {
+          "$ref": "#/definitions/NameSource"
+        },
+        "contrastFloors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ContrastFloor"
+          }
+        },
+        "keyboard": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/KeyboardContract"
+          }
+        },
+        "role": {
+          "description": "ARIA role, or null where the component is a layout container with none.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Amendment": {
+      "type": "object",
+      "required": [
+        "at",
+        "by",
+        "contractVersion",
+        "kind",
+        "what"
+      ],
+      "properties": {
+        "at": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "by": {
+          "type": "string"
+        },
+        "contractVersion": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "decisionLogId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "$ref": "#/definitions/AmendmentKind"
+        },
+        "proofId": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ProofId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "warrantId": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/WarrantId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "what": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "AmendmentKind": {
+      "type": "string",
+      "enum": [
+        "non_breaking",
+        "breaking"
+      ]
+    },
+    "AssentSource": {
+      "type": "string",
+      "enum": [
+        "sovereign_assent",
+        "standing_bounded_assent",
+        "principal_acceptance"
+      ]
+    },
+    "CodeCounterpart": {
+      "type": "object",
+      "required": [
+        "exportName",
+        "importPath",
+        "sourceFile"
+      ],
+      "properties": {
+        "exportName": {
+          "type": "string"
+        },
+        "importPath": {
+          "description": "The module specifier a screen imports from, as written in the import.",
+          "type": "string"
+        },
+        "sourceFile": {
+          "description": "Repository-relative path, no leading slash.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ComponentId": {
+      "description": "A registered component, allocated as the highest on disk plus one (VDS S-4(4)).",
+      "type": "string",
+      "pattern": "^CMP-[0-9]{4}$"
+    },
+    "ContrastFloor": {
+      "description": "A contrast floor: a REQUIREMENT, never a realisation (VDS S-2(6)).\n\n`boundary` and `against` name tokens or edges BY NAME. A literal value in either is a storing-form violation of VDS S-2(2), and `no_stored_values` looks for exactly that.",
+      "type": "object",
+      "required": [
+        "against",
+        "basis",
+        "boundary",
+        "minRatio"
+      ],
+      "properties": {
+        "against": {
+          "type": "string"
+        },
+        "basis": {
+          "description": "Where the requirement comes from, e.g. \"WCAG 2.2 SC 1.4.11\".",
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "minRatio": {
+          "type": "number",
+          "format": "double"
+        },
+        "scope": {
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/FloorScope"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Demand": {
+      "description": "How many routes consume this component. Measured, never estimated (VDS S-5(7)), which is why the command that measured it is part of the value.",
+      "type": "object",
+      "required": [
+        "measuredAt",
+        "measuredBy",
+        "routes"
+      ],
+      "properties": {
+        "measuredAt": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "measuredBy": {
+          "description": "The exact command that produced the count.",
+          "type": "string"
+        },
+        "routes": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "EvidenceEntry": {
+      "description": "One proof a warrant rests on.\n\n`digest` is copied from the record on disk and never from a caller: a warrant that cites a digest the caller supplied proves the caller.",
+      "type": "object",
+      "required": [
+        "digest",
+        "kind",
+        "proof_id",
+        "status"
+      ],
+      "properties": {
+        "digest": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/definitions/ProofKind"
+        },
+        "proof_id": {
+          "$ref": "#/definitions/ProofId"
+        },
+        "status": {
+          "$ref": "#/definitions/ProofStatus"
+        }
+      },
+      "additionalProperties": false
+    },
+    "FigmaNode": {
+      "type": "object",
+      "required": [
+        "capturedAt",
+        "fileKey",
+        "nodeId"
+      ],
+      "properties": {
+        "capturedAt": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "fileKey": {
+          "type": "string"
+        },
+        "nodeId": {
+          "description": "A Figma node id, which is `<digits>:<digits>` in a file URL and `<digits>-<digits>` in a deep link. Both spellings are accepted because both are what a designer actually copies.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "FloorScope": {
+      "description": "What kind of thing the boundary is.\n\nVDS S-9(5): where a lower floor is genuinely correct, the lawful move is to change the component's SCOPE and state the basis, not to loosen the ratio. A factual claim about scope is contestable by a reviewer; a quietly lowered floor is not. That is why this field exists at all.",
+      "type": "string",
+      "enum": [
+        "control_boundary",
+        "text",
+        "graphical_object",
+        "decoration"
+      ]
+    },
+    "GrantedBy": {
+      "type": "string",
+      "enum": [
+        "vjs_court",
+        "principal"
+      ]
+    },
+    "KeyboardContract": {
+      "type": "object",
+      "required": [
+        "effect",
+        "key"
+      ],
+      "properties": {
+        "effect": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "NameSource": {
+      "type": "string",
+      "enum": [
+        "children",
+        "aria_label",
+        "aria_labelledby",
+        "title",
+        "alt",
+        "none_decorative"
+      ]
+    },
+    "ProofId": {
+      "description": "A captured proof result, stamped with the UTC second it was captured.",
+      "type": "string",
+      "pattern": "^PROOF-[0-9]{8}-[0-9]{6}$"
+    },
+    "ProofKind": {
+      "description": "The closed registry at VDS S-7(5).",
+      "oneOf": [
+        {
+          "description": "Every component referenced by any declared screen exists in the register.",
+          "type": "string",
+          "enum": [
+            "register_completeness"
+          ]
+        },
+        {
+          "description": "The register agrees with the codebase and with Figma, both directions.",
+          "type": "string",
+          "enum": [
+            "reconciliation"
+          ]
+        },
+        {
+          "description": "No screen uses an unregistered component. The anti-drift proof.",
+          "type": "string",
+          "enum": [
+            "composition"
+          ]
+        },
+        {
+          "description": "Every registered component's boundaries clear their floors in every theme.",
+          "type": "string",
+          "enum": [
+            "contrast"
+          ]
+        },
+        {
+          "description": "Every required state of every registered component is drawn.",
+          "type": "string",
+          "enum": [
+            "states"
+          ]
+        },
+        {
+          "description": "Each registered component's code counterpart matches its contract.",
+          "type": "string",
+          "enum": [
+            "parity"
+          ]
+        },
+        {
+          "description": "The two named records agree where the pin declares them aligned.",
+          "type": "string",
+          "enum": [
+            "token_pin"
+          ]
+        },
+        {
+          "description": "A component proposed for retirement has zero remaining consumers.",
+          "type": "string",
+          "enum": [
+            "retirement_drain"
+          ]
+        },
+        {
+          "description": "Each generated ledger is current with its source.",
+          "type": "string",
+          "enum": [
+            "ledger_staleness"
+          ]
+        },
+        {
+          "description": "`.vds/**` holds no realisation.",
+          "type": "string",
+          "enum": [
+            "no_stored_values"
+          ]
+        }
+      ]
+    },
+    "ProofStatus": {
+      "description": "The three outcomes a proof record may carry.\n\nThere is no \"skipped\" and no \"warning\". VDS S-7(2)(4) requires a pass over zero enforceable rows to be recorded as `vacuous` and never as `passed`, and the absence of a fourth variant is what makes that structural.",
+      "type": "string",
+      "enum": [
+        "passed",
+        "failed",
+        "vacuous"
+      ]
+    },
+    "PropContract": {
+      "type": "object",
+      "required": [
+        "name",
+        "required",
+        "type"
+      ],
+      "properties": {
+        "figmaProperty": {
+          "description": "The corresponding Figma variant property, or null where the prop has no visual counterpart.",
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "type": {
+          "description": "The TypeScript type expression, or a closed union written `a|b|c`.\n\nSerialised as `type`, which is the field name the contract publishes and a reserved word in Rust. The rename keeps the published shape rather than letting an implementation-language constraint leak into the artefact.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Stage": {
       "type": "string",
       "enum": [
         "W1_REGISTER_COMPLETE",
@@ -40,456 +608,111 @@
         "W4_PARITY"
       ]
     },
-    "project": {
+    "State": {
+      "description": "The nine states, fixed by VDS S-5(3). A record may require a subset. It may not invent a tenth, and here it cannot.",
       "type": "string",
-      "minLength": 1,
-      "description": "The jurisdiction_id from .vds/config.toml. A warrant binds exactly one project (VDS S-3(6), reserved)."
+      "enum": [
+        "default",
+        "hover",
+        "focus",
+        "active",
+        "selected",
+        "disabled",
+        "loading",
+        "error",
+        "success"
+      ]
     },
-    "status": {
-      "type": "string",
-      "enum": ["granted", "refused", "spent", "superseded", "revoked"],
-      "description": "spent when the surface the warrant was granted over has changed (VDS S-6(4)). Never deleted."
-    },
-    "issue": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 200,
-      "description": "Snake-case issue tag, matching the submission that raised it."
-    },
-    "holding": {
-      "type": "string",
-      "minLength": 1,
-      "description": "What was decided and why, on the evidence. Word-capped by the designpack manifest [limits] block."
-    },
-    "granted_by": {
-      "type": "string",
-      "enum": ["vjs_court", "principal"],
-      "description": "W3 is the Principal's alone (VDS S-6(7)). W1 and W4 are VJS. W2 is RESERVED pending SUBMISSION-VDS-002 and until answered is vjs_court."
-    },
-    "grantor_citation": {
-      "description": "The VJS order that granted this warrant. Null only where granted_by is principal.",
-      "oneOf": [
-        {
-          "type": "null"
+    "StateContract": {
+      "description": "Which of the nine states are required, which are drawn, which are built.\n\nStored as sorted, deduplicated vectors rather than sets so the serialised form is stable: a record's bytes must not depend on hash iteration order, or the register digest moves without the register moving.",
+      "type": "object",
+      "required": [
+        "built",
+        "drawn",
+        "required"
+      ],
+      "properties": {
+        "built": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/State"
+          }
         },
+        "drawn": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/State"
+          }
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/State"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "Status": {
+      "description": "The lifecycle at VDS S-5(4). A directed path where skipping is forbidden.",
+      "type": "string",
+      "enum": [
+        "proposed",
+        "designed",
+        "registered",
+        "built",
+        "verified",
+        "deprecated",
+        "retired"
+      ]
+    },
+    "Surface": {
+      "description": "The surface a warrant was granted over. VDS S-6(4): a change to either digest spends the warrant.\n\nBoth digests are computed from LIVE state, never read back from a generated artefact. A surface digest taken from a ledger would go stale exactly when a screen changed and the ledger was not regenerated, which is the one moment it has to be right.",
+      "type": "object",
+      "required": [
+        "register_digest",
+        "screens_digest"
+      ],
+      "properties": {
+        "register_digest": {
+          "type": "string"
+        },
+        "screens_digest": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Timestamp": {
+      "description": "UTC, second resolution, trailing Z. The one canonical form VDS writes.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "WarrantId": {
+      "description": "A warrant record. The stage number is part of the identifier so the four series are independent.",
+      "type": "string",
+      "pattern": "^WARRANT-W[1-4]-[0-9]{3}$"
+    },
+    "WarrantStatus": {
+      "oneOf": [
         {
           "type": "string",
-          "pattern": "^\\[[0-9]{4}\\] VJS-[A-Z]+(-[A-Z]+)? [0-9]+$"
-        }
-      ]
-    },
-    "assent_source": {
-      "type": "string",
-      "enum": [
-        "sovereign_assent",
-        "standing_bounded_assent",
-        "principal_acceptance"
-      ]
-    },
-    "acceptance_event": {
-      "description": "Required non-null for stage W3. The dated, digest-pinned acceptance event in designpack/v1/provenance/assent/ (VDS S-6(7)). Acceptance is never inferred from silence.",
-      "oneOf": [
-        {
-          "type": "null"
+          "enum": [
+            "granted",
+            "refused",
+            "superseded",
+            "revoked"
+          ]
         },
         {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["path", "digest", "accepted_at", "accepted_by", "surface_digest"],
-          "properties": {
-            "path": {
-              "type": "string",
-              "pattern": "^designpack/v[0-9]+/provenance/assent/.+$"
-            },
-            "digest": {
-              "$ref": "#/$defs/sha256"
-            },
-            "accepted_at": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "accepted_by": {
-              "type": "string",
-              "minLength": 1
-            },
-            "surface_digest": {
-              "$ref": "#/$defs/sha256",
-              "description": "Digest of exactly what was accepted, so a later claim that a screen was accepted is checkable against the bytes."
-            }
-          }
+          "description": "The surface it was granted over changed (VDS S-6(4)). Recorded, never deleted.",
+          "type": "string",
+          "enum": [
+            "spent"
+          ]
         }
       ]
-    },
-    "evidence": {
-      "type": "array",
-      "minItems": 1,
-      "description": "Every proof relied on, by id and digest (VDS S-6(3)).",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["proof_id", "kind", "digest", "status"],
-        "properties": {
-          "proof_id": {
-            "type": "string",
-            "pattern": "^PROOF-[0-9]{8}-[0-9]{6}$"
-          },
-          "kind": {
-            "$ref": "#/$defs/proofKind"
-          },
-          "digest": {
-            "$ref": "#/$defs/sha256"
-          },
-          "status": {
-            "type": "string",
-            "const": "passed",
-            "description": "A warrant may only cite a passed proof. A vacuous or failed proof is not evidence (VDS S-7(2)(4))."
-          }
-        }
-      }
-    },
-    "case_file_digest": {
-      "$ref": "#/$defs/sha256",
-      "description": "Repeated verbatim from the convening record, so what was decided on is provable after the fact (VDS S-10(5))."
-    },
-    "directives": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["id", "actor", "must"],
-        "properties": {
-          "id": {
-            "type": "string",
-            "pattern": "^D[0-9]+$"
-          },
-          "actor": {
-            "type": "string",
-            "minLength": 1
-          },
-          "must": {
-            "type": "string",
-            "minLength": 1
-          },
-          "when": {
-            "type": ["string", "null"]
-          }
-        }
-      }
-    },
-    "forbidden": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      }
-    },
-    "exceptions": {
-      "type": ["string", "null"]
-    },
-    "supersedes": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "pattern": "^WARRANT-W[1-4]-[0-9]{3}$"
-      }
-    },
-    "unlocks": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "string",
-        "enum": [
-          "design_may_begin",
-          "principal_review",
-          "parity_work_may_begin",
-          "system_complete"
-        ]
-      }
-    },
-    "surface": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["screens_digest", "register_digest"],
-      "description": "The surface this warrant was granted over. A change to either digest spends the warrant (VDS S-6(4)).",
-      "properties": {
-        "screens_digest": {
-          "$ref": "#/$defs/sha256"
-        },
-        "register_digest": {
-          "$ref": "#/$defs/sha256"
-        }
-      }
-    },
-    "runtime_summary": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 2000,
-      "description": "What an agent reads at runtime. Operative, not explanatory."
-    },
-    "created_at": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "granted_at": {
-      "type": ["string", "null"],
-      "format": "date-time"
-    },
-    "bench": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      }
-    },
-    "vote": {
-      "type": ["string", "null"]
-    },
-    "source_opinion": {
-      "type": ["string", "null"],
-      "description": "Path into designpack/v1/judgments/ where the long rationale lives."
-    },
-    "appealable": {
-      "type": "boolean"
-    },
-    "reserved": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "description": "Points expressly not decided. A warrant that relies on a RESERVED clause of VDS must say so here (VDS S-9(10))."
     }
-  },
-  "$defs": {
-    "sha256": {
-      "type": "string",
-      "pattern": "^sha256:[0-9a-f]{64}$"
-    },
-    "proofKind": {
-      "type": "string",
-      "enum": [
-        "register_completeness",
-        "reconciliation",
-        "composition",
-        "contrast",
-        "states",
-        "parity",
-        "token_pin",
-        "retirement_drain",
-        "ledger_staleness",
-        "no_stored_values"
-      ]
-    }
-  },
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "stage": {
-            "const": "W3_PRINCIPAL_ACCEPTED"
-          }
-        },
-        "required": ["stage"]
-      },
-      "then": {
-        "required": ["acceptance_event"],
-        "properties": {
-          "granted_by": {
-            "const": "principal"
-          },
-          "assent_source": {
-            "const": "principal_acceptance"
-          },
-          "acceptance_event": {
-            "type": "object"
-          },
-          "bench": {
-            "maxItems": 0,
-            "description": "No bench may grant W3 (VDS S-6(7))."
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "stage": {
-            "enum": [
-              "W1_REGISTER_COMPLETE",
-              "W2_DESIGN_COMPLETE",
-              "W4_PARITY"
-            ]
-          }
-        },
-        "required": ["stage"]
-      },
-      "then": {
-        "required": ["grantor_citation", "bench"],
-        "properties": {
-          "granted_by": {
-            "const": "vjs_court"
-          },
-          "grantor_citation": {
-            "type": "string"
-          },
-          "bench": {
-            "minItems": 1
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "status": {
-            "const": "granted"
-          }
-        },
-        "required": ["status"]
-      },
-      "then": {
-        "required": ["granted_at", "surface"],
-        "properties": {
-          "granted_at": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "stage": {
-            "const": "W1_REGISTER_COMPLETE"
-          }
-        },
-        "required": ["stage"]
-      },
-      "then": {
-        "properties": {
-          "evidence": {
-            "allOf": [
-              {
-                "contains": {
-                  "properties": {
-                    "kind": {
-                      "const": "register_completeness"
-                    }
-                  },
-                  "required": ["kind"]
-                }
-              },
-              {
-                "contains": {
-                  "properties": {
-                    "kind": {
-                      "const": "reconciliation"
-                    }
-                  },
-                  "required": ["kind"]
-                }
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "stage": {
-            "const": "W2_DESIGN_COMPLETE"
-          }
-        },
-        "required": ["stage"]
-      },
-      "then": {
-        "properties": {
-          "evidence": {
-            "allOf": [
-              {
-                "contains": {
-                  "properties": {
-                    "kind": {
-                      "const": "composition"
-                    }
-                  },
-                  "required": ["kind"]
-                }
-              },
-              {
-                "contains": {
-                  "properties": {
-                    "kind": {
-                      "const": "states"
-                    }
-                  },
-                  "required": ["kind"]
-                }
-              },
-              {
-                "contains": {
-                  "properties": {
-                    "kind": {
-                      "const": "contrast"
-                    }
-                  },
-                  "required": ["kind"]
-                }
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "stage": {
-            "const": "W4_PARITY"
-          }
-        },
-        "required": ["stage"]
-      },
-      "then": {
-        "properties": {
-          "evidence": {
-            "allOf": [
-              {
-                "contains": {
-                  "properties": {
-                    "kind": {
-                      "const": "parity"
-                    }
-                  },
-                  "required": ["kind"]
-                }
-              },
-              {
-                "contains": {
-                  "properties": {
-                    "kind": {
-                      "const": "token_pin"
-                    }
-                  },
-                  "required": ["kind"]
-                }
-              },
-              {
-                "contains": {
-                  "properties": {
-                    "kind": {
-                      "const": "contrast"
-                    }
-                  },
-                  "required": ["kind"]
-                }
-              }
-            ]
-          }
-        }
-      }
-    }
-  ]
+  }
 }

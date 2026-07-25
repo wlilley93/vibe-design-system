@@ -90,14 +90,76 @@ a proposed artefact that fails any one of them is in the storing form and is for
 a requirement drawn from WCAG 2.2 SC 1.4.11 and is lawful under S-2(4). `"#ebebeb"` is a
 realisation and is not, wherever it appears in `.vds/`.
 
-**S-2(7)** Where a proof must compare two values, it compares **digests of the normalised
-values**, not the values. A pin row therefore carries `source_value_digest` and
+**S-2(7) AMENDED, and the original text is recorded because it was wrong.** As drafted this
+clause read: "Where a proof must compare two values, it compares digests of the normalised
+values, not the values. A pin row therefore carries `source_value_digest` and
 `target_value_digest` and an agreement flag, and never the two strings. This is what keeps
-the pin a gate rather than a store, and it is why the pin schema forbids a value field.
+the pin a gate rather than a store, and it is why the pin schema forbids a value field."
 
-**S-2(8)** A machine check enforces S-2(2): a scan over `.vds/**` that finds any colour
-literal, length literal, font family, duration or easing curve is a fatal finding. The
-scan is itself a pinned proof script under S-8.
+That construction does not do what the clause says it does, and the difference was measured
+rather than argued. An unsalted SHA-256 over a low-entropy domain is not one-way in any
+practical sense, and a design token value is a tiny domain: a hex colour is 24 bits, about
+16.7 million candidates, and a spacing step or a duration is smaller. An adversarial agent
+recovered all 52 values from a 26-row pin in 27 seconds on one CPU. A pin built as the
+original clause required therefore STORES the decided and the shipped values, in a form that
+is inconvenient to read and trivial to recover, which is exactly the storing form
+[2026] VJS-CC-OPBOX 3 forbids. The guard specified at S-2(8) to catch that would have
+certified it clean, because it looks for colour literals.
+
+Salting does not rescue it. A salt recorded in the pin is a salt the reader has, so the
+search is unchanged. A salt not recorded in the pin makes the pin irreproducible, which fails
+the regeneration limb at S-2(5)(4).
+
+**The operative rule is therefore:** a pin row carries the NAME of the thing compared and the
+AGREEMENT between the two records, and nothing else. No per-value digest appears anywhere in
+`.vds/`. Whether the records as a whole moved is answered by a digest of each whole record,
+which is not a low-entropy domain and is safe.
+
+This is a departure from text that is not commenced (S-15) and that mandated a construction
+that provably does the opposite of what it claims. It is referred as `SUBMISSION-VDS-006`,
+and the fail-closed interim is the rule stated above.
+
+**S-2(8)** The rule S-2(2) actually needs is about **recoverability, not spelling**. An
+artefact is in the storing form if a design value can be reconstructed from `.vds/**`,
+whether it is written as a literal, an encoding, a digest, an index into an ordered set, or
+any other reversible representation. The machine check that enforces S-2(2) is the
+`no_stored_values` proof, and it has two limbs, both fatal:
+
+1. **Literal limb.** Any colour literal, length literal, font family, duration or easing
+   curve appearing verbatim anywhere under `.vds/**`. This is the limb the specification
+   used to have, and on its own it certified the leaking pin clean, because a digest is not
+   a literal.
+2. **Preimage limb.** Any design value **recovered** from `.vds/**` within the recovery
+   budget of S-2(9). The limb enumerates the candidate space, applies each reversible
+   transform an artefact could have used, and matches the result against every digest-shaped
+   and encoded-looking token harvested from the tree. A single match is a fatal finding
+   naming the recovered value and the file it came from.
+
+A guard that passes the very artefact it exists to catch is not a guard, so the preimage
+limb, not the literal limb, is the one that decides whether this specification is honest.
+
+**S-2(9)** "Practical" needs an operational definition or the rule is unfalsifiable, so it
+gets one. Both quantities below are engineering choices, and moving either is an amendment.
+
+- **Recovery budget: 2^40 evaluations.** About a CPU-day of commodity 2026 hardware. A
+  value whose candidate space is smaller than the budget is recoverable, and digesting it
+  does not take it out of the storing form. A joint digest is lawful where its preimage
+  domain exceeds **2^128**, which is the same statement with the margin an adversary with
+  more than a CPU-day deserves.
+- **Candidate space: closed and enumerable**, which is what makes the limb decidable rather
+  than a matter of opinion. It is exactly: the 2^24 srgb 8-bit colours in each spelling the
+  named records use; lengths to three decimal places up to the largest the target record
+  declares, in each unit it uses; durations to millisecond granularity up to ten seconds;
+  and the font families named in the target record. Design realisations come from a small,
+  human-authored, human-readable space, which is precisely why digesting them protects
+  nothing.
+- **Transform set:** identity, and each of `sha256`, `sha1`, `md5`, hexadecimal and base64,
+  applied to each candidate. The set is open to extension and never to reduction. Adding a
+  transform can only find more; removing one is a weakening edit under S-8(4).
+
+The proof therefore fails in the direction that matters: seed `.vds/` with a digest of any
+one colour and the run must exit non-zero and print that colour back. A `no_stored_values`
+implementation that cannot do that has not satisfied S-7(2)(2) and is not a proof.
 
 ---
 
@@ -148,8 +210,16 @@ ignored. A governance record that is gitignored is not a record.
 
 ## S-4 The artefact set
 
-**S-4(1)** VDS holds exactly eight artefact kinds. Each has a JSON Schema under `schema/`,
-and a file that does not validate against its schema is not an artefact of that kind.
+**S-4(1)** VDS holds exactly eight artefact kinds. Six have a JSON Schema under `schema/`,
+and a file that does not validate against its schema is not an artefact of that kind. The
+remaining two, the decision log and the breach report, are ADOPTED from VJS and are validated
+against VJS's schemas rather than redefined here; saying "each has a schema under `schema/`"
+was wrong, because two of the eight never did.
+
+The six schemas are GENERATED from the implementation's types and are not maintained beside
+them. A hand-written schema and a hand-written parser are two opinions about one shape, and
+two opinions drift; `vds schema check` regenerates and diffs, so a divergence is a failing
+check rather than a discovery months later.
 
 | artefact | path | schema | what it is |
 |---|---|---|---|
@@ -333,7 +403,7 @@ that is the honest description of where they stand.
 | `token_pin` | the two named records agree where the pin declares them aligned |
 | `retirement_drain` | a component proposed for retirement has zero remaining consumers, S-9 |
 | `ledger_staleness` | each generated ledger is current with its source, S-4(2) |
-| `no_stored_values` | `.vds/**` holds no realisation, S-2(8) |
+| `no_stored_values` | `.vds/**` holds no realisation AND yields none under the S-2(9) recovery test, S-2(8) |
 
 **S-7(6)** Adding a proof kind is an amendment to this specification and to the invariant
 registry, not a script anyone may drop in. The registry is closed for the same reason VJS
@@ -560,6 +630,26 @@ work of designing, and it does not remove the need for the Principal to look at 
 It converts a class of silent failure into a loud one at authoring time. That is the whole
 return, and it is worth the cost only because the failures in that class are the ones that
 reach production and stay there for months.
+
+---
+
+## S-14A The implementation
+
+**S-14A(1)** VDS is implemented as a Rust workspace producing one binary, `vds`, on a pinned
+toolchain. This is not a free choice: VJS is a Rust workspace, VDS refers every judgement call
+to VJS (S-1(2)), and two governance systems with one purpose and two toolchains is the
+fragmentation the pair exists to avoid.
+
+**S-14A(2)** Every closed set this specification fixes is a type rather than a validated
+string. A tenth state (S-5(3)), a status outside the lifecycle (S-5(4)), a proof kind outside
+the registry (S-7(5)) and a `capture_mode` other than `automatic` (S-7(2)(5)) are each
+unrepresentable rather than invalid. Where a rule can be made structural it is made
+structural, because a rule enforced at runtime is a rule that can be reached with the check
+disabled.
+
+**S-14A(3)** Seven of the ten proof kinds at S-7(5) are implemented. Each of the other three
+records why, per kind, rather than sharing a blanket note, because the reasons differ and the
+difference is what tells a reader whether the gap is work or a dependency.
 
 ---
 

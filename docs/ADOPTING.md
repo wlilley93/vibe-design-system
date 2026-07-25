@@ -1,256 +1,203 @@
-# Adopting VDS in a project
+# Adopting VDS
 
-This file is engineering explanation. It binds nothing (VDS S-3(4)). Where it disagrees with
-`VDS.md`, `VDS.md` wins.
+This file is engineering explanation. It binds nothing (VDS S-3(4)).
 
-**Nothing here can be done yet.** VDS is drafted and not commenced (VDS S-15), no designpack
-exists, and the `vds` command described below is not built. This is the intended shape of
-adoption, written now so the front door and the wall are designed together rather than the door
-being retrofitted onto whatever the wall turned out to be. Every command in this file is in the
-conditional voice for that reason.
+Every command below has been run against a real project. Where a step cannot be completed
+with the current build, it says so and says what to do instead. The previous version of this
+document listed ten steps of which eight could not be executed, which is the defect VDS
+exists to prevent, committed by VDS against its own users.
 
 ---
 
-## Preconditions
+## Before you start: what this costs
 
-Adoption is refused, and should be, unless all of these hold.
+**The register is the expensive part, and it costs the same whether or not you adopt VDS.**
+It is "write down every component and what it must do". Skipping VDS does not avoid that
+cost; it decides not to write it down, which is the state that produced both defects at
+VDS S-1(4). Read VDS S-14 before committing to this.
 
-| precondition | why it is a precondition |
-|---|---|
-| `VDS.md` has commenced under S-15 | until then there is nothing to grant a warrant under |
-| a designpack exists and is published with a digest | you subscribe to a pack, not to a repository |
-| the project's systems of record are named and stable | VDS derives from them; it cannot derive from a moving target |
-| the project can run a deterministic check in CI | VDS S-7(2)(3). A local hook alone is an interim state |
-| the Principal is available for W3 | acceptance is theirs alone and cannot be worked around |
-
-The project's systems of record are fixed by [2026] VJS-CC-OPBOX 3 D1 and are not VDS's to
-move: `app/globals.css` for what ships, the decided-target Figma file for what is decided, and
-the committed snapshot as a derived one-way pin between them and nothing else.
+**The reconciliation proof will fail on day one and keep failing** until the register is
+genuinely complete. That is a feature and will not feel like one.
 
 ---
 
-## What `vds init` would write
+## 1. Build the binary
 
-Into the adopting project, at its repository root. Everything below is committed. Only
-`.vds/cache/` and `.vds/private/` are ignored, because a governance record that is gitignored
-is not a record.
-
-```
-designpack/v1/            vendored read-only from the published pack, digest-pinned.
-                          statutes, regulations, invariants, obligations, orders,
-                          judgments, specs, provenance, manifest.toml.
-                          never edited in place: a change is a new pack version.
-
-.vds/
-  config.toml             the one fixed anchor. every other path is configurable from it.
-  designpack.lock         designpack_id, designpack_version, digest, schema_version,
-                          generated_at, locked_by.
-  install.lock            schema_version, generated_at, config_digest, hooks[],
-                          hook_digests[], adapters[]. a missing hook is a finding,
-                          not a quiet absence.
-  enforcement.lock        one entry per proof script: path, digest, kind, invoked_by,
-                          proves, failing_direction_test, pinned_at, pinned_by.
-                          absent on init. written when the first gate is pinned.
-
-  register/               empty. one <id>.yaml per component, later.
-  warrants/               empty. W1 to W4, later, and never on init.
-  proofs/                 empty. written by checkers as a side effect of running.
-  pins/                   empty. derived, byte-reproducible, digests only.
-  ledgers/                empty. generated inventories, never hand-edited.
-  submissions/
-    draft/ filed/ docket/ empty, except the reserved-matter submissions below.
-  court/convenings/       empty. VJS convening records, recorded back here.
-  logs/
-    decisions/            empty.
-    breaches/             the two founding defects, filed on init (VDS S-12(4)).
-  permits/                empty.
-  cache/  private/        the only two ignored paths.
+```bash
+git clone https://github.com/wlilley93/vibe-design-system
+cd vibe-design-system
+cargo build --release --bin vds
+# put ./target/release/vds on PATH, or call it by path below
 ```
 
-`vds init` would **not** write: any component record, any warrant, any proof result, any pin.
-Those are earned, not scaffolded. An init that produced a warrant would have granted itself one,
-which VDS S-1(3) forbids in terms.
+Rust 1.95.0, pinned in `rust-toolchain.toml`. The one network call VDS makes shells out to
+`curl`, and it is not on the proof path.
 
-### `.vds/config.toml`
+## 2. Scaffold the record
 
-The one file whose path is fixed. It carries no design value, only paths, identifiers and
-globs.
+```bash
+cd /path/to/your/project
+vds init
+```
+
+This writes `.vds/config.toml`, `.vds/designpack.lock`, a `.gitignore` ignoring exactly
+`cache/` and `private/` (VDS S-3(9): a governance record that is gitignored is not a record),
+and the record directories.
+
+**Commit `.vds/` now**, before it holds anything. The record is committed, not scratch.
+
+## 3. Declare your surface
+
+Open `.vds/config.toml` and set three things. Everything VDS ever claims is bounded by them,
+so getting them wrong makes every proof narrower or wider than you think.
 
 ```toml
-version = 1
-jurisdiction_id = "<project>"
-repo_code = "<REPOCODE>"
-designpack = "<pack-id>@<pack-version>"
-
-[paths]
-register     = ".vds/register"
-warrants     = ".vds/warrants"
-proofs       = ".vds/proofs"
-pins         = ".vds/pins"
-ledgers      = ".vds/ledgers"
-submissions  = ".vds/submissions"
-decisions    = ".vds/logs/decisions"
-breaches     = ".vds/logs/breaches"
-permits      = ".vds/permits"
-
-[governance]
-permit_required = [
-  "app/globals.css",            # the system of record for what ships
-  "<component library dirs>/**",
-  "designpack/v1/**",
-  ".vds/register/**",
-  ".vds/config.toml",
-  "<proof script dir>/**",      # the gates themselves
-]
-permit_exempt = [
-  ".vds/logs/**",
-  ".vds/permits/**",
-  ".vds/proofs/**",
-]
+[surface]
+# Every screen VDS will reason about. A screen outside these globs is outside every proof.
+screen_globs = ["app/**/page.tsx"]
+# An import starting with one of these is IN SCOPE. Anything else is counted, not enforced,
+# and the count is printed, so the carve-out is visible rather than assumed.
+governed_import_prefixes = ["@/components/"]
+# Directories the register is expected to cover. `reconciliation` walks them to find code
+# with no register entry. A directory that is not there makes the proof REFUSE rather than
+# report a narrowing, so leave this empty rather than aspirational.
+library_dirs = ["src/components/ui"]
 ```
 
-Two entries in `permit_required` are the ones people leave out, and both are load-bearing:
-`.vds/config.toml` and the proof scripts. Omit them and the gate is editable without a permit
-by the same hand it constrains, which is not a gate. `permit_exempt` covers the append-only
-record directories, which must stay writable or the machinery deadlocks on its own audit trail.
+Only `*` (within a segment), `**` (across segments) and `?` are supported. A brace or a
+character class is REFUSED rather than half-understood, because a glob that silently matches
+less than you meant makes every proof narrower and nothing says so.
+
+## 4. Generate the declared surface
+
+```bash
+vds ledger screens
+```
+
+Read the output. It reports how many screens matched, how many component references and bare
+elements it found, and how many imports it could not resolve. **If it says the surface
+matched no file, stop and fix the globs**: every proof will be vacuous.
+
+If it REFUSES, naming a file it could not scan completely, fix that file. A reference the
+scanner did not see is not skipped and not counted; it does not exist, and a ledger built
+from it would make every proof narrower than it looks.
+
+## 5. Register components, before designing them
+
+```bash
+vds register add --name Button \
+  --import-path @/components/ui \
+  --source-file src/components/ui/button.tsx \
+  --export-name Button \
+  --require default,hover,focus,disabled \
+  --drawn default \
+  --role button \
+  --keyboard 'Enter=activates' \
+  --floor 'control-border:surface:3.0:WCAG 2.2 SC 1.4.11:control_boundary'
+```
+
+`add` mints only at `proposed` or `designed`. To go further, advance one step at a time:
+
+```bash
+vds register set-status CMP-0001 designed
+vds register set-status CMP-0001 registered
+```
+
+The lifecycle is a directed path and skipping is forbidden (VDS S-5(4)). This is not
+ceremony: VDS S-6(2) calls the ordering "the entire mechanism", because every drift defect
+measured in the motivating project was authored before anyone asked whether the thing being
+used was registered.
+
+A floor is a **requirement** drawn from a standard, never a colour. `3.0` is lawful because
+WCAG 2.2 SC 1.4.11 says so; `#ebebeb` has nowhere to go.
+
+## 6. Run the proofs
+
+```bash
+vds proof --list          # the closed registry, and why three kinds are unbuilt
+vds proof --all
+```
+
+Expect failures. `register_completeness` will name every component your screens use that the
+register does not know, with the file and the line. That list is the work.
+
+Exit codes: `0` passed, `1` a violation, `2` a precondition failed and the proof DID NOT RUN,
+`3` vacuous. A vacuous run is not a pass: it means no row was in an enforceable state, and it
+is never evidence for a warrant (VDS S-7(2)(4)).
+
+## 7. Wire the gates into CI, and pin them
+
+A hook is not CI. `git commit --no-verify` bypasses a local hook, so the invocation limb at
+VDS S-7(2)(3) is satisfied by a remote check and only interim-satisfied by a hook
+(VDS S-7(3)). Copy `.github/workflows/vds-enforce.yml` from this repository and adapt it,
+then pin each gate:
+
+```bash
+vds lock add crates/vds-proof/src/composition.rs \
+  --proves composition \
+  --invoked-by 'ci_workflow=.github/workflows/vds-enforce.yml job:enforce=blocking' \
+  --test-path crates/vds-proof/src/composition.rs \
+  --test-name composition_fails_on_an_unregistered_component \
+  --seeds 'a screen importing a governed component with no register record'
+vds lock verify
+```
+
+An entry cannot be written without naming the test that proves the gate's FAILING direction.
+That is how VDS S-7(2)(2) is made structural rather than requested: a check whose failing
+direction is asserted nowhere has proven only its happy path.
+
+**Make the CI job a required status check.** Without that its verdict is advisory, and D4 is
+not met however green it goes.
+
+## 8. Measure yourself
+
+```bash
+vds doctor
+```
+
+Ten criteria, each naming the command that settled it. It will not flatter you, and a
+criterion this build cannot settle reports NOT CHECKED and is counted separately, because a
+report listing only what it can check reads as a clean bill of health.
+
+## 9. Wire the design round trip
+
+See [`FIGMA-ROUND-TRIP.md`](FIGMA-ROUND-TRIP.md). Briefly:
+
+```bash
+vds brief > brief.md            # hand to a generating agent BEFORE it draws
+export FIGMA_TOKEN=...
+vds figma pull                  # measure what it actually drew
+vds impl CMP-0001               # hand to an implementing agent BEFORE it writes
+```
+
+## 10. Warrants, when you are ready
+
+**VDS grants nothing.** W1, W2 and W4 are VJS's on a referred submission, and W3 is the
+Principal's alone (VDS S-1(3), S-6(7)). `vds warrant record` writes down a grant that
+happened elsewhere and pins the evidence it was made on. If no such grant happened, the file
+it writes is a false statement of the record and not a warrant.
+
+```bash
+vds warrant status              # where the chain stops, and whether the surface has moved
+```
+
+A stage cannot be recorded before its predecessor is granted, and a predecessor that is
+granted but SPENT does not count: the surface has moved, and the warrant has to be re-earned
+over the current one.
 
 ---
 
-## Order of operations
+## What is not implemented, so you do not look for it
 
-The order is the mechanism, in the same way the warrant order is. Doing these in a different
-sequence produces artefacts that no gate ever reads, which is the state VDS exists to end.
+- **The permit lifecycle** (VDS S-12(1)) and `install.lock` (VDS S-11(4)). The
+  `[governance]` globs `vds init` writes are read by nothing yet. They are recorded so the
+  surface a permit will cover is declared before the machinery exists.
+- **Decision logs and breach reports as commands.** The directories exist; write the files by
+  hand against the VJS schemas.
+- **A `submit` command.** Submissions are hand-authored into `.vds/submissions/filed/` and
+  validated on read. See this repository's own six for the shape.
+- **Three of the ten proof kinds**: `contrast`, `parity` and `token_pin`, each of which needs
+  a named record VDS reads and does not own. `vds proof --list` prints the reason for each.
 
-### 1. Subscribe and pin
-
-Vendor `designpack/v1/` read-only, write `.vds/designpack.lock` with the pack id, version,
-digest and schema version. The runtime never fetches doctrine. A loader must refuse, loudly and
-at load time, any pack whose `schema_version` exceeds what it understands.
-
-A later digest bump is a deliberate recorded act. No doctrine flows downstream by silence.
-
-### 2. Configure
-
-Write `.vds/config.toml`. Declare the systems of record, the governed library directories and
-the permit globs. This is where the project decides what "the design system" means for it, and
-the answer is checkable from that point on rather than remembered.
-
-### 3. Install the wall before the work
-
-Install the hooks, write `.vds/install.lock`, wire the CI job. Do this **before** authoring a
-single component record.
-
-This is the step people invert, and inverting it is the founding defect in a different costume.
-In the motivating project, `component-map.json` held 56 component entries while
-`src/components/ui` and `src/components/onyx` together held 90 `.tsx` files (measured:
-`json.load(...)['components']` length, and `ls <dir>/*.tsx | wc -l` on each directory). Those
-are not necessarily contradictory, since one entry may legitimately cover several files. The
-problem is that no command derived either number from the other, so nobody could say which was
-wrong. A register authored before anything reconciles it is a document, and documents decay.
-
-### 4. Wire `no_stored_values` first
-
-Of the ten proof kinds, wire this one before any other. It scans `.vds/**` for colour literals,
-length literals, font families, durations and easing curves, and a hit is fatal.
-
-Wire it first because it is the only proof that guards the authoring you are about to do. Author
-two hundred component records with a hex value in each and you will rewrite two hundred records.
-Wire the scan first and the first one fails.
-
-### 5. Make each gate satisfy all five limbs, then pin it
-
-For each proof kind, before it counts as a proof at all (VDS S-7(2)):
-
-1. one named command, deterministic, no network call, no model call
-2. a named test that seeds a violation against a fixture and asserts the non-zero exit
-3. an invocation by something that is not the author choosing to run it
-4. `rows_considered` and `rows_enforced` reported, with a zero enforced count recorded as
-   `status: vacuous` and never as `passed`
-5. the result record written by the checker itself, `capture_mode: automatic`
-
-Then add the entry to `.vds/enforcement.lock`. The lock entry cannot be written without naming
-the failing-direction test, which is how limb 2 is enforced rather than requested.
-
-On limb 3, be honest about where you actually are. In the motivating project the two existing
-design gates are invoked from `.githooks/pre-push` at lines 106 and 123, and from 0 of the 10
-files in `.github/workflows/` (measured: `grep -n` over the hook, `grep -rln` over the workflow
-directory). That satisfies the hook limb and not the CI limb. `git commit --no-verify` bypasses
-a local hook, so a hook-only state is an interim state and must be recorded as one.
-
-### 6. Build the register
-
-One record per component, per `schema/component-record.schema.json`. The nine states are fixed
-(`default`, `hover`, `focus`, `active`, `selected`, `disabled`, `loading`, `error`, `success`)
-and a record may require a subset but may not invent a tenth.
-
-`demand` is measured, never estimated: the record carries the command that measured it and the
-timestamp.
-
-This is the expensive part, and it costs the same whether or not VDS exists, because it is just
-"write down every component and what it must do".
-
-### 7. Run reconciliation and expect it to fail
-
-It will fail on day one and keep failing until the register is genuinely complete: entries with
-no resolvable code counterpart, code in the governed directories with no entry, Figma node ids
-that do not resolve, prop and state contracts that disagree. Every one of those is a real
-finding that was previously invisible. Driving that list to zero is the work.
-
-### 8. W1, and only then design
-
-Refer W1 REGISTER-COMPLETE to VJS on the evidence: `register_completeness` and `reconciliation`
-both exit 0 and both non-vacuous over the declared surface. Design may begin when it is granted
-and not before, because every drift defect measured in the motivating project was authored
-before anyone asked whether the thing being used was registered.
-
-Note the RESERVED clause here. Whether W1 may be granted provisionally on a greenfield surface
-is unsettled (`SUBMISSION-VDS-001`), and until VJS answers, W1 is strict. On a genuinely
-greenfield surface that is a real constraint and you should file the submission rather than
-route around it.
-
-### 9. W2, W3, W4
-
-- **W2 DESIGN-COMPLETE** on `composition`, `states` and `contrast` over every declared screen.
-  Who may grant it is RESERVED (`SUBMISSION-VDS-002`); until answered it is referred to VJS,
-  and a proof-only candidate may be recorded but not treated as granted.
-- **W3 PRINCIPAL-ACCEPTED** by the Principal alone, as a dated digest-pinned acceptance event.
-  No proof substitutes for it, no bench may grant it, and acceptance is never inferred from
-  silence.
-- **W4 PARITY** on `parity` for every registered component, plus `token_pin` and `contrast`
-  re-run against the shipped CSS.
-
-Every warrant names `case_file_digest` and every proof it relies on by id and digest. A warrant
-carrying no evidence entry is a signature on nothing and is void on its face.
-
-### 10. File the reserved matters
-
-Five clauses depend on unsettled points (VDS S-13). Each needs a submission on file, naming its
-`reserved_clause` and its `fail_closed_interim`, whether or not you expect to hit it. A clause
-depending on an unsettled point with no submission behind it is how a reserved matter quietly
-becomes a settled one by default.
-
----
-
-## After adoption: the two things that rot
-
-**Warrants go stale silently.** A warrant is spent when the surface it was granted over
-changes. Adding a screen after W2, or a component after W1, does not inherit the warrant: the
-proof re-runs and the warrant is re-granted or refused, and `status: spent` is recorded rather
-than deleted. If nothing in the project notices a surface change, the warrant chain becomes
-decorative.
-
-**Proof records fall behind decision logs.** Measured in VJS at VDS drafting time: 173 decision
-logs against 3 proof records. Decision logs are cheap and proofs are not, so the ratio drifts
-in exactly one direction. VDS's whole value sits on the proof surface, which is why capture is
-wired into the checker rather than left to be written by hand, and why `docs/GOAL.md` D9 makes
-the ratio a watched number rather than an assumed one.
-
-## What adoption does not give you
-
-- It does not make the design good. W3 exists because that judgement is the Principal's.
-- It does not prove "no unregistered component anywhere". The `composition` proof covers the
-  declared screen set; a screen outside that set is outside the proof, which is why every
-  warrant names its surface by digest.
-- It does not make the enforcement surface tamper-proof. An author with write access can edit a
-  gate and re-pin it in the same act. The lock makes that visible in a diff. It does not
-  prevent it, and no VDS document may claim otherwise.
+A command written in a doc is not a command that runs. Where the machinery does not exist, do
+the equivalent by hand and say so in the log.
