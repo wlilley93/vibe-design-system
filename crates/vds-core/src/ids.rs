@@ -103,6 +103,16 @@ lexical_id!(
     "A derived one-way agreement assertion between two named records."
 );
 lexical_id!(
+    BreachId,
+    r"^BREACH-[0-9]{4}$",
+    "A self-reported breach (VDS S-12(3)). Numbered rather than stamped, because a breach is a thing somebody files and refers to, not an event a machine emits."
+);
+lexical_id!(
+    DecisionId,
+    r"^DECISION-[0-9]{4}$",
+    "A decisive call disposed without a sitting (VDS S-12(2))."
+);
+lexical_id!(
     SubmissionId,
     r"^SUBMISSION-(VDS-[0-9]{3}|[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6})$",
     "A question referred to VJS. The VDS-nnn series is reserved for the matters at VDS S-13."

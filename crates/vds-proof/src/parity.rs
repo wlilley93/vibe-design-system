@@ -580,11 +580,21 @@ fn resolve<'a>(
         return Ok(None);
     };
 
-    if export.props_incomplete_because.is_some() {
-        // The scanner found no `<Name>Props` type in the file, so its prop list
-        // is empty for want of a reader rather than because the component takes
-        // nothing. Comparing a contract against that would fail on every prop the
-        // contract names, and the fault would be the scanner's.
+    if let Some(because) = &export.props_incomplete_because {
+        // The scanner has DECLARED that its prop list is not the whole set, and
+        // that declaration is load-bearing in two shapes.
+        //
+        // The first is an empty list: no `<Name>Props` type in the file, so the
+        // list is empty for want of a reader rather than because the component
+        // takes nothing.
+        //
+        // The second was missing until it was found by review, and it is worse,
+        // because the list is NON-EMPTY and looks complete: a declaration that
+        // `extends` another type or intersects one. Comparing a contract against
+        // a subset makes R6, the direction this module's header calls the
+        // load-bearing half, fire on every inherited prop as though the code had
+        // invented it, and R5 fail on nothing at all while the row is credited as
+        // ENFORCED. A subset presented as a contract is worse than an absent one.
         run.row(Verdict::Skipped(SKIP_NO_PROPS_TYPE));
         if record.props.is_empty() {
             run.inform(Violation::fatal(
@@ -593,8 +603,8 @@ fn resolve<'a>(
                 "a `<Name>Props` interface or type alias beside the export, so that the prop set \
                  can be compared in both directions",
                 format!(
-                    "{source} declares none, and {} names no prop either. Neither side claims \
-                     anything, so this row establishes nothing rather than agreeing with itself",
+                    "{because}, and {} names no prop either. Neither side claims anything, so \
+                     this row establishes nothing rather than agreeing with itself",
                     record.id
                 ),
             ));
@@ -609,9 +619,9 @@ fn resolve<'a>(
                     record.id
                 ),
                 format!(
-                    "{source} declares no such type, so the {} props {} names were compared \
-                     against nothing. This is either drift the scanner cannot see or a props \
-                     type declared somewhere this build does not follow, and both need a human",
+                    "{because}, so the {} props {} names were not compared against a complete \
+                     set. This is either drift the scanner cannot see or a prop set this build \
+                     does not resolve, and both need a human",
                     record.props.len(),
                     record.id
                 ),
@@ -1056,8 +1066,8 @@ fn inside_library_dirs(source: &str, dirs: &[String]) -> bool {
 mod tests {
     use crate::testing::{Harness, run_kind};
     use vds_core::{
-        ComponentId, EXIT_PASSED, EXIT_VACUOUS, EXIT_VIOLATION, ProofKind, ProofStatus,
-        PropContract, Severity, State, StateContract, Status, default_config,
+        CodeCounterpart, ComponentId, EXIT_PASSED, EXIT_VACUOUS, EXIT_VIOLATION, ProofKind,
+        ProofStatus, PropContract, Severity, State, StateContract, Status, default_config,
     };
 
     /// A component file carrying a `<Name>Props` type, which is the one shape
@@ -1712,5 +1722,88 @@ mod tests {
             before.inputs_digest, after.inputs_digest,
             "the finding set moved, so the recorded inputs must move with it"
         );
+    }
+
+    /// The critical direction R6 was blind to.
+    ///
+    /// A component whose props declaration `extends` another type accepts every
+    /// inherited member, and the shallow reader sees only the inline block. It
+    /// used to report that subset as a complete prop list, so R6 fired on every
+    /// inherited prop as though the code had invented it, or credited the row as
+    /// ENFORCED over a comparison that could never have been complete.
+    #[test]
+    fn a_props_type_that_extends_another_is_skipped_and_never_enforced() {
+        for head in [
+            "interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>",
+            "type ButtonProps = BaseProps &",
+            "type ButtonProps = Omit<BaseProps, 'size'> &",
+        ] {
+            let h = Harness::new();
+            h.write(
+                "src/components/ui/Button.tsx",
+                &format!(
+                    "{head} {{\n  variant?: 'primary' | 'ghost';\n}}\n\
+                     export function Button(p: ButtonProps) {{ return <button />; }}\n"
+                ),
+            );
+            let id = h.register("Button", Status::Registered);
+            h.amend(&id, |record| {
+                record.props = vec![PropContract {
+                    name: "variant".into(),
+                    type_expr: "'primary' | 'ghost'".into(),
+                    required: false,
+                    figma_property: None,
+                }];
+                record.code = Some(CodeCounterpart {
+                    import_path: "@/components/ui/Button".into(),
+                    source_file: "src/components/ui/Button.tsx".into(),
+                    export_name: "Button".into(),
+                });
+            });
+
+            let (outcome, text) = run_kind(&h, ProofKind::Parity);
+            assert_eq!(
+                outcome.rows_enforced, 0,
+                "a row whose prop set is a SUBSET was credited as enforced, so the comparison \
+                 that could never have been complete counts towards the vacuity check: {text}"
+            );
+            assert!(
+                text.contains(super::SKIP_NO_PROPS_TYPE),
+                "the skip must be named and counted: {text}"
+            );
+            assert!(
+                text.contains("SUBSET"),
+                "the reason has to say what was missed, not merely that something was: {text}"
+            );
+        }
+    }
+
+    /// And the ordinary case still enforces, so the fix did not turn every
+    /// component into a skip.
+    #[test]
+    fn an_inline_props_type_is_still_compared_rather_than_skipped() {
+        let h = Harness::new();
+        h.write(
+            "src/components/ui/Button.tsx",
+            "type ButtonProps = {\n  variant?: 'primary' | 'ghost';\n};\n\
+             export function Button(p: ButtonProps) { return <button />; }\n",
+        );
+        let id = h.register("Button", Status::Registered);
+        h.amend(&id, |record| {
+            record.props = vec![PropContract {
+                name: "variant".into(),
+                type_expr: "'primary' | 'ghost'".into(),
+                required: false,
+                figma_property: None,
+            }];
+            record.code = Some(CodeCounterpart {
+                import_path: "@/components/ui/Button".into(),
+                source_file: "src/components/ui/Button.tsx".into(),
+                export_name: "Button".into(),
+            });
+        });
+
+        let (outcome, text) = run_kind(&h, ProofKind::Parity);
+        assert_eq!(outcome.rows_enforced, 1, "{text}");
     }
 }

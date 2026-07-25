@@ -1,13 +1,12 @@
-id: PROOF-20260725-152212
+id: PROOF-20260725-171140
 kind: no_stored_values
 status: passed
 warrant_id: null
 command: vds proof no_stored_values
 script: crates/vds-proof/src/no_stored_values.rs
-script_digest: sha256:3436e78174fd5dceb6241756eb8fc8117cd52959595c7d825f81893085cf1fd5
 exit_code: 0
-rows_considered: 93
-rows_enforced: 93
+rows_considered: 107
+rows_enforced: 107
 rows_skipped_reasons: {}
 violations: []
 notes:
@@ -18,11 +17,11 @@ notes:
 - '[space] the candidate space is every 24-bit hex colour in the four spellings a stylesheet and a Figma export produce, every three- and four-digit hex colour, the 148 CSS named colours, numbers carrying a CSS length unit from -200 to 2000 at whole, tenth and hundredth precision, durations to ten seconds in milliseconds and to sixty seconds in hundredths, the named easing keywords with the common cubic-beziers, and the generic font families. It does NOT include the eight-digit hex colour with an alpha channel, whose 2^32 domain would add twenty seconds to every run, nor an arbitrary cubic-bezier, whose textual form is unbounded. It is a floor, and it is the floor at which the demonstrated leak sits.'
 - '[reach] the pattern set is a floor and is named in the gate: colour literals in the hash-sigil form, the CSS colour functions, numbers carrying a CSS length or time unit, timing functions and named easing keywords, the CSS generic font-family keywords, and a closed list of field names that name a realisation. A bare family name under a field name outside that list is NOT reached, because the only way to reach it is a list of the project''s font families, and holding that list here would itself be the storing form this proof exists to prevent.'
 - '[self-reference] this proof captures its own record into the tree it scans, so the NEXT run reads one more file than this one did. Two consecutive runs over an otherwise unchanged tree therefore cite different evidence digests. That is the subject moving, not the check (VDS S-7(2)(1)).'
-- '[preimage-run] 363 digest-shaped runs harvested, 93 distinct, tested against 65334666 enumerated candidates under sha256. A digest whose preimage is a design value is a stored design value (VDS S-2(7)).'
-inputs_digest: sha256:851a675d191e45ac2afd71d10e5905ed714d36ed691f3af86da8e136b0894767
-digest: sha256:655c0f6f41ed8db556abac8186278e1fd8417049560968e2e2e5843f23bec23b
+- '[preimage-run] 297 digest-shaped runs harvested, 55 distinct, tested against 65334666 enumerated candidates under sha256. A digest whose preimage is a design value is a stored design value (VDS S-2(7)).'
+inputs_digest: sha256:479d3904db0d35d325f3d52fef8dfe742198b35f1d0936c2b6dd9e1277993de7
+digest: sha256:28e9d87cae0eb70ce4e72a90e281f1564fbaf054151af784f72a01f9d2b2d40f
 designpack_digest: sha256:f9c369f3175c15169dafde47c01d7efc2f45c64090444f17f5b3f480e710ec5a
-captured_at: 2026-07-25T15:22:07Z
+captured_at: 2026-07-25T17:11:14Z
 capture_mode: automatic
 invoked_by: package_script
-duration_ms: 1000
+duration_ms: 0

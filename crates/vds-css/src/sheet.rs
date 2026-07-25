@@ -449,15 +449,39 @@ impl Sheet {
     /// root-like, so both would be dropped in silence. A caller should refuse to
     /// certify a sheet where this list is not empty, or widen the register to
     /// name them.
+    /// # The no-base case, and why it is the dangerous one
+    ///
+    /// This used to return an empty list the moment `self.base` was `None`, which
+    /// made the whole check structurally dead on any sheet without a `:root`.
+    /// Every non-root-like scope was dropped in silence, and `contrast` reported
+    /// PASS over a palette it had never measured, which is the founding defect
+    /// (VDS S-1(4)(a)) shipping green through the gate written to catch it.
+    ///
+    /// It was reachable with an ordinary sheet. `html[data-theme='light']` and
+    /// `html[data-theme='dark']` are root-like and become themes; `.dark .panel`
+    /// beside them is not, and painted a boundary at 1.03:1 against a 3.0 floor
+    /// with `rows_enforced=2, exit 0` and no finding of any kind.
+    ///
+    /// The early return also disagreed with `discover_themes`, which treats a
+    /// `None` base as admitting EVERY root-like scope as a theme. One half of the
+    /// classification was maximally inclusive and the other maximally silent.
+    ///
+    /// With no base there is no palette to overlap with, so the question changes
+    /// from "does this scope redeclare a base property" to "does this scope
+    /// declare a custom property at all". A scope that sets a custom property and
+    /// is not a theme is exactly what a caller must not certify, base or no base.
     pub fn unclassified_palette_scopes(&self) -> Vec<&str> {
-        let Some(base) = self.base.as_deref() else {
-            return Vec::new();
-        };
         let base_properties: BTreeSet<&str> = self
-            .declarations_in(base)
-            .into_iter()
-            .map(|d| d.property.as_str())
-            .collect();
+            .base
+            .as_deref()
+            .map(|base| {
+                self.declarations_in(base)
+                    .into_iter()
+                    .map(|d| d.property.as_str())
+                    .collect()
+            })
+            .unwrap_or_default();
+        let has_base = self.base.is_some();
         let themes: BTreeSet<&str> = self.theme_selectors().into_iter().collect();
         let mut out: Vec<&str> = self
             .scopes
@@ -465,9 +489,13 @@ impl Sheet {
             .map(String::as_str)
             .filter(|selector| !themes.contains(selector))
             .filter(|selector| {
-                self.declarations_in(selector)
-                    .iter()
-                    .any(|d| base_properties.contains(d.property.as_str()))
+                self.declarations_in(selector).iter().any(|d| {
+                    if has_base {
+                        base_properties.contains(d.property.as_str())
+                    } else {
+                        d.property.starts_with("--")
+                    }
+                })
             })
             .collect();
         out.sort_unstable();
@@ -2488,5 +2516,58 @@ mod tests {
                 "{theme} must resolve --border-control"
             );
         }
+    }
+
+    /// The critical direction: a sheet with NO `:root`.
+    ///
+    /// `unclassified_palette_scopes` used to return an empty list the moment
+    /// `base` was None, so every non-root-like scope was dropped in silence and
+    /// `contrast` reported PASS over a palette it had never measured. That is the
+    /// founding defect shipping green through the gate written to catch it.
+    #[test]
+    fn a_palette_scope_is_reported_even_when_the_sheet_declares_no_root() {
+        let sheet = Sheet::parse(
+            "html[data-theme='light'] { --surface: #ffffff; --control-border: #767676; }\n\
+             html[data-theme='dark']  { --surface: #1a1a1a; --control-border: #9a9a9a; }\n\
+             .dark .panel { --control-border: #1c1c1c; --surface: #1a1a1a; }\n",
+        );
+        assert!(
+            sheet.base_selector().is_none(),
+            "this fixture is only interesting while it has no base scope"
+        );
+        assert_eq!(
+            sheet.unclassified_palette_scopes(),
+            vec![".dark .panel"],
+            "a scope that sets a custom property and is not a theme must be reported whether \
+             or not the sheet declares a :root. Dropping it silently is a pass over a palette \
+             nothing measured."
+        );
+    }
+
+    /// And the same sheet with a `:root` added still reports it, so the fix did
+    /// not trade one silence for another.
+    #[test]
+    fn the_no_root_case_agrees_with_the_case_that_has_one() {
+        let sheet = Sheet::parse(
+            ":root { --surface: #ffffff; --control-border: #767676; }\n\
+             [data-theme='dark'] { --surface: #1a1a1a; --control-border: #9a9a9a; }\n\
+             .dark .panel { --control-border: #1c1c1c; }\n",
+        );
+        assert_eq!(sheet.unclassified_palette_scopes(), vec![".dark .panel"]);
+    }
+
+    /// A scope that sets no custom property at all is not a palette scope, so
+    /// the widened no-base rule must not turn every ordinary rule into a finding.
+    #[test]
+    fn an_ordinary_rule_that_sets_no_custom_property_is_not_a_palette_scope() {
+        let sheet = Sheet::parse(
+            "[data-theme='dark'] { --surface: #1a1a1a; }\n\
+             .panel { padding: 12px; border-radius: 6px; }\n",
+        );
+        assert!(
+            sheet.unclassified_palette_scopes().is_empty(),
+            "{:?}",
+            sheet.unclassified_palette_scopes()
+        );
     }
 }

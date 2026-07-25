@@ -25,7 +25,7 @@ pub mod types;
 pub use config::{Config, Governance, PathRole, Paths, SurfaceConfig, default_config};
 pub use digest::{Digest, canonical_json, digest_rows};
 pub use error::{EXIT_PASSED, EXIT_PRECONDITION, EXIT_VACUOUS, EXIT_VIOLATION, Result, VdsError};
-pub use ids::{ComponentId, PinId, ProofId, SubmissionId, WarrantId};
+pub use ids::{BreachId, ComponentId, DecisionId, PinId, ProofId, SubmissionId, WarrantId};
 pub use project::{Project, write_atomically, write_text_atomically, yaml_files};
 pub use timestamp::Timestamp;
 pub use types::*;

@@ -37,6 +37,33 @@ impl Digest {
         Self::of_bytes(text.as_bytes())
     }
 
+    /// Parse a digest a caller supplied, refusing anything not in the one form.
+    ///
+    /// The newtype's whole value is that a `Digest` is known to be
+    /// `sha256:<64 lowercase hex>`. Accepting a caller's string without checking
+    /// it would put an arbitrary value behind that guarantee, and every later
+    /// comparison against it would silently be a comparison against nonsense.
+    pub fn parse(raw: &str) -> Result<Self> {
+        let Some(hex) = raw.strip_prefix("sha256:") else {
+            return Err(VdsError::precondition(format!(
+                "{raw:?} is not a digest. The one form is `sha256:` followed by 64 lowercase \
+                 hexadecimal characters."
+            )));
+        };
+        if hex.len() != 64
+            || !hex
+                .chars()
+                .all(|c| c.is_ascii_hexdigit() && !c.is_uppercase())
+        {
+            return Err(VdsError::precondition(format!(
+                "{raw:?} is not a digest: the part after `sha256:` is {} character(s) and must \
+                 be 64 lowercase hexadecimal characters.",
+                hex.len()
+            )));
+        }
+        Ok(Self(raw.to_owned()))
+    }
+
     /// Digest a file by streaming it, so a large asset does not have to be held
     /// in memory to be witnessed.
     pub fn of_file(path: &Path) -> Result<Self> {

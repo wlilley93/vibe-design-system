@@ -1,0 +1,15 @@
+id: BREACH-0001
+at: 2026-07-25T16:55:21Z
+by: jellytot
+what_happened: 'A control-boundary token was declared aligned between the decided target and production, and was measured at 1.20:1 against both planes in light. The shipped checkbox and text input therefore failed WCAG 2.2 SC 1.4.11 across five themes, worst at 1.15:1 in ember. The declaration of alignment was prose in a token pin; nothing derived the ratio from the two records it named, so the pin asserted an agreement that had never been measured and no gate disagreed with it. Source: internal-docs/design/CONTRAST_AUDIT.md lines 293, 294, 56, 377.'
+law_breached:
+- WCAG 2.2 SC 1.4.11 non-text contrast
+- VDS S-1(4)(a), which records this as one of the two founding defects
+- 'VDS S-2(1) and [2026] VJS-CC-OPBOX 3: an artefact that STORES token values is an authority and only a DERIVING gate is permitted'
+discovered_by: 'A hand audit of the shipped product, months after the code was authored. Nothing at authoring time looked at it, which is the point: the rule existed and was enforced by discipline.'
+containment: 'The audit was written down and cited, so the numbers survived the discovery. Nothing else contained it: the defect was live in production across five themes when it was found.'
+remedy:
+- VDS itself, and specifically the contrast proof, which DERIVES the ratio at run time from the shipped stylesheet in every theme the sheet declares, against a floor the register names as a REQUIREMENT and never as a value.
+- The proof is pinned in .vds/enforcement.lock with a named failing-direction test that seeds a boundary clearing its floor in one theme and falling below it in another.
+- 'examples/storefront demonstrates the recovery: breaking one custom property in the shipped stylesheet produces "expected 3.00:1 or more in :root, actual 1.47:1", exit 1.'
+prevention: 'The failure class was a rule stated in prose. The gate is now a run of a proof, invoked by CI rather than by the author (VDS S-7(2)(3)), over rows that exist. What remains uncovered is stated on every captured record rather than assumed: this proof measures ONE stylesheet, named by [surface] stylesheet, and a project shipping tokens from another file is not covered by it.'

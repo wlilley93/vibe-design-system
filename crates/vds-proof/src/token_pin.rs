@@ -130,6 +130,14 @@ pub const REDACTION_NOTE: &str = "[redaction] a finding names the pin file, the 
      withholding a safe name costs a reader one file open, and repeating an unsafe one costs a \
      gate that can never go green again.";
 
+pub const LOCATOR_NOTE: &str = "[locator] a record locator the pin authored is screened before it is repeated, like every \
+     other pin-authored string. A locator is a path and a path is ordinarily safe, but nothing \
+     stops a generator naming a file after a colour literal, and a finding that copied such a \
+     path into a captured record would put a realisation under the tree `no_stored_values` \
+     scans, permanently, on a file this proof wrote. This note names the class rather than \
+     giving the example: an earlier draft of it spelled the colour out and was caught by this \
+     proof's own redaction test, which is the rule working on the author of the rule.";
+
 pub const SELF_DIGEST_NOTE: &str = "[integrity] a hand-edited agreement flag is REFUSED, not merely detected. Every pin's \
      `digest` is recomputed here from what the pin says (its subject, direction, both records, \
      rows, counts, fails_closed and generated_by, and deliberately not its `generated_at`), and \
@@ -138,7 +146,12 @@ pub const SELF_DIGEST_NOTE: &str = "[integrity] a hand-edited agreement flag is 
      run that enforces nothing about that pin and says why, instead of a pass. What this does \
      NOT establish is that the generator computed the rows correctly in the first place: it \
      binds the pin to itself, not to the two records it claims to have compared. The source \
-     side is separately re-derived (see the derived note); the decided-target side cannot be.";
+     side is separately re-derived (see the derived note); the decided-target side cannot be. \
+     What R5 does NOT establish is that the digest was computed by a generator rather than \
+     recomputed by whoever made the edit: `Pin::compute_content_digest` is an unkeyed, unsalted, \
+     shipped function, so an editor who flips a flag AND re-runs it produces a self-consistent \
+     pin this run accepts. A keyed digest would need a key, and a key in the record is a key the \
+     editor has (VDS S-2(7) settled the same question the same way).";
 
 pub const READER_NOTE: &str = "[scope] the pins directory is read as `*.yaml` exactly, so a pin in a subdirectory, or \
      one saved as `.yml`, is invisible to this run rather than reported by it. The register \
@@ -161,6 +174,7 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
     run.note(REDACTION_NOTE);
     run.note(SELF_DIGEST_NOTE);
     run.note(READER_NOTE);
+    run.note(LOCATOR_NOTE);
 
     // An empty pins directory is a VACUITY, not a precondition failure, and the
     // distinction is the one VDS S-7(2)(4) exists to draw. A precondition failure
@@ -201,19 +215,25 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
         // moves every time the generator runs over an unchanged pair of records,
         // and digesting the file would move this proof's evidence digest with it
         // and make every warrant citing it look spent (VDS S-7(2)(1)).
-        run.input_named(
-            format!("<pin {} content>", pin.id),
-            content_digest(pin, &where_from)?,
+        // Keyed on the pin's SUBJECT and source locator, never on `pin.id`.
+        // The id is `PIN-<date>-<time>` derived from `generated_at`, so keying on
+        // it put the regeneration stamp back into the evidence digest through the
+        // KEY after `content_digest` had carefully excluded it from the VALUE. A
+        // regeneration over an unchanged verdict moved the digest, every warrant
+        // citing it looked spent, and the determinism test passed because it
+        // compared two runs over ONE pin rather than a pin and its regeneration.
+        let key = format!(
+            "<pin content: {} @ {}>",
+            quoted(&pin.subject),
+            screened_path(&pin.source_of_record.locator)
         );
+        run.input_named(key.clone(), content_digest(pin, &where_from)?);
         // Recorded and NOT verified. Nothing offline can re-derive the decided
         // target, so the most this run can do is bind its evidence to the value
         // the pin recorded: a re-pull that moved the target moves this digest,
         // and a warrant pinned to the old one stops matching.
         run.input_named(
-            format!(
-                "<pin {} decided-target digest, as the pin recorded it>",
-                pin.id
-            ),
+            format!("{key} decided-target digest, as the pin recorded it"),
             pin.target_of_record.digest.clone(),
         );
 
@@ -317,26 +337,46 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
         // The digest recorded as the input is the one this run COMPARED, not a
         // second reading taken afterwards. A file edited between the two would
         // otherwise leave the record witnessing bytes the finding is not about.
-        run.input_named(project.rel(&record.path), record.digest.clone());
+        run.input_named(
+            screened_path(&project.rel(&record.path)),
+            record.digest.clone(),
+        );
 
         let enforceable = pin.rows.iter().filter(|row| row.is_enforced()).count();
-        report_coverage(&mut run, project, pin, &where_from, &record, enforceable);
+        let current = record.digest == pin.source_of_record.digest;
 
-        if record.digest != pin.source_of_record.digest {
+        // Reported AFTER currency is known, and told whether it holds. It used to
+        // run before the check below and assert unconditionally that "the pin
+        // holds N row(s) it enforces, so this pin is evidence about at most N of
+        // them" - on a STALE pin, where the very next finding skips every one of
+        // those rows and the pin is evidence about none of them. A coverage
+        // number that overstates a stale pin is the overclaim the number exists
+        // to prevent.
+        report_coverage(
+            &mut run,
+            project,
+            pin,
+            &where_from,
+            &record,
+            enforceable,
+            current,
+        );
+
+        if !current {
             run.fail(Violation::fatal(
                 where_from.clone(),
                 RULE_NOT_CURRENT,
                 format!(
                     "{} digests to the value the pin recorded for it, so every row in the pin is \
                      an assertion about the bytes that are there now",
-                    project.rel(&record.path)
+                    screened_path(&project.rel(&record.path))
                 ),
                 format!(
                     "{} has moved since this pin was generated: the pin recorded {} and it now \
                      digests to {}. Every row here describes bytes that are gone, so none of the \
                      {} row(s) is relied on by this run. Regenerate the pin against both named \
                      records.",
-                    project.rel(&record.path),
+                    screened_path(&project.rel(&record.path)),
                     pin.source_of_record.digest,
                     record.digest,
                     pin.rows.len()
@@ -411,6 +451,7 @@ fn report_row(run: &mut ProofRun, where_from: &str, index: usize, row: &PinRow) 
 /// is lawful and failing it would take this gate out of service, but a reader of
 /// the record has to be able to see the size of the claim without reading the
 /// pin, or a warrant will be written as though the pin covered the record.
+#[allow(clippy::too_many_arguments)]
 fn report_coverage(
     run: &mut ProofRun,
     project: &Project,
@@ -418,19 +459,30 @@ fn report_coverage(
     where_from: &str,
     record: &Shipped,
     enforceable: usize,
+    current: bool,
 ) {
     let declared = record.custom_properties;
+    // A stale pin enforces NOTHING: every row is skipped below. Reporting its
+    // nominal row count as coverage would state a claim the run then withdraws.
+    let enforceable = if current { enforceable } else { 0 };
     let outside = declared.saturating_sub(enforceable);
 
     run.note(format!(
         "[coverage] {}: the shipped record it names ({}) declares {declared} distinct custom \
          properties and the pin holds {enforceable} row(s) it enforces, so this pin is evidence \
-         about at most {enforceable} of them and about none of the other {outside}. The \
+         about at most {enforceable} of them and about none of the other {outside}.{} The \
          denominator is a name-only scan of the shipped record: it can overcount a declaration \
          that is commented out, which understates coverage, and it does not undercount, so the \
          claim this number bounds is bounded downward.",
         pin.id,
-        project.rel(&record.path)
+        screened_path(&project.rel(&record.path)),
+        if current {
+            ""
+        } else {
+            " This pin is NOT current with the shipped record, so it enforces nothing at all \
+             and the figure above is zero for that reason rather than because the pin is \
+             empty."
+        }
     ));
 
     if outside > 0 {
@@ -681,11 +733,36 @@ fn carries_a_unit(lowered: &str) -> bool {
 /// the floor at which either limb can fire. Rejecting from six is one notch under
 /// that floor, which costs a name like `--cafebabe` and cannot cost a gate.
 fn carries_an_encoded_run(text: &str) -> bool {
-    static PATTERN: OnceLock<Regex> = OnceLock::new();
-    let pattern = PATTERN.get_or_init(|| Regex::new(r"[0-9A-Fa-f]+").expect("a constant pattern"));
-    pattern
+    static HEX: OnceLock<Regex> = OnceLock::new();
+    let hex = HEX.get_or_init(|| Regex::new(r"[0-9A-Fa-f]+").expect("a constant pattern"));
+    if hex
         .find_iter(text)
         .any(|found| found.len() >= 6 && found.len().is_multiple_of(2))
+    {
+        return true;
+    }
+    // BASE64, which this screen was missing entirely. `no_stored_values` R8
+    // decodes a `[A-Za-z0-9+/]{8,}={0,2}` run whose length is a multiple of four
+    // and re-tests what comes out, so a pin row named after one lands in a
+    // captured record here, passes, and then fails that guard fatally on a file
+    // this proof wrote. Closing hex and leaving base64 open closed the encoding
+    // that is inconvenient to write by hand and left the one a tool emits.
+    static BASE64: OnceLock<Regex> = OnceLock::new();
+    let base64 =
+        BASE64.get_or_init(|| Regex::new(r"[A-Za-z0-9+/]{8,}={0,2}").expect("a constant pattern"));
+    base64
+        .find_iter(text)
+        .any(|found| found.len().is_multiple_of(4))
+}
+
+/// A pin-authored PATH, screened, for embedding in prose.
+///
+/// A locator is ordinarily a safe path and was therefore rendered raw in five
+/// places while `resolve_shipped` carefully screened it on both of its refusal
+/// paths. Nothing stops a generator naming a file `tokens-#ebebeb.css`, and the
+/// asymmetry meant the safe branch leaked what the refusing branch withheld.
+fn screened_path(text: &str) -> String {
+    repeatable(text).unwrap_or(WITHHELD).to_owned()
 }
 
 /// An authored string, quoted for a finding, or the withheld marker.
@@ -753,6 +830,47 @@ mod tests {
     /// A pin over the shipped record as it stands right now.
     fn pin_over_shipped(h: &Harness, rows: Vec<PinRow>) -> PinId {
         pin_with(h, SHIPPED, rows, None)
+    }
+
+    /// A pin stamped at a given instant, which is what a REGENERATION produces:
+    /// a new id and a new `generated_at` over an identical verdict.
+    fn pin_with_stamp(h: &Harness, rows: Vec<PinRow>, at: Timestamp) -> PinId {
+        let store = h.store();
+        let id = PinId::allocate(&store.pins_dir(), &at).expect("a pin id");
+        let live = Digest::of_file(&h.root().join(SHIPPED))
+            .unwrap_or_else(|_| Digest::of_text("no shipped record in this fixture"));
+        let enforced = rows.iter().filter(|row| row.is_enforced()).count() as u64;
+        let pin = Pin {
+            id: id.clone(),
+            subject: "the control boundary".into(),
+            direction: PinDirection::OneWayDerived,
+            source_of_record: RecordOfTruth {
+                authority_for: "what ships".into(),
+                locator: SHIPPED.into(),
+                digest: live,
+            },
+            target_of_record: RecordOfTruth {
+                authority_for: "what is decided".into(),
+                locator: "FIGMAKEY".into(),
+                digest: Digest::of_text("the decided target, as the generator saw it"),
+            },
+            rows_considered: rows.len() as u64,
+            rows_enforced: enforced,
+            rows,
+            fails_closed: true,
+            generated_at: at,
+            generated_by: "the out-of-band pin generator".into(),
+            digest: Digest::of_text("placeholder"),
+            proof_id: None,
+        };
+        let pin = Pin {
+            digest: pin.compute_content_digest().expect("a pin digests"),
+            ..pin
+        };
+        store
+            .create(&store.pins_dir().join(format!("{id}.yaml")), &pin)
+            .expect("the pin writes");
+        id
     }
 
     /// A pin, with every knob a test might need to turn.
@@ -1489,6 +1607,109 @@ mod tests {
             after.rows_enforced, 0,
             "an edited pin's rows must be SKIPPED and not enforced: crediting a row that \
              establishes nothing is the arithmetic half of the defect: {text}"
+        );
+    }
+
+    /// The regeneration case the determinism test could not see.
+    ///
+    /// It compared two runs over ONE pin, which is a pin whose `id` never
+    /// changed. `content_digest` excludes `generated_at` for exactly this reason,
+    /// and the input KEY then put the stamp back, because a pin id is
+    /// `PIN-<date>-<time>` derived from it. A regeneration over an unchanged
+    /// verdict moved the evidence digest and every warrant citing it looked
+    /// spent.
+    #[test]
+    fn regenerating_a_pin_over_an_unchanged_verdict_does_not_move_the_evidence_digest() {
+        let h = Harness::new();
+        shipped_record(&h, &["--control-border"]);
+        let rows = vec![PinRow {
+            name: "control-border".into(),
+            agrees: true,
+            not_enforced_because: None,
+        }];
+
+        let first = pin_over_shipped(&h, rows.clone());
+        let (before, text) = run_kind(&h, ProofKind::TokenPin);
+        assert_eq!(before.exit_code, EXIT_PASSED, "{text}");
+        let before = h.last_proof(ProofKind::TokenPin).inputs_digest;
+
+        // The same pin, regenerated: a new id and a new stamp, an identical
+        // verdict. This is what running the generator twice produces.
+        std::fs::remove_file(h.store().pins_dir().join(format!("{first}.yaml"))).unwrap();
+        let second = pin_with_stamp(&h, rows, Timestamp::fixed(2026, 7, 26, 11, 30, 0));
+        assert_ne!(first.as_str(), second.as_str(), "the id must have moved");
+
+        let (after, text) = run_kind(&h, ProofKind::TokenPin);
+        assert_eq!(after.exit_code, EXIT_PASSED, "{text}");
+        assert_eq!(
+            h.last_proof(ProofKind::TokenPin).inputs_digest,
+            before,
+            "regenerating a pin over an unchanged verdict moved the evidence digest, so every \
+             warrant citing the old one looks spent (VDS S-7(2)(1))"
+        );
+    }
+
+    /// The coverage note must not state a claim the same run withdraws.
+    #[test]
+    fn a_stale_pin_reports_no_coverage_rather_than_its_nominal_row_count() {
+        let h = Harness::new();
+        shipped_record(&h, &["--control-border"]);
+        pin_over_shipped(
+            &h,
+            vec![PinRow {
+                name: "control-border".into(),
+                agrees: true,
+                not_enforced_because: None,
+            }],
+        );
+        // Move the shipped record after the pin was generated.
+        shipped_record(&h, &["--control-border", "--surface"]);
+
+        let (outcome, text) = run_kind(&h, ProofKind::TokenPin);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert_eq!(outcome.rows_enforced, 0, "a stale pin enforces nothing");
+
+        let record = h.last_proof(ProofKind::TokenPin);
+        let coverage = record
+            .notes
+            .iter()
+            .find(|note| note.starts_with("[coverage]"))
+            .unwrap_or_else(|| panic!("no coverage note: {:?}", record.notes));
+        assert!(
+            coverage.contains("holds 0 row(s) it enforces"),
+            "the coverage note credits a stale pin with rows the run then skips: {coverage}"
+        );
+        assert!(coverage.contains("NOT current"), "{coverage}");
+    }
+
+    /// A pin the reader cannot see must be a loud refusal, not an absent pin.
+    ///
+    /// `read_register` has refused an unreadable entry since one hidden in a
+    /// subdirectory produced an evidence digest identical to the clean project.
+    /// The pin reader did not, so a pin saved as `.yml` was invisible, the run
+    /// said "no pin exists" and came back vacuous, and under this repository's
+    /// own `--allow-vacuous` invocation that is exit 0.
+    #[test]
+    fn a_pin_this_reader_cannot_see_is_refused_rather_than_reported_absent() {
+        let h = Harness::new();
+        shipped_record(&h, &["--control-border"]);
+        let id = pin_over_shipped(
+            &h,
+            vec![PinRow {
+                name: "control-border".into(),
+                agrees: true,
+                not_enforced_because: None,
+            }],
+        );
+        let from = h.store().pins_dir().join(format!("{id}.yaml"));
+        let to = h.store().pins_dir().join(format!("{id}.yml"));
+        std::fs::rename(&from, &to).unwrap();
+
+        let error = h.run_kind_err(ProofKind::TokenPin);
+        assert!(
+            error.to_string().contains(".yml"),
+            "a pin this reader skips must be named, or it is indistinguishable from an absent \
+             one: {error}"
         );
     }
 }

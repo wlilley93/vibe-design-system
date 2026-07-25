@@ -444,6 +444,34 @@ struct Patterns {
 /// never produce a length or duration match, and the test
 /// `no_unit_is_spelled_from_the_hexadecimal_alphabet` holds the property in
 /// place if the list is ever extended.
+/// The easing function names, and the generic font families, as DATA.
+///
+/// Public within the crate for the same reason `LENGTH_UNITS` is: `contrast`
+/// redacts its own findings before capturing them, so that a theme selector
+/// carrying a realisation does not land under the tree this proof scans and make
+/// it fail forever on a file another gate wrote. That redactor used to keep its
+/// own hand-written copy of three of these six shapes and silently missed the
+/// other three, so a selector named `.ease-in-out` or `[data-font='monospace']`
+/// passed `contrast` and then failed `no_stored_values` fatally.
+///
+/// Deriving the patterns from these lists means widening the guard widens the
+/// redactor, and a test holds every list in step.
+pub(crate) const EASING_FUNCTIONS: &[&str] = &["cubic-bezier", "steps", "linear"];
+
+pub(crate) const EASING_KEYWORDS: &[&str] = &["ease-in-out", "ease-out", "ease-in"];
+
+/// Longest first: alternation is leftmost-first, so a shorter keyword nested in
+/// a longer one must come second or one token reports twice.
+pub(crate) const GENERIC_FAMILIES: &[&str] = &[
+    "ui-sans-serif",
+    "ui-monospace",
+    "ui-serif",
+    "ui-rounded",
+    "sans-serif",
+    "system-ui",
+    "monospace",
+];
+
 pub(crate) const LENGTH_UNITS: &[&str] = &[
     "px", "rem", "em", "ex", "ch", "vh", "vw", "vmin", "vmax", "pt", "pc", "cm", "mm", "in",
 ];
@@ -541,16 +569,14 @@ impl Patterns {
             // than needing a special case each.
             number_unit: Regex::new(r"([0-9]+(?:\.[0-9]+)?)([A-Za-z]+)")
                 .expect("a constant pattern"),
-            easing_function: Regex::new(r"(?i)\b(?:cubic-bezier|steps|linear)\(")
+            easing_function: Regex::new(&format!(r"(?i)\b(?:{})\(", EASING_FUNCTIONS.join("|")))
                 .expect("a constant pattern"),
-            easing_keyword: Regex::new(r"(?i)\b(?:ease-in-out|ease-out|ease-in)\b")
+            easing_keyword: Regex::new(&format!(r"(?i)\b(?:{})\b", EASING_KEYWORDS.join("|")))
                 .expect("a constant pattern"),
             // Longest first: alternation is leftmost-first, so a shorter keyword
             // nested in a longer one must come second or one token reports twice.
-            generic_family: Regex::new(
-                r"(?i)\b(?:ui-sans-serif|ui-monospace|ui-serif|ui-rounded|sans-serif|system-ui|monospace)\b",
-            )
-            .expect("a constant pattern"),
+            generic_family: Regex::new(&format!(r"(?i)\b(?:{})\b", GENERIC_FAMILIES.join("|")))
+                .expect("a constant pattern"),
             // Anchored to the start of a line, so the word "color" inside a
             // sentence is not read as a field name. YAML sequence dashes and
             // quoting are tolerated; TOML uses `=` where YAML uses `:`.

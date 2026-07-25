@@ -1,5 +1,5 @@
 schema_version: 1
-generated_at: 2026-07-25T16:45:51Z
+generated_at: 2026-07-25T17:10:40Z
 entries:
 - path: crates/vds-proof/src/composition.rs
   digest: sha256:f0265e72bed6a05c7f524a93e2aad3990739fd48208699032ccb0413d323a078
@@ -20,7 +20,7 @@ entries:
   pinned_at: 2026-07-25T13:58:22Z
   pinned_by: jellytot
 - path: crates/vds-proof/src/contrast.rs
-  digest: sha256:cb7d188e20124fba772d9a5f84a77d4d1d00fa6e62fce376c2da3006b81f66a5
+  digest: sha256:1f445750337175697720222d6ec78afed41ac5f637589fd11fc38ca9a7422ae9
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -35,10 +35,10 @@ entries:
     path: crates/vds-proof/src/contrast.rs
     test_name: contrast_fails_on_a_boundary_below_its_floor_in_one_theme
     seeds: a boundary that clears its floor in one theme and falls below it in another
-  pinned_at: 2026-07-25T16:44:57Z
+  pinned_at: 2026-07-25T17:10:40Z
   pinned_by: jellytot
-  supersedes_digest: sha256:6b93ad08e40fcbb7d1e76393720a688d309a16a7e9b124103c6beaf61872272a
-  relock_rationale: 'R5: a pin''s digest is now derived by vds_core::Pin::compute_content_digest and VERIFIED by token_pin, so a hand-edited agreement flag is refused at the door rather than detected afterwards. token_pin.rs drops its own canonicalisation and calls the core one, because two canonicalisations of one shape drift. contrast.rs stops hardcoding the stylesheet and reads [surface] stylesheet, which config.rs gains with the path S-2(3) names as its default.'
+  supersedes_digest: sha256:cb7d188e20124fba772d9a5f84a77d4d1d00fa6e62fce376c2da3006b81f66a5
+  relock_rationale: 'Adversarial review found all three new gates unsound; four criticals and five highs are closed. contrast: unclassified_palette_scopes returned empty on a sheet with no :root, so R6 was structurally dead and a palette nothing measured passed at exit 0 (the founding defect through the gate written to catch it); the redactor covered three of six realisation shapes and redacted only a colour function''s head; two findings named the default stylesheet rather than the one read. parity: an extends/intersection props type reported a SUBSET as complete, so R6 fired on inherited props or credited the row as enforced. token_pin: the redaction screen closed hex and left base64 open, the locator was never screened, the evidence digest was keyed on pin.id (which carries generated_at), coverage was reported before the currency check, and Store::read_pins never refused an unreadable entry.'
 - path: crates/vds-proof/src/ledger_staleness.rs
   digest: sha256:a72abd79274246e9b3b35f66d05eac15495d74bd4cb7c912adda92089e5fcdde
   kind: proof_script
@@ -58,7 +58,7 @@ entries:
   pinned_at: 2026-07-25T13:58:22Z
   pinned_by: jellytot
 - path: crates/vds-proof/src/no_stored_values.rs
-  digest: sha256:3436e78174fd5dceb6241756eb8fc8117cd52959595c7d825f81893085cf1fd5
+  digest: sha256:09d3675cb7df56e57e39fce8f1f76b7becdc4280c56725fe350bba6924574d85
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -73,12 +73,12 @@ entries:
     path: crates/vds-proof/src/no_stored_values.rs
     test_name: no_stored_values_fails_on_a_hex_colour_in_a_register_record
     seeds: a hex colour literal written into a register record
-  pinned_at: 2026-07-25T14:59:26Z
+  pinned_at: 2026-07-25T17:10:40Z
   pinned_by: jellytot
-  supersedes_digest: sha256:2e8ee2b2ef96e88880238268b7e7ddba59e37bc06f35767475f30fb536cfeea0
-  relock_rationale: 'R10: the preimage limb of VDS S-2(8) limb 2 is now discharged. no_stored_values.rs gains rule R10 and a rewritten PREIMAGE_NOTE; crates/vds-proof/src/preimage.rs is a new gate and is pinned for the first time, since the logic deciding what counts as a recovered design value lives there and an unwitnessed gate can be weakened without tripping a finding. Recorded at .vds/logs/decisions/DECISION-0003.yaml (VDS S-8(4), S-12(3)).'
+  supersedes_digest: sha256:3436e78174fd5dceb6241756eb8fc8117cd52959595c7d825f81893085cf1fd5
+  relock_rationale: 'Adversarial review found all three new gates unsound; four criticals and five highs are closed. contrast: unclassified_palette_scopes returned empty on a sheet with no :root, so R6 was structurally dead and a palette nothing measured passed at exit 0 (the founding defect through the gate written to catch it); the redactor covered three of six realisation shapes and redacted only a colour function''s head; two findings named the default stylesheet rather than the one read. parity: an extends/intersection props type reported a SUBSET as complete, so R6 fired on inherited props or credited the row as enforced. token_pin: the redaction screen closed hex and left base64 open, the locator was never screened, the evidence digest was keyed on pin.id (which carries generated_at), coverage was reported before the currency check, and Store::read_pins never refused an unreadable entry.'
 - path: crates/vds-proof/src/parity.rs
-  digest: sha256:e28dfbc185d4ae14129dbcf06642dd647935880fe103bde7c5d99e07bd92843a
+  digest: sha256:9dadcd9348d04991c08f76eba93a61c73672950fe2e3c5a081442819aa6a6201
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -93,10 +93,10 @@ entries:
     path: crates/vds-proof/src/parity.rs
     test_name: parity_fails_on_a_prop_the_component_accepts_that_no_contract_names
     seeds: a prop the component source exposes that no register record contracts, which is how a component drifts out from under its contract without anything being removed
-  pinned_at: 2026-07-25T16:37:48Z
+  pinned_at: 2026-07-25T17:10:40Z
   pinned_by: jellytot
-  supersedes_digest: sha256:026109f2af11281b5004d2ae6eaa663bec513bc81ff85dff69cc21f1ba5a6116
-  relock_rationale: 'parity: an empty [surface] library_dirs refuses only where a record CLAIMS a code side. With nothing at registered or later there is nothing being asserted and nothing being hidden, so VDS S-7(2)(4) governs and the run is vacuous. As a precondition it aggregated to exit 2 on VDS itself, whose library_dirs is empty deliberately, and --allow-vacuous does not relax a precondition.'
+  supersedes_digest: sha256:e28dfbc185d4ae14129dbcf06642dd647935880fe103bde7c5d99e07bd92843a
+  relock_rationale: 'Adversarial review found all three new gates unsound; four criticals and five highs are closed. contrast: unclassified_palette_scopes returned empty on a sheet with no :root, so R6 was structurally dead and a palette nothing measured passed at exit 0 (the founding defect through the gate written to catch it); the redactor covered three of six realisation shapes and redacted only a colour function''s head; two findings named the default stylesheet rather than the one read. parity: an extends/intersection props type reported a SUBSET as complete, so R6 fired on inherited props or credited the row as enforced. token_pin: the redaction screen closed hex and left base64 open, the locator was never screened, the evidence digest was keyed on pin.id (which carries generated_at), coverage was reported before the currency check, and Store::read_pins never refused an unreadable entry.'
 - path: crates/vds-proof/src/preimage.rs
   digest: sha256:fcfcab1fcbed2616823fa040d824fa45819ae9f28a4745a39b345f9099d7d720
   kind: proof_script
@@ -190,7 +190,7 @@ entries:
   pinned_at: 2026-07-25T13:58:22Z
   pinned_by: jellytot
 - path: crates/vds-proof/src/token_pin.rs
-  digest: sha256:6ab1121588fe85ac187c06962a7b03e553c86117d8145565e4f646cbeb3b4d61
+  digest: sha256:54c2b103109fcba5eac3eee0933b8207421faee10a29058d2c1d58ad88df39e9
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -205,10 +205,10 @@ entries:
     path: crates/vds-proof/src/token_pin.rs
     test_name: token_pin_fails_on_a_row_the_pin_declares_aligned_that_does_not_agree
     seeds: a pin row the pin declares aligned whose two named records do not agree
-  pinned_at: 2026-07-25T16:45:51Z
+  pinned_at: 2026-07-25T17:10:40Z
   pinned_by: jellytot
-  supersedes_digest: sha256:b646909c65ba441e039e260ee3f89c546dce7cc098e2969d77f245685854ca33
-  relock_rationale: 'R5: a pin''s digest is now derived by vds_core::Pin::compute_content_digest and VERIFIED by token_pin, so a hand-edited agreement flag is refused at the door rather than detected afterwards. token_pin.rs drops its own canonicalisation and calls the core one, because two canonicalisations of one shape drift. contrast.rs stops hardcoding the stylesheet and reads [surface] stylesheet, which config.rs gains with the path S-2(3) names as its default.'
+  supersedes_digest: sha256:6ab1121588fe85ac187c06962a7b03e553c86117d8145565e4f646cbeb3b4d61
+  relock_rationale: 'Adversarial review found all three new gates unsound; four criticals and five highs are closed. contrast: unclassified_palette_scopes returned empty on a sheet with no :root, so R6 was structurally dead and a palette nothing measured passed at exit 0 (the founding defect through the gate written to catch it); the redactor covered three of six realisation shapes and redacted only a colour function''s head; two findings named the default stylesheet rather than the one read. parity: an extends/intersection props type reported a SUBSET as complete, so R6 fired on inherited props or credited the row as enforced. token_pin: the redaction screen closed hex and left base64 open, the locator was never screened, the evidence digest was keyed on pin.id (which carries generated_at), coverage was reported before the currency check, and Store::read_pins never refused an unreadable entry.'
 - path: crates/vds-scan/src/glob.rs
   digest: sha256:ab8189e8d4d8e56cfbf0a4eca9d738b3c13438ae190ad6179e057368ceea40d3
   kind: ledger_generator

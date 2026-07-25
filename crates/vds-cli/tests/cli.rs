@@ -1137,3 +1137,129 @@ fn a_contrast_floor_can_be_withdrawn_and_withdrawing_one_is_breaking() {
     .expect(PRECONDITION)
     .says("nothing to");
 }
+
+// -- vds log ------------------------------------------------------------------
+
+/// `vds lock repin` prints "Self-file this under VDS S-12(3)", and there was no
+/// command to do it. The tool asked to be held to account in the one place it
+/// made that impossible.
+#[test]
+fn a_breach_can_be_filed_through_the_command_that_advises_filing_one() {
+    let f = Fixture::new();
+    f.ready();
+    f.vds(&[
+        "log",
+        "breach",
+        "--what-happened",
+        "A gate was edited and re-pinned in the same act, which the lock \
+                            cannot prevent and only makes visible in a diff.",
+        "--law-breached",
+        "VDS S-8(4)",
+        "--discovered-by",
+        "reading the diff",
+        "--containment",
+        "the re-pin recorded a rationale naming what it superseded",
+        "--remedy",
+        "the gate's failing-direction test was re-run and still fails on the seed",
+    ])
+    .expect(PASSED)
+    .says("BREACH-0001")
+    .says("Filed, not charged");
+
+    f.vds(&["log", "list"]).expect(PASSED).says("BREACH-0001");
+}
+
+/// A governance log's failure mode is being well-formed and empty of content, so
+/// filing one is refused rather than warned about.
+#[test]
+fn a_breach_citing_no_instrument_is_refused_and_nothing_is_written() {
+    let f = Fixture::new();
+    f.ready();
+    f.vds(&[
+        "log",
+        "breach",
+        "--what-happened",
+        "Something went wrong somewhere and it was probably quite bad, but \
+                            no instrument is named here at all.",
+        "--discovered-by",
+        "somebody",
+        "--containment",
+        "none",
+        "--remedy",
+        "we will be more careful",
+    ])
+    .expect(PRECONDITION)
+    .says("an apology rather than a record");
+
+    // Nothing on disk: a refusal that half-wrote the record would be worse than
+    // one that wrote it.
+    f.vds(&["log", "list"])
+        .expect(PASSED)
+        .does_not_say("BREACH-0001");
+}
+
+#[test]
+fn a_decision_whose_why_cannot_be_reconstructed_is_refused() {
+    let f = Fixture::new();
+    f.ready();
+    f.vds(&[
+        "log",
+        "decision",
+        "--decision",
+        "use tabs",
+        "--why",
+        "for clarity",
+        "--basis",
+        "VDS S-12(2)",
+    ])
+    .expect(PRECONDITION)
+    .says("reconstruct the argument");
+}
+
+/// `court_required` is a CLAIM, and it has to agree with whether a submission
+/// was named, in both directions.
+#[test]
+fn a_decision_log_records_whether_the_fork_went_to_the_court() {
+    let f = Fixture::new();
+    f.ready();
+    f.vds(&[
+        "log",
+        "decision",
+        "--decision",
+        "pin the ledger generator after adding a module to it",
+        "--why",
+        "Reversible and low blast radius: the change adds a module declaration and a \
+                  public helper, removes no check and weakens none, and the gate's named \
+                  failing-direction test is unchanged and still passes.",
+        "--basis",
+        "VDS S-8(4)",
+        "--basis",
+        "VDS S-12(2)",
+    ])
+    .expect(PASSED)
+    .says("DECISION-0001")
+    .says("court_required is false")
+    .says("something concrete to disagree with");
+}
+
+/// `vds doctor` D9 counted decision logs by listing a directory, which counts a
+/// file that does not parse the same as one that does.
+#[test]
+fn doctor_reports_a_defective_log_rather_than_counting_the_file() {
+    let f = Fixture::new();
+    f.ready();
+    f.write(
+        ".vds/logs/decisions/DECISION-0001.yaml",
+        "id: DECISION-0001\n\
+         at: 2026-07-25T10:00:00Z\n\
+         by: somebody\n\
+         decision: a thing was done\n\
+         court_required: false\n\
+         why: reasons\n\
+         basis: []\n",
+    );
+    f.vds(&["doctor", "--report-only"])
+        .expect(PASSED)
+        .says("DEFECTIVE DECISION-0001")
+        .says("basis is empty");
+}

@@ -352,7 +352,10 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
         }
     }
 
-    findings.close(&mut run);
+    findings.close(
+        &mut run,
+        &project.rel(&project.root.join(&project.config.surface.stylesheet)),
+    );
     if let Some(narrowest) = findings.narrowest.take() {
         run.note(narrowest.note());
     }
@@ -461,7 +464,10 @@ fn report_unclassified_scopes(
     project: &vds_core::Project,
     sheet: &Sheet,
 ) {
-    let at = project.rel(&project.root.join(SHIPPED_STYLESHEET));
+    // The path READ, not the default. Naming the default here sent a project
+    // that moved its stylesheet a fatal finding against a file that was never
+    // opened and need not exist, which is a finding a reader cannot act on.
+    let at = project.rel(&project.root.join(&project.config.surface.stylesheet));
     for selector in sheet.unclassified_palette_scopes() {
         findings.fail(
             run,
@@ -897,6 +903,11 @@ fn redacted(text: &str) -> String {
             i += width;
             continue;
         }
+        if let Some(width) = keyword_at(&chars, i) {
+            out.push_str(REDACTED);
+            i += width;
+            continue;
+        }
         if let Some(width) = colour_function_at(&chars, i) {
             out.push_str(REDACTED);
             i += width;
@@ -975,9 +986,59 @@ fn unit_number_at(chars: &[char], start: usize) -> Option<usize> {
     Some(end - start)
 }
 
-/// The length of a CSS colour function's name and opening parenthesis starting
-/// here, if there is one. Only the head is redacted, which is enough: what
-/// `no_stored_values` matches is the name and the parenthesis together.
+/// The length of an easing keyword or a generic font family starting here.
+///
+/// Three of the six realisation shapes `no_stored_values` enforces used to be
+/// absent from this redactor, and the omission was reachable by an ordinary
+/// route rather than an adversarial one: a theme selector `.ease-in-out` is
+/// root-like, redeclares base properties and is therefore classified as a THEME,
+/// so it lands in the `[themes-measured]` note of a PASSING run. The next
+/// `no_stored_values` run then failed fatally, on a file this proof wrote, with
+/// no lawful way back, because a record is never deleted.
+///
+/// The lists come from the guard itself, so widening the guard widens this.
+fn keyword_at(chars: &[char], start: usize) -> Option<usize> {
+    if start > 0 && wordish(chars[start - 1]) {
+        return None;
+    }
+    let window: String = chars[start..]
+        .iter()
+        .take(KEYWORD_WINDOW)
+        .flat_map(|c| c.to_lowercase())
+        .collect();
+    // Longest first, so a shorter keyword nested in a longer one cannot claim
+    // the match and leave the tail exposed: `ease-in` inside `ease-in-out`
+    // would redact seven characters and copy `-out` into the record.
+    let mut names: Vec<&&str> = crate::no_stored_values::EASING_KEYWORDS
+        .iter()
+        .chain(crate::no_stored_values::GENERIC_FAMILIES.iter())
+        .collect();
+    names.sort_by_key(|name| std::cmp::Reverse(name.len()));
+    names
+        .into_iter()
+        .find(|name| {
+            window.starts_with(**name)
+                && window
+                    .chars()
+                    .nth(name.len())
+                    .is_none_or(|next| !wordish(next))
+        })
+        .map(|name| name.len())
+}
+
+/// The longest entry in either keyword list, plus one for the character after it.
+const KEYWORD_WINDOW: usize = 16;
+
+/// The length of a CSS colour function's whole call starting here.
+///
+/// The WHOLE call, parentheses and channels included. Redacting only the head
+/// was enough to keep `no_stored_values` quiet, because its pattern also matches
+/// only the head, and that is precisely why the leak was invisible: a theme
+/// selector `[data-tint='rgb(12,34,56)']` reached a captured record as
+/// `[data-tint='<a realisation, redacted>12,34,56)']`, with the channels intact,
+/// under a note promising "never a resolved value, an alpha channel or a colour
+/// channel". Two gates agreeing about where to stop looking is not a reason to
+/// stop looking.
 fn colour_function_at(chars: &[char], start: usize) -> Option<usize> {
     if start > 0 && wordish(chars[start - 1]) {
         return None;
@@ -993,10 +1054,29 @@ fn colour_function_at(chars: &[char], start: usize) -> Option<usize> {
     // The parenthesis is checked separately rather than concatenated, so the order
     // of the list cannot matter: `color` cannot swallow `color-mix`, because the
     // character after the shorter name is a hyphen and not an open parenthesis.
-    COLOUR_FUNCTIONS
+    let head = COLOUR_FUNCTIONS
         .iter()
         .find(|name| window.starts_with(**name) && window.as_bytes().get(name.len()) == Some(&b'('))
-        .map(|name| name.len() + 1)
+        .map(|name| name.len() + 1)?;
+
+    // Walk to the matching close parenthesis, counting depth so a nested
+    // `color-mix(in srgb, rgb(1,2,3) 50%, ...)` is taken whole.
+    let mut depth = 0usize;
+    for (offset, character) in chars[start..].iter().enumerate().skip(head - 1) {
+        match character {
+            '(' => depth += 1,
+            ')' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(offset + 1);
+                }
+            }
+            _ => {}
+        }
+    }
+    // Unbalanced: redact everything to the end of the text rather than the head
+    // alone. A truncated colour function is still a colour function's channels.
+    Some(chars.len() - start)
 }
 
 /// The CSS colour functions.
@@ -1088,19 +1168,26 @@ impl Findings {
         }
     }
 
-    fn close(&mut self, run: &mut ProofRun) {
+    fn close(&mut self, run: &mut ProofRun, at: &str) {
         if self.suppressed == 0 {
             return;
         }
         let total = self.emitted + self.suppressed;
         run.fail(Violation::fatal(
-            SHIPPED_STYLESHEET.to_owned(),
+            at.to_owned(),
             RULE_MANY,
-            EXPECTED_MEASURABLE,
+            // Rule-agnostic, because this remainder counts BOTH classes: a
+            // boundary below its floor and an unclassified palette scope. Saying
+            // "boundaries at fault" and handing every one of them the
+            // boundary-shaped expectation misdescribed whichever class it was.
+            "each finding above states its own expectation; this one counts what was not \
+             listed individually",
             format!(
-                "{total} boundaries at fault. The first {MAX_FINDINGS} are listed individually \
-                 and the remaining {} are counted here, so that one undeclared property across \
-                 every component and every theme does not become a record nobody reads.",
+                "{total} findings, across boundaries below their floor and palette scopes the \
+                 theme discovery could not classify. The first {MAX_FINDINGS} are listed \
+                 individually and the remaining {} are counted here, so that one undeclared \
+                 property across every component and every theme does not become a record \
+                 nobody reads.",
                 self.suppressed
             ),
         ));
@@ -1617,6 +1704,21 @@ mod tests {
             // R6, a palette scope the discovery could not classify.
             ":root { --surface: #ffffff; --control-border: #767676; }\n:root:not(.compact) { \
              --control-border: #eeeeee; }\n",
+            // A theme SELECTOR carrying each realisation shape, which is the
+            // ordinary route this redactor was found to miss. Each of these is
+            // root-like and redeclares a base property, so the discovery
+            // classifies it as a theme and it lands in `[themes-measured]` on a
+            // run that PASSES; the next `no_stored_values` run then failed
+            // fatally on a file this proof had written.
+            ":root { --surface: #ffffff; --control-border: #767676; }\n\
+             .ease-in-out { --surface: #ffffff; --control-border: #eeeeee; }\n",
+            ":root { --surface: #ffffff; --control-border: #767676; }\n\
+             [data-font='monospace'] { --surface: #ffffff; --control-border: #eeeeee; }\n",
+            ":root { --surface: #ffffff; --control-border: #767676; }\n\
+             [data-tint='rgb(12,34,56)'] { --surface: #ffffff; --control-border: #eeeeee; }\n",
+            ":root { --surface: #ffffff; --control-border: #767676; }\n\
+             [data-mix='color-mix(in srgb, rgb(1,2,3) 50%, #fff)'] { --surface: #ffffff; \
+             --control-border: #eeeeee; }\n",
         ] {
             sheet(&h, css);
             let (contrast, text) = run_kind(&h, ProofKind::Contrast);
@@ -1840,7 +1942,7 @@ mod tests {
             record
                 .violations
                 .iter()
-                .any(|violation| violation.actual.contains("110 boundaries at fault")),
+                .any(|violation| violation.actual.contains("110 findings, across boundaries")),
             "the remainder has to be counted, not dropped: {:?}",
             record.violations.last()
         );
@@ -1865,5 +1967,89 @@ mod tests {
             "{:?}",
             record.notes
         );
+    }
+
+    /// The redactor covers every realisation shape the guard enforces, held in
+    /// step by deriving from the guard's own lists.
+    ///
+    /// Three of the six were missing, and the omission was not adversarial: a
+    /// theme selector `.ease-in-out` is root-like, redeclares base properties,
+    /// is therefore classified as a THEME, and lands in the `[themes-measured]`
+    /// note of a PASSING run. The next `no_stored_values` run failed fatally, on
+    /// a file this proof wrote, with no lawful way back because a record is
+    /// never deleted.
+    #[test]
+    fn the_redactor_covers_every_realisation_shape_the_guard_enforces() {
+        for shape in crate::no_stored_values::EASING_KEYWORDS
+            .iter()
+            .chain(crate::no_stored_values::GENERIC_FAMILIES.iter())
+        {
+            let text = format!("[data-x='{shape}']");
+            assert!(
+                !redacted(&text).contains(shape),
+                "{shape:?} survives redaction, so a selector carrying it lands in a captured \
+                 record and the guard then fails forever on a file this proof wrote: {}",
+                redacted(&text)
+            );
+        }
+        for unit in crate::no_stored_values::LENGTH_UNITS {
+            let text = format!(".gap-12{unit}");
+            assert!(
+                !redacted(&text).contains(&format!("12{unit}")),
+                "12{unit} survives redaction: {}",
+                redacted(&text)
+            );
+        }
+    }
+
+    /// A colour function is redacted WHOLE, channels included.
+    ///
+    /// Redacting only the head kept `no_stored_values` quiet, because its
+    /// pattern also matches only the head, and that is exactly why the leak was
+    /// invisible: the channels sat in the record with both gates green.
+    #[test]
+    fn a_colour_function_is_redacted_with_its_channels_and_not_only_its_head() {
+        for (text, leaked) in [
+            ("[data-tint='rgb(12,34,56)']", "12,34,56"),
+            ("[data-tint='oklch(0.7 0.15 250)']", "0.15"),
+            (
+                "[data-mix='color-mix(in srgb, rgb(1,2,3) 50%, #fff)']",
+                "1,2,3",
+            ),
+            ("[data-a='rgba(255, 255, 255, 0.5)']", "255"),
+        ] {
+            let out = redacted(text);
+            assert!(
+                !out.contains(leaked),
+                "{leaked:?} survived redaction of {text:?}: {out}"
+            );
+            assert!(out.contains(REDACTED), "{out}");
+        }
+    }
+
+    /// An unbalanced colour function is redacted to the end rather than at its
+    /// head: a truncated call is still a call's channels.
+    #[test]
+    fn an_unbalanced_colour_function_is_redacted_to_the_end() {
+        let out = redacted("[data-x='rgb(12,34,56");
+        assert!(!out.contains("12,34,56"), "{out}");
+    }
+
+    /// The shorter keyword nested in the longer one must not claim the match and
+    /// leave the tail exposed.
+    #[test]
+    fn a_keyword_nested_in_a_longer_one_does_not_leave_its_tail_behind() {
+        let out = redacted("[data-e='ease-in-out']");
+        assert!(!out.contains("out'"), "{out}");
+        assert!(!out.contains("-out"), "{out}");
+    }
+
+    /// And the redactor must not eat an ordinary word that merely contains a
+    /// keyword: a gate that mangles every selector is a gate nobody can read.
+    #[test]
+    fn an_ordinary_word_containing_a_keyword_is_left_alone() {
+        for text in ["[data-x='release-inbox']", ".monospaced", ".linearity"] {
+            assert_eq!(redacted(text), text, "{text} was mangled");
+        }
     }
 }

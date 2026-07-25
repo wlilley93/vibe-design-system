@@ -1,4 +1,4 @@
-id: PROOF-20260725-152210
+id: PROOF-20260725-171122
 kind: ledger_staleness
 status: passed
 warrant_id: null
@@ -16,7 +16,7 @@ notes:
 inputs_digest: sha256:a13b71049f94c6cf2e304026cc501eaae1f4b586667fdb37e57f9af5c48c8b8a
 digest: sha256:0819bae389030d9594664db15e075460a340ab97ccfccd8bc9f4ba46c1a399f4
 designpack_digest: sha256:f9c369f3175c15169dafde47c01d7efc2f45c64090444f17f5b3f480e710ec5a
-captured_at: 2026-07-25T15:22:05Z
+captured_at: 2026-07-25T17:11:12Z
 capture_mode: automatic
 invoked_by: package_script
 duration_ms: 0

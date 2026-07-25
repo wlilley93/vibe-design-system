@@ -1,4 +1,4 @@
-id: PROOF-20260725-163240
+id: PROOF-20260725-171115
 kind: contrast
 status: passed
 warrant_id: null
@@ -17,13 +17,13 @@ notes:
 - '[alpha] a translucent boundary is composited over its backdrop before being measured, source-over and in gamma-encoded sRGB, which is what a browser paints. A translucent BACKDROP is refused instead, because compositing it over an assumed page colour would be a guess and a guessed backdrop yields a confident wrong reading. A floor names two properties, so the stack this run paints is exactly one layer over one backdrop; naming a middle layer would need a field the component record does not have.'
 - '[scope] a floor''s declared scope is reported in a finding and never decides whether the floor is enforced. A scope that switched enforcement off would be the quietly lowered floor VDS S-9(5) forbids wearing a different hat: the lawful move there is to record the component as decoration WITH its basis, in the register, where a reviewer can contest the claim.'
 - '[unmeasured] a floor whose properties do not resolve is a VIOLATION and never a skip. The only rows this run skips are the five named reasons counted above, and the last two of those carry a fatal finding of their own, so no row anywhere in this proof is both unmeasured and unreported.'
-- '[record] the stylesheet is not configurable in this build: it is app/globals.css, the record VDS S-2(3) fixes for what ships. A project that ships its tokens from another file is NOT covered by this run, and pointing this gate elsewhere is a configuration change, not a flag.'
+- '[record] this run measured app/globals.css, which is `[surface] stylesheet` in the project configuration, left at the default VDS S-2(3) names (app/globals.css). It is the ONE record measured: a project that ships some of its tokens from another file is NOT covered by this run, and pointing this gate elsewhere is a configuration change recorded in a diff, never a flag on the command.'
 - '[themes-measured] the theme scopes this run measured, in the order the sheet declares them, base first: :root, [data-theme=''dark'']. A warrant citing this run covers those scopes and no others.'
 - '[margin] the narrowest clearance measured in this run was 3.18:1 against a floor of 3.00:1, at .vds/register/CMP-0006.yaml [:root] <CMP-0006 --sf-field-border against --sf-surface>. A pass that records no margin cannot tell a boundary that clears by a hair from one that clears comfortably, and VDS S-1(4)(a) is a boundary whose ratio nobody recomputed.'
 inputs_digest: sha256:30052584000012b0e343dfc0d05052077f54d16e5b4e87fe5cb2672f3a26969b
-digest: sha256:42fab53886a7480c5c6536c86e8341173e1092322da66723a687fbda29b0452b
+digest: sha256:433c05c47b63a29ae2f7ff7f7910b3d46ae83000a673d4d10acc0db28326fa74
 designpack_digest: sha256:f9c369f3175c15169dafde47c01d7efc2f45c64090444f17f5b3f480e710ec5a
-captured_at: 2026-07-25T16:32:37Z
+captured_at: 2026-07-25T17:11:12Z
 capture_mode: automatic
-invoked_by: manual
+invoked_by: package_script
 duration_ms: 0

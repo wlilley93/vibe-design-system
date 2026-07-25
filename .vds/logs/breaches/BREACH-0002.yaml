@@ -1,0 +1,14 @@
+id: BREACH-0002
+at: 2026-07-25T16:55:21Z
+by: jellytot
+what_happened: The declared showpiece screen family was drawn entirely in the outgoing card idiom, while the doctrine requiring flush panels on a hairline existed only in prose. Nothing read that prose. The screens shipped in the wrong idiom not because anybody decided to, but because no artefact anywhere connected the doctrine to the surface it governed, and no proof could fail.
+law_breached:
+- VDS S-1(4)(b), which records this as the second of the two founding defects
+- 'VDS S-5(1): the register is what turns confine design to the library from a wish into a checkable condition'
+- 'VDS S-6(2): the ordering of the lifecycle is the entire mechanism'
+discovered_by: Review of the shipped screens against the doctrine, after they were built. As with the first defect, the discovery was a person reading, not a check running.
+containment: 'None at the time. There was no mechanism that could have contained it, which is the finding rather than an excuse: a doctrine nothing reads has no containment step available to it.'
+remedy:
+- 'The register, the composition proof and the states proof: a component that is not registered cannot be used by a declared screen, and a required state that is not drawn fails at authoring time.'
+- The parity proof, which compares the register's contract against the component source in both directions, so a component cannot drift out from under its contract by gaining a prop nobody contracted.
+prevention: 'The doctrine is no longer prose alone: it is a record with a contract, a lifecycle where skipping is forbidden, and proofs bounded by a DECLARED surface. What that does not fix is a screen outside [surface] screen_globs, which is outside every proof, and every captured record says so.'

@@ -397,16 +397,42 @@ fn d9(store: &Store) -> Result<Row> {
         .iter()
         .filter(|w| w.value.status == WarrantStatus::Granted)
         .count();
-    let decisions = count_files(
-        &store
-            .project
-            .path(vds_core::PathRole::Logs)
-            .join("decisions"),
+    // PARSED, not counted. This used to list the directory, which counts a file
+    // that does not parse as a decision log the same as one that does, and
+    // reports a well-formed log with an empty `why` as though a fork had been
+    // recorded. A count taken without opening anything is a count of files.
+    let decisions = store.read_decisions()?;
+    let breaches = store.read_breaches()?;
+    let defective: Vec<String> = decisions
+        .iter()
+        .flat_map(|d| {
+            d.value
+                .defects()
+                .into_iter()
+                .map(move |defect| format!("{}: {defect}", d.value.id))
+        })
+        .chain(breaches.iter().flat_map(|b| {
+            b.value
+                .defects()
+                .into_iter()
+                .map(move |defect| format!("{}: {defect}", b.value.id))
+        }))
+        .collect();
+
+    // VDS S-12(4): the two defects at S-1(4) ARE the founding breach entries and
+    // are filed as breaches rather than described as background, "because a
+    // system whose first act is to excuse the failures that motivated it has
+    // taught itself the wrong lesson". Only the jurisdiction that ships VDS.md
+    // owns them; a subject project files its own breaches or none.
+    let owns_the_specification = matches!(
+        reserved_clause_owner(store),
+        ReservedClauseOwner::ThisProject
     );
+    let founding_unfiled = owns_the_specification && breaches.len() < 2;
     Ok(Row {
         id: "D9 ",
         title: "proof records keep pace with decisions",
-        verdict: if proofs >= granted {
+        verdict: if proofs >= granted && defective.is_empty() && !founding_unfiled {
             Verdict::Met
         } else {
             Verdict::Unmet
@@ -415,10 +441,22 @@ fn d9(store: &Store) -> Result<Row> {
             let mut detail = vec![
                 format!("{proofs} proof records against {granted} granted warrants"),
                 format!(
-                    "{decisions} decision logs. Measured in VJS at drafting: 173 decision logs \
-                     against 3 proof records. The proof surface is the one that rots."
+                    "{} decision logs and {} breach reports, all parsed and checked. Measured \
+                     in VJS at drafting: 173 decision logs against 3 proof records. The proof \
+                     surface is the one that rots.",
+                    decisions.len(),
+                    breaches.len()
                 ),
             ];
+            if founding_unfiled {
+                detail.push(
+                    "VDS S-12(4) makes the two defects at S-1(4) the FOUNDING breach entries, \
+                     filed as breaches rather than described as background. Fewer than two are \
+                     on file, so that clause is unmet. File them: vds log breach"
+                        .to_owned(),
+                );
+            }
+            detail.extend(defective.iter().map(|d| format!("DEFECTIVE {d}")));
             // The criterion is met by a LARGE number and undermined by an
             // enormous one. Past a few hundred, the pile buries the one record
             // per kind that four other criteria are settled by reading, and
@@ -434,7 +472,7 @@ fn d9(store: &Store) -> Result<Row> {
             }
             detail
         },
-        settled_by: "two directory counts",
+        settled_by: "the proof, warrant, decision and breach records, each opened and checked",
     })
 }
 
@@ -629,12 +667,6 @@ fn d10_as_the_jurisdiction(store: &Store) -> Result<Row> {
         settled_by: "the RESERVED markers read out of VDS.md, cross-checked against \
                      .vds/submissions/",
     })
-}
-
-fn count_files(dir: &std::path::Path) -> usize {
-    std::fs::read_dir(dir)
-        .map(|entries| entries.flatten().filter(|e| e.path().is_file()).count())
-        .unwrap_or(0)
 }
 
 #[cfg(test)]

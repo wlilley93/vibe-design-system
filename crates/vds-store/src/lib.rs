@@ -19,9 +19,10 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use vds_core::{
-    ComponentId, ComponentRecord, Digest, EnforcementLock, LOCK_FILE_NAME, LOCK_SCHEMA_VERSION,
-    PathRole, Pin, Project, ProofId, ProofKind, ProofResult, Result, Stage, Submission, Timestamp,
-    VdsError, Warrant, WarrantId, WarrantStatus, write_text_atomically, yaml_files,
+    BreachReport, ComponentId, ComponentRecord, DecisionLog, Digest, EnforcementLock,
+    LOCK_FILE_NAME, LOCK_SCHEMA_VERSION, PathRole, Pin, Project, ProofId, ProofKind, ProofResult,
+    Result, Stage, Submission, Timestamp, VdsError, Warrant, WarrantId, WarrantStatus,
+    write_text_atomically, yaml_files,
 };
 
 pub mod lock;
@@ -277,6 +278,33 @@ impl<'a> Store<'a> {
             .find(|w| w.value.stage == stage && w.value.status == WarrantStatus::Granted))
     }
 
+    // -- governance logs -------------------------------------------------------
+
+    pub fn logs_dir(&self) -> PathBuf {
+        self.project.path(PathRole::Logs)
+    }
+
+    pub fn decisions_dir(&self) -> PathBuf {
+        self.logs_dir().join("decisions")
+    }
+
+    pub fn breaches_dir(&self) -> PathBuf {
+        self.logs_dir().join("breaches")
+    }
+
+    /// Every decision log, PARSED.
+    ///
+    /// `vds doctor` D9 used to count these by listing the directory, which counts
+    /// a file that does not parse as a decision log the same as one that does. A
+    /// count taken without opening anything is a count of files, not of records.
+    pub fn read_decisions(&self) -> Result<Vec<Located<DecisionLog>>> {
+        self.read_all(&self.decisions_dir())
+    }
+
+    pub fn read_breaches(&self) -> Result<Vec<Located<BreachReport>>> {
+        self.read_all(&self.breaches_dir())
+    }
+
     // -- proofs --------------------------------------------------------------
 
     pub fn proofs_dir(&self) -> PathBuf {
@@ -367,7 +395,17 @@ impl<'a> Store<'a> {
         self.project.path(PathRole::Pins)
     }
 
+    /// Every pin, refusing any entry this reader would not pick up.
+    ///
+    /// `read_register` has guarded this since the day an adversarial reviewer put
+    /// a record in a subdirectory and produced an evidence digest byte-identical
+    /// to the clean project. The pin reader did not, so a pin saved as `.yml`, or
+    /// filed one directory down, was INVISIBLE rather than reported, and
+    /// `token_pin` then said "no pin exists" and came back vacuous. Under this
+    /// repository's own `--allow-vacuous` invocation that is exit 0: a hidden pin
+    /// and an absent one were the same green.
     pub fn read_pins(&self) -> Result<Vec<Located<Pin>>> {
+        self.refuse_unreadable_entries(&self.pins_dir(), "pin")?;
         self.read_all(&self.pins_dir())
     }
 

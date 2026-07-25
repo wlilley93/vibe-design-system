@@ -27,6 +27,7 @@ mod import;
 mod init;
 mod ledger;
 mod lock;
+mod log;
 mod pack;
 mod proof;
 mod prune;
@@ -69,6 +70,8 @@ enum Command {
     /// unboxed variant makes every `Command` the size of this one.
     Register(Box<register::Args>),
     /// Run one proof kind, or every implemented kind.
+    /// The governance logs: a decisive call, or a self-reported breach.
+    Log(log::Args),
     Proof(proof::Args),
     /// Bound the proof working set: remove passing, uncited, superseded records.
     Prune(prune::Args),
@@ -115,6 +118,7 @@ fn dispatch(cli: &Cli) -> Result<i32> {
         Command::Init(args) => init::run(&ctx, args),
         Command::Ledger(args) => ledger::run(&ctx, args),
         Command::Register(args) => register::run(&ctx, args),
+        Command::Log(args) => log::run(&ctx, args),
         Command::Proof(args) => proof::run(&ctx, args),
         Command::Prune(args) => prune::run(&ctx, args),
         Command::Warrant(args) => warrant::run(&ctx, args),

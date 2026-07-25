@@ -170,17 +170,17 @@ fn exports_in(source: &str, relative: &str) -> Vec<LibraryExport> {
                 .split(|c: char| !(c.is_ascii_alphanumeric() || c == '_' || c == '$'))
                 .find(|s| !s.is_empty())
                 .map(|s| s.to_owned());
-            let props = local
+            let found = local
                 .as_deref()
-                .and_then(|name| types.iter().find(|t| t.0 == format!("{name}Props")))
-                .map(|t| t.1.clone())
-                .unwrap_or_default();
+                .and_then(|name| types.iter().find(|t| t.0 == format!("{name}Props")));
+            let props = found.map(|t| t.1.clone()).unwrap_or_default();
+            let inherited = found.and_then(|t| t.2.clone());
             out.push(LibraryExport {
                 source_file: relative.to_owned(),
                 export_name: "default".into(),
                 local_name: local,
                 line: line_number,
-                props_incomplete_because: incomplete_reason(&props),
+                props_incomplete_because: incomplete_reason(&props, inherited.clone()),
                 props,
             });
             continue;
@@ -197,17 +197,15 @@ fn exports_in(source: &str, relative: &str) -> Vec<LibraryExport> {
                 .take_while(|c| c.is_ascii_alphanumeric() || *c == '_' || *c == '$')
                 .collect();
             if is_component_name(&name) {
-                let props = types
-                    .iter()
-                    .find(|t| t.0 == format!("{name}Props"))
-                    .map(|t| t.1.clone())
-                    .unwrap_or_default();
+                let found = types.iter().find(|t| t.0 == format!("{name}Props"));
+                let props = found.map(|t| t.1.clone()).unwrap_or_default();
+                let inherited = found.and_then(|t| t.2.clone());
                 out.push(LibraryExport {
                     source_file: relative.to_owned(),
                     export_name: name,
                     local_name: None,
                     line: line_number,
-                    props_incomplete_because: incomplete_reason(&props),
+                    props_incomplete_because: incomplete_reason(&props, inherited.clone()),
                     props,
                 });
             }
@@ -229,17 +227,15 @@ fn exports_in(source: &str, relative: &str) -> Vec<LibraryExport> {
                     None => entry,
                 };
                 if is_component_name(exported) {
-                    let props = types
-                        .iter()
-                        .find(|t| t.0 == format!("{exported}Props"))
-                        .map(|t| t.1.clone())
-                        .unwrap_or_default();
+                    let found = types.iter().find(|t| t.0 == format!("{exported}Props"));
+                    let props = found.map(|t| t.1.clone()).unwrap_or_default();
+                    let inherited = found.and_then(|t| t.2.clone());
                     out.push(LibraryExport {
                         source_file: relative.to_owned(),
                         export_name: exported.to_owned(),
                         local_name: None,
                         line: line_number,
-                        props_incomplete_because: incomplete_reason(&props),
+                        props_incomplete_because: incomplete_reason(&props, inherited.clone()),
                         props,
                     });
                 }
@@ -250,7 +246,23 @@ fn exports_in(source: &str, relative: &str) -> Vec<LibraryExport> {
     out
 }
 
-fn incomplete_reason(props: &[LibraryProp]) -> Option<String> {
+/// Why this export's prop list is not the whole set, or `None`.
+///
+/// Two reasons, and the SECOND is the one that was missing. An empty list is
+/// obviously incomplete and always was reported. A NON-empty list drawn from a
+/// declaration that `extends` another type, or intersects one, looks complete
+/// and is not, and nothing said so: `parity` R6, the direction its own header
+/// calls the load-bearing half, then fires on every inherited prop as though the
+/// code had invented it, or credits the row as ENFORCED over a comparison that
+/// could never have been complete. A subset presented as a contract is worse
+/// than an absent one.
+fn incomplete_reason(props: &[LibraryProp], inherited: Option<String>) -> Option<String> {
+    if let Some(reason) = inherited {
+        return Some(format!(
+            "{reason}. Resolving it needs a TypeScript compiler, and a half-resolved answer \
+             would be confidently wrong."
+        ));
+    }
     props.is_empty().then(|| {
         "no `<Name>Props` type or interface was found in this file, so the candidate carries \
          no prop contract. Read the component and add what it accepts before advancing it \
@@ -276,7 +288,7 @@ fn is_component_name(name: &str) -> bool {
 /// of those would need a TypeScript compiler, and a half-implemented one would
 /// produce a prop list that is confidently wrong. What it misses is reported on
 /// the candidate as `props_incomplete_because` rather than left to be assumed.
-fn prop_types_in(code: &str, source: &str) -> Vec<(String, Vec<LibraryProp>)> {
+fn prop_types_in(code: &str, source: &str) -> Vec<(String, Vec<LibraryProp>, Option<String>)> {
     let chars: Vec<char> = code.chars().collect();
     // Offsets are preserved by blanking, so the block is LOCATED in the blanked
     // text (where a brace in a comment or a string cannot mislead) and READ from
@@ -326,10 +338,58 @@ fn prop_types_in(code: &str, source: &str) -> Vec<(String, Vec<LibraryProp>)> {
         } else {
             chars[open + 1..close].iter().collect()
         };
-        out.push((name, props_in_body(&body)));
+        // Everything between the type's name and its opening brace. This is
+        // where `extends ButtonHTMLAttributes<...>` and `= Base & {` live, and
+        // it is the difference between a prop list that is short and one that is
+        // WRONG: a shallow reader that misses inherited members and says nothing
+        // hands `parity` a complete-looking contract, and R6, the direction that
+        // fails a prop nobody contracted, then fires on every inherited prop or
+        // silently credits the row as enforced.
+        let head: String = chars[i + offset..open].iter().collect();
+        out.push((name, props_in_body(&body), inheritance_in(&head)));
         i = close + 1;
     }
     out
+}
+
+/// What this declaration inherits that the shallow reader did not resolve.
+///
+/// `Some` means the prop list below is a SUBSET of what the component accepts,
+/// and saying so is the whole point: a subset presented as a contract makes
+/// `parity` R6 fire on every inherited prop, or worse, credits the row as
+/// enforced over a comparison that could never have been complete.
+fn inheritance_in(head: &str) -> Option<String> {
+    let head = head.trim();
+    if head.contains("extends") {
+        return Some(
+            "the declaration `extends` another type, and this reader does not follow an              extends clause, so the props below are a SUBSET of what the component accepts"
+                .to_owned(),
+        );
+    }
+    if head.contains('&') {
+        return Some(
+            "the declaration is an intersection (`&`), and this reader reads only the inline              member block, so the props below are a SUBSET of what the component accepts"
+                .to_owned(),
+        );
+    }
+    // A utility type wrapping the inline block: `Omit<Base, 'x'> & {...}` is
+    // caught above, but `Partial<{...}>` and `Pick<...>` reach here.
+    for utility in [
+        "Omit<",
+        "Pick<",
+        "Partial<",
+        "Required<",
+        "Readonly<",
+        "Record<",
+    ] {
+        if head.contains(utility) {
+            return Some(format!(
+                "the declaration applies the utility type `{}`, which this reader does not                  resolve, so the props below may not be the set the component accepts",
+                utility.trim_end_matches('<')
+            ));
+        }
+    }
+    None
 }
 
 fn matching_brace(chars: &[char], open: usize) -> Option<usize> {

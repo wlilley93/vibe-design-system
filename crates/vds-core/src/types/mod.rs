@@ -14,6 +14,7 @@
 
 mod component;
 mod lock;
+mod log;
 mod pin;
 mod proof;
 mod submission;
@@ -21,6 +22,7 @@ mod warrant;
 
 pub use component::*;
 pub use lock::*;
+pub use log::*;
 pub use pin::*;
 pub use proof::*;
 pub use submission::*;
