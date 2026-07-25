@@ -1,0 +1,50 @@
+id: CMP-0006
+name: Notice
+status: deprecated
+contractVersion: 2
+figma: null
+code:
+  importPath: '@/components/ui/Notice'
+  sourceFile: src/components/ui/Notice.tsx
+  exportName: Notice
+props:
+- name: children
+  type: ReactNode
+  required: true
+  figmaProperty: null
+- name: heading
+  type: string
+  required: true
+  figmaProperty: null
+states:
+  required:
+  - default
+  drawn:
+  - default
+  built: []
+a11y:
+  role: status
+  accessibleNameSource: children
+  keyboard: []
+  contrastFloors:
+  - boundary: notice-text
+    against: notice-fill
+    minRatio: 4.5
+    basis: WCAG 2.2 SC 1.4.3 contrast minimum
+    scope: text
+demand:
+  routes: 0
+  measuredAt: 2026-07-25T15:08:55Z
+  measuredBy: vds register measure-demand
+supersedes: []
+supersededBy: CMP-0001
+amendments:
+- at: 2026-07-25T15:08:55Z
+  by: jellytot
+  kind: non_breaking
+  what: 'the Notice contract, recorded so the record can be deprecated: a record with no contract has nothing to supersede'
+  contractVersion: 2
+basis:
+- ACT-VDS-001:s5
+deprecatedAt: 2026-07-25T15:08:56Z
+notes: 'Imported by `vds register import` from src/components/ui/Notice.tsx:15. A CANDIDATE, not a contract: it carries what the code says and nothing the code cannot say. Its required states, contrast floors, role and keyboard contract are decisions nobody has made yet.'

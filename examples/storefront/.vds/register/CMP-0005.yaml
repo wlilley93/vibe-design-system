@@ -1,0 +1,83 @@
+id: CMP-0005
+name: TextField
+status: registered
+contractVersion: 2
+figma: null
+code:
+  importPath: '@/components/ui/TextField'
+  sourceFile: src/components/ui/TextField.tsx
+  exportName: TextField
+props:
+- name: describedBy
+  type: string
+  required: false
+  figmaProperty: null
+- name: disabled
+  type: boolean
+  required: false
+  figmaProperty: null
+- name: invalid
+  type: boolean
+  required: false
+  figmaProperty: null
+- name: label
+  type: string
+  required: true
+  figmaProperty: null
+- name: onChange
+  type: '(next: string) => void'
+  required: true
+  figmaProperty: null
+- name: value
+  type: string
+  required: true
+  figmaProperty: null
+states:
+  required:
+  - default
+  - hover
+  - focus
+  - disabled
+  - error
+  drawn:
+  - default
+  - hover
+  - focus
+  - disabled
+  - error
+  built: []
+a11y:
+  role: textbox
+  accessibleNameSource: label
+  keyboard: []
+  contrastFloors:
+  - boundary: field-border
+    against: surface
+    minRatio: 3.0
+    basis: WCAG 2.2 SC 1.4.11 non-text contrast
+    scope: control_boundary
+  - boundary: field-label
+    against: surface
+    minRatio: 4.5
+    basis: WCAG 2.2 SC 1.4.3 contrast minimum
+    scope: text
+  - boundary: field-text
+    against: field-fill
+    minRatio: 4.5
+    basis: WCAG 2.2 SC 1.4.3 contrast minimum
+    scope: text
+demand:
+  routes: 2
+  measuredAt: 2026-07-25T15:08:55Z
+  measuredBy: vds register measure-demand
+supersedes: []
+supersededBy: null
+amendments:
+- at: 2026-07-25T15:08:17Z
+  by: jellytot
+  kind: non_breaking
+  what: 'the TextField contract: a text input draws error as well as the control four, because an invalid field that looks like a valid one is the defect'
+  contractVersion: 2
+basis:
+- ACT-VDS-001:s5
+notes: 'Imported by `vds register import` from src/components/ui/TextField.tsx:10. A CANDIDATE, not a contract: it carries what the code says and nothing the code cannot say. Its required states, contrast floors, role and keyboard contract are decisions nobody has made yet.'

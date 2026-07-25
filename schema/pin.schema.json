@@ -397,14 +397,25 @@
       "additionalProperties": false
     },
     "NameSource": {
-      "type": "string",
-      "enum": [
-        "children",
-        "aria_label",
-        "aria_labelledby",
-        "title",
-        "alt",
-        "none_decorative"
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "children",
+            "aria_label",
+            "aria_labelledby",
+            "title",
+            "alt",
+            "none_decorative"
+          ]
+        },
+        {
+          "description": "The HTML `<label>` association: a `for`/`id` pair, or a control wrapped by its label element.\n\nAdded because the set without it could not describe a text input, which is the single most common named control there is. `aria_labelledby` is a DIFFERENT mechanism, not a spelling of this one: it points at arbitrary elements by id and overrides the label association, so recording one where the code does the other publishes a contract the code does not keep. Found by adopting VDS on `examples/storefront`, where the only honest value for TextField was absent from the enum.",
+          "type": "string",
+          "enum": [
+            "label"
+          ]
+        }
       ]
     },
     "PinDirection": {

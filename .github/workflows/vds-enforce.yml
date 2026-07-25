@@ -108,6 +108,20 @@ jobs:
           ./target/release/vds proof no_stored_values --invoked-by ci_workflow
           ./target/release/vds proof ledger_staleness --invoked-by ci_workflow
 
+      # VDS applied to a project that HAS a surface, and the answer to the
+      # objection the step above invites: a kernel that can only demonstrate
+      # itself on a repository with no screens has demonstrated very little.
+      #
+      # `examples/storefront` is three screens, six components, two themes and
+      # one deprecated record draining to zero. Every implemented kind runs over
+      # rows that exist, and NO --allow-vacuous IS PASSED, so a vacuity here is a
+      # red build rather than a footnote. This is the step that makes `vds
+      # doctor` D1, D2 and D3 answerable at all.
+      - name: The worked example, with no exemption
+        run: |
+          ./target/release/vds ledger screens --root examples/storefront
+          ./target/release/vds proof --all --root examples/storefront --invoked-by ci_workflow
+
       # The honest position, printed on every run so a regression in a criterion
       # is visible in the log rather than discovered at a review.
       - name: Doctor

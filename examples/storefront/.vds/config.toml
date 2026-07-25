@@ -1,0 +1,40 @@
+# VDS project configuration. The one fixed anchor (VDS S-3(7)).
+# This file holds NO design value (VDS S-2(2)). Paths, globs and governance only.
+version = 1
+jurisdiction_id = "storefront"
+repo_code = "SF"
+designpack = "none@0"
+
+[paths]
+register = ".vds/register"
+warrants = ".vds/warrants"
+proofs = ".vds/proofs"
+pins = ".vds/pins"
+ledgers = ".vds/ledgers"
+submissions = ".vds/submissions"
+logs = ".vds/logs"
+permits = ".vds/permits"
+
+[surface]
+# The DECLARED SURFACE. Every VDS claim is bounded by it, and a screen outside
+# these globs is outside every proof.
+screen_globs = ["app/**/page.tsx"]
+# A component reference whose import path starts with one of these is IN SCOPE
+# for enforcement. Anything else is counted and not enforced, and the count is
+# printed, so the carve-out is visible rather than assumed.
+governed_import_prefixes = ["@/components/"]
+# Directories the register is expected to cover, used by reconciliation.
+library_dirs = ["src/components/ui"]
+screens_ledger = ".vds/ledgers/screens.yaml"
+component_extensions = ["tsx", "jsx"]
+
+[governance]
+# VDS S-3(8): the enforcement machinery must not be editable without a permit.
+permit_required = [
+  "app/globals.css",
+  "src/components/**",
+  "designpack/v1/**",
+  ".vds/register/**",
+  ".vds/config.toml",
+]
+permit_exempt = [".vds/logs/**", ".vds/permits/**", ".vds/proofs/**"]

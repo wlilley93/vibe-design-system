@@ -157,6 +157,17 @@ pub struct Accessibility {
 #[serde(rename_all = "snake_case")]
 pub enum NameSource {
     Children,
+    /// The HTML `<label>` association: a `for`/`id` pair, or a control wrapped
+    /// by its label element.
+    ///
+    /// Added because the set without it could not describe a text input, which
+    /// is the single most common named control there is. `aria_labelledby` is a
+    /// DIFFERENT mechanism, not a spelling of this one: it points at arbitrary
+    /// elements by id and overrides the label association, so recording one
+    /// where the code does the other publishes a contract the code does not
+    /// keep. Found by adopting VDS on `examples/storefront`, where the only
+    /// honest value for TextField was absent from the enum.
+    Label,
     AriaLabel,
     AriaLabelledby,
     Title,
@@ -165,12 +176,35 @@ pub enum NameSource {
 }
 
 impl NameSource {
+    /// Every variant, in the order a report lists them.
+    ///
+    /// The CLI parses against THIS rather than against a hand-written match, and
+    /// its "not an accessible-name source" message is built from it. A
+    /// hand-written parse is a second list, and a second list drifts: `label` was
+    /// added to the enum and the parse would have gone on refusing it while the
+    /// error text went on saying "the six are", naming a set that was no longer
+    /// the set.
+    pub const ALL: [NameSource; 7] = [
+        NameSource::Children,
+        NameSource::Label,
+        NameSource::AriaLabel,
+        NameSource::AriaLabelledby,
+        NameSource::Title,
+        NameSource::Alt,
+        NameSource::NoneDecorative,
+    ];
+
+    pub fn parse(raw: &str) -> Option<NameSource> {
+        NameSource::ALL.into_iter().find(|s| s.as_str() == raw)
+    }
+
     /// The wire form. Written out rather than derived from `Debug`, because
     /// lowercasing `NoneDecorative` gives `nonedecorative`, which is not the
     /// value the contract publishes and is not a word.
     pub fn as_str(self) -> &'static str {
         match self {
             NameSource::Children => "children",
+            NameSource::Label => "label",
             NameSource::AriaLabel => "aria_label",
             NameSource::AriaLabelledby => "aria_labelledby",
             NameSource::Title => "title",
@@ -296,7 +330,30 @@ impl std::fmt::Display for BreakingReason {
 }
 
 /// Why `after` breaks the contract `before` published. VDS S-9(4).
+///
+/// The first word of that sentence is load-bearing: PUBLISHED. A record below
+/// `registered` has published nothing. VDS.md S-5(4) puts the lifecycle on a
+/// directed path and says `registered` is where "the contract is complete and
+/// binding", so an edit to a `proposed` or `designed` record is the contract
+/// being WRITTEN and cannot break a contract that does not yet exist.
+///
+/// Without that distinction the tool contradicted its own printed advice.
+/// `vds register import` mints candidates at `proposed` and tells the author to
+/// run `vds register amend --kind non_breaking ... --role button`, and setting a
+/// role from null was classed breaking, and a breaking amendment demands a
+/// warrant, and a warrant cannot be granted over a record nobody has registered.
+/// A fresh candidate could therefore never receive the contract the same command
+/// told the author to give it. Found by adopting VDS on `examples/storefront`,
+/// which is the only way this class of defect is ever found: every unit test in
+/// this file started from a `registered` record.
+///
+/// The guard is safe against being escaped. `set-status` only ever advances
+/// along `Status::PATH`, so a record cannot be walked back to `proposed` to
+/// launder a breaking change.
 pub fn breaking_reasons(before: &ComponentRecord, after: &ComponentRecord) -> Vec<BreakingReason> {
+    if !before.status.is_binding() {
+        return Vec::new();
+    }
     let mut reasons = Vec::new();
     let plain = |what: String| BreakingReason {
         what,
@@ -566,5 +623,102 @@ mod tests {
             serde_yaml::from_str::<ComponentRecord>(&text).unwrap(),
             record()
         );
+    }
+
+    /// The defect adoption found: a fresh candidate could never be given its
+    /// contract.
+    ///
+    /// `vds register import` mints at `proposed` and prints advice telling the
+    /// author to set the role with a `non_breaking` amendment. Setting a role
+    /// from null was classed breaking, a breaking amendment demands a warrant,
+    /// and no warrant can exist over a record nobody has registered. Every unit
+    /// test in this file started from a `registered` record, so none of them saw
+    /// it.
+    #[test]
+    fn writing_the_contract_on_an_unregistered_record_breaks_nothing() {
+        for status in [Status::Proposed, Status::Designed] {
+            let mut before = record();
+            before.status = status;
+            before.a11y.role = None;
+            before.a11y.contrast_floors = vec![];
+            before.states.required = vec![];
+
+            let mut after = before.clone();
+            after.a11y.role = Some("button".into());
+            after.a11y.accessible_name_source = NameSource::Label;
+            after.states.required = vec![State::Focus];
+
+            assert!(
+                breaking_reasons(&before, &after).is_empty(),
+                "{status} published no contract, so there was nothing to break: {:?}",
+                breaking_reasons(&before, &after)
+            );
+        }
+    }
+
+    /// The other direction, and the one that keeps the guard honest. The exact
+    /// same diff against a BINDING record is breaking, and stays breaking at
+    /// every status from `registered` onward.
+    #[test]
+    fn the_same_change_to_a_binding_record_is_still_breaking() {
+        for status in [
+            Status::Registered,
+            Status::Built,
+            Status::Verified,
+            Status::Deprecated,
+            Status::Retired,
+        ] {
+            let mut before = record();
+            before.status = status;
+            before.a11y.role = None;
+            let mut after = before.clone();
+            after.a11y.role = Some("button".into());
+
+            assert!(
+                !breaking_reasons(&before, &after).is_empty(),
+                "a role change at {status} stopped being breaking, so a published contract \
+                 can be rewritten without a warrant"
+            );
+        }
+    }
+
+    /// A lowered floor is the change VDS S-9(5) cares most about, so check the
+    /// guard did not open a route to it.
+    #[test]
+    fn a_lowered_floor_on_a_binding_record_is_still_flagged_as_lowered() {
+        let mut before = record();
+        before.status = Status::Registered;
+        before.a11y.contrast_floors = vec![ContrastFloor {
+            boundary: "control-boundary".into(),
+            against: "surface".into(),
+            min_ratio: 4.5,
+            basis: "WCAG 2.2 SC 1.4.3".into(),
+            scope: None,
+        }];
+        let mut after = before.clone();
+        after.a11y.contrast_floors[0].min_ratio = 3.0;
+
+        let reasons = breaking_reasons(&before, &after);
+        assert_eq!(reasons.len(), 1, "{reasons:?}");
+        assert!(reasons[0].is_lowered_floor);
+    }
+
+    /// Every variant round-trips through the wire form and back, so `ALL` and
+    /// `as_str` cannot disagree and the CLI's derived parse cannot refuse a
+    /// value the record can hold.
+    #[test]
+    fn every_accessible_name_source_parses_from_its_own_wire_form() {
+        for source in NameSource::ALL {
+            assert_eq!(NameSource::parse(source.as_str()), Some(source));
+        }
+        assert_eq!(NameSource::parse("label"), Some(NameSource::Label));
+        assert_eq!(NameSource::parse("Label"), None, "the wire form is exact");
+        assert_eq!(NameSource::parse("nonedecorative"), None);
+
+        let mut seen: Vec<&str> = NameSource::ALL.iter().map(|s| s.as_str()).collect();
+        let count = seen.len();
+        seen.sort();
+        seen.dedup();
+        assert_eq!(seen.len(), count, "two variants share a wire form");
     }
 }

@@ -1,0 +1,55 @@
+id: CMP-0001
+name: Alert
+status: registered
+contractVersion: 2
+figma: null
+code:
+  importPath: '@/components/ui/Alert'
+  sourceFile: src/components/ui/Alert.tsx
+  exportName: Alert
+props:
+- name: children
+  type: ReactNode
+  required: true
+  figmaProperty: null
+- name: title
+  type: string
+  required: true
+  figmaProperty: null
+- name: tone
+  type: '''info'' | ''critical'''
+  required: false
+  figmaProperty: null
+states:
+  required:
+  - default
+  - error
+  drawn:
+  - default
+  - error
+  built: []
+a11y:
+  role: status
+  accessibleNameSource: children
+  keyboard: []
+  contrastFloors:
+  - boundary: alert-text
+    against: alert-fill
+    minRatio: 4.5
+    basis: WCAG 2.2 SC 1.4.3 contrast minimum
+    scope: text
+demand:
+  routes: 1
+  measuredAt: 2026-07-25T15:08:55Z
+  measuredBy: vds register measure-demand
+supersedes: []
+supersededBy: null
+amendments:
+- at: 2026-07-25T15:08:17Z
+  by: jellytot
+  kind: non_breaking
+  what: 'the Alert contract: a status region, default and error, and the text floor in both tones'
+  contractVersion: 2
+basis:
+- ACT-VDS-001:s5
+notes: 'Imported by `vds register import` from src/components/ui/Alert.tsx:9. A CANDIDATE, not a contract: it carries what the code says and nothing the code cannot say. Its required states, contrast floors, role and keyboard contract are decisions nobody has made yet.'

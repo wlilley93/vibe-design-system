@@ -796,20 +796,21 @@ fn parse_states(raw: Option<&str>) -> Result<Vec<State>> {
     Ok(out)
 }
 
+/// Derived from `NameSource::ALL`, never from a second list here.
+///
+/// The count and the names in the refusal are computed, so adding a variant
+/// cannot leave this saying "the six are" while there are seven.
 fn parse_name_source(raw: &str) -> Result<NameSource> {
-    Ok(match raw {
-        "children" => NameSource::Children,
-        "aria_label" => NameSource::AriaLabel,
-        "aria_labelledby" => NameSource::AriaLabelledby,
-        "title" => NameSource::Title,
-        "alt" => NameSource::Alt,
-        "none_decorative" => NameSource::NoneDecorative,
-        other => {
-            return Err(VdsError::precondition(format!(
-                "{other:?} is not an accessible-name source. The six are: children, \
-                 aria_label, aria_labelledby, title, alt, none_decorative"
-            )));
-        }
+    NameSource::parse(raw).ok_or_else(|| {
+        VdsError::precondition(format!(
+            "{raw:?} is not an accessible-name source. The {} are: {}",
+            NameSource::ALL.len(),
+            NameSource::ALL
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ))
     })
 }
 

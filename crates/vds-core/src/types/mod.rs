@@ -145,6 +145,20 @@ impl Status {
         Status::ENFORCEABLE.contains(&self)
     }
 
+    /// Whether a record at this status has PUBLISHED a contract, so that an
+    /// edit to it is an amendment rather than authorship.
+    ///
+    /// VDS.md S-5(4): `registered` is where "the contract is complete and
+    /// binding". Below it the contract is still being written, and there is
+    /// nothing for a change to break. Everything from `registered` onward is
+    /// binding, including `deprecated` and `retired`, because a tombstone is
+    /// kept forever (VDS S-9(6)(3)) and rewriting one rewrites history.
+    ///
+    /// Used by `breaking_reasons` to decide whether a change needs a warrant.
+    pub fn is_binding(self) -> bool {
+        self.index() >= Status::Registered.index()
+    }
+
     /// The one status this status may advance to by an ordinary `set-status`.
     ///
     /// Returns `None` at `verified`, because the next two transitions are

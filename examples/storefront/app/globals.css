@@ -1,0 +1,152 @@
+/*
+ * The storefront's shipped stylesheet.
+ *
+ * This file holds REALISATIONS, and that is correct: it is the named record VDS
+ * S-2(3) makes the system of record for what a token resolves to. VDS reads it
+ * and does not own it, and nothing here is copied into `.vds/`. The register
+ * names `--sf-control-fg` and a minimum ratio drawn from WCAG; what that
+ * property RESOLVES to lives here and only here.
+ *
+ * Two themes, so `contrast` has something to be wrong about. A boundary that
+ * clears its floor in light and fails in dark has failed.
+ */
+
+:root {
+  --sf-surface: #ffffff;
+  --sf-surface-raised: #f6f6f7;
+  --sf-text: #16181d;
+  --sf-text-muted: #5b6070;
+
+  --sf-control-bg: #1d4ed8;
+  --sf-control-fg: #ffffff;
+  --sf-control-border: #1e40af;
+
+  --sf-secondary-bg: #e8eaf0;
+  --sf-secondary-fg: #1f2430;
+
+  --sf-critical-bg: #fdeaea;
+  --sf-critical-fg: #8c1d1d;
+  --sf-positive-bg: #e7f6ec;
+  --sf-positive-fg: #14532d;
+
+  --sf-focus-ring: #1d4ed8;
+  --sf-field-border: #8b90a0;
+  --sf-field-border-invalid: #b3261e;
+
+  --sf-radius: 6px;
+  --sf-gap: 12px;
+  --sf-transition: 160ms;
+}
+
+[data-theme='dark'] {
+  --sf-surface: #101215;
+  --sf-surface-raised: #191c21;
+  --sf-text: #f2f3f5;
+  --sf-text-muted: #a4abbb;
+
+  --sf-control-bg: #4f79f0;
+  --sf-control-fg: #0b0d10;
+  --sf-control-border: #6b8ef5;
+
+  --sf-secondary-bg: #262a33;
+  --sf-secondary-fg: #eceef3;
+
+  --sf-critical-bg: #2a1618;
+  --sf-critical-fg: #ffb4ab;
+  --sf-positive-bg: #12251a;
+  --sf-positive-fg: #86e2a8;
+
+  --sf-focus-ring: #8fa9f7;
+  --sf-field-border: #737a8c;
+  --sf-field-border-invalid: #ff8a80;
+}
+
+.sf-page {
+  background: var(--sf-surface);
+  color: var(--sf-text);
+  display: grid;
+  gap: var(--sf-gap);
+}
+
+.sf-button {
+  background: var(--sf-control-bg);
+  color: var(--sf-control-fg);
+  border: 1px solid var(--sf-control-border);
+  border-radius: var(--sf-radius);
+  transition: background var(--sf-transition) ease-out;
+}
+
+.sf-button--secondary {
+  background: var(--sf-secondary-bg);
+  color: var(--sf-secondary-fg);
+}
+
+.sf-button--ghost {
+  background: transparent;
+  color: var(--sf-control-bg);
+  border-color: transparent;
+}
+
+.sf-button:focus-visible {
+  outline: 2px solid var(--sf-focus-ring);
+}
+
+.sf-button:disabled {
+  opacity: 0.55;
+}
+
+.sf-badge {
+  background: var(--sf-surface-raised);
+  color: var(--sf-text-muted);
+  border-radius: var(--sf-radius);
+}
+
+.sf-badge--positive {
+  background: var(--sf-positive-bg);
+  color: var(--sf-positive-fg);
+}
+
+.sf-badge--critical {
+  background: var(--sf-critical-bg);
+  color: var(--sf-critical-fg);
+}
+
+.sf-card {
+  background: var(--sf-surface-raised);
+  color: var(--sf-text);
+  border-radius: var(--sf-radius);
+}
+
+.sf-card__title {
+  color: var(--sf-text);
+}
+
+.sf-field__label {
+  color: var(--sf-text-muted);
+}
+
+.sf-field__input {
+  background: var(--sf-surface);
+  color: var(--sf-text);
+  border: 1px solid var(--sf-field-border);
+  border-radius: var(--sf-radius);
+}
+
+.sf-field__input[aria-invalid='true'] {
+  border-color: var(--sf-field-border-invalid);
+}
+
+.sf-field__input:focus-visible {
+  outline: 2px solid var(--sf-focus-ring);
+}
+
+.sf-alert {
+  background: var(--sf-surface-raised);
+  color: var(--sf-text);
+  border-radius: var(--sf-radius);
+}
+
+.sf-alert--critical {
+  background: var(--sf-critical-bg);
+  color: var(--sf-critical-fg);
+}

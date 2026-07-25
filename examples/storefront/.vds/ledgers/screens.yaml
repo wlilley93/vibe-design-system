@@ -1,0 +1,178 @@
+schema_version: 1
+generated_at: 2026-07-25T15:11:09Z
+generated_by: vds ledger screens
+source_globs:
+- app/**/page.tsx
+source_digest: sha256:f7cd5c8b9a4a283c248609175f89dfa2f7dd4dce557831b04f586f58b83e2d5f
+content_digest: sha256:f71ad283e4c0a3d59a469a2c8101676292c6e06c51324488d7b8a9fe4c4caedd
+screens:
+- route: app/checkout/page.tsx
+  digest: sha256:376e273fa55b787e945ab1777dcf247e8e14e11a0c34e189f481e950c0a3cf34
+  references:
+  - name: main
+    root: main
+    export_name: null
+    namespace_member: false
+    kind: element
+    import_path: null
+    line: 15
+  - name: h1
+    root: h1
+    export_name: null
+    namespace_member: false
+    kind: element
+    import_path: null
+    line: 16
+  - name: Alert
+    root: Alert
+    export_name: Alert
+    namespace_member: false
+    kind: component
+    import_path: '@/components/ui/Alert'
+    line: 18
+  - name: Card
+    root: Card
+    export_name: Card
+    namespace_member: false
+    kind: component
+    import_path: '@/components/ui/Card'
+    line: 22
+  - name: TextField
+    root: TextField
+    export_name: TextField
+    namespace_member: false
+    kind: component
+    import_path: '@/components/ui/TextField'
+    line: 23
+  - name: Button
+    root: Button
+    export_name: Button
+    namespace_member: false
+    kind: component
+    import_path: '@/components/ui/Button'
+    line: 29
+- route: app/page.tsx
+  digest: sha256:4776efee96ff42b51b2b34fba100663ee1d80853252bd544aaab8e91f3a4084f
+  references:
+  - name: main
+    root: main
+    export_name: null
+    namespace_member: false
+    kind: element
+    import_path: null
+    line: 7
+  - name: h1
+    root: h1
+    export_name: null
+    namespace_member: false
+    kind: element
+    import_path: null
+    line: 8
+  - name: Button
+    root: Button
+    export_name: Button
+    namespace_member: false
+    kind: component
+    import_path: '@/components/ui/Button'
+    line: 9
+  - name: Card
+    root: Card
+    export_name: Card
+    namespace_member: false
+    kind: component
+    import_path: '@/components/ui/Card'
+    line: 9
+  - name: p
+    root: p
+    export_name: null
+    namespace_member: false
+    kind: element
+    import_path: null
+    line: 10
+  - name: Badge
+    root: Badge
+    export_name: Badge
+    namespace_member: false
+    kind: component
+    import_path: '@/components/ui/Badge'
+    line: 11
+  - name: Button
+    root: Button
+    export_name: Button
+    namespace_member: false
+    kind: component
+    import_path: '@/components/ui/Button'
+    line: 13
+  - name: Card
+    root: Card
+    export_name: Card
+    namespace_member: false
+    kind: component
+    import_path: '@/components/ui/Card'
+    line: 15
+  - name: p
+    root: p
+    export_name: null
+    namespace_member: false
+    kind: element
+    import_path: null
+    line: 16
+  - name: Badge
+    root: Badge
+    export_name: Badge
+    namespace_member: false
+    kind: component
+    import_path: '@/components/ui/Badge'
+    line: 17
+- route: app/settings/page.tsx
+  digest: sha256:edce77f840132fe0d49acca7ecd3694f3b57126c94a87846a0616ae8782ed965
+  references:
+  - name: main
+    root: main
+    export_name: null
+    namespace_member: false
+    kind: element
+    import_path: null
+    line: 14
+  - name: h1
+    root: h1
+    export_name: null
+    namespace_member: false
+    kind: element
+    import_path: null
+    line: 15
+  - name: Badge
+    root: Badge
+    export_name: Badge
+    namespace_member: false
+    kind: component
+    import_path: '@/components/ui/Badge'
+    line: 16
+  - name: Card
+    root: Card
+    export_name: Card
+    namespace_member: false
+    kind: component
+    import_path: '@/components/ui/Card'
+    line: 16
+  - name: TextField
+    root: TextField
+    export_name: TextField
+    namespace_member: false
+    kind: component
+    import_path: '@/components/ui/TextField'
+    line: 17
+  - name: TextField
+    root: TextField
+    export_name: TextField
+    namespace_member: false
+    kind: component
+    import_path: '@/components/ui/TextField'
+    line: 18
+  - name: Button
+    root: Button
+    export_name: Button
+    namespace_member: false
+    kind: component
+    import_path: '@/components/ui/Button'
+    line: 19

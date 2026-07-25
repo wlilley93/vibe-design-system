@@ -1,0 +1,53 @@
+id: CMP-0004
+name: Card
+status: registered
+contractVersion: 2
+figma: null
+code:
+  importPath: '@/components/ui/Card'
+  sourceFile: src/components/ui/Card.tsx
+  exportName: Card
+props:
+- name: children
+  type: ReactNode
+  required: true
+  figmaProperty: null
+- name: footer
+  type: ReactNode
+  required: false
+  figmaProperty: null
+- name: title
+  type: string
+  required: true
+  figmaProperty: null
+states:
+  required:
+  - default
+  drawn:
+  - default
+  built: []
+a11y:
+  role: region
+  accessibleNameSource: children
+  keyboard: []
+  contrastFloors:
+  - boundary: card-title
+    against: card-fill
+    minRatio: 4.5
+    basis: WCAG 2.2 SC 1.4.3 contrast minimum
+    scope: text
+demand:
+  routes: 3
+  measuredAt: 2026-07-25T15:08:55Z
+  measuredBy: vds register measure-demand
+supersedes: []
+supersededBy: null
+amendments:
+- at: 2026-07-25T15:08:17Z
+  by: jellytot
+  kind: non_breaking
+  what: 'the Card contract: a container, default only, and its title carries the text floor'
+  contractVersion: 2
+basis:
+- ACT-VDS-001:s5
+notes: 'Imported by `vds register import` from src/components/ui/Card.tsx:9. A CANDIDATE, not a contract: it carries what the code says and nothing the code cannot say. Its required states, contrast floors, role and keyboard contract are decisions nobody has made yet.'

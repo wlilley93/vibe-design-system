@@ -1,0 +1,72 @@
+id: CMP-0003
+name: Button
+status: registered
+contractVersion: 2
+figma: null
+code:
+  importPath: '@/components/ui/Button'
+  sourceFile: src/components/ui/Button.tsx
+  exportName: Button
+props:
+- name: children
+  type: ReactNode
+  required: true
+  figmaProperty: null
+- name: disabled
+  type: boolean
+  required: false
+  figmaProperty: null
+- name: onClick
+  type: () => void
+  required: false
+  figmaProperty: null
+- name: size
+  type: '''sm'' | ''md'''
+  required: false
+  figmaProperty: null
+- name: variant
+  type: '''primary'' | ''secondary'' | ''ghost'''
+  required: false
+  figmaProperty: null
+states:
+  required:
+  - default
+  - hover
+  - focus
+  - disabled
+  drawn:
+  - default
+  - hover
+  - focus
+  - disabled
+  built: []
+a11y:
+  role: button
+  accessibleNameSource: children
+  keyboard: []
+  contrastFloors:
+  - boundary: control-boundary
+    against: surface
+    minRatio: 3.0
+    basis: WCAG 2.2 SC 1.4.11 non-text contrast
+    scope: control_boundary
+  - boundary: label
+    against: control-fill
+    minRatio: 4.5
+    basis: WCAG 2.2 SC 1.4.3 contrast minimum
+    scope: text
+demand:
+  routes: 3
+  measuredAt: 2026-07-25T15:08:55Z
+  measuredBy: vds register measure-demand
+supersedes: []
+supersededBy: null
+amendments:
+- at: 2026-07-25T15:08:17Z
+  by: jellytot
+  kind: non_breaking
+  what: 'the Button contract: the four states a control must draw, the role and keyboard contract, and the two WCAG floors that bind a control'
+  contractVersion: 2
+basis:
+- ACT-VDS-001:s5
+notes: 'Imported by `vds register import` from src/components/ui/Button.tsx:11. A CANDIDATE, not a contract: it carries what the code says and nothing the code cannot say. Its required states, contrast floors, role and keyboard contract are decisions nobody has made yet.'

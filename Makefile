@@ -60,6 +60,23 @@ gates: build
 	$(VDS) proof no_stored_values --invoked-by package_script
 	$(VDS) proof ledger_staleness --invoked-by package_script
 
+# The worked example, and the only place every implemented kind is enforced over
+# rows that exist.
+#
+# VDS itself has no screens and no component library, so five of the seven come
+# out vacuous above and the `--all` line needs --allow-vacuous to be non-blocking.
+# A vacuous pass is not evidence (VDS S-7(2)(4)), so on its own the repository
+# could not demonstrate that its own gates catch anything.
+#
+# `examples/storefront` is a real subject: three screens, six components, two
+# themes and one deprecated record draining to zero. Every kind runs over real
+# rows and NO EXEMPTION IS PASSED, so a vacuity here is a red build. This is the
+# target that makes `vds doctor` D1, D2 and D3 answerable.
+.PHONY: gates-example
+gates-example: build
+	$(VDS) ledger screens --root examples/storefront
+	$(VDS) proof --all --root examples/storefront --invoked-by package_script
+
 .PHONY: doctor
 doctor: build
 	$(VDS) doctor --report-only
@@ -70,4 +87,5 @@ check:
 	$(MAKE) lint
 	$(MAKE) test
 	$(MAKE) gates
+	$(MAKE) gates-example
 	$(MAKE) doctor
