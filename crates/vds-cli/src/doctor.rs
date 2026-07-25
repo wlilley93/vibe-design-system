@@ -411,13 +411,29 @@ fn d9(store: &Store) -> Result<Row> {
         } else {
             Verdict::Unmet
         },
-        detail: vec![
-            format!("{proofs} proof records against {granted} granted warrants"),
-            format!(
-                "{decisions} decision logs. Measured in VJS at drafting: 173 decision logs \
-                 against 3 proof records. The proof surface is the one that rots."
-            ),
-        ],
+        detail: {
+            let mut detail = vec![
+                format!("{proofs} proof records against {granted} granted warrants"),
+                format!(
+                    "{decisions} decision logs. Measured in VJS at drafting: 173 decision logs \
+                     against 3 proof records. The proof surface is the one that rots."
+                ),
+            ];
+            // The criterion is met by a LARGE number and undermined by an
+            // enormous one. Past a few hundred, the pile buries the one record
+            // per kind that four other criteria are settled by reading, and
+            // nobody opens the directory again. Said here rather than made a
+            // failure, because the count is not itself a defect.
+            if proofs > 200 {
+                detail.push(format!(
+                    "{proofs} is past the point where the directory is readable, and the \
+                     record each of D2, D3, D7 and D8 is settled by is the most recent one of \
+                     its kind. `vds prune` keeps that one, keeps every failure, keeps anything \
+                     a warrant cites, and logs what it removed."
+                ));
+            }
+            detail
+        },
         settled_by: "two directory counts",
     })
 }

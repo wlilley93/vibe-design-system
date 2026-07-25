@@ -1,21 +1,21 @@
-id: PROOF-20260725-135852
+id: PROOF-20260725-151714
 kind: composition
-status: vacuous
+status: passed
 warrant_id: null
 command: vds proof composition
 script: crates/vds-proof/src/composition.rs
-script_digest: sha256:f0265e72bed6a05c7f524a93e2aad3990739fd48208699032ccb0413d323a078
-exit_code: 3
-rows_considered: 0
-rows_enforced: 0
-rows_skipped_reasons: {}
+exit_code: 0
+rows_considered: 23
+rows_enforced: 15
+rows_skipped_reasons:
+  bare_element_informational_vds_s9_10: 8
 violations: []
 notes:
 - 'relies on VDS S-9(10) RESERVED (SUBMISSION-VDS-005): bare HTML elements are informational rows only, excluded from rows_enforced. Any warrant citing this proof must record that reliance in its `reserved` array.'
-inputs_digest: sha256:f04ba0450ed84a7adc11c2fe1ec552fba2255cfa060c113d91fc5618946840e7
-digest: sha256:cf857c96fdf5396aa5c0989bf7d4d5249f3e8fcf4b86ecb8f7e602c9e15c64d1
+inputs_digest: sha256:85bdb9fa8bbce09c962d5fc15e20535ed0e1128df13df7315c23ddeedfc2a913
+digest: sha256:1ed5c4dda3bcbc8c72bc50dd8c2bd0ae907dd458667063907a3b85581d65959f
 designpack_digest: sha256:f9c369f3175c15169dafde47c01d7efc2f45c64090444f17f5b3f480e710ec5a
-captured_at: 2026-07-25T13:58:50Z
+captured_at: 2026-07-25T15:17:12Z
 capture_mode: automatic
-invoked_by: ci_workflow
+invoked_by: package_script
 duration_ms: 0

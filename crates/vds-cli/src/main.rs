@@ -29,6 +29,7 @@ mod ledger;
 mod lock;
 mod pack;
 mod proof;
+mod prune;
 mod register;
 mod schema;
 mod warrant;
@@ -69,6 +70,8 @@ enum Command {
     Register(Box<register::Args>),
     /// Run one proof kind, or every implemented kind.
     Proof(proof::Args),
+    /// Bound the proof working set: remove passing, uncited, superseded records.
+    Prune(prune::Args),
     /// Report warrant status, or record a warrant granted elsewhere.
     Warrant(warrant::Args),
     /// Verify, pin or re-pin the enforcement lock.
@@ -113,6 +116,7 @@ fn dispatch(cli: &Cli) -> Result<i32> {
         Command::Ledger(args) => ledger::run(&ctx, args),
         Command::Register(args) => register::run(&ctx, args),
         Command::Proof(args) => proof::run(&ctx, args),
+        Command::Prune(args) => prune::run(&ctx, args),
         Command::Warrant(args) => warrant::run(&ctx, args),
         Command::Lock(args) => lock::run(&ctx, args),
         Command::Pack(args) => pack::run(&ctx, args),

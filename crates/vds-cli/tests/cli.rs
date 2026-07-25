@@ -716,3 +716,160 @@ fn an_imported_candidate_is_proposed_and_therefore_still_fails_composition() {
         .expect(VIOLATION)
         .says("this is drift");
 }
+
+// -- vds prune ---------------------------------------------------------------
+
+/// The default must be inert. A delete whose default is to delete is a delete
+/// somebody runs to see what it does.
+#[test]
+fn prune_removes_nothing_without_apply() {
+    let f = Fixture::new();
+    f.ready().register_button();
+    for _ in 0..3 {
+        f.vds(&["proof", "composition"]).expect(PASSED);
+    }
+    let before = proof_count(&f);
+
+    f.vds(&["prune", "--keep", "1"])
+        .expect(PASSED)
+        .says("Nothing was removed")
+        .says("--apply");
+    assert_eq!(proof_count(&f), before, "a report deleted files");
+}
+
+#[test]
+fn prune_keeps_the_most_recent_of_each_kind_and_removes_the_rest() {
+    let f = Fixture::new();
+    f.ready().register_button();
+    for _ in 0..4 {
+        f.vds(&["proof", "composition"]).expect(PASSED);
+        f.vds(&["proof", "no_stored_values"]).expect(PASSED);
+    }
+    assert_eq!(proof_count(&f), 8);
+
+    f.vds(&["prune", "--keep", "1", "--apply"]).expect(PASSED);
+    assert_eq!(
+        proof_count(&f),
+        2,
+        "one of each kind survives, not one overall: a kind that runs rarely must not be \
+         evicted by a kind that runs on every commit"
+    );
+}
+
+/// The rule that matters most. A warrant naming a record that is not there is a
+/// signature on nothing (VDS S-6(3)), so no window and no --keep may reach it.
+#[test]
+fn prune_never_removes_a_record_a_warrant_cites() {
+    let f = Fixture::new();
+    f.ready().register_button();
+
+    // The oldest record of its kind, and the one a --keep of 1 would evict.
+    f.vds(&["proof", "register_completeness"]).expect(PASSED);
+    let cited = newest_proof_id(&f, "register_completeness");
+    for _ in 0..3 {
+        f.vds(&["proof", "register_completeness"]).expect(PASSED);
+    }
+    assert_ne!(cited, newest_proof_id(&f, "register_completeness"));
+
+    f.vds(&["proof", "reconciliation"]).expect(PASSED);
+    let second = newest_proof_id(&f, "reconciliation");
+
+    f.vds(&[
+        "warrant",
+        "record",
+        "--stage",
+        "W1",
+        "--status",
+        "granted",
+        "--issue",
+        "the register is complete",
+        "--holding",
+        "granted over the declared surface",
+        "--runtime-summary",
+        "one screen, one registered component",
+        "--grantor-citation",
+        "[2026] VJS-CC-VDS 1",
+        "--bench",
+        "first-instance-judge",
+        "--assent-source",
+        "sovereign_assent",
+        "--case-file-digest",
+        "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "--evidence",
+        &cited,
+        "--evidence",
+        &second,
+    ])
+    .expect(PASSED);
+
+    f.vds(&["prune", "--keep", "1", "--apply"]).expect(PASSED);
+    assert!(
+        f.root().join(format!(".vds/proofs/{cited}.yaml")).is_file(),
+        "prune removed a record a granted warrant cites, which makes that warrant a signature \
+         on nothing"
+    );
+}
+
+/// The retention log has to name what went, or the command is an untraceable
+/// delete however good its reasoning is.
+#[test]
+fn prune_writes_a_log_naming_every_record_it_removed() {
+    let f = Fixture::new();
+    f.ready().register_button();
+    for _ in 0..3 {
+        f.vds(&["proof", "composition"]).expect(PASSED);
+    }
+    let oldest = oldest_proof_id(&f, "composition");
+
+    f.vds(&["prune", "--keep", "1", "--apply"]).expect(PASSED);
+
+    let log = std::fs::read_to_string(f.root().join(".vds/logs/retention/RETENTION-0001.yaml"))
+        .expect("a retention log");
+    assert!(
+        log.contains(&oldest),
+        "the log does not name {oldest}:\n{log}"
+    );
+    assert!(
+        log.contains("VDS S-2(5)"),
+        "the log records no basis:\n{log}"
+    );
+    assert!(log.contains("sha256:"), "the log records no digest:\n{log}");
+}
+
+#[test]
+fn prune_refuses_to_keep_nothing() {
+    let f = Fixture::new();
+    f.ready();
+    f.vds(&["prune", "--keep", "0", "--apply"])
+        .expect(PRECONDITION)
+        .says("Keep at least one");
+}
+
+fn proof_count(f: &Fixture) -> usize {
+    std::fs::read_dir(f.root().join(".vds/proofs"))
+        .map(|d| d.filter_map(|e| e.ok()).count())
+        .unwrap_or(0)
+}
+
+fn proof_ids(f: &Fixture, kind: &str) -> Vec<String> {
+    let mut ids: Vec<String> = std::fs::read_dir(f.root().join(".vds/proofs"))
+        .expect("a proofs directory")
+        .filter_map(|e| e.ok())
+        .filter(|e| {
+            std::fs::read_to_string(e.path())
+                .map(|t| t.contains(&format!("kind: {kind}")))
+                .unwrap_or(false)
+        })
+        .map(|e| e.file_name().to_string_lossy().replace(".yaml", ""))
+        .collect();
+    ids.sort();
+    ids
+}
+
+fn newest_proof_id(f: &Fixture, kind: &str) -> String {
+    proof_ids(f, kind).pop().expect("a record of that kind")
+}
+
+fn oldest_proof_id(f: &Fixture, kind: &str) -> String {
+    proof_ids(f, kind).remove(0)
+}

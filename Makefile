@@ -81,6 +81,13 @@ gates-example: build
 doctor: build
 	$(VDS) doctor --report-only
 
+# Bound the proof working set. Deliberately NOT part of `check`: a delete that
+# runs as a side effect of a test command is a delete nobody chose.
+.PHONY: prune
+prune: build
+	$(VDS) prune --apply
+	$(VDS) prune --root examples/storefront --apply
+
 .PHONY: check
 check:
 	$(CARGO) fmt --all --check
