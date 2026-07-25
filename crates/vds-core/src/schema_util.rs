@@ -35,9 +35,7 @@ pub fn date_time_string(description: &str) -> Schema {
         instance_type: Some(InstanceType::String.into()),
         format: Some("date-time".to_owned()),
         string: Some(Box::new(StringValidation {
-            pattern: Some(
-                r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$".to_owned(),
-            ),
+            pattern: Some(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$".to_owned()),
             ..Default::default()
         })),
         metadata: Some(Box::new(Metadata {

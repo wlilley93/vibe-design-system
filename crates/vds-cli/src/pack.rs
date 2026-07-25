@@ -30,7 +30,10 @@ pub fn run(ctx: &Context, args: &Args) -> Result<i32> {
         Action::Verify => {
             let verdict = vds_designpack::verify(&project)?;
             if let Some(lock) = vds_designpack::read_lock(&project)? {
-                println!("designpack: {}@{}", lock.designpack_id, lock.designpack_version);
+                println!(
+                    "designpack: {}@{}",
+                    lock.designpack_id, lock.designpack_version
+                );
                 println!("  pinned:  {}", lock.digest);
                 println!("  in force:{}", vds_designpack::digest_in_force(&project)?);
                 println!("  locked by {} at {}", lock.locked_by, lock.generated_at);

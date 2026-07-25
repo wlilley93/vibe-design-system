@@ -308,7 +308,10 @@ pub fn breaking_reasons(before: &ComponentRecord, after: &ComponentRecord) -> Ve
     let after_props: std::collections::BTreeMap<&str, &PropContract> =
         after.props.iter().map(|p| (p.name.as_str(), p)).collect();
 
-    for (name, _) in before_props.iter().filter(|(n, _)| !after_props.contains_key(*n)) {
+    for (name, _) in before_props
+        .iter()
+        .filter(|(n, _)| !after_props.contains_key(*n))
+    {
         reasons.push(plain(format!("prop {name:?} removed")));
     }
     for (name, before_prop) in &before_props {
@@ -559,6 +562,9 @@ mod tests {
     #[test]
     fn the_record_round_trips_through_yaml() {
         let text = serde_yaml::to_string(&record()).unwrap();
-        assert_eq!(serde_yaml::from_str::<ComponentRecord>(&text).unwrap(), record());
+        assert_eq!(
+            serde_yaml::from_str::<ComponentRecord>(&text).unwrap(),
+            record()
+        );
     }
 }

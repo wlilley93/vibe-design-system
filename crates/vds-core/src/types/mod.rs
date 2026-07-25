@@ -185,7 +185,10 @@ mod tests {
 
     #[test]
     fn the_lifecycle_successor_stops_before_deprecation() {
-        assert_eq!(Status::Proposed.ordinary_successor(), Some(Status::Designed));
+        assert_eq!(
+            Status::Proposed.ordinary_successor(),
+            Some(Status::Designed)
+        );
         assert_eq!(Status::Built.ordinary_successor(), Some(Status::Verified));
         assert_eq!(
             Status::Verified.ordinary_successor(),
@@ -200,7 +203,10 @@ mod tests {
         for status in Status::PATH {
             assert_eq!(
                 status.is_enforceable(),
-                matches!(status, Status::Registered | Status::Built | Status::Verified),
+                matches!(
+                    status,
+                    Status::Registered | Status::Built | Status::Verified
+                ),
                 "{status} classified wrongly"
             );
         }

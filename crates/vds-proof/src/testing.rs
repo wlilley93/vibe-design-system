@@ -14,9 +14,9 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use vds_core::{
-    Accessibility, CodeCounterpart, ComponentId, ComponentRecord, ContrastFloor, Demand, FloorScope,
-    InvokedBy, NameSource, ProofKind, ProofResult, Project, State, StateContract, Status,
-    Timestamp, VdsError, default_config,
+    Accessibility, CodeCounterpart, ComponentId, ComponentRecord, ContrastFloor, Demand,
+    FloorScope, InvokedBy, NameSource, Project, ProofKind, ProofResult, State, StateContract,
+    Status, Timestamp, VdsError, default_config,
 };
 use vds_store::Store;
 

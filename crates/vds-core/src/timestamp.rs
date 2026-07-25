@@ -118,7 +118,10 @@ mod tests {
         let now = Timestamp::now();
         assert!(now.as_str().ends_with('Z'), "{now}");
         assert_eq!(now.as_str().len(), 20, "{now}");
-        assert!(!now.as_str().contains('.'), "no sub-second component: {now}");
+        assert!(
+            !now.as_str().contains('.'),
+            "no sub-second component: {now}"
+        );
     }
 
     #[test]

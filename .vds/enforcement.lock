@@ -1,0 +1,159 @@
+schema_version: 1
+generated_at: 2026-07-25T13:58:22Z
+entries:
+- path: crates/vds-proof/src/composition.rs
+  digest: sha256:f0265e72bed6a05c7f524a93e2aad3990739fd48208699032ccb0413d323a078
+  kind: proof_script
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Proofs
+    blocking: true
+  - surface: package_script
+    reference: make gates
+    blocking: true
+  proves:
+  - composition
+  failing_direction_test:
+    path: crates/vds-proof/src/composition.rs
+    test_name: composition_fails_on_an_unregistered_component
+    seeds: a screen importing a governed component with no register record
+  pinned_at: 2026-07-25T13:58:22Z
+  pinned_by: jellytot
+- path: crates/vds-proof/src/ledger_staleness.rs
+  digest: sha256:a72abd79274246e9b3b35f66d05eac15495d74bd4cb7c912adda92089e5fcdde
+  kind: proof_script
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Proofs
+    blocking: true
+  - surface: package_script
+    reference: make gates
+    blocking: true
+  proves:
+  - ledger_staleness
+  failing_direction_test:
+    path: crates/vds-proof/src/ledger_staleness.rs
+    test_name: ledger_staleness_fails_on_a_stale_screens_ledger
+    seeds: a screen edited after the ledger was generated
+  pinned_at: 2026-07-25T13:58:22Z
+  pinned_by: jellytot
+- path: crates/vds-proof/src/no_stored_values.rs
+  digest: sha256:e12a2e738f70917e4eaacdd4425bdad45391f98d780fecb16c704d204597b405
+  kind: proof_script
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Proofs
+    blocking: true
+  - surface: package_script
+    reference: make gates
+    blocking: true
+  proves:
+  - no_stored_values
+  failing_direction_test:
+    path: crates/vds-proof/src/no_stored_values.rs
+    test_name: no_stored_values_fails_on_a_hex_colour_in_a_register_record
+    seeds: a hex colour literal written into a register record
+  pinned_at: 2026-07-25T13:58:22Z
+  pinned_by: jellytot
+- path: crates/vds-proof/src/reconciliation.rs
+  digest: sha256:41310adbc73c2d0cff2a649ecd96dfa4b6057a29dbe51e653f9d6e0a18b602b3
+  kind: proof_script
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Proofs
+    blocking: true
+  - surface: package_script
+    reference: make gates
+    blocking: true
+  proves:
+  - reconciliation
+  failing_direction_test:
+    path: crates/vds-proof/src/reconciliation.rs
+    test_name: reconciliation_fails_on_a_library_file_with_no_register_entry
+    seeds: a component file in a governed library directory that no register record names
+  pinned_at: 2026-07-25T13:58:22Z
+  pinned_by: jellytot
+- path: crates/vds-proof/src/register_completeness.rs
+  digest: sha256:8213cdbcaf6a491c2b16dc8fdb263e27985abc6fe49431fbd8cf7a295cc866d4
+  kind: proof_script
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Proofs
+    blocking: true
+  - surface: package_script
+    reference: make gates
+    blocking: true
+  proves:
+  - register_completeness
+  failing_direction_test:
+    path: crates/vds-proof/src/register_completeness.rs
+    test_name: register_completeness_fails_on_a_component_absent_from_the_register
+    seeds: a screen referencing a component absent from the register
+  pinned_at: 2026-07-25T13:58:22Z
+  pinned_by: jellytot
+- path: crates/vds-proof/src/retirement_drain.rs
+  digest: sha256:7acb93f167f73a0d026b3cce96c286c2bc4e2bc68768c36ecb8ef24f69f24af4
+  kind: proof_script
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Proofs
+    blocking: true
+  - surface: package_script
+    reference: make gates
+    blocking: true
+  proves:
+  - retirement_drain
+  failing_direction_test:
+    path: crates/vds-proof/src/retirement_drain.rs
+    test_name: retirement_drain_fails_on_a_remaining_consumer
+    seeds: a deprecated component still rendered by a route
+  pinned_at: 2026-07-25T13:58:22Z
+  pinned_by: jellytot
+- path: crates/vds-proof/src/states.rs
+  digest: sha256:d6943a67433170577546ae3b18e607b51ed3cab32d96b3a46dad27b6f5000ee9
+  kind: proof_script
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Proofs
+    blocking: true
+  - surface: package_script
+    reference: make gates
+    blocking: true
+  proves:
+  - states
+  failing_direction_test:
+    path: crates/vds-proof/src/states.rs
+    test_name: states_fails_on_a_required_state_that_is_not_drawn
+    seeds: a registered component with a required state that is not drawn
+  pinned_at: 2026-07-25T13:58:22Z
+  pinned_by: jellytot
+- path: crates/vds-scan/src/lib.rs
+  digest: sha256:1f18ed441ea487c5f629976a641ad6bfd1cf8435a26db45c44d3a295a6725e1b
+  kind: ledger_generator
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Regenerate the declared surface
+    blocking: true
+  proves:
+  - ledger_staleness
+  failing_direction_test:
+    path: crates/vds-scan/src/lib.rs
+    test_name: a_hand_edited_ledger_is_refused_even_though_its_sources_are_untouched
+    seeds: a ledger row deleted by hand while its source files are untouched
+  pinned_at: 2026-07-25T13:58:22Z
+  pinned_by: jellytot
+- path: crates/vds-store/src/lock.rs
+  digest: sha256:54c7bb983fbfa44c99ea1c517c4bc624004872776e9b3f1c10a3a86529356f69
+  kind: config
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Enforcement lock
+    blocking: true
+  proves:
+  - no_stored_values
+  failing_direction_test:
+    path: crates/vds-store/src/lock.rs
+    test_name: editing_a_pinned_gate_trips_a_fatal_drift_finding
+    seeds: a pinned gate edited after it was pinned
+  pinned_at: 2026-07-25T13:58:22Z
+  pinned_by: jellytot

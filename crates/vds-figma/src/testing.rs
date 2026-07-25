@@ -196,7 +196,15 @@ pub fn realisation_in(text: &str) -> Option<String> {
         }
     }
 
-    for function in ["rgb(", "rgba(", "hsl(", "hsla(", "oklch(", "lab(", "cubic-bezier("] {
+    for function in [
+        "rgb(",
+        "rgba(",
+        "hsl(",
+        "hsla(",
+        "oklch(",
+        "lab(",
+        "cubic-bezier(",
+    ] {
         if text.contains(function) {
             return Some(function.to_owned());
         }

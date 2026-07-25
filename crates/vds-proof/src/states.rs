@@ -46,8 +46,7 @@ pub const GATE: &str = "crates/vds-proof/src/states.rs";
 
 const RULE_NOT_DRAWN: &str =
     "VDS S-7(5) states R1: every required state of every registered component is drawn";
-const RULE_DRAWN_NOT_BUILT: &str =
-    "VDS S-7(5) states I1: a required state is drawn and not built, which the `parity` proof \
+const RULE_DRAWN_NOT_BUILT: &str = "VDS S-7(5) states I1: a required state is drawn and not built, which the `parity` proof \
      is the gate for";
 
 /// A `proposed` record is counted and not enforced.
@@ -58,24 +57,20 @@ const SKIP_PROPOSED: &str = "proposed_nothing_drawn_by_construction";
 const SKIP_RETIRED: &str = "retired_tombstone_vds_s9_6_3";
 const SKIP_NO_REQUIREMENT: &str = "record_declares_no_required_state";
 
-const REACH_NOTE: &str =
-    "[reach] this proof reads the register's own account of what is drawn. `states.drawn` is \
+const REACH_NOTE: &str = "[reach] this proof reads the register's own account of what is drawn. `states.drawn` is \
      the author's claim, and confirming it against the decided-target Figma file is a network \
      read that VDS S-7(2)(1) forbids inside a proof. A pass establishes that the contract is \
      complete, never that a frame exists in the file.";
 
-const TASTE_NOTE: &str =
-    "[taste] whether a drawn state looks right is reserved to the Principal (VDS S-1(6)). This \
+const TASTE_NOTE: &str = "[taste] whether a drawn state looks right is reserved to the Principal (VDS S-1(6)). This \
      proof checks that a required state is drawn, never that it is good.";
 
-const PARITY_NOTE: &str =
-    "[parity] a required state that is drawn and not built is recorded here as an informational \
+const PARITY_NOTE: &str = "[parity] a required state that is drawn and not built is recorded here as an informational \
      finding and never fails this gate; the `parity` proof is the gate for that gap \
      (VDS S-7(5)). Informational findings are captured on the proof record and are not printed, \
      so the record is where they are read.";
 
-const EMPTY_REGISTER_NOTE: &str =
-    "[register] the register holds no record, so no row can be enforced and this run is \
+const EMPTY_REGISTER_NOTE: &str = "[register] the register holds no record, so no row can be enforced and this run is \
      vacuous. A states proof over an empty register establishes nothing about any component \
      (VDS S-7(2)(4)).";
 
@@ -435,7 +430,9 @@ mod tests {
         assert_eq!(record.violations.len(), 1, "{:?}", record.violations);
         assert_eq!(record.violations[0].severity, Severity::Informational);
         assert!(
-            record.violations[0].actual.contains("states.built omits focus"),
+            record.violations[0]
+                .actual
+                .contains("states.built omits focus"),
             "{:?}",
             record.violations[0]
         );

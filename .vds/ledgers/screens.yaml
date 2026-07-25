@@ -1,0 +1,8 @@
+schema_version: 1
+generated_at: 2026-07-25T13:58:50Z
+generated_by: vds ledger screens
+source_globs:
+- app/**/page.tsx
+source_digest: sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945
+content_digest: sha256:54717b339327a3b00b5e05d8f9321cee1c86536e3f1d2fb176fe0c3fc4803a38
+screens: []

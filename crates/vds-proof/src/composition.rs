@@ -29,23 +29,21 @@ use std::io::Write;
 
 use vds_core::{ProofKind, Result, Status, Violation};
 
+use crate::ProofContext;
 use crate::index::RegisterIndex;
 use crate::run::{Outcome, Verdict};
-use crate::ProofContext;
 
 pub const GATE: &str = "crates/vds-proof/src/composition.rs";
 
 const RULE_UNREGISTERED: &str =
     "VDS S-7(5) composition R1: no screen uses an unregistered component";
-const RULE_NOT_ENFORCEABLE: &str =
-    "VDS S-7(5) composition R2 / S-5(4): the record exists and its status is not a registered state";
+const RULE_NOT_ENFORCEABLE: &str = "VDS S-7(5) composition R2 / S-5(4): the record exists and its status is not a registered state";
 const RULE_RETIRED: &str =
     "VDS S-9(8) composition R3: after retirement the code being there is the defect";
 const RULE_DEPRECATED: &str =
     "VDS S-9(6)(1) composition W1: a deprecated component never passes silently";
 
-pub const RESERVED_NOTE: &str =
-    "relies on VDS S-9(10) RESERVED (SUBMISSION-VDS-005): bare HTML elements are informational \
+pub const RESERVED_NOTE: &str = "relies on VDS S-9(10) RESERVED (SUBMISSION-VDS-005): bare HTML elements are informational \
      rows only, excluded from rows_enforced. Any warrant citing this proof must record that \
      reliance in its `reserved` array.";
 
@@ -66,6 +64,7 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
     }
 
     let prefixes = &project.config.surface.governed_import_prefixes;
+    let library_dirs = &project.config.surface.library_dirs;
     if prefixes.is_empty() {
         run.note(
             "[surface] governed_import_prefixes is empty, so no reference can be enforced; \
@@ -84,18 +83,40 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
             }
 
             let Some(import_path) = reference.import_path.as_deref() else {
-                run.row(Verdict::Skipped("component_reference_with_no_resolvable_import"));
+                run.row(Verdict::Skipped(
+                    "component_reference_with_no_resolvable_import",
+                ));
                 continue;
             };
-            if !prefixes.iter().any(|p| import_path.starts_with(p)) {
+            // Governed by EITHER the prefix as written or a relative specifier that
+            // resolves inside a governed library directory. Rewriting one import to
+            // `../../src/components/ui/widget` took a governed component out of
+            // enforcement entirely, and the project declared `@/components/`, not that.
+            if !reference.is_governed(prefixes, library_dirs) {
                 run.row(Verdict::Skipped("import_outside_governed_prefixes"));
+                // Name what escaped, per site. A carve-out being used as an
+                // escape hatch and a carve-out working as intended produce the
+                // same count, and only the first is a problem.
+                run.inform(Violation::fatal(
+                    location.clone(),
+                    "VDS S-7(5) composition: bounded by [surface] governed_import_prefixes",
+                    "an import inside a governed prefix, or one resolving into a governed \
+                     library directory",
+                    format!("imported from {import_path:?}, which is outside both"),
+                ));
                 continue;
             }
 
             run.row(Verdict::Enforced);
 
-            let Some(record) = index.lookup(import_path, &reference.root) else {
-                let misses = index.near_misses(import_path, &reference.root);
+            // The EXPORT name, not the local one. An alias
+            // (`import { Button as Btn }`) or a namespace member
+            // (`<Icons.Chevron />`) makes the two differ, and looking up the
+            // local name reports a registered component as unregistered, or
+            // matches the wrong record entirely.
+            let export_name = reference.lookup_name();
+            let Some(record) = index.lookup(import_path, export_name) else {
+                let misses = index.near_misses(import_path, export_name);
                 let detail = if misses.is_empty() {
                     "no register record names it at all".to_owned()
                 } else {
@@ -106,8 +127,8 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
                     RULE_UNREGISTERED,
                     format!(
                         "a register record with code.importPath {import_path:?} and \
-                         code.exportName {:?}, in status one of registered, built, verified",
-                        reference.root
+                         code.exportName {export_name:?}, in status one of registered, built, \
+                         verified"
                     ),
                     format!("unregistered: no such record ({detail})"),
                 ));
@@ -169,7 +190,9 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
 #[cfg(test)]
 mod tests {
     use crate::testing::{Harness, run_kind};
-    use vds_core::{EXIT_PASSED, EXIT_VACUOUS, EXIT_VIOLATION, ProofKind, ProofStatus, Severity, Status};
+    use vds_core::{
+        EXIT_PASSED, EXIT_VACUOUS, EXIT_VIOLATION, ProofKind, ProofStatus, Severity, Status,
+    };
 
     #[test]
     fn a_screen_using_only_registered_components_passes() {
@@ -258,11 +281,17 @@ mod tests {
     #[test]
     fn bare_elements_alone_make_the_run_vacuous_rather_than_passing() {
         let h = Harness::new();
-        h.write("app/plain/page.tsx", "export default function P(){ return <div><span /></div>; }\n");
+        h.write(
+            "app/plain/page.tsx",
+            "export default function P(){ return <div><span /></div>; }\n",
+        );
         h.ledger();
         let (outcome, text) = run_kind(&h, ProofKind::Composition);
         assert_eq!(outcome.status, ProofStatus::Vacuous, "{text}");
-        assert!(text.contains("bare_element_informational_vds_s9_10"), "{text}");
+        assert!(
+            text.contains("bare_element_informational_vds_s9_10"),
+            "{text}"
+        );
     }
 
     #[test]
@@ -285,7 +314,10 @@ mod tests {
         run_kind(&h, ProofKind::Composition);
         let record = h.last_proof(ProofKind::Composition);
         assert!(
-            record.notes.iter().any(|n| n.contains("SUBMISSION-VDS-005")),
+            record
+                .notes
+                .iter()
+                .any(|n| n.contains("SUBMISSION-VDS-005")),
             "{:?}",
             record.notes
         );

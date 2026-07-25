@@ -19,8 +19,8 @@
 
 use clap::{Args as ClapArgs, Subcommand};
 use vds_core::{
-    AcceptanceEvent, AssentSource, Digest, EXIT_VIOLATION, EvidenceEntry, GrantedBy, ProofId,
-    ProofStatus, Project, RECORDING_IS_NOT_GRANTING, Result, Stage, Surface, Timestamp, VdsError,
+    AcceptanceEvent, AssentSource, Digest, EXIT_VIOLATION, EvidenceEntry, GrantedBy, Project,
+    ProofId, ProofStatus, RECORDING_IS_NOT_GRANTING, Result, Stage, Surface, Timestamp, VdsError,
     Warrant, WarrantId, WarrantStatus,
 };
 use vds_store::Store;
@@ -38,7 +38,10 @@ enum Action {
     /// Report every stage, its evidence, and whether the surface has moved.
     Status,
     /// Write down a grant that already happened. This does NOT grant.
-    Record(RecordArgs),
+    ///
+    /// Boxed: a warrant carries more fields than any other command's arguments,
+    /// and an unboxed variant would make every `Action` the size of this one.
+    Record(Box<RecordArgs>),
     /// Mark a warrant spent because its surface changed (VDS S-6(4)).
     Spend { id: String },
 }
@@ -104,12 +107,21 @@ fn status(store: &Store) -> Result<i32> {
                     );
                     if let Some(granted) = &warrant.value.surface {
                         if granted.screens_digest != live.screens_digest {
-                            println!("       screens_digest granted-on: {}", granted.screens_digest);
+                            println!(
+                                "       screens_digest granted-on: {}",
+                                granted.screens_digest
+                            );
                             println!("       screens_digest now:        {}", live.screens_digest);
                         }
                         if granted.register_digest != live.register_digest {
-                            println!("       register_digest granted-on: {}", granted.register_digest);
-                            println!("       register_digest now:        {}", live.register_digest);
+                            println!(
+                                "       register_digest granted-on: {}",
+                                granted.register_digest
+                            );
+                            println!(
+                                "       register_digest now:        {}",
+                                live.register_digest
+                            );
                         }
                     }
                     println!("     Record it: vds warrant spend {}", warrant.value.id);
@@ -170,7 +182,10 @@ fn status(store: &Store) -> Result<i32> {
         if stage == Stage::W3PrincipalAccepted {
             println!("   evidence: an acceptance event, which no proof can substitute for");
         }
-        if !held.iter().any(|w| w.value.status == WarrantStatus::Granted) {
+        if !held
+            .iter()
+            .any(|w| w.value.status == WarrantStatus::Granted)
+        {
             println!("   -> not granted");
         }
         println!();
@@ -328,7 +343,11 @@ fn record(store: &Store, args: &RecordArgs) -> Result<i32> {
         return Err(VdsError::precondition(format!(
             "{} requires evidence of kind {} (VDS S-6(2)); missing: {}",
             stage.short(),
-            required.iter().map(|k| k.as_str()).collect::<Vec<_>>().join(", "),
+            required
+                .iter()
+                .map(|k| k.as_str())
+                .collect::<Vec<_>>()
+                .join(", "),
             missing.join(", ")
         )));
     }

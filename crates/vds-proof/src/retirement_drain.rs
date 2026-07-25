@@ -56,28 +56,24 @@ use std::io::Write;
 
 use vds_core::{ComponentRecord, ProofKind, Result, Status, Violation};
 
+use crate::ProofContext;
 use crate::index::RegisterIndex;
 use crate::run::{Outcome, ProofRun, Verdict};
-use crate::ProofContext;
 
 pub const GATE: &str = "crates/vds-proof/src/retirement_drain.rs";
 
-const RULE_DRAIN: &str =
-    "VDS S-9(6)(2) retirement_drain D1: demand must reach zero, measured and not asserted, and \
+const RULE_DRAIN: &str = "VDS S-9(6)(2) retirement_drain D1: demand must reach zero, measured and not asserted, and \
      while any consumer remains retirement is refused";
-const RULE_SUCCESSOR: &str =
-    "VDS S-9(7) retirement_drain D2: the successor named in supersededBy must itself be \
+const RULE_SUCCESSOR: &str = "VDS S-9(7) retirement_drain D2: the successor named in supersededBy must itself be \
      registered or later before the predecessor may be deprecated";
 const RULE_SUCCESSOR_LEAVING: &str =
     "VDS S-9(7) retirement_drain W1: the successor is itself on its way out";
 const RULE_DEMAND_DISAGREES: &str =
     "VDS S-5(7) retirement_drain W2: demand is measured, never estimated";
-const RULE_UNMEASURABLE: &str =
-    "VDS S-9(6)(2) retirement_drain W3: a drain must be measured, so a record whose demand \
+const RULE_UNMEASURABLE: &str = "VDS S-9(6)(2) retirement_drain W3: a drain must be measured, so a record whose demand \
      cannot be measured cannot be drained";
 
-pub const RESERVED_NOTE: &str =
-    "relies on VDS S-9(9) RESERVED (SUBMISSION-VDS-004): whether a component may be retired \
+pub const RESERVED_NOTE: &str = "relies on VDS S-9(9) RESERVED (SUBMISSION-VDS-004): whether a component may be retired \
      against a forced-drain deadline while consumers remain is unsettled, so the drain \
      condition is ABSOLUTE here and no deadline, override or grace period overrides a non-zero \
      measured demand. Any warrant citing this proof must record that reliance in its `reserved` \
@@ -90,8 +86,7 @@ pub const RESERVED_NOTE: &str =
 /// surface, and a reader who is not told which surface will read it as zero
 /// everywhere. Naming the three consumers this cannot see is what keeps the
 /// narrowing from being silent.
-const REACH_NOTE: &str =
-    "[reach] demand is measured from the screens ledger and from nothing else, so a zero here \
+const REACH_NOTE: &str = "[reach] demand is measured from the screens ledger and from nothing else, so a zero here \
      is zero consumers on the DECLARED SURFACE ([surface] screen_globs) and not zero in the \
      repository. Three kinds of consumer are outside its reach and are NOT counted: a \
      component consumed by another component rather than by a screen; a route that reaches the \
@@ -99,8 +94,7 @@ const REACH_NOTE: &str =
      names; and a dynamic or computed import the scanner cannot resolve to a module. A warrant \
      citing this proof is bounded by the ledger content digest recorded on it and must say so.";
 
-const NO_SCREENS_NOTE: &str =
-    "[surface] the screens ledger declares no screens, so a zero-consumer measurement here \
+const NO_SCREENS_NOTE: &str = "[surface] the screens ledger declares no screens, so a zero-consumer measurement here \
      would be the ABSENCE of a measurement rather than one, and a drain certified against it \
      would certify nothing. Every drain row is skipped and this run is vacuous \
      (VDS S-7(2)(4)).";
@@ -161,7 +155,9 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
         check_successor(&mut run, &index, record, &location);
 
         let Some(code) = &record.code else {
-            run.row(Verdict::Skipped("deprecated_record_has_no_code_counterpart"));
+            run.row(Verdict::Skipped(
+                "deprecated_record_has_no_code_counterpart",
+            ));
             run.warn(Violation::fatal(
                 location,
                 RULE_UNMEASURABLE,
@@ -548,7 +544,10 @@ mod tests {
         let (outcome, text) = run_kind(&h, ProofKind::RetirementDrain);
         assert_eq!(outcome.status, ProofStatus::Vacuous, "{text}");
         assert_eq!(outcome.exit_code, EXIT_VACUOUS, "{text}");
-        assert!(text.contains("no_screens_on_the_declared_surface"), "{text}");
+        assert!(
+            text.contains("no_screens_on_the_declared_surface"),
+            "{text}"
+        );
         assert!(text.contains("ABSENCE of a measurement"), "{text}");
     }
 
@@ -577,7 +576,10 @@ mod tests {
 
         let record = h.last_proof(ProofKind::RetirementDrain);
         assert!(
-            record.notes.iter().any(|n| n.contains("SUBMISSION-VDS-004")),
+            record
+                .notes
+                .iter()
+                .any(|n| n.contains("SUBMISSION-VDS-004")),
             "{:?}",
             record.notes
         );

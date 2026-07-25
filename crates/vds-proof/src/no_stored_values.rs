@@ -68,8 +68,8 @@ use std::io::Write;
 use vds_core::{ProofKind, Result, VdsError, Violation};
 use walkdir::WalkDir;
 
-use crate::run::{Outcome, Verdict};
 use crate::ProofContext;
+use crate::run::{Outcome, ProofRun, Verdict};
 
 pub const GATE: &str = "crates/vds-proof/src/no_stored_values.rs";
 
@@ -81,16 +81,16 @@ const RULE_LENGTH: &str =
     "VDS S-2(8) limb 1 R3: a number carrying a CSS length unit anywhere under the record";
 const RULE_DURATION: &str =
     "VDS S-2(8) limb 1 R4: a number carrying a CSS time unit anywhere under the record";
-const RULE_EASING: &str =
-    "VDS S-2(8) limb 1 R5: an easing curve anywhere under the record";
-const RULE_FONT: &str =
-    "VDS S-2(8) limb 1 R6: a font family anywhere under the record";
+const RULE_EASING: &str = "VDS S-2(8) limb 1 R5: an easing curve anywhere under the record";
+const RULE_FONT: &str = "VDS S-2(8) limb 1 R6: a font family anywhere under the record";
 const RULE_FIELD_NAME: &str =
     "VDS S-2(4) R7: a field whose NAME names a realisation rather than a requirement";
 const RULE_ENCODED: &str =
     "VDS S-2(8) limb 2 R8: a design value recovered from a reversible encoding under the record";
 const RULE_UNREADABLE: &str =
     "VDS S-3(9) R9: a record this scan cannot decode as text, and therefore cannot certify";
+const RULE_MANY: &str =
+    "VDS S-2(8): one file holds more realisations than this record lists individually";
 const RULE_SYMLINK: &str =
     "VDS S-3(9) W1: a symlink under the record, which this scan counts and does not follow";
 
@@ -99,14 +99,12 @@ const RULE_SYMLINK: &str =
 /// One sentence, shared, because the answer is the same in every case and a
 /// per-rule paraphrase would let the rules drift apart in wording while saying
 /// the same thing.
-const EXPECTED_REALISATION: &str =
-    "the artefact names the token, the boundary or the requirement BY NAME and leaves the value \
+const EXPECTED_REALISATION: &str = "the artefact names the token, the boundary or the requirement BY NAME and leaves the value \
      in the record VDS S-2(3) makes the system of record for it. A requirement may be held here; \
      a realisation may not (VDS S-2(4)), and it is recoverable from the record whether it is \
      written as a literal or as an encoding (VDS S-2(8)).";
 
-const EXPECTED_FIELD_NAME: &str =
-    "a field name that names the DUTY the artefact imposes, not the answer the design gives it. \
+const EXPECTED_FIELD_NAME: &str = "a field name that names the DUTY the artefact imposes, not the answer the design gives it. \
      A field whose purpose is to hold a value has no lawful form here and is deleted, not \
      emptied (VDS S-2(4)).";
 
@@ -116,8 +114,7 @@ const EXPECTED_FIELD_NAME: &str =
 /// silently: the count of the remainder is reported as its own fatal finding.
 const MAX_FINDINGS_PER_FILE: usize = 20;
 
-pub const REDACTION_NOTE: &str =
-    "[redaction] a finding names the file, the line, the column, the class of realisation and \
+pub const REDACTION_NOTE: &str = "[redaction] a finding names the file, the line, the column, the class of realisation and \
      its length in characters, and never the matched text. A captured proof record lands under \
      the record this proof scans, so a finding that copied the value would put that value under \
      the record permanently and this gate would then fail forever on a file it wrote itself. \
@@ -125,23 +122,20 @@ pub const REDACTION_NOTE: &str =
      digest of the matched text: VDS S-2(7) holds that a digest of a low-entropy value is the \
      value.";
 
-pub const PROSE_NOTE: &str =
-    "[prose] prose is NOT exempt. VDS S-2(8) makes the test recoverability rather than spelling, \
+pub const PROSE_NOTE: &str = "[prose] prose is NOT exempt. VDS S-2(8) makes the test recoverability rather than spelling, \
      so a value written into a rationale, a note or a breach report is as recoverable as one \
      written into a field. Exempting a list of prose-bearing keys would be a hole a realisation \
      walks through by moving one field to the left. A note that must discuss a realisation names \
      its class, as every note in this run does.";
 
-pub const IGNORED_NOTE: &str =
-    "[scope] every file under the record is scanned except those in the two directories VDS \
+pub const IGNORED_NOTE: &str = "[scope] every file under the record is scanned except those in the two directories VDS \
      S-3(9) ignores. Their files are counted and skipped by name, so the carve-out is a number \
      in this record. They are also not recorded as inputs, because a write to a scratch \
      directory must not move the evidence digest a warrant cites.";
 
 /// The gap that decides whether this proof is honest, stated where a reader of
 /// the record will see it rather than in a comment only the author reads.
-pub const PREIMAGE_NOTE: &str =
-    "[undischarged] this run discharges VDS S-2(8) limb 1 in full, and limb 2 only for the \
+pub const PREIMAGE_NOTE: &str = "[undischarged] this run discharges VDS S-2(8) limb 1 in full, and limb 2 only for the \
      REVERSIBLE transforms: a hexadecimal or base64 encoding is decoded and re-tested. It does \
      NOT discharge limb 2 for the one-way transforms. It does not enumerate the VDS S-2(9) \
      candidate space against the sha256, sha1 and md5 digests harvested from the tree, so a \
@@ -149,8 +143,7 @@ pub const PREIMAGE_NOTE: &str =
      That is the exact form the first token pin leaked in, so any warrant citing this proof must \
      record the preimage limb as undischarged (VDS S-6(3)).";
 
-pub const PATTERN_FLOOR_NOTE: &str =
-    "[reach] the pattern set is a floor and is named in the gate: colour literals in the \
+pub const PATTERN_FLOOR_NOTE: &str = "[reach] the pattern set is a floor and is named in the gate: colour literals in the \
      hash-sigil form, the CSS colour functions, numbers carrying a CSS length or time unit, \
      timing functions and named easing keywords, the CSS generic font-family keywords, and a \
      closed list of field names that name a realisation. A bare family name under a field name \
@@ -158,8 +151,7 @@ pub const PATTERN_FLOOR_NOTE: &str =
      project's font families, and holding that list here would itself be the storing form this \
      proof exists to prevent.";
 
-pub const SELF_SUBJECT_NOTE: &str =
-    "[self-reference] this proof captures its own record into the tree it scans, so the NEXT run \
+pub const SELF_SUBJECT_NOTE: &str = "[self-reference] this proof captures its own record into the tree it scans, so the NEXT run \
      reads one more file than this one did. Two consecutive runs over an otherwise unchanged \
      tree therefore cite different evidence digests. That is the subject moving, not the check \
      (VDS S-7(2)(1)).";
@@ -270,14 +262,17 @@ fn outside_the_record(root: &Path, path: &Path) -> bool {
         return false;
     };
     matches!(
-        relative.components().next().and_then(|c| c.as_os_str().to_str()),
+        relative
+            .components()
+            .next()
+            .and_then(|c| c.as_os_str().to_str()),
         Some("cache") | Some("private")
     )
 }
 
 /// Emit one file's findings, capped, with the remainder counted rather than
 /// dropped.
-fn report(run: &mut crate::run::ProofRun, location: &str, text: &str, patterns: &Patterns) {
+fn report(run: &mut ProofRun, location: &str, text: &str, patterns: &Patterns) {
     let mut found: Vec<(usize, Hit)> = Vec::new();
     for (index, line) in text.lines().enumerate() {
         for hit in literals_in(line, patterns) {
@@ -304,7 +299,7 @@ fn report(run: &mut crate::run::ProofRun, location: &str, text: &str, patterns: 
     if total > MAX_FINDINGS_PER_FILE {
         run.fail(Violation::fatal(
             location.to_owned(),
-            RULE_COLOUR_LITERAL,
+            RULE_MANY,
             EXPECTED_REALISATION,
             format!(
                 "{total} realisations in this one file. The first {MAX_FINDINGS_PER_FILE} are \
@@ -320,8 +315,10 @@ fn report(run: &mut crate::run::ProofRun, location: &str, text: &str, patterns: 
 
 /// One realisation found in one line, described without being quoted.
 struct Hit {
-    /// A stable machine key for what kind of realisation this is.
-    class: &'static str,
+    /// A stable machine key for what kind of realisation this is. Owned, because
+    /// the encoded limb composes its key from the encoding and the class it
+    /// recovered.
+    class: String,
     rule: &'static str,
     expected: &'static str,
     /// 1-based character column, so a reader can find it in an editor.
@@ -403,9 +400,25 @@ const REALISATION_FIELD_NAMES: &[&str] = &[
 /// and `name` are prop and contract vocabulary. `width` and `height` describe a
 /// Figma frame. The literal rules still catch any of these the moment the value
 /// carries a unit, which is the form a realisation almost always takes.
-const EXCLUDED_FIELD_NAMES: &[&str] = &[
-    "duration", "durationms", "delay", "size", "width", "height", "opacity", "background",
-    "foreground", "shadow", "spacing", "gap", "padding", "margin", "key", "type", "name", "scope",
+pub const EXCLUDED_FIELD_NAMES: &[&str] = &[
+    "duration",
+    "durationms",
+    "delay",
+    "size",
+    "width",
+    "height",
+    "opacity",
+    "background",
+    "foreground",
+    "shadow",
+    "spacing",
+    "gap",
+    "padding",
+    "margin",
+    "key",
+    "type",
+    "name",
+    "scope",
 ];
 
 impl Patterns {
@@ -486,7 +499,10 @@ fn literals_in(line: &str, patterns: &Patterns) -> Vec<Hit> {
 
     for captures in patterns.number_unit.captures_iter(line) {
         let whole = captures.get(0).expect("group 0 always matches");
-        let unit = captures.get(2).expect("the unit group is not optional").as_str();
+        let unit = captures
+            .get(2)
+            .expect("the unit group is not optional")
+            .as_str();
         // A number glued to a letter is only a length if nothing else is glued
         // to either end. `sha256` fails on the left, `12px3` on the right.
         if wordish_before(line, whole.start()) || wordish_at(line, whole.end()) {
@@ -573,25 +589,37 @@ fn recovered_in(line: &str, patterns: &Patterns) -> Vec<Hit> {
 
     for found in patterns.hex_run.find_iter(line) {
         let token = found.as_str();
-        if token.len() % 2 != 0 || token.len() > MAX_ENCODED_TOKEN {
+        if !token.len().is_multiple_of(2) || token.len() > MAX_ENCODED_TOKEN {
             continue;
         }
-        if let Some(decoded) = decode_hex(token).and_then(printable) {
-            if let Some(inner) = literals_in(&decoded, patterns).into_iter().next() {
-                hits.push(encoded_hit("hexadecimal", inner.class, line, found.start(), token));
-            }
+        if let Some(decoded) = decode_hex(token).and_then(printable)
+            && let Some(inner) = literals_in(&decoded, patterns).into_iter().next()
+        {
+            hits.push(encoded_hit(
+                "hexadecimal",
+                &inner.class,
+                line,
+                found.start(),
+                token,
+            ));
         }
     }
 
     for found in patterns.base64_run.find_iter(line) {
         let token = found.as_str();
-        if token.len() % 4 != 0 || token.len() > MAX_ENCODED_TOKEN {
+        if !token.len().is_multiple_of(4) || token.len() > MAX_ENCODED_TOKEN {
             continue;
         }
-        if let Some(decoded) = decode_base64(token).and_then(printable) {
-            if let Some(inner) = literals_in(&decoded, patterns).into_iter().next() {
-                hits.push(encoded_hit("base64", inner.class, line, found.start(), token));
-            }
+        if let Some(decoded) = decode_base64(token).and_then(printable)
+            && let Some(inner) = literals_in(&decoded, patterns).into_iter().next()
+        {
+            hits.push(encoded_hit(
+                "base64",
+                &inner.class,
+                line,
+                found.start(),
+                token,
+            ));
         }
     }
 
@@ -604,7 +632,7 @@ fn recovered_in(line: &str, patterns: &Patterns) -> Vec<Hit> {
 const MAX_ENCODED_TOKEN: usize = 4096;
 
 fn hit(
-    class: &'static str,
+    class: &str,
     rule: &'static str,
     expected: &'static str,
     line: &str,
@@ -612,7 +640,7 @@ fn hit(
     matched: &str,
 ) -> Hit {
     Hit {
-        class,
+        class: class.to_owned(),
         rule,
         expected,
         column: column_of(line, byte_offset),
@@ -625,19 +653,13 @@ fn hit(
 /// was hidden; the value itself would put it back under the record.
 fn encoded_hit(
     encoding: &'static str,
-    recovered: &'static str,
+    recovered: &str,
     line: &str,
     byte_offset: usize,
     token: &str,
 ) -> Hit {
-    // A leaked `&'static str` is the honest shape here: the pair of encoding and
-    // recovered class is drawn from two closed sets, so the number of distinct
-    // strings this can ever produce is bounded by their product.
-    let class: &'static str = Box::leak(
-        format!("encoded_realisation:{encoding}:{recovered}").into_boxed_str(),
-    );
     Hit {
-        class,
+        class: format!("encoded_realisation:{encoding}:{recovered}"),
         rule: RULE_ENCODED,
         expected: EXPECTED_REALISATION,
         column: column_of(line, byte_offset),
@@ -681,7 +703,7 @@ fn decode_hex(token: &str) -> Option<Vec<u8>> {
     // An odd-length run cannot be a hex encoding of anything. Refused here as
     // well as at the call site, because a decoder that panics on a shape its
     // caller happens to filter out is a decoder waiting for a second caller.
-    if bytes.len() % 2 != 0 {
+    if !bytes.len().is_multiple_of(2) {
         return None;
     }
     let mut out = Vec::with_capacity(bytes.len() / 2);
@@ -745,10 +767,10 @@ fn printable(bytes: Vec<u8>) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::{run_kind, Harness};
+    use crate::testing::{Harness, run_kind};
     use vds_core::{
-        ProofKind, ProofStatus, Severity, Status, EXIT_PASSED, EXIT_PRECONDITION, EXIT_VACUOUS,
-        EXIT_VIOLATION,
+        EXIT_PASSED, EXIT_PRECONDITION, EXIT_VACUOUS, EXIT_VIOLATION, ProofKind, ProofStatus,
+        Severity, Status,
     };
 
     /// A tree of requirements only: a contrast floor drawn from WCAG, a
@@ -833,7 +855,10 @@ mod tests {
     fn fails_with(contents: &str, class: &str) {
         let (outcome, text) = scan_with(contents);
         assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
-        assert!(text.contains(class), "expected a {class} finding in:\n{text}");
+        assert!(
+            text.contains(class),
+            "expected a {class} finding in:\n{text}"
+        );
     }
 
     fn passes(contents: &str) {
@@ -847,13 +872,21 @@ mod tests {
     #[test]
     fn r1_a_colour_literal_is_fatal_in_every_srgb_spelling() {
         for spelling in ["#fff", "#ffff", "#ebebeb", "#ebebebff", "#EBEBEB"] {
-            fails_with(&format!("id: CMP-0001\nnotes: '{spelling}'\n"), "colour_literal");
+            fails_with(
+                &format!("id: CMP-0001\nnotes: '{spelling}'\n"),
+                "colour_literal",
+            );
         }
     }
 
     #[test]
     fn r2_a_colour_function_is_fatal() {
-        for spelling in ["rgb(1,2,3)", "rgba(1,2,3,0.5)", "hsl(1,2,3)", "oklch(1 2 3)"] {
+        for spelling in [
+            "rgb(1,2,3)",
+            "rgba(1,2,3,0.5)",
+            "hsl(1,2,3)",
+            "oklch(1 2 3)",
+        ] {
             fails_with(&format!("notes: '{spelling}'\n"), "colour_function");
         }
     }
@@ -890,15 +923,25 @@ mod tests {
     /// form whatever it currently holds, so the finding is on the NAME.
     #[test]
     fn r7_a_field_whose_name_names_a_realisation_is_fatal_whatever_its_value() {
-        for line in ["color: surface-1", "fontFamily: brand", "border-radius: token-a"] {
-            fails_with(&format!("id: CMP-0001\n{line}\n"), "realisation_named_field");
+        for line in [
+            "color: surface-1",
+            "fontFamily: brand",
+            "border-radius: token-a",
+        ] {
+            fails_with(
+                &format!("id: CMP-0001\n{line}\n"),
+                "realisation_named_field",
+            );
         }
     }
 
     #[test]
     fn r8_a_colour_hidden_in_a_hexadecimal_encoding_is_recovered() {
         // The hexadecimal encoding of a six-digit colour literal.
-        fails_with("notes: '23656265626562'\n", "encoded_realisation:hexadecimal");
+        fails_with(
+            "notes: '23656265626562'\n",
+            "encoded_realisation:hexadecimal",
+        );
     }
 
     #[test]
@@ -910,7 +953,11 @@ mod tests {
     #[test]
     fn r9_a_file_that_is_not_utf8_text_is_reported_rather_than_scanned_as_clean() {
         let h = Harness::new();
-        std::fs::write(h.root().join(".vds/register/CMP-0001.yaml"), [0xff, 0xfe, 0x00]).unwrap();
+        std::fs::write(
+            h.root().join(".vds/register/CMP-0001.yaml"),
+            [0xff, 0xfe, 0x00],
+        )
+        .unwrap();
         let (outcome, text) = run_kind(&h, ProofKind::NoStoredValues);
         assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
         assert!(text.contains("not valid UTF-8"), "{text}");
@@ -1036,7 +1083,10 @@ mod tests {
     #[test]
     fn a_finding_names_the_place_and_never_the_value() {
         let h = Harness::new();
-        h.write(".vds/register/CMP-0001.yaml", "id: CMP-0001\nnotes: '#ebebeb'\n");
+        h.write(
+            ".vds/register/CMP-0001.yaml",
+            "id: CMP-0001\nnotes: '#ebebeb'\n",
+        );
         run_kind(&h, ProofKind::NoStoredValues);
 
         let record = h.last_proof(ProofKind::NoStoredValues);
@@ -1069,7 +1119,9 @@ mod tests {
 
         let record = h.last_proof(ProofKind::NoStoredValues);
         assert_eq!(
-            record.rows_skipped_reasons.get("outside_the_record_vds_s3_9"),
+            record
+                .rows_skipped_reasons
+                .get("outside_the_record_vds_s3_9"),
             Some(&2),
             "the carve-out has to be a number in the record, not an omission"
         );
@@ -1131,7 +1183,10 @@ mod tests {
             record.notes
         );
         assert!(
-            record.notes.iter().any(|n| n.contains("prose is NOT exempt")),
+            record
+                .notes
+                .iter()
+                .any(|n| n.contains("prose is NOT exempt")),
             "the carve-out that was NOT taken is as much a note as one that was: {:?}",
             record.notes
         );
@@ -1169,9 +1224,21 @@ mod tests {
 
     #[test]
     fn the_encodings_round_trip_the_way_the_recovery_limb_assumes() {
-        assert_eq!(decode_hex("23656265626562").and_then(printable).as_deref(), Some("#ebebeb"));
-        assert_eq!(decode_base64("I2ViZWJlYg==").and_then(printable).as_deref(), Some("#ebebeb"));
-        assert_eq!(decode_base64("YWJjZA==").and_then(printable).as_deref(), Some("abcd"));
-        assert!(decode_hex("2365626562656").is_none(), "an odd-length run is not hex bytes");
+        assert_eq!(
+            decode_hex("23656265626562").and_then(printable).as_deref(),
+            Some("#ebebeb")
+        );
+        assert_eq!(
+            decode_base64("I2ViZWJlYg==").and_then(printable).as_deref(),
+            Some("#ebebeb")
+        );
+        assert_eq!(
+            decode_base64("YWJjZA==").and_then(printable).as_deref(),
+            Some("abcd")
+        );
+        assert!(
+            decode_hex("2365626562656").is_none(),
+            "an odd-length run is not hex bytes"
+        );
     }
 }

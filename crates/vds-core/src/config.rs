@@ -171,8 +171,8 @@ impl Config {
     }
 
     pub fn parse(text: &str, where_from: &str) -> Result<Config> {
-        let config: Config = toml::from_str(text)
-            .map_err(|e| VdsError::parse(where_from, "TOML", e.message()))?;
+        let config: Config =
+            toml::from_str(text).map_err(|e| VdsError::parse(where_from, "TOML", e.message()))?;
         if config.version > CONFIG_VERSION {
             return Err(VdsError::SchemaVersionAhead {
                 path: where_from.to_owned(),
@@ -321,8 +321,10 @@ mod tests {
 
     #[test]
     fn a_path_escaping_the_root_is_refused_at_load() {
-        let text = default_config("demo", "DEMO")
-            .replace(r#"register = ".vds/register""#, r#"register = "../elsewhere""#);
+        let text = default_config("demo", "DEMO").replace(
+            r#"register = ".vds/register""#,
+            r#"register = "../elsewhere""#,
+        );
         assert!(Config::parse(&text, "c.toml").is_err());
     }
 

@@ -60,7 +60,9 @@ impl SubmissionTrigger {
     }
 
     pub fn parse(raw: &str) -> Option<SubmissionTrigger> {
-        SubmissionTrigger::ALL.into_iter().find(|t| t.as_str() == raw)
+        SubmissionTrigger::ALL
+            .into_iter()
+            .find(|t| t.as_str() == raw)
     }
 }
 
@@ -204,7 +206,11 @@ mod tests {
 
     #[test]
     fn a_well_formed_submission_has_no_defects() {
-        assert!(submission().defects().is_empty(), "{:?}", submission().defects());
+        assert!(
+            submission().defects().is_empty(),
+            "{:?}",
+            submission().defects()
+        );
     }
 
     #[test]

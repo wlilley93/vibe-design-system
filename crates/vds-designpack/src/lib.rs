@@ -15,9 +15,7 @@
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
-use vds_core::{
-    Digest, Project, Result, Timestamp, VdsError, digest_rows, write_text_atomically,
-};
+use vds_core::{Digest, Project, Result, Timestamp, VdsError, digest_rows, write_text_atomically};
 use walkdir::WalkDir;
 
 pub const LOCK_SCHEMA_VERSION: u32 = 1;
@@ -169,7 +167,10 @@ pub enum PackVerdict {
     /// record a digest in force it was never told to expect.
     NoLock,
     InForce,
-    Drifted { pinned: Digest, actual: Digest },
+    Drifted {
+        pinned: Digest,
+        actual: Digest,
+    },
 }
 
 impl std::fmt::Display for PackVerdict {
@@ -243,7 +244,11 @@ mod tests {
     #[test]
     fn a_vendored_pack_digests_its_contents() {
         let (_tmp, project) = scaffold();
-        vendor(&project, "v1/statutes/ACT-VDS-001.yaml", "id: ACT-VDS-001\n");
+        vendor(
+            &project,
+            "v1/statutes/ACT-VDS-001.yaml",
+            "id: ACT-VDS-001\n",
+        );
         let digest = digest_in_force(&project).unwrap();
         assert_ne!(digest, absent_digest());
         assert_eq!(digest, digest_in_force(&project).unwrap(), "deterministic");

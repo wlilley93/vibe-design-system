@@ -24,9 +24,7 @@ pub mod types;
 
 pub use config::{Config, Governance, PathRole, Paths, SurfaceConfig, default_config};
 pub use digest::{Digest, canonical_json, digest_rows};
-pub use error::{
-    EXIT_PASSED, EXIT_PRECONDITION, EXIT_VACUOUS, EXIT_VIOLATION, Result, VdsError,
-};
+pub use error::{EXIT_PASSED, EXIT_PRECONDITION, EXIT_VACUOUS, EXIT_VIOLATION, Result, VdsError};
 pub use ids::{ComponentId, PinId, ProofId, SubmissionId, WarrantId};
 pub use project::{Project, write_atomically, write_text_atomically, yaml_files};
 pub use timestamp::Timestamp;
@@ -83,19 +81,55 @@ mod tests {
         // struct is caught too.
         let mut generator = schemars::r#gen::SchemaSettings::draft2019_09().into_generator();
         let schemas = [
-            ("component-record", serde_json::to_string(&generator.root_schema_for::<ComponentRecord>()).unwrap()),
-            ("warrant", serde_json::to_string(&generator.root_schema_for::<Warrant>()).unwrap()),
-            ("proof-result", serde_json::to_string(&generator.root_schema_for::<ProofResult>()).unwrap()),
-            ("pin", serde_json::to_string(&generator.root_schema_for::<Pin>()).unwrap()),
-            ("submission", serde_json::to_string(&generator.root_schema_for::<Submission>()).unwrap()),
-            ("enforcement-lock-entry", serde_json::to_string(&generator.root_schema_for::<LockEntry>()).unwrap()),
+            (
+                "component-record",
+                serde_json::to_string(&generator.root_schema_for::<ComponentRecord>()).unwrap(),
+            ),
+            (
+                "warrant",
+                serde_json::to_string(&generator.root_schema_for::<Warrant>()).unwrap(),
+            ),
+            (
+                "proof-result",
+                serde_json::to_string(&generator.root_schema_for::<ProofResult>()).unwrap(),
+            ),
+            (
+                "pin",
+                serde_json::to_string(&generator.root_schema_for::<Pin>()).unwrap(),
+            ),
+            (
+                "submission",
+                serde_json::to_string(&generator.root_schema_for::<Submission>()).unwrap(),
+            ),
+            (
+                "enforcement-lock-entry",
+                serde_json::to_string(&generator.root_schema_for::<LockEntry>()).unwrap(),
+            ),
         ];
         // Property NAMES only. A description may legitimately use the word
         // "colour" while explaining why there is no colour field.
         let forbidden = [
-            "colour", "color", "hex", "rgb", "hsl", "oklch", "fontFamily", "fontSize",
-            "lineHeight", "letterSpacing", "radius", "borderRadius", "shadow", "boxShadow",
-            "duration", "easing", "cubicBezier", "spacing", "px", "rem", "opacity",
+            "colour",
+            "color",
+            "hex",
+            "rgb",
+            "hsl",
+            "oklch",
+            "fontFamily",
+            "fontSize",
+            "lineHeight",
+            "letterSpacing",
+            "radius",
+            "borderRadius",
+            "shadow",
+            "boxShadow",
+            "duration",
+            "easing",
+            "cubicBezier",
+            "spacing",
+            "px",
+            "rem",
+            "opacity",
         ];
         for (name, schema) in &schemas {
             for property in &forbidden {

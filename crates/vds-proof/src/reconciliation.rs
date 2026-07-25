@@ -45,7 +45,7 @@ use std::io::Write;
 use std::path::{Component, Path, PathBuf};
 
 use vds_core::{
-    ComponentRecord, Digest, ProofKind, Project, Result, Status, Timestamp, VdsError, Violation,
+    ComponentRecord, Digest, Project, ProofKind, Result, Status, Timestamp, VdsError, Violation,
 };
 
 use crate::ProofContext;
@@ -56,23 +56,20 @@ pub const GATE: &str = "crates/vds-proof/src/reconciliation.rs";
 
 const RULE_NO_CODE_COUNTERPART: &str =
     "VDS S-5(6)(a) reconciliation: a register entry with no resolvable code counterpart";
-const RULE_BUILT_WITHOUT_CODE: &str =
-    "VDS S-5(6)(a) / component-record schema: code is required non-null once status is built \
+const RULE_BUILT_WITHOUT_CODE: &str = "VDS S-5(6)(a) / component-record schema: code is required non-null once status is built \
      or later";
 const RULE_SOURCE_FILE_NOT_RELATIVE: &str =
     "VDS S-5(6)(a) / component-record schema: code.sourceFile is a repository-relative path";
 const RULE_RETIRED_STILL_PRESENT: &str =
     "VDS S-9(8) reconciliation: after retirement the code being there is the defect";
-const RULE_NO_REGISTER_ENTRY: &str =
-    "VDS S-5(6)(b) reconciliation: a component in a governed library directory with no \
+const RULE_NO_REGISTER_ENTRY: &str = "VDS S-5(6)(b) reconciliation: a component in a governed library directory with no \
      register entry";
 const RULE_STALE_DEMAND: &str =
     "VDS S-5(7): a demand figure older than its ledger's generation is stale";
 
 /// Limb (c) is out of reach from inside a proof, and the reason is statutory
 /// rather than a matter of effort.
-pub const NOT_REACHED_FIGMA: &str =
-    "[reach] limb (c) of VDS S-5(6), whether each register entry's Figma node id resolves in \
+pub const NOT_REACHED_FIGMA: &str = "[reach] limb (c) of VDS S-5(6), whether each register entry's Figma node id resolves in \
      the pinned file, is NOT checked by this run. Resolving a node id requires a call to the \
      Figma API and VDS S-7(2)(1) forbids a network call inside a proof, so every record was \
      counted and skipped rather than passed. A register entry naming a node that was deleted \
@@ -80,8 +77,7 @@ pub const NOT_REACHED_FIGMA: &str =
 
 /// Limb (d) is out of reach because this build has no TypeScript analysis, which
 /// is a capability gap and is recorded as one.
-pub const NOT_REACHED_CONTRACTS: &str =
-    "[reach] limb (d) of VDS S-5(6), whether prop and state contracts agree between the record \
+pub const NOT_REACHED_CONTRACTS: &str = "[reach] limb (d) of VDS S-5(6), whether prop and state contracts agree between the record \
      and the code, is NOT checked by this run. Comparing them requires reading and analysing \
      the component's TypeScript source, which this build does not do, so every record with a \
      declared code counterpart was counted and skipped rather than passed. A record whose \
@@ -89,13 +85,11 @@ pub const NOT_REACHED_CONTRACTS: &str =
 
 /// The two limbs a warrant may actually rely on, stated in the run so the
 /// warrant cannot be written wider than the evidence.
-pub const REACH_SUMMARY: &str =
-    "[reach] this run establishes limbs (a) and (b) of VDS S-5(6) over the declared surface, \
+pub const REACH_SUMMARY: &str = "[reach] this run establishes limbs (a) and (b) of VDS S-5(6) over the declared surface, \
      and neither (c) nor (d). docs/GOAL.md D1 lists all four, and a warrant citing this proof \
      must not be described as covering the two it did not reach.";
 
-pub const CARVE_OUT_NOTE: &str =
-    "[carve-out] a library file named index.*, *.test.*, *.spec.* or *.stories.* is counted \
+pub const CARVE_OUT_NOTE: &str = "[carve-out] a library file named index.*, *.test.*, *.spec.* or *.stories.* is counted \
      and NOT enforced against the register under limb (b): a barrel re-exports components \
      rather than defining one, and a test or a story is not a shipped component. A component \
      defined inside a file with one of those names is therefore outside this proof, and the \
@@ -497,7 +491,10 @@ mod tests {
                 }
             })
             .collect();
-        h.write(".vds/ledgers/screens.yaml", &format!("{}\n", edited.join("\n")));
+        h.write(
+            ".vds/ledgers/screens.yaml",
+            &format!("{}\n", edited.join("\n")),
+        );
     }
 
     #[test]
@@ -533,7 +530,10 @@ mod tests {
         assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
         assert_eq!(outcome.status, ProofStatus::Failed);
         assert!(text.contains("src/components/ui/orphan.tsx"), "{text}");
-        assert!(text.contains("no register record names this file"), "{text}");
+        assert!(
+            text.contains("no register record names this file"),
+            "{text}"
+        );
     }
 
     #[test]
@@ -587,7 +587,10 @@ mod tests {
 
         let (outcome, text) = run_kind(&h, ProofKind::Reconciliation);
         assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
-        assert!(text.contains("the code being there is the defect"), "{text}");
+        assert!(
+            text.contains("the code being there is the defect"),
+            "{text}"
+        );
     }
 
     #[test]
@@ -629,10 +632,22 @@ mod tests {
         let h = Harness::new();
         h.register("Button", Status::Registered);
         h.component_file("Button");
-        h.write("src/components/ui/index.tsx", "export * from \"./button\";\n");
-        h.write("src/components/ui/button.test.tsx", "test(\"x\", () => {});\n");
-        h.write("src/components/ui/button.spec.tsx", "test(\"x\", () => {});\n");
-        h.write("src/components/ui/button.stories.tsx", "export const A = {};\n");
+        h.write(
+            "src/components/ui/index.tsx",
+            "export * from \"./button\";\n",
+        );
+        h.write(
+            "src/components/ui/button.test.tsx",
+            "test(\"x\", () => {});\n",
+        );
+        h.write(
+            "src/components/ui/button.spec.tsx",
+            "test(\"x\", () => {});\n",
+        );
+        h.write(
+            "src/components/ui/button.stories.tsx",
+            "export const A = {};\n",
+        );
         h.ledger();
         freshen_demand(&h);
 
@@ -668,7 +683,10 @@ mod tests {
             "VDS S-5(6) does not make staleness one of the four sets whose non-emptiness is a \
              violation, and S-5(7) requires the proof to say so, which it does: {text}"
         );
-        assert!(text.contains("predates the inventory it describes"), "{text}");
+        assert!(
+            text.contains("predates the inventory it describes"),
+            "{text}"
+        );
 
         let record = h.last_proof(ProofKind::Reconciliation);
         let stale: Vec<_> = record
@@ -739,7 +757,10 @@ mod tests {
 
         let record = h.last_proof(ProofKind::Reconciliation);
         assert!(
-            record.notes.iter().any(|note| note.contains("network call")),
+            record
+                .notes
+                .iter()
+                .any(|note| note.contains("network call")),
             "{:?}",
             record.notes
         );
@@ -749,7 +770,10 @@ mod tests {
             record.notes
         );
         assert!(
-            record.notes.iter().any(|note| note.contains("docs/GOAL.md D1")),
+            record
+                .notes
+                .iter()
+                .any(|note| note.contains("docs/GOAL.md D1")),
             "{:?}",
             record.notes
         );
@@ -792,7 +816,10 @@ mod tests {
         h.ledger();
 
         let error = h.run_kind_err(ProofKind::Reconciliation);
-        assert!(error.to_string().contains("src/components/absent"), "{error}");
+        assert!(
+            error.to_string().contains("src/components/absent"),
+            "{error}"
+        );
         assert!(
             error
                 .to_string()
@@ -821,10 +848,10 @@ mod tests {
 
     #[test]
     fn an_empty_library_dirs_list_says_that_limb_b_enforces_nothing() {
-        let h = Harness::with_config(
-            &default_config("demo", "DEMO")
-                .replace(r#"library_dirs = ["src/components/ui"]"#, "library_dirs = []"),
-        );
+        let h = Harness::with_config(&default_config("demo", "DEMO").replace(
+            r#"library_dirs = ["src/components/ui"]"#,
+            "library_dirs = []",
+        ));
         h.register("Button", Status::Registered);
         h.component_file("Button");
         h.ledger();
@@ -864,7 +891,10 @@ mod tests {
         let (_, text) = run_kind(&h, ProofKind::Reconciliation);
         let after = h.last_proof(ProofKind::Reconciliation);
 
-        assert!(text.contains("predates the inventory it describes"), "{text}");
+        assert!(
+            text.contains("predates the inventory it describes"),
+            "{text}"
+        );
         assert_ne!(
             before.inputs_digest, after.inputs_digest,
             "the finding set moved, so the recorded inputs must move with it, or the record \

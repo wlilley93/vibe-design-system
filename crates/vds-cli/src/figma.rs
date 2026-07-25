@@ -109,7 +109,10 @@ fn pull_command(store: &Store, args: &PullArgs) -> Result<i32> {
     let unresolved = ledger.nodes.len() - resolved;
 
     println!("wrote {}", store.project.rel(&path));
-    println!("  file:           {} ({})", ledger.file_name, ledger.file_key);
+    println!(
+        "  file:           {} ({})",
+        ledger.file_name, ledger.file_key
+    );
     println!("  file version:   {}", ledger.file_version);
     println!("  nodes resolved: {resolved} of {}", ledger.nodes.len());
     if unresolved > 0 {
@@ -154,7 +157,10 @@ fn status(store: &Store) -> Result<i32> {
         return Ok(PASSED);
     };
 
-    println!("figma ledger for {} ({})", ledger.file_name, ledger.file_key);
+    println!(
+        "figma ledger for {} ({})",
+        ledger.file_name, ledger.file_key
+    );
     println!("  file version:  {}", ledger.file_version);
     println!("  generated at:  {}", ledger.generated_at);
     println!();

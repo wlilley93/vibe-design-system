@@ -59,14 +59,12 @@ pub fn verify_lock(store: &Store, gate_paths: &[String]) -> Result<LockVerdict> 
                 path: entry.path.clone(),
                 pinned: entry.digest.clone(),
             }),
-            Some(actual) if actual != entry.digest => {
-                verdict.findings.push(DriftFinding::Drift {
-                    path: entry.path.clone(),
-                    pinned: entry.digest.clone(),
-                    actual,
-                    proves: entry.proves.clone(),
-                })
-            }
+            Some(actual) if actual != entry.digest => verdict.findings.push(DriftFinding::Drift {
+                path: entry.path.clone(),
+                pinned: entry.digest.clone(),
+                actual,
+                proves: entry.proves.clone(),
+            }),
             Some(_) => {
                 // The bytes match. Two further conditions still apply.
                 if !store
@@ -102,7 +100,9 @@ pub fn verify_lock(store: &Store, gate_paths: &[String]) -> Result<LockVerdict> 
 
     for gate in gate_paths {
         if !pinned.contains(gate) {
-            verdict.notes.push(LockNote::Unpinned { path: gate.clone() });
+            verdict
+                .notes
+                .push(LockNote::Unpinned { path: gate.clone() });
         }
     }
 
@@ -312,8 +312,11 @@ mod tests {
         let store = Store::new(&s.project);
         write_lock(&s.project, vec![entry(&s.project, true)]).unwrap();
 
-        std::fs::write(s.project.root.join("gates/a.rs"), "fn gate() { /* weakened */ }\n")
-            .unwrap();
+        std::fs::write(
+            s.project.root.join("gates/a.rs"),
+            "fn gate() { /* weakened */ }\n",
+        )
+        .unwrap();
 
         let verdict = verify_lock(&store, &["gates/a.rs".into()]).unwrap();
         assert_eq!(verdict.findings.len(), 1, "{:?}", verdict.findings);
@@ -379,8 +382,11 @@ mod tests {
     #[test]
     fn writing_a_duplicate_path_is_refused() {
         let s = scaffold();
-        let err = write_lock(&s.project, vec![entry(&s.project, true), entry(&s.project, true)])
-            .unwrap_err();
+        let err = write_lock(
+            &s.project,
+            vec![entry(&s.project, true), entry(&s.project, true)],
+        )
+        .unwrap_err();
         assert!(err.to_string().contains("duplicate entry"), "{err}");
     }
 
@@ -407,9 +413,15 @@ mod tests {
         let s = scaffold();
         let store = Store::new(&s.project);
         write_lock(&s.project, vec![entry(&s.project, true)]).unwrap();
-        let before = store.read_lock().unwrap().unwrap().entries[0].digest.clone();
+        let before = store.read_lock().unwrap().unwrap().entries[0]
+            .digest
+            .clone();
 
-        std::fs::write(s.project.root.join("gates/a.rs"), "fn gate() { /* fixed */ }\n").unwrap();
+        std::fs::write(
+            s.project.root.join("gates/a.rs"),
+            "fn gate() { /* fixed */ }\n",
+        )
+        .unwrap();
         let changed = repin_lock(&store, "gate corrected under DECISION-0001").unwrap();
 
         assert_eq!(changed.len(), 1);
@@ -429,10 +441,7 @@ mod tests {
         write_lock(&s.project, vec![entry(&s.project, true)]).unwrap();
         std::fs::remove_file(s.project.root.join("gates/a.rs")).unwrap();
         let err = repin_lock(&store, "because").unwrap_err();
-        assert!(
-            err.to_string().contains("erase the finding"),
-            "{err}"
-        );
+        assert!(err.to_string().contains("erase the finding"), "{err}");
     }
 
     #[test]

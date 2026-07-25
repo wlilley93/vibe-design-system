@@ -42,29 +42,24 @@ use std::io::Write;
 
 use vds_core::{ProofKind, Result, Violation};
 
+use crate::ProofContext;
 use crate::index::RegisterIndex;
 use crate::run::{Outcome, Verdict};
-use crate::ProofContext;
 
 pub const GATE: &str = "crates/vds-proof/src/register_completeness.rs";
 
-const RULE_ABSENT: &str =
-    "VDS S-7(5) register_completeness R1: every component referenced by any declared screen \
+const RULE_ABSENT: &str = "VDS S-7(5) register_completeness R1: every component referenced by any declared screen \
      exists in the register";
-const RULE_NOT_YET_COMPOSABLE: &str =
-    "VDS S-7(5) register_completeness I1 / S-5(4): the record exists, which is all this proof \
+const RULE_NOT_YET_COMPOSABLE: &str = "VDS S-7(5) register_completeness I1 / S-5(4): the record exists, which is all this proof \
      asks, and its status is not one composition accepts";
-const RULE_UNREACHED: &str =
-    "VDS S-7(5) register_completeness I2: a reference whose import the ledger could not resolve \
+const RULE_UNREACHED: &str = "VDS S-7(5) register_completeness I2: a reference whose import the ledger could not resolve \
      is outside the completeness claim";
-const RULE_ROOT_ONLY: &str =
-    "VDS S-7(5) register_completeness I3: a namespaced reference is established at its root \
+const RULE_ROOT_ONLY: &str = "VDS S-7(5) register_completeness I3: a namespaced reference is established at its root \
      binding only";
 
 /// What this proof establishes, and the thing a reader will otherwise assume it
 /// establishes.
-pub const SCOPE_NOTE: &str =
-    "this proof establishes EXISTENCE and nothing else (VDS S-7(5)). A record at `proposed` or \
+pub const SCOPE_NOTE: &str = "this proof establishes EXISTENCE and nothing else (VDS S-7(5)). A record at `proposed` or \
      `designed` satisfies it and fails `composition`, which is why they are two proofs: W1 \
      REGISTER-COMPLETE is granted on existence alone, before any design work has happened. A \
      warrant citing this run has evidence that the register covers the surface, and no evidence \
@@ -73,15 +68,13 @@ pub const SCOPE_NOTE: &str =
 /// Where the claim stops. Stated on every run rather than left to be inferred
 /// from the skip counts, because docs/GOAL.md is explicit that "no unregistered
 /// component anywhere" is not provable by a finite check.
-pub const BOUND_NOTE: &str =
-    "the claim is bounded by [surface] screen_globs and [surface] governed_import_prefixes. A \
+pub const BOUND_NOTE: &str = "the claim is bounded by [surface] screen_globs and [surface] governed_import_prefixes. A \
      screen outside those globs, a reference imported from outside those prefixes, and a \
      reference whose import the ledger could not resolve are each counted and not enforced. \
      This proof cannot say `no unregistered component anywhere`, only `no absent record among \
      the references it reached`.";
 
-pub const RESERVED_NOTE: &str =
-    "relies on VDS S-9(10) RESERVED (SUBMISSION-VDS-005): bare HTML elements are informational \
+pub const RESERVED_NOTE: &str = "relies on VDS S-9(10) RESERVED (SUBMISSION-VDS-005): bare HTML elements are informational \
      rows only, excluded from rows_enforced. Any warrant citing this proof must record that \
      reliance in its `reserved` array.";
 
@@ -105,6 +98,7 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
     }
 
     let prefixes = &project.config.surface.governed_import_prefixes;
+    let library_dirs = &project.config.surface.library_dirs;
     if prefixes.is_empty() {
         run.note(
             "[surface] governed_import_prefixes is empty, so no reference can be enforced; \
@@ -139,7 +133,9 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
             }
 
             let Some(import_path) = reference.import_path.as_deref() else {
-                run.row(Verdict::Skipped("component_reference_with_no_resolvable_import"));
+                run.row(Verdict::Skipped(
+                    "component_reference_with_no_resolvable_import",
+                ));
                 // Named per site, unlike the ungoverned-import skip below. An
                 // ungoverned import is a carve-out the project declared in its
                 // own config, and a count is enough for it. An unresolved import
@@ -155,20 +151,30 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
                         reference.root
                     ),
                     reference.unresolved_because.clone().unwrap_or_else(|| {
-                        "the ledger records no import path and no reason for its absence"
-                            .to_owned()
+                        "the ledger records no import path and no reason for its absence".to_owned()
                     }),
                 ));
                 continue;
             };
-            if !prefixes.iter().any(|p| import_path.starts_with(p)) {
+            // Governed by EITHER the prefix as written or a relative specifier that
+            // resolves inside a governed library directory. Rewriting one import to
+            // `../../src/components/ui/widget` took a governed component out of
+            // enforcement entirely, and the project declared `@/components/`, not that.
+            if !reference.is_governed(prefixes, library_dirs) {
                 run.row(Verdict::Skipped("import_outside_governed_prefixes"));
+                run.inform(Violation::fatal(
+                    location.clone(),
+                    RULE_UNREACHED,
+                    "an import inside a governed prefix, or one resolving into a governed \
+                     library directory",
+                    format!("imported from {import_path:?}, which is outside both"),
+                ));
                 continue;
             }
 
             run.row(Verdict::Enforced);
 
-            if reference.name != reference.root {
+            if reference.member_is_unverified() {
                 // `<Card.Header />` binds `Card` and nothing else, so the lookup
                 // below answers a narrower question than the tag suggests. Saying
                 // so is the difference between a bounded claim and a false one.
@@ -189,8 +195,10 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
                 ));
             }
 
-            let Some(record) = index.lookup(import_path, &reference.root) else {
-                let misses = index.near_misses(import_path, &reference.root);
+            // The EXPORT name, not the local binding. See composition.rs.
+            let export_name = reference.lookup_name();
+            let Some(record) = index.lookup(import_path, export_name) else {
+                let misses = index.near_misses(import_path, export_name);
                 let detail = if misses.is_empty() {
                     "no register record claims either half of the coordinate".to_owned()
                 } else {
@@ -201,9 +209,9 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
                     RULE_ABSENT,
                     format!(
                         "a register record whose code.importPath is {import_path:?} and whose \
-                         code.exportName is {:?}. Any status satisfies this proof, `proposed` \
-                         included: this is the existence question, not the composition one",
-                        reference.root
+                         code.exportName is {export_name:?}. Any status satisfies this proof, \
+                         `proposed` included: this is the existence question, not the \
+                         composition one"
                     ),
                     format!("absent from the register ({detail})"),
                 ));
@@ -381,7 +389,10 @@ mod tests {
         let (outcome, text) = run_kind(&h, KIND);
         assert_eq!(outcome.status, ProofStatus::Vacuous, "{text}");
         assert_eq!(outcome.exit_code, EXIT_VACUOUS);
-        assert!(text.contains("bare_element_informational_vds_s9_10"), "{text}");
+        assert!(
+            text.contains("bare_element_informational_vds_s9_10"),
+            "{text}"
+        );
         assert!(!text.contains("PASS:"), "no PASS beside a vacuity: {text}");
     }
 
@@ -414,7 +425,10 @@ mod tests {
         h.ledger();
         let (outcome, text) = run_kind(&h, KIND);
         assert_eq!(outcome.exit_code, EXIT_PASSED, "{text}");
-        assert_eq!(outcome.rows_enforced, 1, "only Button was reachable: {text}");
+        assert_eq!(
+            outcome.rows_enforced, 1,
+            "only Button was reachable: {text}"
+        );
         assert!(
             text.contains("component_reference_with_no_resolvable_import"),
             "{text}"
@@ -501,7 +515,9 @@ mod tests {
             "{notes:?}"
         );
         assert!(
-            notes.iter().any(|n| n.contains("EXISTENCE and nothing else")),
+            notes
+                .iter()
+                .any(|n| n.contains("EXISTENCE and nothing else")),
             "a reader of this record must not mistake W1 evidence for W2 evidence: {notes:?}"
         );
         assert!(

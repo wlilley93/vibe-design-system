@@ -14,9 +14,9 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use vds_core::{Digest, Result, Timestamp, VdsError};
 #[cfg(test)]
 use vds_core::ComponentId;
+use vds_core::{Digest, Result, Timestamp, VdsError};
 use vds_store::Store;
 
 use crate::ledger::{
@@ -302,7 +302,10 @@ fn normalise_node_id(raw: &str) -> String {
 
 fn walk(node: &serde_json::Value, out: &mut BTreeMap<String, ComponentSet>) {
     if let Some(id) = node.get("id").and_then(|v| v.as_str()) {
-        let node_type = node.get("type").and_then(|v| v.as_str()).unwrap_or_default();
+        let node_type = node
+            .get("type")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
         let is_set = node_type == "COMPONENT_SET";
         if is_set || node_type == "COMPONENT" {
             let entry = out.entry(normalise_node_id(id)).or_default();
@@ -552,7 +555,12 @@ mod tests {
         let ledger = build_ledger(&store, "KEY", &response(), "a test").unwrap();
         assert_eq!(ledger.unclaimed.len(), 1);
         assert_eq!(ledger.unclaimed[0].figma_name, "Undeclared Thing");
-        assert!(ledger.notes.iter().any(|n| n.contains("governance has never seen")));
+        assert!(
+            ledger
+                .notes
+                .iter()
+                .any(|n| n.contains("governance has never seen"))
+        );
     }
 
     #[test]
@@ -587,7 +595,10 @@ mod tests {
         let f = Fixture::new();
         let store = f.store();
         let error = build_ledger(&store, "KEY", "<html>rate limited</html>", "a test").unwrap_err();
-        assert!(error.to_string().contains("narrower than it looks"), "{error}");
+        assert!(
+            error.to_string().contains("narrower than it looks"),
+            "{error}"
+        );
     }
 
     #[test]

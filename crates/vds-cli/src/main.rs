@@ -62,7 +62,10 @@ enum Command {
     /// Regenerate a generated inventory.
     Ledger(ledger::Args),
     /// Add, amend, deprecate or retire a component record.
-    Register(register::Args),
+    ///
+    /// Boxed: `register` takes more arguments than any other subcommand, and an
+    /// unboxed variant makes every `Command` the size of this one.
+    Register(Box<register::Args>),
     /// Run one proof kind, or every implemented kind.
     Proof(proof::Args),
     /// Report warrant status, or record a warrant granted elsewhere.

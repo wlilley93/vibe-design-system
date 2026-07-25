@@ -19,9 +19,7 @@
 //! is decided, and reading it is the implementer's job rather than VDS's.
 
 use serde::{Deserialize, Serialize};
-use vds_core::{
-    ComponentId, Digest, ProofKind, Result, State, Status, Timestamp, VdsError,
-};
+use vds_core::{ComponentId, Digest, ProofKind, Result, State, Status, Timestamp, VdsError};
 use vds_store::Store;
 
 use crate::ledger::FigmaLedger;
@@ -171,9 +169,16 @@ pub fn build(
                 "accept a prop `{}` of type `{}`, {}",
                 prop.name,
                 prop.type_expr,
-                if prop.required { "required" } else { "optional" }
+                if prop.required {
+                    "required"
+                } else {
+                    "optional"
+                }
             ),
-            basis: format!("the prop contract at contractVersion {}", record.contract_version),
+            basis: format!(
+                "the prop contract at contractVersion {}",
+                record.contract_version
+            ),
             checked_by: Some(ProofKind::Parity.as_str().to_owned()),
         });
     }
@@ -269,8 +274,14 @@ pub fn build(
         format!("vds proof {}", ProofKind::Reconciliation),
         format!("vds proof {}", ProofKind::Composition),
         format!("vds proof {}", ProofKind::States),
-        format!("vds proof {}  (not implemented in this build)", ProofKind::Parity),
-        format!("vds proof {}  (not implemented in this build)", ProofKind::Contrast),
+        format!(
+            "vds proof {}  (not implemented in this build)",
+            ProofKind::Parity
+        ),
+        format!(
+            "vds proof {}  (not implemented in this build)",
+            ProofKind::Contrast
+        ),
     ];
 
     Ok(ImplementationContract {
@@ -307,7 +318,10 @@ impl ImplementationContract {
         );
 
         out.push_str("## Read the design from\n\n");
-        match (&self.read_the_design_from.figma_file, &self.read_the_design_from.figma_node) {
+        match (
+            &self.read_the_design_from.figma_file,
+            &self.read_the_design_from.figma_node,
+        ) {
             (Some(file), Some(node)) => {
                 out.push_str(&format!("- Figma file `{file}`, node `{node}`"));
                 match self.read_the_design_from.resolved {
@@ -375,7 +389,12 @@ mod tests {
         let store = f.store();
         let contract = build(&store, &id, None).unwrap();
         assert!(contract.must.iter().any(|r| r.what.contains("default")));
-        assert!(contract.must.iter().any(|r| r.what.contains("control-border")));
+        assert!(
+            contract
+                .must
+                .iter()
+                .any(|r| r.what.contains("control-border"))
+        );
         assert!(contract.must.iter().any(|r| r.what.contains("export")));
     }
 
@@ -461,7 +480,12 @@ mod tests {
         let store = f.store();
         let contract = build(&store, &id, None).unwrap();
         assert_eq!(contract.read_the_design_from.resolved, None);
-        assert!(contract.read_the_design_from.note.contains("vds figma pull"));
+        assert!(
+            contract
+                .read_the_design_from
+                .note
+                .contains("vds figma pull")
+        );
     }
 
     #[test]

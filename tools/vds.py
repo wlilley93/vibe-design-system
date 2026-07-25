@@ -1295,7 +1295,22 @@ def _warrant_status(project: Project) -> int:
                 )
                 print(f"   evidence {kind}: {note}")
             else:
-                print(f"   evidence {kind}: {proof.get('id')} {proof.get('digest')}")
+                # `warrant record` refuses a record that is not bound to a real run of a real
+                # script. `warrant status` did not, so it happily printed a hand-written record
+                # for an unimplemented kind as available evidence: the D2 defect surviving on
+                # the surface D2 did not reach. A reader deciding whether to seek a warrant
+                # reads THIS, so a false statement here is as misleading as a forged grant.
+                # Same verifier, same refusal, one door.
+                try:
+                    verify_proof_record(project, proof.get("id", "?"), proof)
+                    print(f"   evidence {kind}: {proof.get('id')} {proof.get('digest')}")
+                except VdsError as exc:
+                    # The refusal leads and the id follows in parentheses, deliberately. A
+                    # reader skimming this column sees the verdict, not an id that looks like
+                    # every valid one above it.
+                    print(f"   evidence {kind}: NOT VALID EVIDENCE, and `warrant record` would "
+                          f"refuse it (record {proof.get('id')}): {exc}")
+                    problems += 1
         if stage == "W3":
             print("   evidence: an acceptance event, which no proof can substitute for")
         if not granted:

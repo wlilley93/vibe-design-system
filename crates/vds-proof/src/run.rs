@@ -33,8 +33,8 @@ use std::path::Path;
 
 use serde::Serialize;
 use vds_core::{
-    CaptureMode, Digest, EXIT_PASSED, EXIT_VACUOUS, EXIT_VIOLATION, InvokedBy, ProofId, ProofKind,
-    ProofResult, ProofStatus, Project, Result, Severity, Timestamp, VdsError, Violation,
+    CaptureMode, Digest, EXIT_PASSED, EXIT_VACUOUS, EXIT_VIOLATION, InvokedBy, Project, ProofId,
+    ProofKind, ProofResult, ProofStatus, Result, Severity, Timestamp, VdsError, Violation,
 };
 use vds_store::Store;
 
@@ -137,7 +137,8 @@ impl<'a> ProofRun<'a> {
     /// record instead of the terminal, so a warning is a captured violation
     /// carrying [`Severity::Warning`], not a note.
     pub fn warn(&mut self, violation: Violation) {
-        self.violations.push(violation.with_severity(Severity::Warning));
+        self.violations
+            .push(violation.with_severity(Severity::Warning));
     }
 
     pub fn inform(&mut self, violation: Violation) {
@@ -470,7 +471,8 @@ pub fn verify_record(record: &ProofResult) -> Result<Vec<String>> {
         ProofStatus::Failed => EXIT_VIOLATION,
         ProofStatus::Vacuous => EXIT_VACUOUS,
     };
-    if record.exit_code != expected_exit && !(record.status == ProofStatus::Vacuous && record.exit_code == EXIT_PASSED)
+    if record.exit_code != expected_exit
+        && !(record.status == ProofStatus::Vacuous && record.exit_code == EXIT_PASSED)
     {
         out.push(format!(
             "status is {} and exit_code is {}. The two disagree, and a caller reading only the \
@@ -621,7 +623,12 @@ mod tests {
         let f = fixture();
         let mut r = run(&f.project);
         r.row(Verdict::Enforced);
-        r.fail(Violation::fatal("a.tsx:1", "RULE", "registered", "not registered"));
+        r.fail(Violation::fatal(
+            "a.tsx:1",
+            "RULE",
+            "registered",
+            "not registered",
+        ));
         let outcome = r.finish(&capture(), &mut Vec::new()).unwrap();
         assert_eq!(outcome.status, ProofStatus::Failed);
         assert_eq!(outcome.exit_code, EXIT_VIOLATION);
@@ -712,8 +719,16 @@ mod tests {
         let b = second.finish(&capture(), &mut Vec::new()).unwrap();
 
         assert_ne!(
-            store.read_proof(&a.record_id.unwrap()).unwrap().value.digest,
-            store.read_proof(&b.record_id.unwrap()).unwrap().value.digest
+            store
+                .read_proof(&a.record_id.unwrap())
+                .unwrap()
+                .value
+                .digest,
+            store
+                .read_proof(&b.record_id.unwrap())
+                .unwrap()
+                .value
+                .digest
         );
     }
 
@@ -725,7 +740,12 @@ mod tests {
         for _ in 0..5 {
             let mut r = run(&f.project);
             r.row(Verdict::Enforced);
-            ids.push(r.finish(&capture(), &mut Vec::new()).unwrap().record_id.unwrap());
+            ids.push(
+                r.finish(&capture(), &mut Vec::new())
+                    .unwrap()
+                    .record_id
+                    .unwrap(),
+            );
         }
         ids.sort();
         ids.dedup();
@@ -790,7 +810,9 @@ mod tests {
 
         let defects = verify_record(&forged).unwrap();
         assert!(
-            defects.iter().any(|d| d.contains("does not match its own contents")),
+            defects
+                .iter()
+                .any(|d| d.contains("does not match its own contents")),
             "{defects:?}"
         );
     }
@@ -867,7 +889,10 @@ mod tests {
     #[test]
     fn a_precondition_failure_exits_two_and_says_it_proved_nothing() {
         let mut err = Vec::new();
-        let code = guarded(|| Err(VdsError::precondition("the ledger is absent")), &mut err);
+        let code = guarded(
+            || Err(VdsError::precondition("the ledger is absent")),
+            &mut err,
+        );
         assert_eq!(code, 2);
         let text = String::from_utf8(err).unwrap();
         assert!(text.contains("proves nothing"), "{text}");

@@ -89,7 +89,10 @@ pub fn run(ctx: &Context, args: &Args) -> Result<i32> {
             )
         })?
         .to_owned();
-    let jurisdiction = args.jurisdiction.clone().unwrap_or_else(|| directory_name.clone());
+    let jurisdiction = args
+        .jurisdiction
+        .clone()
+        .unwrap_or_else(|| directory_name.clone());
     let repo_code = args
         .repo_code
         .clone()

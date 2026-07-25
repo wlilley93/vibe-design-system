@@ -102,6 +102,23 @@ impl Scanned {
         self.binding_for(local).map(|b| b.module.as_str())
     }
 
+    /// Whether this tag's root was bound by `import * as ns`, which makes the
+    /// member the export name rather than a property of a compound component.
+    ///
+    /// The distinction decides whether a dotted tag has been fully checked.
+    /// `<Icons.Chevron />` against `import * as Icons` resolves to the export
+    /// `Chevron` and is checked. `<Card.Header />` against `import { Card }` is
+    /// a COMPOUND component: the register knows `Card`, and `Header` is a
+    /// property of it that no register coordinate names, so the row establishes
+    /// `Card` and says nothing about `Header`. Reporting the second as fully
+    /// checked would be exactly the silent narrowing VDS exists to catch.
+    pub fn is_namespace_member(&self, tag: &TagUse) -> bool {
+        tag.member.is_some()
+            && self
+                .binding_for(&tag.root)
+                .is_some_and(|b| b.kind == BindingKind::Namespace)
+    }
+
     /// The EXPORT name a tag resolves to, which is half of the register's
     /// coordinate.
     ///
@@ -215,8 +232,7 @@ pub fn blank_non_code_checked(source: &str) -> (String, Option<String>) {
                 }
 
                 // A `<` that begins a tag, a closing tag or a fragment.
-                if ch == '<'
-                    && matches!(next, Some(c) if is_ident_start(c) || c == '/' || c == '>')
+                if ch == '<' && matches!(next, Some(c) if is_ident_start(c) || c == '/' || c == '>')
                 {
                     in_tag = true;
                 }
@@ -302,7 +318,11 @@ pub fn blank_non_code_checked(source: &str) -> (String, Option<String>) {
                 i += 1;
             }
             Region::SingleQuote | Region::DoubleQuote => {
-                let closer = if region == Region::SingleQuote { '\'' } else { '"' };
+                let closer = if region == Region::SingleQuote {
+                    '\''
+                } else {
+                    '"'
+                };
                 if ch == '\\' {
                     out.push(' ');
                     out.push(' ');
@@ -433,7 +453,10 @@ fn clause_locals(clause: &str) -> Vec<(String, String, BindingKind)> {
     }
     // `import type { X } from` binds no value.
     if clause.trim_start().starts_with("type ")
-        && !clause.trim_start().trim_start_matches("type ").starts_with('{')
+        && !clause
+            .trim_start()
+            .trim_start_matches("type ")
+            .starts_with('{')
     {
         // `import type Foo from "..."`: a type-only default import.
         return out;
@@ -443,9 +466,10 @@ fn clause_locals(clause: &str) -> Vec<(String, String, BindingKind)> {
     }
 
     let (outside, inside) = match (clause.find('{'), clause.find('}')) {
-        (Some(open), Some(close)) if close > open => {
-            (clause[..open].to_string(), Some(clause[open + 1..close].to_string()))
-        }
+        (Some(open), Some(close)) if close > open => (
+            clause[..open].to_string(),
+            Some(clause[open + 1..close].to_string()),
+        ),
         _ => (clause.to_string(), None),
     };
 
@@ -545,9 +569,7 @@ fn scan_tags(code: &str, starts: &[usize], found: &mut Scanned) {
         }
         // `<T,>` and `<T extends X>` in a .tsx generic. A generic parameter is
         // followed by `>(`, `,` or ` extends`.
-        if follows == Some('>')
-            && chars.get(j + 1) == Some(&'(')
-        {
+        if follows == Some('>') && chars.get(j + 1) == Some(&'(') {
             i = j;
             continue;
         }
@@ -555,8 +577,8 @@ fn scan_tags(code: &str, starts: &[usize], found: &mut Scanned) {
         let mut segments = name.split('.');
         let root = segments.next().unwrap_or(&name).to_owned();
         let member = segments.next().map(|s| s.to_owned());
-        let is_component = name.contains('.')
-            || root.chars().next().is_some_and(|c| c.is_ascii_uppercase());
+        let is_component =
+            name.contains('.') || root.chars().next().is_some_and(|c| c.is_ascii_uppercase());
         found.tags.push(TagUse {
             line: line_of(starts, byte_of_char[i]),
             name,
@@ -846,10 +868,7 @@ export default function P() { return <Button />; }
     #[test]
     fn a_fragment_is_not_a_component() {
         let scanned = scan("<><Button /></>");
-        assert_eq!(
-            scanned.tags.iter().filter(|t| t.is_component).count(),
-            1
-        );
+        assert_eq!(scanned.tags.iter().filter(|t| t.is_component).count(), 1);
     }
 
     /// The register's coordinate is (import path, EXPORT name), and an alias
@@ -857,9 +876,7 @@ export default function P() { return <Button />; }
     /// registered component as unregistered.
     #[test]
     fn an_alias_resolves_to_the_name_the_module_exports() {
-        let scanned = scan(
-            "import { Button as Btn } from \"@/components/ui\";\n<Btn />\n",
-        );
+        let scanned = scan("import { Button as Btn } from \"@/components/ui\";\n<Btn />\n");
         let tag = scanned.tags.iter().find(|t| t.root == "Btn").unwrap();
         assert_eq!(scanned.export_name_for(tag).as_deref(), Some("Button"));
     }
@@ -868,9 +885,7 @@ export default function P() { return <Button />; }
     /// record, so the gate checks the wrong contract and passes.
     #[test]
     fn an_alias_that_shadows_another_components_name_resolves_to_the_real_export() {
-        let scanned = scan(
-            "import { Card as Button } from \"@/components/ui\";\n<Button />\n",
-        );
+        let scanned = scan("import { Card as Button } from \"@/components/ui\";\n<Button />\n");
         let tag = scanned.tags.iter().find(|t| t.root == "Button").unwrap();
         assert_eq!(
             scanned.export_name_for(tag).as_deref(),
@@ -881,10 +896,12 @@ export default function P() { return <Button />; }
 
     #[test]
     fn a_namespace_member_resolves_to_the_member_name() {
-        let scanned = scan(
-            "import * as Icons from \"@/components/ui\";\n<Icons.Chevron />\n",
-        );
-        let tag = scanned.tags.iter().find(|t| t.name == "Icons.Chevron").unwrap();
+        let scanned = scan("import * as Icons from \"@/components/ui\";\n<Icons.Chevron />\n");
+        let tag = scanned
+            .tags
+            .iter()
+            .find(|t| t.name == "Icons.Chevron")
+            .unwrap();
         assert_eq!(scanned.export_name_for(tag).as_deref(), Some("Chevron"));
     }
 
@@ -995,6 +1012,9 @@ export default function P() { return <Button />; }
     #[test]
     fn scanning_is_idempotent_on_already_blanked_source() {
         let source = "import { Button } from \"@/components/ui\";\n<Button />\n";
-        assert_eq!(blank_non_code(&blank_non_code(source)), blank_non_code(source));
+        assert_eq!(
+            blank_non_code(&blank_non_code(source)),
+            blank_non_code(source)
+        );
     }
 }

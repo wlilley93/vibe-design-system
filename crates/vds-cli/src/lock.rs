@@ -47,7 +47,10 @@ pub fn run(ctx: &Context, args: &Args) -> Result<i32> {
 }
 
 fn verify(store: &Store) -> Result<i32> {
-    let gates: Vec<String> = vds_proof::GATE_PATHS.iter().map(|g| (*g).to_owned()).collect();
+    let gates: Vec<String> = vds_proof::GATE_PATHS
+        .iter()
+        .map(|g| (*g).to_owned())
+        .collect();
     let verdict = locklib::verify_lock(store, &gates)?;
 
     match store.read_lock()? {
@@ -284,8 +287,8 @@ fn parse_invocation(spec: &str) -> Result<Invocation> {
     })?;
 
     let (reference, blocking) = match rest.rsplit_once('=') {
-        Some((head, tail)) if matches!(tail, "blocking" | "true" | "1" | "yes") => (head, true),
-        Some((head, tail)) if matches!(tail, "reporting" | "false" | "0" | "no") => (head, false),
+        Some((head, "blocking" | "true" | "1" | "yes")) => (head, true),
+        Some((head, "reporting" | "false" | "0" | "no")) => (head, false),
         _ => (rest, true),
     };
     if reference.trim().is_empty() {
@@ -357,7 +360,10 @@ mod tests {
     #[test]
     fn an_unknown_surface_is_refused_by_name() {
         let error = parse_invocation("vibes=somewhere").unwrap_err();
-        assert!(error.to_string().contains("not an invocation surface"), "{error}");
+        assert!(
+            error.to_string().contains("not an invocation surface"),
+            "{error}"
+        );
     }
 
     #[test]

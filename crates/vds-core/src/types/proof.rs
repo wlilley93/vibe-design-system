@@ -97,7 +97,9 @@ impl ProofKind {
             ProofKind::Parity => {
                 "each registered component's code counterpart matches its props and states"
             }
-            ProofKind::TokenPin => "the two named records agree where the pin declares them aligned",
+            ProofKind::TokenPin => {
+                "the two named records agree where the pin declares them aligned"
+            }
             ProofKind::RetirementDrain => {
                 "a component proposed for retirement has zero remaining consumers"
             }
@@ -137,7 +139,10 @@ impl ProofKind {
     }
 
     pub fn implemented() -> Vec<ProofKind> {
-        ProofKind::ALL.into_iter().filter(|k| k.is_implemented()).collect()
+        ProofKind::ALL
+            .into_iter()
+            .filter(|k| k.is_implemented())
+            .collect()
     }
 }
 
@@ -193,7 +198,17 @@ pub enum CaptureMode {
 /// What invoked the run. VDS S-7(2)(3) requires something other than the author
 /// choosing to run it, and VDS S-7(3) holds that a hook is not CI.
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default, Serialize, Deserialize,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Default,
+    Serialize,
+    Deserialize,
     JsonSchema,
 )]
 #[serde(rename_all = "snake_case")]

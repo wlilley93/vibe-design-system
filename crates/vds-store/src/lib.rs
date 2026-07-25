@@ -20,7 +20,7 @@ use serde::de::DeserializeOwned;
 
 use vds_core::{
     ComponentId, ComponentRecord, Digest, EnforcementLock, LOCK_FILE_NAME, LOCK_SCHEMA_VERSION,
-    PathRole, Pin, ProofId, ProofKind, ProofResult, Project, Result, Stage, Submission, Timestamp,
+    PathRole, Pin, Project, ProofId, ProofKind, ProofResult, Result, Stage, Submission, Timestamp,
     VdsError, Warrant, WarrantId, WarrantStatus, write_text_atomically, yaml_files,
 };
 
@@ -184,7 +184,9 @@ impl<'a> Store<'a> {
             let path = entry.path();
             let name = entry.file_name().to_string_lossy().into_owned();
             if path.is_dir() {
-                unseen.push(format!("{name}/ is a directory, and the reader does not recurse"));
+                unseen.push(format!(
+                    "{name}/ is a directory, and the reader does not recurse"
+                ));
                 continue;
             }
             let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("");
@@ -201,7 +203,9 @@ impl<'a> Store<'a> {
                     "{name} is not read: the reader takes `.yaml` exactly, and this is `.{extension}`"
                 ));
             } else {
-                unseen.push(format!("{name} is not a `.yaml` file and is read by nothing"));
+                unseen.push(format!(
+                    "{name} is not a `.yaml` file and is read by nothing"
+                ));
             }
         }
         if unseen.is_empty() {
@@ -400,10 +404,11 @@ impl<'a> Store<'a> {
             return Ok(None);
         }
         let text = std::fs::read_to_string(&path).map_err(|e| VdsError::io(path.display(), e))?;
-        let raw: serde_yaml::Value = serde_yaml::from_str(&text).map_err(|e| VdsError::Artefact {
-            path: self.project.rel(&path),
-            message: format!("is not readable YAML: {e}"),
-        })?;
+        let raw: serde_yaml::Value =
+            serde_yaml::from_str(&text).map_err(|e| VdsError::Artefact {
+                path: self.project.rel(&path),
+                message: format!("is not readable YAML: {e}"),
+            })?;
         let found = raw
             .get("schema_version")
             .and_then(|v| v.as_u64())
@@ -416,10 +421,11 @@ impl<'a> Store<'a> {
                 understood: LOCK_SCHEMA_VERSION,
             });
         }
-        let lock: EnforcementLock = serde_yaml::from_value(raw).map_err(|e| VdsError::Artefact {
-            path: self.project.rel(&path),
-            message: format!("is not an enforcement lock: {e}"),
-        })?;
+        let lock: EnforcementLock =
+            serde_yaml::from_value(raw).map_err(|e| VdsError::Artefact {
+                path: self.project.rel(&path),
+                message: format!("is not an enforcement lock: {e}"),
+            })?;
         Ok(Some(lock))
     }
 
@@ -515,7 +521,10 @@ mod tests {
         let path = store.record_path(&value.id);
         store.create(&path, &value).unwrap();
         let err = store.create(&path, &value).unwrap_err();
-        assert!(err.to_string().contains("never a silent overwrite"), "{err}");
+        assert!(
+            err.to_string().contains("never a silent overwrite"),
+            "{err}"
+        );
     }
 
     #[test]
@@ -534,7 +543,10 @@ mod tests {
         let s = scaffold();
         let store = Store::new(&s.project);
         store
-            .create(&store.register_dir().join("button.yaml"), &record("CMP-0001"))
+            .create(
+                &store.register_dir().join("button.yaml"),
+                &record("CMP-0001"),
+            )
             .unwrap();
         let err = store.read_register().unwrap_err();
         assert!(err.to_string().contains("nothing says which"), "{err}");
@@ -544,7 +556,11 @@ mod tests {
     fn an_unparseable_record_is_an_error_and_not_a_skip() {
         let s = scaffold();
         let store = Store::new(&s.project);
-        std::fs::write(store.register_dir().join("CMP-0002.yaml"), "not: a record\n").unwrap();
+        std::fs::write(
+            store.register_dir().join("CMP-0002.yaml"),
+            "not: a record\n",
+        )
+        .unwrap();
         let err = store.read_register().unwrap_err();
         assert!(
             err.to_string().contains("CMP-0002"),

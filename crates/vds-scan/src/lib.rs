@@ -20,9 +20,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
-use vds_core::{
-    Digest, Project, Result, Timestamp, VdsError, digest_rows, write_text_atomically,
-};
+use vds_core::{Digest, Project, Result, Timestamp, VdsError, digest_rows, write_text_atomically};
 
 pub mod glob;
 pub mod jsx;
@@ -45,6 +43,15 @@ pub struct Reference {
     /// registered component as unregistered, or matches the wrong record.
     #[serde(default)]
     pub export_name: Option<String>,
+    /// Whether a dotted tag's member IS the export name, because the root was
+    /// bound by `import * as ns`.
+    ///
+    /// False for a compound component (`<Card.Header />` from
+    /// `import { Card }`), where the register coordinate names only the root and
+    /// the member is unverified. A caller must say so rather than report the row
+    /// as fully checked.
+    #[serde(default)]
+    pub namespace_member: bool,
     pub kind: ReferenceKind,
     /// The module the root name was imported from, AS WRITTEN. Null where the
     /// component is defined in the same file, or where the binding was
@@ -157,7 +164,10 @@ pub fn screen_files(project: &Project) -> Result<Vec<PathBuf>> {
     // A screen outside the root cannot be recorded as a repository-relative
     // route, and a ledger holding an absolute path stops being reproducible the
     // moment the checkout moves. Refuse rather than record one.
-    let root = project.root.canonicalize().unwrap_or_else(|_| project.root.clone());
+    let root = project
+        .root
+        .canonicalize()
+        .unwrap_or_else(|_| project.root.clone());
     for path in &found {
         let resolved = path.canonicalize().unwrap_or_else(|_| path.clone());
         if resolved.strip_prefix(&root).is_err() {
@@ -234,7 +244,11 @@ pub fn generate(project: &Project) -> Result<ScreensLedger> {
             references.push(Reference {
                 name: tag.name.clone(),
                 root: tag.root.clone(),
-                export_name: tag.is_component.then(|| scanned.export_name_for(tag)).flatten(),
+                export_name: tag
+                    .is_component
+                    .then(|| scanned.export_name_for(tag))
+                    .flatten(),
+                namespace_member: tag.is_component && scanned.is_namespace_member(tag),
                 kind: if tag.is_component {
                     ReferenceKind::Component
                 } else {
@@ -325,7 +339,9 @@ impl Reference {
             return true;
         }
         if let Some(resolved) = &self.resolved_path
-            && library_dirs.iter().any(|dir| resolved.starts_with(dir.trim_end_matches('/')))
+            && library_dirs
+                .iter()
+                .any(|dir| resolved.starts_with(dir.trim_end_matches('/')))
         {
             return true;
         }
@@ -335,6 +351,14 @@ impl Reference {
     /// The export name to look up, falling back to the local root name.
     pub fn lookup_name(&self) -> &str {
         self.export_name.as_deref().unwrap_or(&self.root)
+    }
+
+    /// Whether a dotted tag's member is left unverified by a lookup on the root.
+    ///
+    /// True for a compound component and false for a namespace member, because
+    /// only the second resolves the member to a real export.
+    pub fn member_is_unverified(&self) -> bool {
+        self.name != self.root && !self.namespace_member
     }
 }
 
@@ -510,11 +534,10 @@ pub fn load_fresh(project: &Project) -> Result<ScreensLedger> {
             understood: LEDGER_SCHEMA_VERSION,
         });
     }
-    let ledger: ScreensLedger =
-        serde_yaml::from_value(raw).map_err(|e| VdsError::Artefact {
-            path: project.rel(&path),
-            message: format!("is not a screens ledger: {e}"),
-        })?;
+    let ledger: ScreensLedger = serde_yaml::from_value(raw).map_err(|e| VdsError::Artefact {
+        path: project.rel(&path),
+        message: format!("is not a screens ledger: {e}"),
+    })?;
     check_fresh(project, &ledger)?;
     Ok(ledger)
 }
@@ -569,8 +592,20 @@ export default function Page() {
             .iter()
             .map(|r| &r.kind)
             .collect();
-        assert_eq!(kinds.iter().filter(|k| ***k == ReferenceKind::Component).count(), 2);
-        assert_eq!(kinds.iter().filter(|k| ***k == ReferenceKind::Element).count(), 1);
+        assert_eq!(
+            kinds
+                .iter()
+                .filter(|k| ***k == ReferenceKind::Component)
+                .count(),
+            2
+        );
+        assert_eq!(
+            kinds
+                .iter()
+                .filter(|k| ***k == ReferenceKind::Element)
+                .count(),
+            1
+        );
     }
 
     #[test]
@@ -596,7 +631,11 @@ export default function Page() {
             .1;
         assert!(local.import_path.is_none());
         assert!(
-            local.unresolved_because.as_deref().unwrap().contains("not imported"),
+            local
+                .unresolved_because
+                .as_deref()
+                .unwrap()
+                .contains("not imported"),
             "{:?}",
             local.unresolved_because
         );
@@ -640,7 +679,10 @@ export default function Page() {
         )
         .unwrap();
         let err = load_fresh(&f.project).unwrap_err();
-        assert!(err.to_string().contains("changed since generation"), "{err}");
+        assert!(
+            err.to_string().contains("changed since generation"),
+            "{err}"
+        );
         assert!(err.to_string().contains("app/dash/page.tsx"), "{err}");
     }
 
@@ -661,7 +703,10 @@ export default function Page() {
         write(&f.project).unwrap();
         std::fs::remove_file(f.project.root.join("app/other/page.tsx")).unwrap();
         let err = load_fresh(&f.project).unwrap_err();
-        assert!(err.to_string().contains("removed since generation"), "{err}");
+        assert!(
+            err.to_string().contains("removed since generation"),
+            "{err}"
+        );
     }
 
     #[test]
@@ -797,8 +842,55 @@ export default function Page() {
         );
         let ledger = generate(&f.project).unwrap();
         assert_eq!(
-            ledger.component_references().next().unwrap().1.resolved_path,
+            ledger
+                .component_references()
+                .next()
+                .unwrap()
+                .1
+                .resolved_path,
             None
+        );
+    }
+
+    #[test]
+    fn a_namespace_member_is_verified_and_a_compound_member_is_not() {
+        let f = fixture(&[]);
+        f_write(
+            &f,
+            "app/ns/page.tsx",
+            "import * as Icons from \"@/components/ui\";\n\
+             export default function P(){ return <Icons.Chevron />; }\n",
+        );
+        f_write(
+            &f,
+            "app/compound/page.tsx",
+            "import { Card } from \"@/components/ui\";\n\
+             export default function P(){ return <Card.Header />; }\n",
+        );
+        let ledger = generate(&f.project).unwrap();
+
+        let namespaced = ledger
+            .component_references()
+            .find(|(_, r)| r.name == "Icons.Chevron")
+            .unwrap()
+            .1;
+        assert!(namespaced.namespace_member);
+        assert_eq!(namespaced.lookup_name(), "Chevron");
+        assert!(
+            !namespaced.member_is_unverified(),
+            "a namespace member resolves to a real export and IS checked"
+        );
+
+        let compound = ledger
+            .component_references()
+            .find(|(_, r)| r.name == "Card.Header")
+            .unwrap()
+            .1;
+        assert!(!compound.namespace_member);
+        assert_eq!(compound.lookup_name(), "Card");
+        assert!(
+            compound.member_is_unverified(),
+            "the register knows Card; Header is a property of it that no coordinate names"
         );
     }
 
@@ -831,7 +923,10 @@ export default function Page() {
              export default function P(){ return <Button />; }\n",
         );
         let error = generate(&f.project).unwrap_err();
-        assert!(error.to_string().contains("not counted anywhere"), "{error}");
+        assert!(
+            error.to_string().contains("not counted anywhere"),
+            "{error}"
+        );
         assert!(error.to_string().contains("app/dash/page.tsx"), "{error}");
     }
 

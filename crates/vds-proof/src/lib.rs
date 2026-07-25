@@ -12,9 +12,7 @@
 
 use std::io::Write;
 
-use vds_core::{
-    Digest, EXIT_PASSED, InvokedBy, ProofKind, Project, Result, Timestamp, VdsError,
-};
+use vds_core::{Digest, EXIT_PASSED, InvokedBy, Project, ProofKind, Result, Timestamp, VdsError};
 use vds_store::Store;
 
 pub mod composition;

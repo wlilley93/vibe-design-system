@@ -36,7 +36,7 @@ use std::collections::BTreeSet;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use vds_core::{Digest, PathRole, ProofKind, Project, Result, VdsError, Violation};
+use vds_core::{Digest, PathRole, Project, ProofKind, Result, VdsError, Violation};
 use vds_scan::{GENERATOR_COMMAND, LEDGER_SCHEMA_VERSION, ScreensLedger};
 
 use crate::ProofContext;
@@ -46,13 +46,11 @@ pub const GATE: &str = "crates/vds-proof/src/ledger_staleness.rs";
 
 const RULE_STALE: &str =
     "VDS S-7(5) ledger_staleness R1 / S-4(2): each generated ledger is current with its source";
-const RULE_NO_STALENESS_TEST: &str =
-    "VDS S-4(2) ledger_staleness R2: every ledger has a staleness test, and a ledger without \
+const RULE_NO_STALENESS_TEST: &str = "VDS S-4(2) ledger_staleness R2: every ledger has a staleness test, and a ledger without \
      one decays with nothing to say so";
 
 /// Why R1 is worth running rather than being a digest comparison.
-pub const REGENERATION_NOTE: &str =
-    "the screens ledger's staleness test REGENERATES the ledger from its sources and compares \
+pub const REGENERATION_NOTE: &str = "the screens ledger's staleness test REGENERATES the ledger from its sources and compares \
      the content, rather than comparing the source digest the ledger records. A source-digest \
      comparison answers only whether the screens moved, so it certifies a hand-edited ledger \
      clean, and a proof reading that ledger can then be flipped from failing to passing without \
@@ -61,8 +59,7 @@ pub const REGENERATION_NOTE: &str =
 /// What this run does not reach. Silent narrowing is the defect VDS exists to
 /// catch, so the narrowing is written into the record and not left to a reader
 /// to infer from the row counts.
-pub const REACH_NOTE: &str =
-    "what this run does NOT reach: this build holds one staleness test, the screens ledger's. \
+pub const REACH_NOTE: &str = "what this run does NOT reach: this build holds one staleness test, the screens ledger's. \
      For every other file in the ledgers directory it establishes only that no staleness test \
      exists, never that the file is current, because there is no generator here to re-run \
      against it. It reaches nothing outside the configured ledgers directory. And where the \
@@ -314,7 +311,10 @@ mod tests {
         assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
         assert_eq!(outcome.status, ProofStatus::Failed);
         assert!(text.contains("STALE"), "{text}");
-        assert!(text.contains(LEDGER), "the finding names the ledger: {text}");
+        assert!(
+            text.contains(LEDGER),
+            "the finding names the ledger: {text}"
+        );
         assert!(
             text.contains("app/dash/page.tsx"),
             "and the source that moved: {text}"
@@ -445,7 +445,10 @@ mod tests {
 
         let error = h.run_kind_err(ProofKind::LedgerStaleness);
         assert_eq!(error.exit_code(), EXIT_PRECONDITION, "{error}");
-        assert!(error.to_string().contains("this proof did not run"), "{error}");
+        assert!(
+            error.to_string().contains("this proof did not run"),
+            "{error}"
+        );
         assert!(error.to_string().contains("1 further file(s)"), "{error}");
     }
 
@@ -455,13 +458,18 @@ mod tests {
         h.write(LEDGER, "screens: [\n");
 
         let error = h.run_kind_err(ProofKind::LedgerStaleness);
-        assert!(error.to_string().contains("is not readable YAML"), "{error}");
+        assert!(
+            error.to_string().contains("is not readable YAML"),
+            "{error}"
+        );
     }
 
     #[test]
     fn a_ledger_from_the_future_is_refused_rather_than_reported_as_stale() {
         let h = seeded();
-        let text = h.read(LEDGER).replace("schema_version: 1", "schema_version: 99");
+        let text = h
+            .read(LEDGER)
+            .replace("schema_version: 1", "schema_version: 99");
         h.write(LEDGER, &text);
 
         let error = h.run_kind_err(ProofKind::LedgerStaleness);
@@ -550,8 +558,16 @@ mod tests {
 
         let store = h.store();
         assert_ne!(
-            store.read_proof(&before.record_id.unwrap()).unwrap().value.digest,
-            store.read_proof(&after.record_id.unwrap()).unwrap().value.digest
+            store
+                .read_proof(&before.record_id.unwrap())
+                .unwrap()
+                .value
+                .digest,
+            store
+                .read_proof(&after.record_id.unwrap())
+                .unwrap()
+                .value
+                .digest
         );
     }
 

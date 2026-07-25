@@ -170,7 +170,10 @@ pub fn is_state_property(name: &str) -> bool {
         .chars()
         .filter(|c| c.is_ascii_alphanumeric())
         .collect();
-    matches!(normalised.as_str(), "state" | "states" | "interaction" | "status")
+    matches!(
+        normalised.as_str(),
+        "state" | "states" | "interaction" | "status"
+    )
 }
 
 /// The states a node draws, from its variant properties.
@@ -191,7 +194,10 @@ pub fn states_from_variants(properties: &BTreeMap<String, Vec<String>>) -> (Vec<
     }
     // Specification order, so two pulls of one file never disagree about
     // presentation.
-    let ordered: Vec<State> = State::ALL.into_iter().filter(|s| drawn.contains(s)).collect();
+    let ordered: Vec<State> = State::ALL
+        .into_iter()
+        .filter(|s| drawn.contains(s))
+        .collect();
     (ordered, unmapped)
 }
 
@@ -235,7 +241,10 @@ mod tests {
             assert_eq!(state_from_variant_value(state.as_str()), Some(state));
         }
         assert_eq!(state_from_variant_value("Hover"), Some(State::Hover));
-        assert_eq!(state_from_variant_value("focus-visible"), Some(State::Focus));
+        assert_eq!(
+            state_from_variant_value("focus-visible"),
+            Some(State::Focus)
+        );
         assert_eq!(
             state_from_variant_value("Pressed"),
             None,
@@ -248,7 +257,10 @@ mod tests {
     #[test]
     fn only_a_state_property_contributes_states() {
         let mut properties = BTreeMap::new();
-        properties.insert("Size".to_owned(), vec!["Default".to_owned(), "Large".to_owned()]);
+        properties.insert(
+            "Size".to_owned(),
+            vec!["Default".to_owned(), "Large".to_owned()],
+        );
         let (drawn, unmapped) = states_from_variants(&properties);
         assert!(
             drawn.is_empty(),
@@ -278,7 +290,10 @@ mod tests {
         );
         let (drawn, unmapped) = states_from_variants(&properties);
         assert_eq!(drawn, vec![State::Default]);
-        assert_eq!(unmapped, 1, "a design system naming states differently sees a number");
+        assert_eq!(
+            unmapped, 1,
+            "a design system naming states differently sees a number"
+        );
     }
 
     fn ledger() -> FigmaLedger {
@@ -340,8 +355,16 @@ mod tests {
     fn a_serialised_ledger_names_no_realisation() {
         let text = serde_yaml::to_string(&ledger()).unwrap();
         for forbidden in [
-            "colour", "color", "fill", "stroke", "fontFamily", "fontSize", "cornerRadius",
-            "opacity", "effect", "#",
+            "colour",
+            "color",
+            "fill",
+            "stroke",
+            "fontFamily",
+            "fontSize",
+            "cornerRadius",
+            "opacity",
+            "effect",
+            "#",
         ] {
             assert!(
                 !text.contains(forbidden),

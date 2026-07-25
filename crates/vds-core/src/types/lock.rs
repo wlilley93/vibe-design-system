@@ -223,9 +223,14 @@ impl std::fmt::Display for DriftFinding {
 pub enum LockNote {
     NoLock,
     /// The gate is invoked, but by nothing blocking in CI.
-    InterimHookOnly { path: String, surfaces: Vec<String> },
+    InterimHookOnly {
+        path: String,
+        surfaces: Vec<String>,
+    },
     /// A gate the lock does not witness.
-    Unpinned { path: String },
+    Unpinned {
+        path: String,
+    },
 }
 
 impl std::fmt::Display for LockNote {

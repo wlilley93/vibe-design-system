@@ -179,7 +179,12 @@ mod tests {
     #[test]
     fn a_pattern_this_matcher_cannot_read_is_refused() {
         let tmp = tempfile::tempdir().unwrap();
-        for bad in ["app/{a,b}/page.tsx", "app/[ab]/page.tsx", "/abs/page.tsx", "  "] {
+        for bad in [
+            "app/{a,b}/page.tsx",
+            "app/[ab]/page.tsx",
+            "/abs/page.tsx",
+            "  ",
+        ] {
             assert!(
                 match_globs(tmp.path(), &[bad.to_string()]).is_err(),
                 "should refuse {bad:?}"
@@ -205,7 +210,12 @@ mod tests {
         let found = match_globs(tmp.path(), &["app/**/page.tsx".to_string()]).unwrap();
         let names: Vec<String> = found
             .iter()
-            .map(|p| p.strip_prefix(tmp.path()).unwrap().to_string_lossy().into_owned())
+            .map(|p| {
+                p.strip_prefix(tmp.path())
+                    .unwrap()
+                    .to_string_lossy()
+                    .into_owned()
+            })
             .collect();
         assert_eq!(names, vec!["app/dash/page.tsx", "app/page.tsx"]);
     }
@@ -214,9 +224,11 @@ mod tests {
     fn a_directory_matching_a_glob_is_not_a_screen() {
         let tmp = tempfile::tempdir().unwrap();
         std::fs::create_dir_all(tmp.path().join("app/page.tsx")).unwrap();
-        assert!(match_globs(tmp.path(), &["app/**/page.tsx".to_string()])
-            .unwrap()
-            .is_empty());
+        assert!(
+            match_globs(tmp.path(), &["app/**/page.tsx".to_string()])
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]

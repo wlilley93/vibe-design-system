@@ -15,8 +15,8 @@
 use clap::{Args as ClapArgs, Subcommand};
 use vds_core::{
     Accessibility, Amendment, AmendmentKind, CodeCounterpart, ComponentId, ComponentRecord,
-    ContrastFloor, Demand, FigmaNode, FloorScope, KeyboardContract, NameSource, ProofId,
-    ProofKind, PropContract, Result, State, StateContract, Status, Timestamp, VdsError, WarrantId,
+    ContrastFloor, Demand, FigmaNode, FloorScope, KeyboardContract, NameSource, ProofId, ProofKind,
+    PropContract, Result, State, StateContract, Status, Timestamp, VdsError, WarrantId,
     WarrantStatus, actor, breaking_reasons,
 };
 use vds_store::{Located, Store};
@@ -207,7 +207,11 @@ fn add(store: &Store, args: &AddArgs) -> Result<i32> {
         contract_version: 1,
         figma: args.figma.as_deref().map(parse_figma).transpose()?,
         code,
-        props: args.prop.iter().map(|s| parse_prop(s)).collect::<Result<_>>()?,
+        props: args
+            .prop
+            .iter()
+            .map(|s| parse_prop(s))
+            .collect::<Result<_>>()?,
         states: StateContract {
             required: parse_states(args.require.as_deref())?,
             drawn: parse_states(args.drawn.as_deref())?,
@@ -430,16 +434,15 @@ fn amend(store: &Store, args: &AmendArgs) -> Result<i32> {
 
     for spec in &args.set_floor {
         let floor = parse_floor(spec)?;
-        after
-            .a11y
-            .contrast_floors
-            .retain(|f| (f.boundary.as_str(), f.against.as_str()) != (floor.boundary.as_str(), floor.against.as_str()));
+        after.a11y.contrast_floors.retain(|f| {
+            (f.boundary.as_str(), f.against.as_str())
+                != (floor.boundary.as_str(), floor.against.as_str())
+        });
         after.a11y.contrast_floors.push(floor);
     }
-    after
-        .a11y
-        .contrast_floors
-        .sort_by(|a, b| (a.boundary.as_str(), a.against.as_str()).cmp(&(b.boundary.as_str(), b.against.as_str())));
+    after.a11y.contrast_floors.sort_by(|a, b| {
+        (a.boundary.as_str(), a.against.as_str()).cmp(&(b.boundary.as_str(), b.against.as_str()))
+    });
 
     if let Some(role) = &args.role {
         after.a11y.role = Some(role.clone());
@@ -568,7 +571,11 @@ fn set_status(store: &Store, id: &str, target: &str) -> Result<i32> {
     let current = located.value.status;
 
     if matches!(target, Status::Deprecated | Status::Retired) {
-        let command = if target == Status::Retired { "retire" } else { "deprecate" };
+        let command = if target == Status::Retired {
+            "retire"
+        } else {
+            "deprecate"
+        };
         return Err(VdsError::precondition(format!(
             "use `vds register {command}` for {target}. VDS S-9(6) makes retirement three \
              phases that cannot be compressed: supersession notice, drain to zero measured \
@@ -803,9 +810,9 @@ fn parse_name_source(raw: &str) -> Result<NameSource> {
 }
 
 fn parse_keyboard(spec: &str) -> Result<KeyboardContract> {
-    let (key, effect) = spec.split_once('=').ok_or_else(|| {
-        VdsError::precondition(format!("keyboard {spec:?} must be 'Key=effect'"))
-    })?;
+    let (key, effect) = spec
+        .split_once('=')
+        .ok_or_else(|| VdsError::precondition(format!("keyboard {spec:?} must be 'Key=effect'")))?;
     if key.trim().is_empty() || effect.trim().is_empty() {
         return Err(VdsError::precondition(format!(
             "keyboard {spec:?} must be 'Key=effect', and neither half may be empty"
@@ -874,9 +881,13 @@ fn parse_floor(spec: &str) -> Result<ContrastFloor> {
              itself. {min_ratio} is not a ratio any standard states."
         )));
     }
-    for (index, field) in [("boundary", parts[0]), ("against", parts[1]), ("basis", parts[3])]
-        .into_iter()
-        .enumerate()
+    for (index, field) in [
+        ("boundary", parts[0]),
+        ("against", parts[1]),
+        ("basis", parts[3]),
+    ]
+    .into_iter()
+    .enumerate()
     {
         let _ = index;
         if field.1.trim().is_empty() {
@@ -926,14 +937,12 @@ fn parse_figma(spec: &str) -> Result<FigmaNode> {
         )));
     }
     let node_id = node_id.trim();
-    let well_formed = node_id
-        .split_once([':', '-'])
-        .is_some_and(|(a, b)| {
-            !a.is_empty()
-                && !b.is_empty()
-                && a.chars().all(|c| c.is_ascii_digit())
-                && b.chars().all(|c| c.is_ascii_digit())
-        });
+    let well_formed = node_id.split_once([':', '-']).is_some_and(|(a, b)| {
+        !a.is_empty()
+            && !b.is_empty()
+            && a.chars().all(|c| c.is_ascii_digit())
+            && b.chars().all(|c| c.is_ascii_digit())
+    });
     if !well_formed {
         return Err(VdsError::precondition(format!(
             "--figma {spec:?}: {node_id:?} is not a Figma node id. A node id is \

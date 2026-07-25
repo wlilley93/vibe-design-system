@@ -19,7 +19,9 @@ use crate::error::{Result, VdsError};
 /// A newtype rather than a `String` so that a digest and a free-text field
 /// cannot be swapped by a mistyped struct literal, and so the prefix is
 /// impossible to omit.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, JsonSchema)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
+)]
 #[serde(transparent)]
 #[schemars(regex(pattern = r"^sha256:[0-9a-f]{64}$"))]
 pub struct Digest(String);
@@ -39,8 +41,7 @@ impl Digest {
     /// in memory to be witnessed.
     pub fn of_file(path: &Path) -> Result<Self> {
         use std::io::Read;
-        let mut file =
-            std::fs::File::open(path).map_err(|e| VdsError::io(path.display(), e))?;
+        let mut file = std::fs::File::open(path).map_err(|e| VdsError::io(path.display(), e))?;
         let mut hasher = Sha256::new();
         let mut buffer = [0u8; 65536];
         loop {
@@ -67,7 +68,9 @@ impl Digest {
     pub fn is_well_formed(&self) -> bool {
         self.0.len() == 71
             && self.0.starts_with("sha256:")
-            && self.0[7..].bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+            && self.0[7..]
+                .bytes()
+                .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
     }
 }
 
@@ -196,7 +199,10 @@ mod tests {
             z: u8,
             a: u8,
         }
-        assert_eq!(canonical_json(&A { z: 1, a: 2 }).unwrap(), r#"{"a":2,"z":1}"#);
+        assert_eq!(
+            canonical_json(&A { z: 1, a: 2 }).unwrap(),
+            r#"{"a":2,"z":1}"#
+        );
     }
 
     #[test]

@@ -10,9 +10,7 @@
 //! that lists only what it can check reads as a clean bill of health.
 
 use clap::Args as ClapArgs;
-use vds_core::{
-    EXIT_VIOLATION, ProofKind, ProofStatus, Result, Stage, WarrantStatus,
-};
+use vds_core::{EXIT_VIOLATION, ProofKind, ProofStatus, Result, Stage, WarrantStatus};
 use vds_store::{Store, lock as locklib};
 
 use crate::{Context, PASSED};
@@ -53,23 +51,25 @@ struct Row {
 pub fn run(ctx: &Context, args: &Args) -> Result<i32> {
     let project = ctx.project()?;
     let store = Store::new(&project);
-    let mut rows = Vec::new();
+    let rows = vec![
+        d1(&store)?,
+        d2(&store)?,
+        d3(&store)?,
+        d4(&store)?,
+        d5(&store)?,
+        d6(&store)?,
+        d7(&store)?,
+        d8(&store)?,
+        d9(&store)?,
+        d10(&store)?,
+    ];
 
-    rows.push(d1(&store)?);
-    rows.push(d2(&store)?);
-    rows.push(d3(&store)?);
-    rows.push(d4(&store)?);
-    rows.push(d5(&store)?);
-    rows.push(d6(&store)?);
-    rows.push(d7(&store)?);
-    rows.push(d8(&store)?);
-    rows.push(d9(&store)?);
-    rows.push(d10(&store)?);
-
-    println!("VDS doctor: {}", project.rel(&project.root));
     println!(
-        "Measured, not asserted. Each row names the command that settled it, and a criterion"
+        "VDS doctor: {} ({})",
+        project.config.jurisdiction_id,
+        project.root.display()
     );
+    println!("Measured, not asserted. Each row names the command that settled it, and a criterion");
     println!("this build cannot settle says so rather than being left out.");
     println!();
 
@@ -89,7 +89,10 @@ pub fn run(ctx: &Context, args: &Args) -> Result<i32> {
         .filter(|r| r.verdict == Verdict::Unmeasurable)
         .count();
 
-    println!("{met} met, {unmet} unmet, {unmeasured} not checked, of {} criteria.", rows.len());
+    println!(
+        "{met} met, {unmet} unmet, {unmeasured} not checked, of {} criteria.",
+        rows.len()
+    );
     if unmeasured > 0 {
         println!(
             "The {unmeasured} not checked are NOT passes. A report that counted them as passes \
@@ -114,7 +117,11 @@ fn d1(store: &Store) -> Result<Row> {
         Some(proof) => {
             let citable = proof.value.is_citable_evidence();
             (
-                if citable { Verdict::Met } else { Verdict::Unmet },
+                if citable {
+                    Verdict::Met
+                } else {
+                    Verdict::Unmet
+                },
                 vec![format!(
                     "last run {} status {} rows_enforced {}",
                     proof.value.id, proof.value.status, proof.value.rows_enforced
@@ -140,9 +147,9 @@ fn d2(store: &Store) -> Result<Row> {
     for kind in ProofKind::ALL {
         let (_, last) = census.get(&kind).cloned().unwrap_or((0, None));
         let has_run = last.as_ref().is_some_and(|r| r.rows_enforced > 0);
-        let entry = lock.as_ref().and_then(|l| {
-            l.entries.iter().find(|e| e.proves.contains(&kind))
-        });
+        let entry = lock
+            .as_ref()
+            .and_then(|l| l.entries.iter().find(|e| e.proves.contains(&kind)));
         let named_test = entry.is_some();
         let invoked = entry.is_some_and(|e| !e.invoked_by.is_empty());
         let automatic = last
@@ -204,7 +211,11 @@ fn d3(store: &Store) -> Result<Row> {
     Ok(Row {
         id: "D3 ",
         title: "no vacuous passes",
-        verdict: if vacuous.is_empty() { Verdict::Met } else { Verdict::Unmet },
+        verdict: if vacuous.is_empty() {
+            Verdict::Met
+        } else {
+            Verdict::Unmet
+        },
         detail: if vacuous.is_empty() {
             vec!["no proof kind's most recent result is vacuous".to_owned()]
         } else {
@@ -220,7 +231,9 @@ fn d4(store: &Store) -> Result<Row> {
             id: "D4 ",
             title: "every gate is invoked by CI, not only by a hook",
             verdict: Verdict::Unmet,
-            detail: vec!["no enforcement.lock, so no gate is pinned and none is invoked".to_owned()],
+            detail: vec![
+                "no enforcement.lock, so no gate is pinned and none is invoked".to_owned(),
+            ],
             settled_by: "a scan over .vds/enforcement.lock",
         });
     };
@@ -251,12 +264,19 @@ fn d4(store: &Store) -> Result<Row> {
 }
 
 fn d5(store: &Store) -> Result<Row> {
-    let gates: Vec<String> = vds_proof::GATE_PATHS.iter().map(|g| (*g).to_owned()).collect();
+    let gates: Vec<String> = vds_proof::GATE_PATHS
+        .iter()
+        .map(|g| (*g).to_owned())
+        .collect();
     let verdict = locklib::verify_lock(store, &gates)?;
     Ok(Row {
         id: "D5 ",
         title: "zero enforcement-surface drift",
-        verdict: if verdict.is_clean() { Verdict::Met } else { Verdict::Unmet },
+        verdict: if verdict.is_clean() {
+            Verdict::Met
+        } else {
+            Verdict::Unmet
+        },
         detail: if verdict.is_clean() {
             vec!["every pinned path matches its digest".to_owned()]
         } else {
@@ -301,7 +321,11 @@ fn d6(store: &Store) -> Result<Row> {
     Ok(Row {
         id: "D6 ",
         title: "the warrant chain is complete for the declared surface",
-        verdict: if complete { Verdict::Met } else { Verdict::Unmet },
+        verdict: if complete {
+            Verdict::Met
+        } else {
+            Verdict::Unmet
+        },
         detail,
         settled_by: "resolving every id and digest in the four warrants",
     })
@@ -373,11 +397,20 @@ fn d9(store: &Store) -> Result<Row> {
         .iter()
         .filter(|w| w.value.status == WarrantStatus::Granted)
         .count();
-    let decisions = count_files(&store.project.path(vds_core::PathRole::Logs).join("decisions"));
+    let decisions = count_files(
+        &store
+            .project
+            .path(vds_core::PathRole::Logs)
+            .join("decisions"),
+    );
     Ok(Row {
         id: "D9 ",
         title: "proof records keep pace with decisions",
-        verdict: if proofs >= granted { Verdict::Met } else { Verdict::Unmet },
+        verdict: if proofs >= granted {
+            Verdict::Met
+        } else {
+            Verdict::Unmet
+        },
         detail: vec![
             format!("{proofs} proof records against {granted} granted warrants"),
             format!(
@@ -393,11 +426,17 @@ fn d10(store: &Store) -> Result<Row> {
     // The five reserved matters at VDS S-13, plus SUBMISSION-VDS-006 which this
     // port opened by departing from drafted S-2(7).
     const RESERVED: &[(&str, &str)] = &[
-        ("SUBMISSION-VDS-001", "S-6(5) may W1 be granted provisionally"),
+        (
+            "SUBMISSION-VDS-001",
+            "S-6(5) may W1 be granted provisionally",
+        ),
         ("SUBMISSION-VDS-002", "S-6(6) who may grant W2"),
         ("SUBMISSION-VDS-003", "S-3(6) what a designpack binds"),
         ("SUBMISSION-VDS-004", "S-9(9) forced-drain retirement"),
-        ("SUBMISSION-VDS-005", "S-9(10) where the primitive floor sits"),
+        (
+            "SUBMISSION-VDS-005",
+            "S-9(10) where the primitive floor sits",
+        ),
         ("SUBMISSION-VDS-006", "S-2(7) the pin's per-value digests"),
     ];
     let filed = store.read_submissions()?;
@@ -423,7 +462,11 @@ fn d10(store: &Store) -> Result<Row> {
     Ok(Row {
         id: "D10",
         title: "every RESERVED clause resolves to an open or answered submission",
-        verdict: if all_filed { Verdict::Met } else { Verdict::Unmet },
+        verdict: if all_filed {
+            Verdict::Met
+        } else {
+            Verdict::Unmet
+        },
         detail,
         settled_by: "a cross-check between VDS S-13 and .vds/submissions/",
     })

@@ -33,11 +33,11 @@ impl Project {
     pub fn discover(start: Option<&Path>) -> Result<Project> {
         let here = match start {
             Some(path) => path.to_path_buf(),
-            None => std::env::current_dir().map_err(|e| VdsError::io("the current directory", e))?,
+            None => {
+                std::env::current_dir().map_err(|e| VdsError::io("the current directory", e))?
+            }
         };
-        let here = here
-            .canonicalize()
-            .unwrap_or_else(|_| here.clone());
+        let here = here.canonicalize().unwrap_or_else(|_| here.clone());
 
         for candidate in here.ancestors() {
             let config_path = candidate.join(VDS_DIR).join(CONFIG_FILE);
@@ -86,7 +86,10 @@ impl Project {
         } else {
             self.root.join(path)
         };
-        let root = self.root.canonicalize().unwrap_or_else(|_| self.root.clone());
+        let root = self
+            .root
+            .canonicalize()
+            .unwrap_or_else(|_| self.root.clone());
         let target = absolute.canonicalize().unwrap_or(absolute);
         match target.strip_prefix(&root) {
             Ok(rest) => rest.to_string_lossy().replace('\\', "/"),
@@ -125,8 +128,8 @@ pub fn write_atomically(path: &Path, bytes: &[u8]) -> Result<()> {
     })?;
     std::fs::create_dir_all(parent).map_err(|e| VdsError::io(parent.display(), e))?;
 
-    let mut temp = tempfile::NamedTempFile::new_in(parent)
-        .map_err(|e| VdsError::io(parent.display(), e))?;
+    let mut temp =
+        tempfile::NamedTempFile::new_in(parent).map_err(|e| VdsError::io(parent.display(), e))?;
     {
         use std::io::Write;
         temp.write_all(bytes)

@@ -97,12 +97,23 @@ pub fn run(ctx: &Context, args: &Args) -> Result<i32> {
 }
 
 fn list() -> Result<i32> {
-    println!("proof kinds (VDS S-7(5), a CLOSED registry of {}):", ProofKind::ALL.len());
+    println!(
+        "proof kinds (VDS S-7(5), a CLOSED registry of {}):",
+        ProofKind::ALL.len()
+    );
     println!();
     for kind in ProofKind::ALL {
         match kind.unimplemented_because() {
-            None => println!("  {:22} implemented      {}", kind.as_str(), kind.establishes()),
-            Some(_) => println!("  {:22} NOT IMPLEMENTED  {}", kind.as_str(), kind.establishes()),
+            None => println!(
+                "  {:22} implemented      {}",
+                kind.as_str(),
+                kind.establishes()
+            ),
+            Some(_) => println!(
+                "  {:22} NOT IMPLEMENTED  {}",
+                kind.as_str(),
+                kind.establishes()
+            ),
         }
     }
     let missing: Vec<ProofKind> = ProofKind::ALL
@@ -111,7 +122,10 @@ fn list() -> Result<i32> {
         .collect();
     if !missing.is_empty() {
         println!();
-        println!("why the {} unimplemented kinds are unimplemented:", missing.len());
+        println!(
+            "why the {} unimplemented kinds are unimplemented:",
+            missing.len()
+        );
         for kind in missing {
             println!("  {}", kind.as_str());
             for line in wrap(kind.unimplemented_because().unwrap_or("unstated"), 70) {
@@ -157,6 +171,9 @@ mod tests {
 
     #[test]
     fn wrapping_does_not_break_a_word_longer_than_the_width() {
-        assert_eq!(wrap("supercalifragilistic", 5), vec!["supercalifragilistic"]);
+        assert_eq!(
+            wrap("supercalifragilistic", 5),
+            vec!["supercalifragilistic"]
+        );
     }
 }

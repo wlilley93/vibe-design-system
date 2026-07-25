@@ -80,9 +80,11 @@ impl Stage {
             Stage::W1RegisterComplete => {
                 &[ProofKind::RegisterCompleteness, ProofKind::Reconciliation]
             }
-            Stage::W2DesignComplete => {
-                &[ProofKind::Composition, ProofKind::States, ProofKind::Contrast]
-            }
+            Stage::W2DesignComplete => &[
+                ProofKind::Composition,
+                ProofKind::States,
+                ProofKind::Contrast,
+            ],
             // No proof substitutes for acceptance (VDS S-6(7)).
             Stage::W3PrincipalAccepted => &[],
             Stage::W4Parity => &[ProofKind::Parity, ProofKind::TokenPin, ProofKind::Contrast],
@@ -326,12 +328,20 @@ mod tests {
 
     #[test]
     fn a_warrant_with_no_evidence_is_void_on_its_face() {
-        assert!(warrant(Stage::W1RegisterComplete).void_on_its_face().is_some());
+        assert!(
+            warrant(Stage::W1RegisterComplete)
+                .void_on_its_face()
+                .is_some()
+        );
     }
 
     #[test]
     fn a_w3_with_no_acceptance_event_is_void_on_its_face() {
-        assert!(warrant(Stage::W3PrincipalAccepted).void_on_its_face().is_some());
+        assert!(
+            warrant(Stage::W3PrincipalAccepted)
+                .void_on_its_face()
+                .is_some()
+        );
     }
 
     #[test]
@@ -356,7 +366,11 @@ mod tests {
         );
         assert_eq!(
             Stage::W2DesignComplete.required_evidence(),
-            &[ProofKind::Composition, ProofKind::States, ProofKind::Contrast]
+            &[
+                ProofKind::Composition,
+                ProofKind::States,
+                ProofKind::Contrast
+            ]
         );
         assert!(Stage::W3PrincipalAccepted.required_evidence().is_empty());
         assert_eq!(

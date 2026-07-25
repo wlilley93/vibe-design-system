@@ -332,7 +332,10 @@ impl GenerationBrief {
             out.push_str(&format!("- {rule}\n"));
         }
 
-        out.push_str(&format!("\n## Components you may use ({})\n\n", self.may_use.len()));
+        out.push_str(&format!(
+            "\n## Components you may use ({})\n\n",
+            self.may_use.len()
+        ));
         for component in &self.may_use {
             out.push_str(&format!(
                 "### {} `{}` ({})\n\n",
@@ -341,7 +344,9 @@ impl GenerationBrief {
             if let Some(node) = &component.figma_node {
                 out.push_str(&format!("- Figma node: `{node}`\n"));
             } else {
-                out.push_str("- Figma node: **none recorded**. This component has never been drawn.\n");
+                out.push_str(
+                    "- Figma node: **none recorded**. This component has never been drawn.\n",
+                );
             }
             out.push_str(&format!(
                 "- States required: {}\n",
@@ -376,10 +381,14 @@ impl GenerationBrief {
                 out.push_str(&format!("- Contrast floor: {floor}\n"));
             }
             out.push_str(&format!(
-            "- Consumed by {} {}\n\n",
-            component.demand_routes,
-            if component.demand_routes == 1 { "route" } else { "routes" }
-        ));
+                "- Consumed by {} {}\n\n",
+                component.demand_routes,
+                if component.demand_routes == 1 {
+                    "route"
+                } else {
+                    "routes"
+                }
+            ));
         }
 
         if !self.may_not_use.is_empty() {
@@ -478,7 +487,10 @@ mod tests {
         f.register("Button", Status::Registered);
         let store = f.store();
         let brief = build(&store, None, None).unwrap();
-        assert_eq!(brief.states_drawn_measured_from, DrawnSource::RegisterRecord);
+        assert_eq!(
+            brief.states_drawn_measured_from,
+            DrawnSource::RegisterRecord
+        );
         assert!(
             brief
                 .not_settled
@@ -549,7 +561,10 @@ mod tests {
         assert!(markdown.contains("CMP-0001"));
         for rule in &brief.rules {
             let head: String = rule.chars().take(30).collect();
-            assert!(markdown.contains(&head), "rule missing from markdown: {rule}");
+            assert!(
+                markdown.contains(&head),
+                "rule missing from markdown: {rule}"
+            );
         }
     }
 }

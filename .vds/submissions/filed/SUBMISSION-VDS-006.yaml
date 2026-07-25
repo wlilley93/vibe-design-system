@@ -1,0 +1,28 @@
+id: SUBMISSION-VDS-006
+status: filed
+question: "May a pin carry a per-value digest, given that a design token's domain is small enough to invert?"
+trigger: first_impression
+why_first_impression: "S-2(7) as drafted requires source_value_digest and target_value_digest and calls them 'what keeps the pin a gate rather than a store'. That is measurably false: an unsalted SHA-256 over a 24-bit colour domain is not one-way, and an adversarial agent recovered all 52 values from a 26-row pin in 27 seconds on one CPU. The clause mandates the storing form it forbids."
+citator_checked:
+  - citation: "[2026] VJS-CC-OPBOX 3"
+    why_not_on_all_fours: "It fixes the storing/deriving line for a token kernel and names the systems of record. It does not reach this question."
+  - citation: "[2026] VJS-CC-OPBOX 1"
+    why_not_on_all_fours: "The locus ratio fixes where a domain lives, not how a design warrant is earned."
+options:
+  - option: "keep the per-value digests as drafted"
+    consequence: "the pin stores the decided and shipped values in a recoverable form, which is the storing form [2026] VJS-CC-OPBOX 3 forbids"
+  - option: "salt the digests"
+    consequence: "a salt in the pin is a salt the attacker has; a salt outside it makes the pin irreproducible and fails VDS S-2(5)(4)"
+  - option: "a row carries the name and the agreement bit and nothing else"
+    consequence: "satisfies all four limbs of S-2(5) and loses the ability to tell 'both changed identically' from 'neither changed', which the whole-file digest on RecordOfTruth already answers"
+evidence:
+  - "VDS.md, the clause named in reserved_clause"
+  - "docs/GOAL.md, the done criterion the clause bears on"
+case_file_digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+reserved_clause: "S-2(7)"
+fail_closed_interim: "no per-value digest appears anywhere in .vds/. A pin row carries the name and the agreement bit, and the whole-record digest answers whether a record moved"
+filed_to: vjs
+vjs_submission_id: null
+created_at: 2026-07-25T13:00:00Z
+filed_at: 2026-07-25T13:00:00Z
+answer: null

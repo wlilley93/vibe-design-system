@@ -1,0 +1,28 @@
+id: SUBMISSION-VDS-003
+status: filed
+question: "Does a designpack bind a single project, a tenant, or the whole realm?"
+trigger: first_impression
+why_first_impression: "The nearest authority is the locus ratio of [2026] VJS-CC-OPBOX 1, which fixes where a domain lives rather than how far a pack reaches."
+citator_checked:
+  - citation: "[2026] VJS-CC-OPBOX 3"
+    why_not_on_all_fours: "It fixes the storing/deriving line for a token kernel and names the systems of record. It does not reach this question."
+  - citation: "[2026] VJS-CC-OPBOX 1"
+    why_not_on_all_fours: "The locus ratio fixes where a domain lives, not how a design warrant is earned."
+options:
+  - option: "one project, the one whose .vds/config.toml pins it"
+    consequence: "safe, and duplicates doctrine across sibling projects"
+  - option: "a tenant"
+    consequence: "matches how design systems are actually shared, and needs a tenant concept VDS does not have"
+  - option: "the realm"
+    consequence: "one doctrine everywhere, and one project's amendment moves every other project's floor"
+evidence:
+  - "VDS.md, the clause named in reserved_clause"
+  - "docs/GOAL.md, the done criterion the clause bears on"
+case_file_digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+reserved_clause: "S-3(6)"
+fail_closed_interim: "a designpack binds exactly the project whose .vds/config.toml pins it, and no other"
+filed_to: vjs
+vjs_submission_id: null
+created_at: 2026-07-25T13:00:00Z
+filed_at: 2026-07-25T13:00:00Z
+answer: null
