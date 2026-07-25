@@ -21,10 +21,33 @@
 //! A false NEGATIVE here is the dangerous direction: a component that is used and
 //! not detected is a component the anti-drift proof will never ask about.
 
-/// One import binding: the local name a module was bound to.
+/// How a name was brought into the file.
+///
+/// The distinction matters because the register's coordinate is
+/// `(import path, EXPORT name)`, and the tag in the source carries the LOCAL
+/// name. `import { Button as Btn }` renders as `<Btn />`, and looking `Btn` up
+/// against a register that knows `Button` misses: it reports a registered
+/// component as unregistered, which is a false alarm, and the mirror case
+/// `import { Card as Button }` matches the WRONG record, which is worse.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BindingKind {
+    /// `import { Button }` or `import { Button as Btn }`.
+    Named,
+    /// `import Button from "..."`. The export name is literally `default`.
+    Default,
+    /// `import * as Icons from "..."`. The export name comes from the member
+    /// expression at the use site: `<Icons.Chevron />` exports `Chevron`.
+    Namespace,
+}
+
+/// One import binding.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Binding {
+    /// The name as used in this file.
     pub local: String,
+    /// The name the module exports, which is what the register records.
+    pub exported: String,
+    pub kind: BindingKind,
     pub module: String,
     pub line: u32,
 }
@@ -36,6 +59,9 @@ pub struct TagUse {
     pub name: String,
     /// The identifier before the first dot, which is what an import binds.
     pub root: String,
+    /// The segment after the first dot, where there is one. For a namespace
+    /// import this is the export name.
+    pub member: Option<String>,
     pub line: u32,
     /// Whether this is a component reference or a bare HTML element.
     pub is_component: bool,
@@ -52,16 +78,39 @@ pub struct Scanned {
 }
 
 impl Scanned {
-    /// The module a local name was imported from, where exactly one import
-    /// bound it.
-    pub fn module_for(&self, local: &str) -> Option<&str> {
+    fn binding_for(&self, local: &str) -> Option<&Binding> {
         if self.ambiguous_bindings.iter().any(|a| a == local) {
             return None;
         }
-        self.bindings
-            .iter()
-            .find(|b| b.local == local)
-            .map(|b| b.module.as_str())
+        self.bindings.iter().find(|b| b.local == local)
+    }
+
+    /// The module a local name was imported from, where exactly one import
+    /// bound it.
+    pub fn module_for(&self, local: &str) -> Option<&str> {
+        self.binding_for(local).map(|b| b.module.as_str())
+    }
+
+    /// The EXPORT name a tag resolves to, which is half of the register's
+    /// coordinate.
+    ///
+    /// Returns `None` where the tag is not imported at all, which means it is
+    /// defined locally or comes from a global, and the caller records that
+    /// rather than guessing.
+    pub fn export_name_for(&self, tag: &TagUse) -> Option<String> {
+        let binding = self.binding_for(&tag.root)?;
+        Some(match binding.kind {
+            // `<Icons.Chevron />` against `import * as Icons`: the export is
+            // the member, not the namespace.
+            BindingKind::Namespace => match &tag.member {
+                Some(member) => member.clone(),
+                // A bare `<Icons />` against a namespace import renders a module
+                // object, which is not a component. Fall back to the local name
+                // so the row is reported rather than silently resolved.
+                None => binding.local.clone(),
+            },
+            BindingKind::Named | BindingKind::Default => binding.exported.clone(),
+        })
     }
 }
 
@@ -265,11 +314,11 @@ fn starts_keyword(chars: &[char], at: usize, keyword: &str) -> bool {
     }
 }
 
-/// Every local name a clause binds.
+/// Every name a clause binds, as `(local, exported, kind)`.
 ///
 /// Handles `Default`, `* as ns`, `{ a, b as c }`, `Default, { a }` and the
 /// `type` modifier in both positions.
-fn clause_locals(clause: &str) -> Vec<String> {
+fn clause_locals(clause: &str) -> Vec<(String, String, BindingKind)> {
     let mut out = Vec::new();
     let clause = clause.trim();
     if clause.is_empty() {
@@ -298,15 +347,19 @@ fn clause_locals(clause: &str) -> Vec<String> {
         if part.is_empty() {
             continue;
         }
-        let name = if let Some(rest) = part.strip_prefix("* as ") {
-            rest.trim()
+        if let Some(rest) = part.strip_prefix("* as ") {
+            let local = rest.trim();
+            if is_identifier(local) {
+                out.push((local.to_owned(), local.to_owned(), BindingKind::Namespace));
+            }
         } else if part.starts_with('*') {
             continue;
-        } else {
-            part
-        };
-        if is_identifier(name) {
-            out.push(name.to_owned());
+        } else if is_identifier(part) {
+            // A default import's export name is literally `default`. Recording
+            // the local name here would let `import Anything from "..."` match
+            // a register record called `Anything` that the module does not
+            // export.
+            out.push((part.to_owned(), "default".to_owned(), BindingKind::Default));
         }
     }
 
@@ -316,12 +369,12 @@ fn clause_locals(clause: &str) -> Vec<String> {
             if entry.is_empty() || entry.starts_with("type ") {
                 continue;
             }
-            let local = match entry.rsplit_once(" as ") {
-                Some((_, alias)) => alias.trim(),
-                None => entry,
+            let (exported, local) = match entry.split_once(" as ") {
+                Some((original, alias)) => (original.trim(), alias.trim()),
+                None => (entry, entry),
             };
-            if is_identifier(local) {
-                out.push(local.to_owned());
+            if is_identifier(local) && is_identifier(exported) {
+                out.push((local.to_owned(), exported.to_owned(), BindingKind::Named));
             }
         }
     }
@@ -392,13 +445,16 @@ fn scan_tags(code: &str, starts: &[usize], found: &mut Scanned) {
             continue;
         }
 
-        let root = name.split('.').next().unwrap_or(&name).to_owned();
+        let mut segments = name.split('.');
+        let root = segments.next().unwrap_or(&name).to_owned();
+        let member = segments.next().map(|s| s.to_owned());
         let is_component = name.contains('.')
             || root.chars().next().is_some_and(|c| c.is_ascii_uppercase());
         found.tags.push(TagUse {
             line: line_of(starts, byte_of_char[i]),
             name,
             root,
+            member,
             is_component,
         });
         i = j;
@@ -483,7 +539,7 @@ pub fn scan(source: &str) -> Scanned {
             n += 1;
         }
 
-        for local in clause_locals(&clause) {
+        for (local, exported, kind) in clause_locals(&clause) {
             if found.bindings.iter().any(|b| b.local == local)
                 && !found.ambiguous_bindings.contains(&local)
             {
@@ -491,6 +547,8 @@ pub fn scan(source: &str) -> Scanned {
             }
             found.bindings.push(Binding {
                 local,
+                exported,
+                kind,
                 module: module.clone(),
                 line,
             });
@@ -682,6 +740,61 @@ export default function P() { return <Button />; }
             scanned.tags.iter().filter(|t| t.is_component).count(),
             1
         );
+    }
+
+    /// The register's coordinate is (import path, EXPORT name), and an alias
+    /// makes the local name differ from it. Looking up the local name reports a
+    /// registered component as unregistered.
+    #[test]
+    fn an_alias_resolves_to_the_name_the_module_exports() {
+        let scanned = scan(
+            "import { Button as Btn } from \"@/components/ui\";\n<Btn />\n",
+        );
+        let tag = scanned.tags.iter().find(|t| t.root == "Btn").unwrap();
+        assert_eq!(scanned.export_name_for(tag).as_deref(), Some("Button"));
+    }
+
+    /// The mirror case, which is worse: the local name matches a DIFFERENT
+    /// record, so the gate checks the wrong contract and passes.
+    #[test]
+    fn an_alias_that_shadows_another_components_name_resolves_to_the_real_export() {
+        let scanned = scan(
+            "import { Card as Button } from \"@/components/ui\";\n<Button />\n",
+        );
+        let tag = scanned.tags.iter().find(|t| t.root == "Button").unwrap();
+        assert_eq!(
+            scanned.export_name_for(tag).as_deref(),
+            Some("Card"),
+            "the tag says Button and the module exports Card; the register knows Card"
+        );
+    }
+
+    #[test]
+    fn a_namespace_member_resolves_to_the_member_name() {
+        let scanned = scan(
+            "import * as Icons from \"@/components/ui\";\n<Icons.Chevron />\n",
+        );
+        let tag = scanned.tags.iter().find(|t| t.name == "Icons.Chevron").unwrap();
+        assert_eq!(scanned.export_name_for(tag).as_deref(), Some("Chevron"));
+    }
+
+    #[test]
+    fn a_default_import_exports_the_name_default() {
+        let scanned = scan("import Button from \"@/components/ui/button\";\n<Button />\n");
+        let tag = scanned.tags.iter().find(|t| t.root == "Button").unwrap();
+        assert_eq!(
+            scanned.export_name_for(tag).as_deref(),
+            Some("default"),
+            "recording the local name would let `import Anything from` match a register \
+             record the module does not export"
+        );
+    }
+
+    #[test]
+    fn a_tag_that_is_not_imported_resolves_to_nothing() {
+        let scanned = scan("function Local(){return <i/>}\n<Local />\n");
+        let tag = scanned.tags.iter().find(|t| t.root == "Local").unwrap();
+        assert_eq!(scanned.export_name_for(tag), None);
     }
 
     #[test]

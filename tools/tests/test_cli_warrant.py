@@ -246,9 +246,17 @@ class WarrantDoorTest(VdsProjectCase):
     def test_w3_refuses_a_proof_in_place_of_an_acceptance(self) -> None:
         """STAGE_EVIDENCE['W3'] is the empty tuple, which used to mean any proof
         of any kind satisfied it. Acceptance is a human act and no machine result
-        substitutes for it (VDS S-6(7))."""
+        substitutes for it (VDS S-6(7)).
+
+        Recorded `--status refused`, because the ordering check (D3) fires before
+        the evidence check and would otherwise be the thing under test. A refusal
+        is exempt from the ordering, so this reaches the W3 evidence limb.
+        """
         real = self.capture("register_completeness")
-        result = self.record("W3", "--evidence", real, "--acceptance-event", str(self.case_file))
+        result = self.record(
+            "W3", "--evidence", real, "--acceptance-event", str(self.case_file),
+            status="refused",
+        )
         self.assert_cli_refused(
             result,
             "W3 does not take --evidence",
@@ -274,10 +282,36 @@ class WarrantDoorTest(VdsProjectCase):
         event.write_text("this file is NOT an assent event\n", encoding="utf-8")
         live = vds.surface_digests(project)
 
+        # The auditor's file: prose in the right directory. It does not parse,
+        # and the refusal says so rather than reading past it.
+        with self.assertRaises(Exception) as caught:
+            vds.verify_acceptance_event(project, str(event), live)
+        self.assertIn("is not a readable acceptance event", str(caught.exception))
+
+        # A file that parses but declares nothing. This is the harder case: the
+        # old check was a path regex, and this file would have satisfied it.
+        event.write_text("note: shown to the Principal on Tuesday\n", encoding="utf-8")
         with self.assertRaises(Exception) as caught:
             vds.verify_acceptance_event(project, str(event), live)
         self.assertIn("is not an acceptance event", str(caught.exception))
         self.assertIn("it does not declare vds_acceptance_event: 1", str(caught.exception))
+
+        # Declared, but signed by the role rather than by a person.
+        event.write_text(
+            "vds_acceptance_event: 1\n"
+            "project: fx\n"
+            "stage: W3_PRINCIPAL_ACCEPTED\n"
+            "accepted_by: the Principal\n"
+            "accepted_at: \"2026-07-25T12:00:00Z\"\n"
+            "surface:\n"
+            f"  screens_digest: \"{live['screens_digest']}\"\n"
+            f"  register_digest: \"{live['register_digest']}\"\n"
+            "statement: I have seen the surface and I accept it as it stands today.\n",
+            encoding="utf-8",
+        )
+        with self.assertRaises(Exception) as caught:
+            vds.verify_acceptance_event(project, str(event), live)
+        self.assertIn("Name the person", str(caught.exception))
 
         # The same file, made into a real acceptance event over the live bytes.
         event.write_text(

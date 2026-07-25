@@ -36,10 +36,30 @@ pub struct Reference {
     pub name: String,
     /// The identifier before the first dot, which is what an import binds.
     pub root: String,
+    /// The name the module EXPORTS, which is half of the register's coordinate.
+    ///
+    /// Distinct from `root`, which is the local name at the use site. An alias
+    /// (`import { Button as Btn }`) and a namespace member
+    /// (`<Icons.Chevron />`) both make the two differ, and looking the local
+    /// name up against a register that records the export name reports a
+    /// registered component as unregistered, or matches the wrong record.
+    #[serde(default)]
+    pub export_name: Option<String>,
     pub kind: ReferenceKind,
-    /// The module the root name was imported from. Null where the component is
-    /// defined in the same file, or where the binding was ambiguous.
+    /// The module the root name was imported from, AS WRITTEN. Null where the
+    /// component is defined in the same file, or where the binding was
+    /// ambiguous.
     pub import_path: Option<String>,
+    /// A relative specifier resolved against this screen's own directory, as a
+    /// repository-relative path.
+    ///
+    /// Without this a governed component imported by a relative path escapes
+    /// enforcement entirely: `../../components/ui/button` does not start with
+    /// `@/components/`, so the row is skipped as ungoverned and the anti-drift
+    /// proof never asks about it. Rewriting one specifier is not a lot of work
+    /// for someone trying to get a change past the gate.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolved_path: Option<String>,
     pub line: u32,
     /// Why the import path is absent, where it is. A null with no explanation
     /// is a row nobody can act on.
@@ -117,7 +137,7 @@ impl ScreensLedger {
         let mut routes: Vec<&str> = self
             .component_references()
             .filter(|(_, r)| {
-                r.import_path.as_deref() == Some(import_path) && r.root == export_name
+                r.import_path.as_deref() == Some(import_path) && r.lookup_name() == export_name
             })
             .map(|(s, _)| s.route.as_str())
             .collect();
@@ -169,6 +189,7 @@ pub fn generate(project: &Project) -> Result<ScreensLedger> {
         let source = read_source(path)?;
         let scanned = jsx::scan(&source);
         let mut references = Vec::new();
+        let screen_dir = path.parent().map(|p| p.to_path_buf());
         for tag in &scanned.tags {
             let (import_path, unresolved_because) = if tag.is_component {
                 match scanned.module_for(&tag.root) {
@@ -193,15 +214,21 @@ pub fn generate(project: &Project) -> Result<ScreensLedger> {
             } else {
                 (None, None)
             };
+            let resolved_path = match (&import_path, &screen_dir) {
+                (Some(specifier), Some(dir)) => resolve_relative(project, dir, specifier),
+                _ => None,
+            };
             references.push(Reference {
                 name: tag.name.clone(),
                 root: tag.root.clone(),
+                export_name: tag.is_component.then(|| scanned.export_name_for(tag)).flatten(),
                 kind: if tag.is_component {
                     ReferenceKind::Component
                 } else {
                     ReferenceKind::Element
                 },
                 import_path,
+                resolved_path,
                 line: tag.line,
                 unresolved_because,
             });
@@ -241,6 +268,60 @@ impl ReferenceKind {
             ReferenceKind::Component => 0,
             ReferenceKind::Element => 1,
         }
+    }
+}
+
+/// Resolve a relative module specifier against the importing file's directory.
+///
+/// Returns a repository-relative path with no extension, so a caller can compare
+/// it against a governed library directory. A specifier that is not relative, or
+/// that escapes the project root, resolves to nothing: an absolute path in a
+/// ledger is not reproducible after a move, and a bare specifier is a package.
+fn resolve_relative(project: &Project, screen_dir: &Path, specifier: &str) -> Option<String> {
+    if !specifier.starts_with("./") && !specifier.starts_with("../") {
+        return None;
+    }
+    let mut resolved = screen_dir.to_path_buf();
+    for segment in specifier.split('/') {
+        match segment {
+            "." => {}
+            ".." => {
+                resolved.pop();
+            }
+            other => resolved.push(other),
+        }
+    }
+    let root = project
+        .root
+        .canonicalize()
+        .unwrap_or_else(|_| project.root.clone());
+    let relative = resolved.strip_prefix(&root).ok()?;
+    Some(relative.to_string_lossy().replace('\\', "/"))
+}
+
+impl Reference {
+    /// Whether this reference is inside the governed surface.
+    ///
+    /// Two ways in: the specifier as written starts with a governed prefix, or
+    /// it resolves to a file inside a governed library directory. The second is
+    /// what closes the relative-path escape.
+    pub fn is_governed(&self, prefixes: &[String], library_dirs: &[String]) -> bool {
+        if let Some(specifier) = &self.import_path
+            && prefixes.iter().any(|p| specifier.starts_with(p))
+        {
+            return true;
+        }
+        if let Some(resolved) = &self.resolved_path
+            && library_dirs.iter().any(|dir| resolved.starts_with(dir.trim_end_matches('/')))
+        {
+            return true;
+        }
+        false
+    }
+
+    /// The export name to look up, falling back to the local root name.
+    pub fn lookup_name(&self) -> &str {
+        self.export_name.as_deref().unwrap_or(&self.root)
     }
 }
 
@@ -452,6 +533,12 @@ mod tests {
         Fixture { _tmp: tmp, project }
     }
 
+    fn f_write(f: &Fixture, rel: &str, contents: &str) {
+        let path = f.project.root.join(rel);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, contents).unwrap();
+    }
+
     const DASH: &str = r#"
 import { Button, Card } from "@/components/ui";
 export default function Page() {
@@ -631,6 +718,90 @@ export default function Page() {
         std::fs::write(&path, text).unwrap();
         let err = load_fresh(&f.project).unwrap_err();
         assert!(err.to_string().contains("VDS S-11(2)"), "{err}");
+    }
+
+    /// Rewriting one import specifier to a relative path took a governed
+    /// component out of enforcement entirely, because the specifier no longer
+    /// started with a governed prefix and the row was skipped as ungoverned.
+    #[test]
+    fn a_relative_import_of_a_governed_component_is_still_governed() {
+        let f = fixture(&[]);
+        std::fs::create_dir_all(f.project.root.join("src/components/ui")).unwrap();
+        f_write(
+            &f,
+            "app/dash/page.tsx",
+            "import { Button } from \"../../src/components/ui/button\";\n\
+             export default function P(){ return <Button />; }\n",
+        );
+        let ledger = generate(&f.project).unwrap();
+        let reference = ledger.component_references().next().unwrap().1;
+
+        assert_eq!(
+            reference.resolved_path.as_deref(),
+            Some("src/components/ui/button")
+        );
+        let prefixes = vec!["@/components/".to_string()];
+        let dirs = vec!["src/components/ui".to_string()];
+        assert!(
+            !reference
+                .import_path
+                .as_deref()
+                .unwrap()
+                .starts_with(&prefixes[0]),
+            "the specifier as written escapes the prefix check, which is the point"
+        );
+        assert!(
+            reference.is_governed(&prefixes, &dirs),
+            "and resolving it against the library directory brings it back in"
+        );
+    }
+
+    #[test]
+    fn a_relative_import_of_something_outside_the_library_is_not_governed() {
+        let f = fixture(&[]);
+        f_write(
+            &f,
+            "app/dash/page.tsx",
+            "import { Chart } from \"../vendor/chart\";\n\
+             export default function P(){ return <Chart />; }\n",
+        );
+        let ledger = generate(&f.project).unwrap();
+        let reference = ledger.component_references().next().unwrap().1;
+        assert!(!reference.is_governed(
+            &["@/components/".to_string()],
+            &["src/components/ui".to_string()]
+        ));
+    }
+
+    #[test]
+    fn a_bare_package_specifier_resolves_to_nothing() {
+        let f = fixture(&[]);
+        f_write(
+            &f,
+            "app/dash/page.tsx",
+            "import { Chart } from \"third-party\";\n\
+             export default function P(){ return <Chart />; }\n",
+        );
+        let ledger = generate(&f.project).unwrap();
+        assert_eq!(
+            ledger.component_references().next().unwrap().1.resolved_path,
+            None
+        );
+    }
+
+    #[test]
+    fn the_ledger_records_the_export_name_a_lookup_needs() {
+        let f = fixture(&[]);
+        f_write(
+            &f,
+            "app/dash/page.tsx",
+            "import { Button as Btn } from \"@/components/ui\";\n\
+             export default function P(){ return <Btn />; }\n",
+        );
+        let ledger = generate(&f.project).unwrap();
+        let reference = ledger.component_references().next().unwrap().1;
+        assert_eq!(reference.root, "Btn");
+        assert_eq!(reference.lookup_name(), "Button");
     }
 
     #[test]
