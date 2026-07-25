@@ -283,6 +283,26 @@ class Project:
         raise VdsError("could not allocate a free proof id within an hour of now")
 
 
+def script_path_for(project: Project, script: str) -> Path | None:
+    """Resolve a proof record's `script` field to the file that ran.
+
+    The proof scripts declare a repository-relative path (`tools/proofs/x.py`)
+    and that path is relative to the VDS checkout, not to the project under
+    check. A consuming project has no tools/ directory of its own, so resolving
+    only against the project root silently produced records with no script
+    binding at all, which is what let a proof record be written for a script
+    that never existed. Both candidates are tried, VDS_HOME last, and None means
+    "no such script", never "assume it was fine".
+    """
+    if not script or script.startswith("/") or ".." in Path(script).parts:
+        return None
+    for base in (project.root, VDS_HOME):
+        candidate = base / script
+        if candidate.is_file():
+            return candidate
+    return None
+
+
 def find_project(start: Path | None = None) -> Project:
     """Walk up from `start` looking for `.vds/config.toml`."""
     here = Path(start or Path.cwd()).resolve()
@@ -409,9 +429,17 @@ class ProofRun:
                 (datetime.now(timezone.utc) - self.started).total_seconds() * 1000
             ),
         }
-        script_path = self.project.root / self.script
-        if script_path.is_file():
-            record["script_digest"] = sha256_file(script_path)
+        script_path = script_path_for(self.project, self.script)
+        if script_path is None:
+            # Fail closed. A record with no script binding cannot later be shown
+            # to have come from an execution, and a record that cannot be shown
+            # to have come from an execution is not evidence (VDS S-7(2)(5)).
+            raise VdsError(
+                f"cannot resolve the proof script {self.script!r} under "
+                f"{self.project.root} or {VDS_HOME}. A proof record is written only "
+                "with the digest of the script that produced it."
+            )
+        record["script_digest"] = sha256_file(script_path)
         return record
 
     def report(self, allow_vacuous: bool = False, capture: bool = True, stream=None) -> int:

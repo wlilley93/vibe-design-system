@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://vds.local/schema/proof-result.schema.json",
   "title": "VDS proof result",
-  "description": "Machine output a warrant was granted against. Governed by VDS S-7. Written by the checker as a side effect of running; a hand-written proof record is void, which is why capture_mode is fixed to the single value automatic (VDS S-7(2)(5)).",
+  "description": "Machine output a warrant was granted against. Governed by VDS S-7. Written by the checker as a side effect of running. A hand-written proof record is void (VDS S-7(2)(5)), and this schema does NOT establish that on its own: capture_mode is a string an author can type, so fixing it to one value only makes a forgery say the right word. What binds a record to an execution is the pair (script, script_digest), both required here and both re-checked against the file on disk before the record may be cited as evidence, plus `digest`, which covers the record's own result fields.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -19,6 +19,7 @@
     "captured_at",
     "capture_mode",
     "script",
+    "script_digest",
     "designpack_digest"
   ],
   "properties": {
@@ -60,12 +61,12 @@
     },
     "script": {
       "type": "string",
-      "pattern": "^[^/].*$",
-      "description": "Repository-relative path of the proof script. Must appear in .vds/enforcement.lock when a lock is present (VDS S-8(3))."
+      "pattern": "^tools/proofs/[a-z_]+\\.py$",
+      "description": "Path of the proof script that produced this record, relative to the repository that holds it. It must be the canonical script for `kind` (tools/proofs/<kind>.py), so a record cannot cite a real script's digest under a kind that script does not implement. Must appear in .vds/enforcement.lock when a lock is present (VDS S-8(3))."
     },
     "script_digest": {
       "$ref": "#/$defs/sha256",
-      "description": "sha256 of the script at run time, compared against the enforcement lock."
+      "description": "sha256 of the script as it was when this record was captured. Required. Re-checked against the file on disk before the record may be cited as warrant evidence: if the script has changed, this record is stale evidence and is refused, and if the script does not exist at all the record is refused as a record of nothing."
     },
     "exit_code": {
       "type": "integer",
@@ -142,7 +143,7 @@
     "capture_mode": {
       "type": "string",
       "const": "automatic",
-      "description": "Fixed. A record claiming any other capture mode is not a proof (VDS S-7(2)(5))."
+      "description": "Fixed. A record claiming any other capture mode is not a proof (VDS S-7(2)(5)). This field is a declaration, not a guarantee: it is the script binding above that makes it checkable."
     },
     "invoked_by": {
       "type": "string",

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://vds.local/schema/enforcement-lock-entry.schema.json",
   "title": "VDS enforcement lock entry",
-  "description": "One pinned proof script and the wiring that makes it enforcement. Governed by VDS S-8. The lock is held OUTSIDE the scripts it witnesses, so a weakening edit bumps a digest and trips a blocking finding rather than passing under its own possibly weakened logic. An entry cannot be written without naming the test that proves the script's FAILING direction, which is how VDS S-7(2)(2) is made structural rather than aspirational.",
+  "description": "One pinned proof script and the wiring that makes it enforcement. Governed by VDS S-8. The lock is held OUTSIDE the scripts it witnesses, so a weakening edit bumps a digest and trips a blocking finding rather than passing under its own possibly weakened logic. An entry cannot be written without naming the test that proves the script's FAILING direction, which is how VDS S-7(2)(2) is made structural rather than aspirational. This schema fixes the SHAPE of an entry and can do no more: shape is not truth. Every claim an entry makes about the tree (that the invoker exists and names what it runs, that the failing-direction test still exists and still contains its named test, that each claimed kind is one the runner implements) is re-checked against the tree on every `vds.py lock verify`, never once at write time and never on the entry's own word.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -18,9 +18,9 @@
   "properties": {
     "path": {
       "type": "string",
-      "pattern": "^[^/].*$",
+      "pattern": "^(?!/)(?!vds:/)(?!.*(?:^|[:/])\\.\\.(?:/|$)).+$",
       "minLength": 1,
-      "description": "Repository-relative path, no leading slash. This is the file whose bytes are witnessed."
+      "description": "The file whose bytes are witnessed. Repository-relative with no leading slash, or prefixed 'vds:' for a file inside the VDS INSTALL rather than the adopting repository. The second form exists because in a real adoption the proof scripts live in the install, and a surface that cannot be named cannot be pinned: globbing only <project>/tools/proofs meant the unpinned-proof warning could not fire in any adoption but the one that authored VDS. '..' segments are unrepresentable, because a path that can point anywhere pins nothing."
     },
     "digest": {
       "$ref": "#/$defs/sha256",
@@ -58,7 +58,7 @@
           "ref": {
             "type": "string",
             "minLength": 1,
-            "description": "The exact invocation site, for example \".githooks/pre-push:106\" or \".github/workflows/ci.yml#design-gates\"."
+            "description": "The exact invocation site, for example \".githooks/pre-push:106\" or \".github/workflows/ci.yml#design-gates\". Repository-relative, optionally with a ':LINE' anchor or a '#fragment'. `vds.py lock verify` OPENS this file every run: it must exist, the fragment must appear in it, and it (or one file or package script it names) must mention the pinned script. A declared invoker that cannot be read is not an invoker, and naming an invoker is not being invoked by it ([2026] VJS-CC-OPBOX 3 D2)."
           },
           "blocking": {
             "type": "boolean",
@@ -86,17 +86,18 @@
           "no_stored_values"
         ]
       },
-      "description": "The proof kinds this script produces. A script that produces no kind in the closed registry may not be pinned (VDS S-7(5))."
+      "description": "The proof kinds this script produces. A script that produces no kind in the closed registry may not be pinned (VDS S-7(5)). This enum is the closed registry, not the implemented set: `vds.py lock add` REFUSES, and `vds.py lock verify` reports as a finding, any kind the runner does not implement, because a lock entry claiming an unimplemented kind records a coverage nothing delivers. The implemented set is held in one place, vdslib.core.IMPLEMENTED_PROOF_KINDS, rather than duplicated here where it would drift."
     },
     "failing_direction_test": {
       "type": "object",
       "additionalProperties": false,
       "required": ["path", "test_name"],
-      "description": "The test that seeds a violation against a fixture and asserts the non-zero exit. Without it the script has proven only its happy path (VDS S-7(2)(2)).",
+      "description": "The test that seeds a violation against a fixture and asserts the non-zero exit. Without it the script has proven only its happy path (VDS S-7(2)(2)). `vds.py lock verify` OPENS this file every run and requires it to still contain `test_name`: checking it only at `lock add` meant deleting the test afterwards still verified clean.",
       "properties": {
         "path": {
           "type": "string",
-          "pattern": "^[^/].*$"
+          "pattern": "^(?!/)(?!vds:/)(?!.*(?:^|[:/])\\.\\.(?:/|$)).+$",
+          "description": "Repository-relative, or 'vds:'-prefixed for a test inside the VDS install."
         },
         "test_name": {
           "type": "string",

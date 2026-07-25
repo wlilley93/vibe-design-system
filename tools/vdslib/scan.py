@@ -45,6 +45,7 @@ a realisation under VDS S-2(4).
 from __future__ import annotations
 
 import re
+from collections import Counter
 from pathlib import Path
 
 from . import yamlish
@@ -56,11 +57,6 @@ from .core import Project, VdsError, canonical_json, digest_of, now_iso, sha256_
 # rather than accepted under the weaker check it was written for.
 LEDGER_SCHEMA_VERSION = 2
 GENERATOR_COMMAND = "vds.py ledger screens"
-
-# The keys of the ledger that are DERIVED: computed from the screen files
-# rather than declared by a human. These are the rows every proof reads, and
-# they are exactly what `check_authentic` re-derives.
-DERIVED_KEYS = ("screens",)
 
 REGENERATE_HINT = "  Regenerate with: vds.py ledger screens"
 
@@ -204,16 +200,15 @@ def derive_screens(project: Project, files: list[Path]) -> list[dict]:
     return screens
 
 
-def derived_block(ledger: dict) -> dict:
-    """The derived part of a ledger, isolated from its declared part.
-
-    `generated_at` and `generated_by` are deliberately excluded: a re-run at a
-    different second must not read as tampering.
-    """
-    return {key: ledger.get(key) for key in DERIVED_KEYS}
-
-
 def derived_digest_of(screens: list[dict]) -> str:
+    """Digest the DERIVED part of a ledger: the screens block and only that.
+
+    `generated_at` and `generated_by` are deliberately outside it. They are
+    facts about the run, not about the surface, and a regeneration at a
+    different second must not read as tampering. The key is kept in the
+    digested structure rather than digesting the bare list, so a future second
+    derived block cannot silently collide with this one.
+    """
     return digest_of({"screens": screens})
 
 
@@ -253,23 +248,29 @@ def _row_key(route: str, ref: object) -> str:
     )
 
 
-def _rows_of(screens: object) -> dict[str, str]:
-    """Flatten a screens block to {row identity: canonical row}, for diffing."""
-    rows: dict[str, str] = {}
+def _rows_of(screens: object) -> Counter:
+    """A screens block as a MULTISET of self-describing row identities.
+
+    Content-keyed rather than position-keyed on purpose. Keying by list index
+    made a single deleted row report as one deletion plus one insertion for
+    every row after it, which buries the row that actually moved.
+    """
+    rows: Counter = Counter()
     if not isinstance(screens, list):
+        rows[f"<screens is not a list: {type(screens).__name__}>"] += 1
         return rows
     for screen in screens:
         if not isinstance(screen, dict):
-            rows[f"<malformed screen {screen!r}>"] = canonical_json(screen)
+            rows[f"<malformed screen entry {canonical_json(screen)}>"] += 1
             continue
         route = str(screen.get("route", "<unknown route>"))
-        rows[f"{route} :: <screen digest>"] = canonical_json(screen.get("digest"))
+        rows[f"{route} :: file digest {screen.get('digest')}"] += 1
         references = screen.get("references")
         if not isinstance(references, list):
-            rows[f"{route} :: <references>"] = canonical_json(references)
+            rows[f"{route} :: references is not a list ({canonical_json(references)})"] += 1
             continue
-        for index, ref in enumerate(references):
-            rows[f"[{index:04d}] " + _row_key(route, ref)] = canonical_json(ref)
+        for ref in references:
+            rows[_row_key(route, ref)] += 1
     return rows
 
 
@@ -282,28 +283,26 @@ def _derived_drift(recorded: object, derived: list[dict]) -> list[str]:
     """
     have = _rows_of(recorded)
     want = _rows_of(derived)
+    missing = want - have
+    extra = have - want
     detail: list[str] = []
-    missing = sorted(set(want) - set(have))
-    extra = sorted(set(have) - set(want))
-    altered = sorted(k for k in set(have) & set(want) if have[k] != want[k])
     if missing:
         detail.append(
-            f"  {len(missing)} derived rows the source produces but the ledger does NOT "
-            "contain (rows deleted by hand):"
+            f"  {sum(missing.values())} derived rows the source produces but the ledger "
+            "does NOT contain (rows deleted by hand):"
         )
-        detail.extend(f"    - {k}" for k in missing)
+        detail.extend(f"    - {k}" + (f"  (x{n})" if n > 1 else "") for k, n in sorted(missing.items()))
     if extra:
         detail.append(
-            f"  {len(extra)} derived rows the ledger contains but the source does NOT "
-            "produce (rows invented by hand):"
+            f"  {sum(extra.values())} derived rows the ledger contains but the source "
+            "does NOT produce (rows invented or altered by hand):"
         )
-        detail.extend(f"    + {k}" for k in extra)
-    if altered:
-        detail.append(f"  {len(altered)} derived rows whose contents were altered:")
-        for k in altered:
-            detail.append(f"    ~ {k}")
-            detail.append(f"        ledger: {have[k]}")
-            detail.append(f"        source: {want[k]}")
+        detail.extend(f"    + {k}" + (f"  (x{n})" if n > 1 else "") for k, n in sorted(extra.items()))
+    if not detail and have == want:
+        detail.append(
+            "  the ledger holds exactly the right rows but in a different ORDER. Row "
+            "order is derived content, so a reordered ledger is an edited ledger."
+        )
     return detail
 
 

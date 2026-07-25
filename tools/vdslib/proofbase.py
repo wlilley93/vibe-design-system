@@ -83,6 +83,32 @@ def new_run(project: Project, kind: str, script: str, argv: list[str], args) -> 
     )
 
 
+def load_surface_ledger(run_: ProofRun) -> dict:
+    """The ONE way a proof may obtain the screens ledger.
+
+    A proof that reads a derived row must first have established that the row
+    is one the generator produced, not one an author typed. `scan.load_authentic`
+    re-derives the whole derived block from the live screen files and raises if
+    it differs, so a hand-edited ledger reaches this function and never leaves
+    it. The raise becomes exit 2 through `guarded`: PRECONDITION FAILED, "this
+    proof did not run and proves nothing", and no proof record is captured,
+    which is the point. [2026] VJS-CC-OPBOX audit D1 is the case where a deleted
+    ledger row turned exit 1 into a captured, automatic-capture PASS.
+
+    Routing every proof through here also means the ledger file's digest lands
+    in `inputs` on every such run, so the captured record carries the bytes the
+    run was authenticated against.
+    """
+    ledger = scan.load_authentic(run_.project)
+    run_.add_input(run_.project.screens_ledger_path)
+    run_.note(
+        "screens ledger authenticated before any row was read: derived rows "
+        "re-derived from the live screen files and matched "
+        f"({ledger.get('derived_digest')})"
+    )
+    return ledger
+
+
 def guarded(main_fn) -> int:
     """Run a proof main, turning a precondition failure into a loud exit 2."""
     try:

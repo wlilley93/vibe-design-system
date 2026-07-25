@@ -34,12 +34,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from vdslib import scan  # noqa: E402
 from vdslib.core import EXIT_PRECONDITION  # noqa: E402
 from vdslib.proofbase import (  # noqa: E402
     ENFORCEABLE_STATUSES,
     RegisterIndex,
     guarded,
+    load_surface_ledger,
     new_run,
     open_project,
     proof_argparser,
@@ -66,8 +66,9 @@ def run(argv: list[str] | None = None) -> int:
     run_ = new_run(project, KIND, SCRIPT, argv, args)
     run_.add_input(project.config_path)
 
-    ledger = scan.load_fresh(project)
-    run_.add_input(project.screens_ledger_path)
+    # Authenticated, not merely loaded: a hand-edited row never reaches the
+    # loop below, it raises here and the run exits 2 having captured nothing.
+    ledger = load_surface_ledger(run_)
 
     index = RegisterIndex(project)
     for record in index.records:

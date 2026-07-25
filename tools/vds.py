@@ -21,6 +21,7 @@ Stdlib only. No install step.
 from __future__ import annotations
 
 import argparse
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -44,10 +45,12 @@ from vdslib.core import (  # noqa: E402
     digest_of,
     find_project,
     now_iso,
+    script_path_for,
     sha256_file,
     sha256_text,
 )
 
+STAGE_ORDER = ("W1", "W2", "W3", "W4")
 STAGE_NUMBERS = {"W1": 1, "W2": 2, "W3": 3, "W4": 4}
 STAGE_NAMES = {
     "W1": "W1_REGISTER_COMPLETE",
@@ -779,6 +782,313 @@ def _run_module(module, forwarded: list[str]) -> int:
 # ---------------------------------------------------------------------- warrant
 
 
+ACCEPTANCE_PATH_RE = re.compile(r"^designpack/v[0-9]+/provenance/assent/[^/]+.*$")
+
+# The one place a proof kind maps to the file that may produce it. A record is
+# evidence only if it names THIS path for its kind, so a record cannot borrow a
+# real script's digest under a kind that script does not implement.
+def canonical_proof_script(kind: str) -> str:
+    return f"tools/proofs/{kind}.py"
+
+
+def proof_core_digest(record: dict) -> str:
+    """Recompute the digest the capture path wrote over the proof's own result.
+
+    Identical normalisation to vdslib.core.ProofRun._result_record. A record
+    whose stated `digest` does not equal this has been edited after capture, so
+    rows_enforced, status, violations and inputs_digest are all covered by one
+    comparison rather than trusted as written.
+    """
+    violations = []
+    for item in record.get("violations") or []:
+        if isinstance(item, dict):
+            violations.append(dict(item))
+    core = {
+        "kind": record.get("kind"),
+        "status": record.get("status"),
+        "rows_considered": record.get("rows_considered"),
+        "rows_enforced": record.get("rows_enforced"),
+        "rows_skipped_reasons": dict(sorted((record.get("rows_skipped_reasons") or {}).items())),
+        "violations": sorted(
+            violations,
+            key=lambda v: (str(v.get("location", "")), str(v.get("rule", "")), str(v.get("actual", ""))),
+        ),
+        "inputs_digest": record.get("inputs_digest"),
+    }
+    return digest_of(core)
+
+
+def verify_proof_record(project: Project, proof_id: str, record: dict) -> dict:
+    """Refuse a proof record that is not bound to a real run of a real script.
+
+    VDS S-7(2)(5) says a hand-written proof record is void. Fixing capture_mode
+    to one enum value did not make that true: the field is a string an author
+    types, so it asserted the property it was supposed to prove. What binds a
+    record to an execution is the script: the kind must be one VDS actually
+    implements, the record must name the canonical script for that kind, that
+    script must be on disk, and its digest must still match the digest recorded
+    when the record was captured. Returns the evidence entry to cite.
+    """
+    where = f"{proof_id} ({project.rel(Path(record.get('__path', proof_id)))})"
+
+    kind = record.get("kind")
+    if kind not in IMPLEMENTED_PROOF_KINDS:
+        raise VdsError(
+            f"{where} declares kind {kind!r}, which VDS specifies but does not implement. "
+            f"Implemented kinds: {', '.join(IMPLEMENTED_PROOF_KINDS)}. A record for a "
+            "script that does not exist is not evidence of anything, whatever it says "
+            "about itself (VDS S-7(2)(5), S-7(5))."
+        )
+
+    # Validate the record as an artefact before reading anything else off it, so
+    # a malformed forgery fails on its shape rather than on the first field that
+    # happens to be checked.
+    instance = {k: v for k, v in record.items() if not k.startswith("__")}
+    project.validate_artefact("proof-result", instance, where)
+
+    if record.get("status") != "passed":
+        raise VdsError(
+            f"{where} has status {record.get('status')!r}. A warrant may only cite a "
+            "passed proof; a vacuous or failed proof is not evidence (VDS S-7(2)(4))."
+        )
+    if record.get("capture_mode") != "automatic":
+        raise VdsError(
+            f"{where} claims capture_mode {record.get('capture_mode')!r}. A "
+            "hand-written proof record is void (VDS S-7(2)(5))."
+        )
+
+    expected_script = canonical_proof_script(str(kind))
+    script = str(record.get("script", ""))
+    if script != expected_script:
+        raise VdsError(
+            f"{where} names script {script!r}, but a {kind} record may only come from "
+            f"{expected_script!r}. Citing another script's path is how a record borrows a "
+            "digest it did not earn (VDS S-7(5): the registry of proof kinds is closed)."
+        )
+    script_path = script_path_for(project, script)
+    if script_path is None:
+        raise VdsError(
+            f"{where} names {script!r}, which is not on disk under {project.root} or the "
+            "VDS checkout. A proof record for a script that does not exist is refused as "
+            "evidence (VDS S-7(2)(5))."
+        )
+
+    recorded_script_digest = record.get("script_digest")
+    if not recorded_script_digest:
+        raise VdsError(
+            f"{where} carries no script_digest, so nothing ties it to an execution. "
+            "Re-run the proof: records captured before script binding cannot be cited."
+        )
+    live_script_digest = sha256_file(script_path)
+    if recorded_script_digest != live_script_digest:
+        raise VdsError(
+            f"{where} is STALE EVIDENCE: it was captured against {script} at "
+            f"{recorded_script_digest}, and that script is now {live_script_digest}. The "
+            "check that produced this record is not the check on disk. Re-run the proof."
+        )
+
+    recomputed = proof_core_digest(record)
+    if record.get("digest") != recomputed:
+        raise VdsError(
+            f"{where} FAILS ITS OWN INTEGRITY CHECK: it states digest "
+            f"{record.get('digest')} and its fields digest to {recomputed}. The record has "
+            "been edited since capture (rows_enforced, status, violations or inputs_digest), "
+            "so it is not the output of the run it claims (VDS S-7(2)(1))."
+        )
+
+    if int(record.get("rows_enforced") or 0) < 1:
+        raise VdsError(
+            f"{where} enforced 0 rows. A pass over zero enforceable rows is vacuous and is "
+            "not evidence for any warrant (VDS S-7(2)(4))."
+        )
+    if int(record.get("exit_code", 1)) != 0:
+        raise VdsError(
+            f"{where} records exit_code {record.get('exit_code')!r} with status passed. "
+            "The exit code is the contract a caller reads; the two must agree."
+        )
+
+    return {
+        "proof_id": proof_id,
+        "kind": kind,
+        # Every field below is taken from the record on disk, never from the
+        # caller: a warrant that cites a digest the caller supplied proves the
+        # caller and nothing else.
+        "digest": record.get("digest"),
+        "script": script,
+        "script_digest": live_script_digest,
+        "status": "passed",
+    }
+
+
+def predecessor_chain(
+    project: Project, stage: str, warrants: list[dict], live_surface: dict
+) -> list[dict]:
+    """Enforce W1 -> W2 -> W3 -> W4 (VDS S-6(2)).
+
+    "A stage may not be entered before the preceding warrant is granted, and the
+    ordering is the entire mechanism." Every earlier stage must hold a granted
+    warrant, and it must have been granted over the surface that is live now: a
+    predecessor granted over different bytes is spent (VDS S-6(4)), and building
+    on a spent warrant is the ordering failing quietly rather than loudly.
+    """
+    chain = []
+    for prior in STAGE_ORDER[: STAGE_ORDER.index(stage)]:
+        held = [w for w in warrants if w.get("stage") == STAGE_NAMES[prior]]
+        granted = [w for w in held if w.get("status") == "granted"]
+        if not granted:
+            seen = ", ".join(f"{w.get('id')}={w.get('status')}" for w in held) or "nothing on disk"
+            raise VdsError(
+                f"{stage} may not be entered: its predecessor {prior} "
+                f"({STAGE_NAMES[prior]}) is not granted ({seen}). VDS S-6(2): a stage may "
+                "not be entered before the preceding warrant is granted, and the ordering "
+                f"is the entire mechanism. Record {prior} first, or record this one "
+                "--status refused."
+            )
+        latest = granted[-1]
+        surface = latest.get("surface") or {}
+        if surface != live_surface:
+            differing = [
+                f"{key} granted-on {surface.get(key)} now {live_surface.get(key)}"
+                for key in ("screens_digest", "register_digest")
+                if surface.get(key) != live_surface.get(key)
+            ]
+            raise VdsError(
+                f"{stage} may not be entered on {latest.get('id')}: that {prior} warrant was "
+                f"granted over a different surface and is spent (VDS S-6(4)). "
+                + "; ".join(differing)
+                + f". Run: vds.py warrant spend {latest.get('id')}, then re-grant {prior}."
+            )
+        chain.append(
+            {
+                "warrant_id": str(latest.get("id")),
+                "stage": STAGE_NAMES[prior],
+                "digest": sha256_file(Path(latest["__path"])),
+            }
+        )
+    return chain
+
+
+ACCEPTANCE_TEMPLATE = """\
+vds_acceptance_event: 1
+project: {project}
+stage: W3_PRINCIPAL_ACCEPTED
+accepted_by: <name of the Principal, not "the Principal">
+accepted_at: {now}
+surface:
+  screens_digest: {screens}
+  register_digest: {register}
+statement: <what was shown and what is accepted, in the acceptor's own words>
+"""
+
+
+def read_acceptance_event(project: Project, path: Path) -> dict:
+    """Parse an acceptance event, as a whole file or as YAML front matter."""
+    text = path.read_text(encoding="utf-8")
+    if text.startswith("---\n"):
+        _, _, rest = text.partition("---\n")
+        block, marker, _ = rest.partition("\n---")
+        if not marker:
+            raise VdsError(
+                f"{project.rel(path)} opens with '---' but never closes the front matter."
+            )
+        text = block
+    try:
+        data = yamlish.loads(text)
+    except Exception as exc:
+        raise VdsError(
+            f"{project.rel(path)} is not a readable acceptance event: {exc}"
+        ) from exc
+    if not isinstance(data, dict):
+        raise VdsError(f"{project.rel(path)} is not a mapping, so it declares nothing.")
+    return data
+
+
+def verify_acceptance_event(project: Project, raw_path: str, live_surface: dict) -> dict:
+    """Refuse anything that is not an acceptance of THIS surface (VDS S-6(7)).
+
+    A path regex is not a check: the auditor passed a one-line file that said in
+    words it was not an assent event and it was accepted. An acceptance event
+    must say what it is, for which project and stage, who accepted, when, and
+    over exactly which surface digests, and the surface it names must be the
+    surface on disk now. That last limb is the one that cannot be satisfied by
+    accident: nothing lands in the file by chance that pins the live bytes.
+    """
+    event_path = Path(raw_path)
+    if not event_path.is_file():
+        raise VdsError(f"--acceptance-event {raw_path} does not exist")
+    rel = project.rel(event_path)
+    if not ACCEPTANCE_PATH_RE.match(rel):
+        raise VdsError(
+            f"--acceptance-event {rel} is not inside designpack/vN/provenance/assent/ of "
+            f"{project.root}. The acceptance event lives in the record it accepts "
+            "(VDS S-6(7))."
+        )
+
+    data = read_acceptance_event(project, event_path)
+    template = ACCEPTANCE_TEMPLATE.format(
+        project=project.jurisdiction_id,
+        now=now_iso(),
+        screens=live_surface["screens_digest"],
+        register=live_surface["register_digest"],
+    )
+
+    def refuse(problem: str) -> None:
+        raise VdsError(
+            f"{rel} is not an acceptance event: {problem}\n"
+            "An acceptance event is the whole of the W3 evidence, so it must be "
+            "legible as one. Required shape (whole file, or YAML front matter):\n\n"
+            + "\n".join("    " + line for line in template.splitlines())
+        )
+
+    if str(data.get("vds_acceptance_event", "")) != "1":
+        refuse("it does not declare vds_acceptance_event: 1")
+    if str(data.get("project", "")) != project.jurisdiction_id:
+        refuse(
+            f"it accepts for project {data.get('project')!r}, and this project is "
+            f"{project.jurisdiction_id!r}"
+        )
+    if str(data.get("stage", "")) != STAGE_NAMES["W3"]:
+        refuse(f"it names stage {data.get('stage')!r}, not {STAGE_NAMES['W3']}")
+    accepted_by = str(data.get("accepted_by") or "").strip()
+    if len(accepted_by) < 2 or accepted_by.lower() in ("the principal", "principal", "unknown"):
+        refuse(
+            f"accepted_by is {data.get('accepted_by')!r}. Name the person: acceptance is "
+            "an act by someone, and 'the Principal' is a role VDS filled in by default"
+        )
+    accepted_at = str(data.get("accepted_at") or "").strip()
+    if not re.match(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$", accepted_at):
+        refuse(f"accepted_at is {data.get('accepted_at')!r}, not a YYYY-MM-DDTHH:MM:SSZ instant")
+    statement = str(data.get("statement") or "").strip()
+    if len(statement) < 20:
+        refuse("statement is missing or under 20 characters, so nothing was said")
+
+    declared = data.get("surface")
+    if not isinstance(declared, dict):
+        refuse("it declares no surface: block, so it accepts nothing in particular")
+    declared_surface = {
+        "screens_digest": str(declared.get("screens_digest", "")),
+        "register_digest": str(declared.get("register_digest", "")),
+    }
+    if declared_surface != live_surface:
+        refuse(
+            "the surface it accepts is not the surface on disk.\n"
+            f"      accepted screens_digest:  {declared_surface['screens_digest']}\n"
+            f"      live     screens_digest:  {live_surface['screens_digest']}\n"
+            f"      accepted register_digest: {declared_surface['register_digest']}\n"
+            f"      live     register_digest: {live_surface['register_digest']}\n"
+            "      Acceptance is of specific bytes. If the surface moved, it was not "
+            "accepted, and VDS may never infer acceptance from silence"
+        )
+
+    return {
+        "path": rel,
+        "digest": sha256_file(event_path),
+        "accepted_at": accepted_at,
+        "accepted_by": accepted_by,
+        "surface_digest": digest_of(live_surface),
+    }
+
+
 def cmd_warrant(args) -> int:
     project = resolve(args)
     if args.action == "status":
@@ -788,6 +1098,48 @@ def cmd_warrant(args) -> int:
     if args.action == "spend":
         return _warrant_spend(project, args)
     raise VdsError(f"unknown warrant action {args.action!r}")
+
+
+def _report_chain(project: Project, warrant: dict, warrants: list[dict]) -> int:
+    """Re-check a granted warrant's recorded ordering (VDS S-6(2), S-6(4))."""
+    stage_name = str(warrant.get("stage", ""))
+    stage = next((s for s, name in STAGE_NAMES.items() if name == stage_name), None)
+    if stage is None:
+        return 0
+    expected = STAGE_ORDER[: STAGE_ORDER.index(stage)]
+    chain = warrant.get("predecessors")
+    if chain is None:
+        if expected:
+            print(
+                f"     ORDERING UNRECORDED: this warrant names no predecessors, so nothing "
+                f"shows {', '.join(expected)} was granted before it (VDS S-6(2)). It "
+                "predates the ordering check; re-record it."
+            )
+            return 1
+        return 0
+    problems = 0
+    if [str(row.get("stage")) for row in chain] != [STAGE_NAMES[s] for s in expected]:
+        print(
+            "     ORDERING BROKEN: predecessors are "
+            f"{[row.get('stage') for row in chain]}, and {stage} requires "
+            f"{[STAGE_NAMES[s] for s in expected]} (VDS S-6(2))."
+        )
+        problems += 1
+    by_id = {str(w.get("id")): w for w in warrants}
+    for row in chain:
+        prior = by_id.get(str(row.get("warrant_id")))
+        if prior is None:
+            print(f"     PREDECESSOR MISSING: {row.get('warrant_id')} is not on disk")
+            problems += 1
+            continue
+        live = sha256_file(Path(prior["__path"]))
+        if live != row.get("digest"):
+            print(
+                f"     PREDECESSOR ALTERED: {row.get('warrant_id')} was "
+                f"{row.get('digest')} when this warrant was recorded and is now {live}"
+            )
+            problems += 1
+    return problems
 
 
 def _warrant_status(project: Project) -> int:
@@ -839,6 +1191,20 @@ def _warrant_status(project: Project) -> int:
                             f"{item.get('digest')} and the record holds {on_disk.get('digest')}"
                         )
                         problems += 1
+                    else:
+                        # Re-run the whole evidence gate, not just the digest
+                        # equality: the script the record names may have changed
+                        # or gone since, and a warrant standing on a proof that
+                        # can no longer be shown to have run is a warrant on
+                        # nothing (VDS S-7(2)(5)).
+                        try:
+                            verify_proof_record(
+                                project, str(item.get("proof_id")), on_disk
+                            )
+                        except VdsError as exc:
+                            print(f"     EVIDENCE NO LONGER STANDS: {exc}")
+                            problems += 1
+                problems += _report_chain(project, warrant, warrants)
         required = STAGE_EVIDENCE[stage]
         for kind in required:
             proof = latest_passed(proofs, kind)
@@ -870,38 +1236,51 @@ def _warrant_record(project: Project, args) -> int:
     if stage not in STAGE_NAMES:
         raise VdsError(f"--stage must be one of {', '.join(STAGE_NAMES)}")
 
+    live_surface = surface_digests(project)
+    warrants = read_warrants(project)
+
+    # VDS S-6(2), the ordering, before anything else: a stage that may not be
+    # entered has no business having its evidence weighed. A refusal is exempt,
+    # because refusing a stage is a record that it was NOT granted.
+    chain: list[dict] = []
+    if args.status != "refused":
+        chain = predecessor_chain(project, stage, warrants, live_surface)
+
     proofs = {p.get("id"): p for p in read_proofs(project)}
     evidence = []
+    if stage == "W3" and args.evidence:
+        raise VdsError(
+            "W3 does not take --evidence. Its evidence is the acceptance event itself: "
+            "acceptance is reserved to the Principal (VDS S-6(7)) and no proof, of any "
+            "kind, substitutes for it. Passing a proof here is how a machine result gets "
+            "dressed as a human decision."
+        )
     for proof_id in args.evidence or []:
         proof = proofs.get(proof_id)
         if proof is None:
             raise VdsError(f"no proof record {proof_id!r} on disk")
-        if proof.get("status") != "passed":
-            raise VdsError(
-                f"{proof_id} has status {proof.get('status')!r}. A warrant may only cite a "
-                "passed proof; a vacuous or failed proof is not evidence (VDS S-7(2)(4))."
-            )
-        if proof.get("capture_mode") != "automatic":
-            raise VdsError(
-                f"{proof_id} claims capture_mode {proof.get('capture_mode')!r}. A "
-                "hand-written proof record is void (VDS S-7(2)(5))."
-            )
-        evidence.append(
-            {
-                "proof_id": proof_id,
-                "kind": proof.get("kind"),
-                # Taken from the record on disk, never from the caller: a warrant
-                # that cites a digest the caller supplied proves the caller.
-                "digest": proof.get("digest"),
-                "status": "passed",
-            }
-        )
+        evidence.append(verify_proof_record(project, proof_id, proof))
     have = {e["kind"] for e in evidence}
-    missing = [k for k in STAGE_EVIDENCE[stage] if k not in have]
+    # A refusal is a record that the stage was NOT granted, and the usual reason
+    # to refuse is that this very evidence is missing. Requiring the full set
+    # before a refusal may be written would make the honest record the one VDS
+    # forbids. Whatever evidence IS cited on a refusal still has to be real.
+    missing = [] if args.status == "refused" else [
+        k for k in STAGE_EVIDENCE[stage] if k not in have
+    ]
     if missing:
+        unimplemented = [k for k in missing if k not in IMPLEMENTED_PROOF_KINDS]
+        detail = ""
+        if unimplemented:
+            detail = (
+                f"\n  Of those, {', '.join(unimplemented)} is specified and NOT IMPLEMENTED "
+                "(vdslib/core.py IMPLEMENTED_PROOF_KINDS), so this stage cannot be granted "
+                "by anyone until the script exists. That is the true state of the record, "
+                "not a tooling gap to route around."
+            )
         raise VdsError(
             f"{stage} requires evidence of kind {', '.join(STAGE_EVIDENCE[stage])} "
-            f"(VDS S-6(2)); missing: {', '.join(missing)}"
+            f"(VDS S-6(2)); missing: {', '.join(missing)}." + detail
         )
 
     if args.case_file:
@@ -918,7 +1297,6 @@ def _warrant_record(project: Project, args) -> int:
             "the fact (VDS S-10(5))."
         )
 
-    live_surface = surface_digests(project)
     acceptance = None
     if stage == "W3":
         if not args.acceptance_event:
@@ -927,16 +1305,15 @@ def _warrant_record(project: Project, args) -> int:
                 "under ACT-001:s2, no proof substitutes for it, no bench may grant it, and "
                 "VDS may never infer it from silence (VDS S-6(7))."
             )
-        event_path = Path(args.acceptance_event)
-        if not event_path.is_file():
-            raise VdsError(f"--acceptance-event {args.acceptance_event} does not exist")
-        acceptance = {
-            "path": project.rel(event_path),
-            "digest": sha256_file(event_path),
-            "accepted_at": args.accepted_at or now_iso(),
-            "accepted_by": args.accepted_by or "the Principal",
-            "surface_digest": digest_of(live_surface),
-        }
+        acceptance = verify_acceptance_event(project, args.acceptance_event, live_surface)
+        for flag, field in (("--accepted-by", "accepted_by"), ("--accepted-at", "accepted_at")):
+            given = getattr(args, field, None)
+            if given and str(given) != acceptance[field]:
+                raise VdsError(
+                    f"{flag} says {given!r} and the acceptance event says "
+                    f"{acceptance[field]!r}. The event is the record; a flag may not "
+                    "contradict it."
+                )
         granted_by, assent_source = "principal", "principal_acceptance"
         bench: list[str] = []
         citation = None
@@ -966,6 +1343,9 @@ def _warrant_record(project: Project, args) -> int:
         "assent_source": assent_source,
         "acceptance_event": acceptance,
         "evidence": evidence,
+        # The ordering, written down. Checked at record time and re-checkable
+        # afterwards: a predecessor edited later no longer digests to this.
+        "predecessors": chain,
         "case_file_digest": case_file_digest,
         "directives": [],
         "forbidden": list(args.forbidden or []),
@@ -1065,19 +1445,57 @@ def _lock_verify(project: Project) -> int:
         )
         return EXIT_VIOLATION
     print("")
-    print("no enforcement drift: every pinned path matches its digest.")
+    print(
+        "no enforcement drift: every pinned path matches its digest, every declared "
+        "invoker was OPENED and names what it claims to run, every failing-direction "
+        "test was OPENED and still contains its named test, and every claimed proof "
+        "kind is one this tooling implements."
+    )
+    print(
+        "  What this does NOT establish (VDS S-8(5)): that any invoker ever RAN. A "
+        "workflow that exists, is readable and names the script, but is never "
+        "triggered, passes every check above."
+    )
     return EXIT_PASSED
 
 
+def _lock_pin_name(project: Project, given: str, what: str) -> str:
+    """Name a file the way a lock entry names it: repository-relative when it is
+    in the project, `vds:`-prefixed when it lives in the VDS install instead.
+
+    In a real adoption the proof scripts are in the install and not in the
+    repository, so a project-relative-only name could not reach them at all.
+    """
+    if not locklib.is_safe_ref(given):
+        raise VdsError(
+            f"{what} {given!r} must be repository-relative (or "
+            f"'{locklib.VDS_PATH_PREFIX}'-relative for a file inside the VDS install), "
+            "with no leading slash and no '..'."
+        )
+    target = locklib.resolve_path(project, given)
+    if target.is_file():
+        return given
+    if not given.startswith(locklib.VDS_PATH_PREFIX):
+        in_install = locklib.VDS_HOME / given
+        if in_install.is_file():
+            return locklib.VDS_PATH_PREFIX + given
+    raise VdsError(
+        f"{what} {given!r} does not exist under {project.root} or under the VDS install "
+        f"at {locklib.VDS_HOME}, so there is nothing there to name."
+    )
+
+
 def _lock_add(project: Project, args) -> int:
-    target = project.root / args.path
-    if not target.is_file():
-        raise VdsError(f"{args.path} does not exist, so there is nothing to pin")
     if not args.invoked_by:
         raise VdsError(
             "pass --invoked-by at least once, as 'surface=ref' or 'surface=ref=blocking'. "
             "An empty invocation list is not representable, because an uninvoked gate is "
             "not enforcement (VDS S-7(2)(3))."
+        )
+    if not args.proves:
+        raise VdsError(
+            "pass --proves at least once. A script that produces no proof kind may not be "
+            "pinned (VDS S-7(5))."
         )
     if not args.test_path or not args.test_name:
         raise VdsError(
@@ -1085,8 +1503,10 @@ def _lock_add(project: Project, args) -> int:
             "the test that proves the script's FAILING direction, which is how VDS "
             "S-7(2)(2) is made structural rather than aspirational."
         )
-    if not (project.root / args.test_path).is_file():
-        raise VdsError(f"--test-path {args.test_path} does not exist")
+
+    pin_name = _lock_pin_name(project, args.path, "the path to pin")
+    test_name_path = _lock_pin_name(project, args.test_path, "--test-path")
+    target = locklib.resolve_path(project, pin_name)
 
     invocations = []
     for spec in args.invoked_by:
@@ -1100,17 +1520,17 @@ def _lock_add(project: Project, args) -> int:
 
     data = locklib.read(project)
     entries = list(data.get("entries", [])) if data else []
-    previous = next((e for e in entries if e.get("path") == args.path), None)
-    entries = [e for e in entries if e.get("path") != args.path]
+    previous = next((e for e in entries if e.get("path") == pin_name), None)
+    entries = [e for e in entries if e.get("path") != pin_name]
 
     entry = {
-        "path": args.path,
+        "path": pin_name,
         "digest": sha256_file(target),
         "kind": args.kind,
         "invoked_by": invocations,
         "proves": list(args.proves or []),
         "failing_direction_test": {
-            "path": args.test_path,
+            "path": test_name_path,
             "test_name": args.test_name,
         },
         "pinned_at": now_iso(),
@@ -1118,10 +1538,23 @@ def _lock_add(project: Project, args) -> int:
     }
     if args.seeds:
         entry["failing_direction_test"]["seeds"] = args.seeds
+
+    # The door refuses exactly what the wall would find, from one implementation.
+    # Writing an entry whose next `lock verify` is a guaranteed finding would put
+    # a false claim of enforcement on disk, which is the thing the lock exists to
+    # prevent rather than to hold.
+    entry_findings, entry_notes = locklib.check_entry(project, entry)
+    if entry_findings:
+        raise VdsError(
+            f"this entry would not survive `lock verify`, so it is not written. "
+            f"{len(entry_findings)} findings, each named in full:\n  "
+            + "\n  ".join(entry_findings)
+        )
+
     if previous is not None and previous.get("digest") != entry["digest"]:
         if not args.rationale:
             raise VdsError(
-                f"{args.path} is already pinned at {previous.get('digest')} and the bytes "
+                f"{pin_name} is already pinned at {previous.get('digest')} and the bytes "
                 "have changed. Re-pinning is deliberate: pass --rationale, and self-file "
                 "under VDS S-12(3). Re-locking without recording why is itself the breach "
                 "the lock exists to make visible."
@@ -1130,7 +1563,12 @@ def _lock_add(project: Project, args) -> int:
         entry["relock_rationale"] = args.rationale
     entries.append(entry)
     path = locklib.write(project, entries)
-    print(f"pinned {args.path} at {entry['digest']}")
+    print(f"pinned {pin_name} at {entry['digest']}")
+    for invocation in entry["invoked_by"]:
+        print(f"  invoker opened and confirmed: {invocation['ref']}")
+    print(f"  failing-direction test opened and confirmed: {test_name_path}::{args.test_name}")
+    for note in entry_notes:
+        print(f"  {note}")
     print(f"  wrote {project.rel(path)} ({len(entries)} entries)")
     return EXIT_PASSED
 
@@ -1348,13 +1786,26 @@ def build_parser() -> argparse.ArgumentParser:
     l_verify.set_defaults(action="verify")
 
     l_add = lock_sub.add_parser("add")
-    l_add.add_argument("path")
+    l_add.add_argument(
+        "path",
+        help="repository-relative, or a path inside the VDS install (recorded as 'vds:...')",
+    )
     l_add.add_argument(
         "--kind", default="proof_script", choices=["proof_script", "ledger_generator", "hook", "schema", "config"]
     )
-    l_add.add_argument("--invoked-by", action="append", help="'surface=ref[=blocking]'")
-    l_add.add_argument("--proves", action="append", choices=list(PROOF_KINDS))
-    l_add.add_argument("--test-path")
+    l_add.add_argument(
+        "--invoked-by",
+        action="append",
+        help="'surface=ref[=blocking]'. The ref is OPENED and must name what it invokes.",
+    )
+    l_add.add_argument(
+        "--proves",
+        action="append",
+        choices=list(PROOF_KINDS),
+        help="only kinds this tooling implements may be pinned: "
+        + ", ".join(IMPLEMENTED_PROOF_KINDS),
+    )
+    l_add.add_argument("--test-path", help="repository-relative, or 'vds:'-relative")
     l_add.add_argument("--test-name")
     l_add.add_argument("--seeds")
     l_add.add_argument("--rationale")
