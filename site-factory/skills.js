@@ -200,6 +200,12 @@ function briefMarkdown(config, manifest, gaps) {
     lines.push('Run `revenue/skills/sales-page-setup` to fill these by interview. Guessing them');
     lines.push('would be worse than leaving them: each skill treats this file as settled fact and');
     lines.push('will not re-ask.');
+    lines.push('');
+    lines.push('**`brand.audience` means the person who READS THIS PAGE, which is not always the');
+    lines.push('buyer.** Every skill in the pack takes it as the buyer and writes at them. On a page');
+    lines.push('whose job is pre-qualifying a referral, the reader is the referrer and the buyer');
+    lines.push('never visits. Set it to the reader, and note the buyer separately in');
+    lines.push('`brand.offer`, or all seven skills will write to the wrong person.');
   } else {
     lines.push('Every field is filled.');
   }
@@ -223,6 +229,11 @@ function briefMarkdown(config, manifest, gaps) {
     lines.push('These blocks have copy. That is not the same as copy that works — these skills');
     lines.push('generate alternatives across proven formulas and score them, which is worth doing');
     lines.push('against a line that already exists.');
+    lines.push('');
+    lines.push('**Grade the existing line FIRST, before generating alternatives.** Every new line is');
+    lines.push('optimised against the rubric; the incumbent carries things the rubric cannot see —');
+    lines.push('the person it is written in, the artwork it shares an idea with, the subhead already');
+    lines.push('doing half its work. Scoring it last makes replacement look obvious when it is not.');
     lines.push('');
     for (const s of improvable) {
       lines.push(`- \`${SKILL_ROOT}/${s.skill}\` — ${s.writes} (${s.block})`);
