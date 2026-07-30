@@ -199,3 +199,57 @@ test('every font-size comes from the ramp and carries its role leading', () => {
   const deadRoles = Object.keys(TYPE_LEADING).filter((r) => !usedRoles.has(r));
   assert.deepEqual(deadRoles, [], `leading roles declared and never read: ${deadRoles.join(', ')}`);
 });
+
+test('every element class the blocks emit has a rule in the stylesheet', () => {
+  // Found eleven of these at once, and they were not cosmetic. `.md__rail` is the third
+  // pane of the master-detail assembly and had no border, so the inspector ran into the
+  // detail with nothing between them. `.md` is that assembly's own root and had no rule at
+  // all, so the facet strip sat above the panes only by accident of document flow. Every
+  // one was a container the layout leaned on while the cascade happened to hold it up.
+  //
+  // The line is drawn at ELEMENT vs MODIFIER, and the distinction is real rather than
+  // convenient. A `--modifier` on a block root is a documented hook: `.pricing--table`
+  // exists so a consuming project can tell one variant from another in the DOM, and it is
+  // legitimately unstyled here because the structural sheet has no opinion on it. An
+  // `__element` class is a part of the component, and an unstyled part is a part whose
+  // layout is inherited by luck.
+  const { STRUCTURE_CSS } = require('../build.js');
+  const { placeholderContent } = require('../scaffold.js');
+  const { listBlockVariants } = require('../compose.js');
+
+  // Comments are STRIPPED before extracting, and finding out why cost a negative control.
+  // The first version read the sheet whole, so a class named in a comment counted as
+  // declared - and this test's own comment names .md__rail. Deleting that rule left the
+  // test green, because the prose explaining the rule satisfied the check that the rule
+  // existed. A check a comment can satisfy is not a check.
+  const rules = STRUCTURE_CSS.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  const declared = new Set(
+    [...rules.matchAll(/\.([a-zA-Z][a-zA-Z0-9_-]*)/g)].map((m) => m[1])
+  );
+
+  const unstyled = new Set();
+  let rendered = 0;
+  const variants = listBlockVariants();
+  for (const type of Object.keys(variants)) {
+    const content = placeholderContent(type);
+    for (const variant of variants[type]) {
+      const { html } = renderPage({ title: 't', page: [{ block: type, variant, content }] }, PACKS[0], null);
+      rendered++;
+      for (const m of html.matchAll(/class="([^"]+)"/g)) {
+        for (const cls of m[1].split(/\s+/)) {
+          // A modifier is exempt; an element is not. A bare block root with no modifier
+          // is an element too - `.md` was exactly that case.
+          if (!cls || declared.has(cls) || cls.includes('--')) continue;
+          unstyled.add(`${type}/${variant}: .${cls}`);
+        }
+      }
+    }
+  }
+
+  // Guard the guard: a check that renders nothing passes trivially, and this one walks a
+  // directory to find its work.
+  assert.ok(rendered >= 70, `only ${rendered} variants rendered - the walk found almost nothing`);
+  assert.deepEqual([...unstyled].sort(), [],
+    'these element classes are emitted by a block and have no rule in the stylesheet. Each is ' +
+    `a part of a component whose layout is inherited by luck:\n  ${[...unstyled].sort().join('\n  ')}`);
+});

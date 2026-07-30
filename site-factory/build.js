@@ -764,6 +764,41 @@ a { color: var(--color-accent); }
 .mcard__body { line-height: var(--lh-body); font-size: var(--text-sm); color: var(--color-muted); margin: 0; }
 .mcard__action { line-height: var(--lh-label); font-size: var(--text-sm); font-weight: 600; color: var(--color-accent); text-decoration: none; margin-top: calc(var(--space) * 1); }
 .mcard__art { width: calc(var(--space) * 28); background: var(--color-border); flex-shrink: 0; }
+
+/* ---- Eleven element classes that the markup emitted and the stylesheet never
+   defined. Found by rendering all 78 variants and pairing every emitted class against
+   a rule, which is now a test.
+
+   These are not cosmetic omissions. .md__rail is the third pane of the master-detail
+   assembly and had no border, so the inspector ran into the detail with nothing between
+   them. .md is the assembly's own root and had no rule at all, so the facet strip and
+   the panes were only in the right order by accident of document flow. Each of these was
+   a container the layout depended on and the cascade happened to survive. ---- */
+
+/* The assembly root. The facet strip stacks above the panes; nothing was saying so. */
+.md { display: flex; flex-direction: column; }
+/* Mirrors .md__master's border-right, so the three-pane layout has a rule on each seam
+   rather than one. min-width:0 for the same reason .md__detail has it: a grid child that
+   can't shrink pushes the whole row wider than its column. */
+.md__rail { border-left: var(--border-weight) solid var(--color-border); min-width: 0; }
+
+/* Split-layout text columns. Each is the left half of a two-column block whose right
+   half already had a rule, so the text side inherited whatever the flex default gave it. */
+.hero__text { display: flex; flex-direction: column; align-items: flex-start; max-width: var(--measure); }
+.cta__text { display: flex; flex-direction: column; gap: calc(var(--space) * 2); max-width: var(--measure); }
+.contact__info { display: flex; flex-direction: column; gap: calc(var(--space) * 2); max-width: var(--measure); }
+
+/* Footer columns. .footer__colTitle and .footer__colLinks were both styled; the columns
+   holding them were not. */
+.footer__brand { display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
+.footer__col { display: flex; flex-direction: column; }
+
+/* Containers whose children were styled and which had no width of their own, so they ran
+   to the full container regardless of what the content wanted. */
+.faq__list { max-width: var(--measure-wide); }
+.facet__search { margin: 0 0 calc(var(--space) * 3); }
+.oview__id { display: flex; flex-direction: column; min-width: 0; }
+.team__rowText { display: flex; flex-direction: column; min-width: 0; }
 `;
 
 /*
