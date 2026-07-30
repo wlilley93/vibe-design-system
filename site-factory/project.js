@@ -173,14 +173,41 @@ function createProject(config, opts = {}) {
     } else {
       execFileSync(bin, ['init', '--jurisdiction', name, '--repo-code', name.slice(0, 12)], { cwd: result.outDir, stdio: 'pipe' });
       const b = bridge(result.outDir, result.typesUsed);
-      out.governed = true;
+
+      /*
+       * `governed` is EARNED, not set because the call returned.
+       *
+       * It used to be `true` unconditionally right here, and neither of the two ways the
+       * bridge fails throws: `refreshLedger` catches and returns false, and
+       * `advanceToBuilt` returns `{failedAt, error}` instead of raising. So a project
+       * with no screens ledger and every record stuck at `proposed` reported itself
+       * governed - which is the exact shape of claim this whole seam exists to refuse.
+       *
+       * A record at `proposed` is a candidate, not a contract: `parity` skips it
+       * (`record_below_registered_is_a_candidate_not_a_contract`), so a stuck lifecycle
+       * silently switches proofs off rather than failing them.
+       */
+      const failures = [];
+      if (b.ledger !== true) failures.push('the screens ledger could not be generated');
+      if (b.lifecycle.skipped) failures.push(b.lifecycle.skipped);
+      if (b.lifecycle.failedAt) failures.push(`lifecycle stopped at ${b.lifecycle.failedAt}: ${b.lifecycle.error}`);
+      if (b.records.length && b.lifecycle.advanced.length !== b.records.length) {
+        failures.push(`${b.records.length - b.lifecycle.advanced.length} of ${b.records.length} records did not reach built`);
+      }
+
+      out.governed = failures.length === 0;
       out.vds = {
         surface: b.config.changed,
         records: b.records.length,
         advanced: b.lifecycle.advanced.length,
         ledger: b.ledger,
       };
+      if (failures.length) out.vds.failures = failures;
+
       log(`.vds/: ${b.records.length} records, ${b.lifecycle.advanced.length} advanced to built`);
+      if (failures.length) {
+        log(`.vds/: NOT governed - ${failures.join('; ')}`);
+      }
     }
   }
 

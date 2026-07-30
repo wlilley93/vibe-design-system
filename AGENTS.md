@@ -33,27 +33,29 @@ one of them is in the storing form and is forbidden.
 **One command:**
 
 ```bash
-tools/run-tests.sh            # the whole suite
-tools/run-tests.sh test_cli   # one module, by prefix
-make test-py                  # the same thing through make
-make test-py T=test_cli_lock  # one module through make
+make test           # the Rust workspace
+make test-factory   # the site-factory JS suite, through its floor-asserting gate
+make check          # everything, in the order CI runs it
 ```
 
-`make test` is the Rust workspace. `make test-py` / `tools/run-tests.sh` is the Python tooling
-under `tools/`, which needs `python3` and nothing else: no install step, no third-party runner.
+`tools/` and `make test-py` are GONE. The Python v0 toolchain was deleted in the Rust port
+(847e0f8) and `.gitignore` calls it "the retired v0 toolchain", but the Makefile still
+advertised `make test-py` and this file still documented `tools/run-tests.sh`, so the
+documented way to run the tests invoked a script that does not exist. A command in the
+onboarding docs that cannot run is worse than an undocumented one.
 
-The suite lives in `tools/tests/` and exists because of VDS S-7(2)(2): a check is a proof only
-if **a named test seeds a violation against a fixture and asserts the non-zero exit**. On
-2026-07-25 `ls -A tools/tests` returned 0, so by VDS's own statute none of the three implemented
-proofs was a proof and none could lawfully be named as evidence. Every test therefore seeds a
-real violation, runs the real script in a real subprocess, and asserts the real exit code.
+The reason the suite exists is unchanged and is VDS S-7(2)(2): a check is a proof only if
+**a named test seeds a violation against a fixture and asserts the non-zero exit**. On
+2026-07-25 `ls -A tools/tests` returned 0, so by VDS's own statute none of the implemented
+proofs was a proof and none could lawfully be named as evidence. That standard now lives in
+the Rust suite and in `site-factory/tests/`, where every check has a negative control that
+was verified to actually fire.
 
 Two properties the runner enforces around the whole run, not merely per test:
 
-- **Fenced.** Every fixture is built under `mkdtemp` and torn down. `tools/` and `schema/` are
-  re-digested after every single test, so a test that crashes half way cannot leave the tool it
-  was testing broken. Point `VDS_TEST_PROTECT` at an adopting repository's `.vds/` to fence that
-  too: `VDS_TEST_PROTECT=/path/to/repo/.vds tools/run-tests.sh`.
+- **Fenced.** Every fixture is built under a temporary directory and torn down, so a test that
+  crashes half way cannot leave the thing it was testing broken. (`VDS_TEST_PROTECT` belonged to
+  the retired `tools/` runner and no longer does anything.)
 - **Not vacuous.** The runner refuses to start if its own manifest digested nothing, because an
   empty manifest compares equal to an empty manifest forever.
 

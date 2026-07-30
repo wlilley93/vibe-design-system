@@ -12,7 +12,7 @@
  *     HANDOVER-brand-2026-07-28.md, "Will's four-layer proposal, restructured").
  *   - Voice/copyRegister is Balmoral's own research: 13 real competitor sites sorted
  *     into 3 registers (brand-reference-teardown-2026-07-28.md, "05 - Copy and voice").
- *     Register B ("the interchangeable middle") is excluded as a choice on purpose —
+ *     Register B ("the interchangeable middle") is excluded as a choice on purpose
  *     that doc names it as the failure mode to avoid, not a style.
  *   - productStrategies / modularPlays are the 12 Product Strategies and 33 Modular
  *     Plays extracted from TheProductDesignPlaybook.pdf into the VDS Site Builder
@@ -154,12 +154,15 @@ function allFields() {
   return LAYERS.flatMap((layer) => layer.fields.map((f) => ({ ...f, layer: layer.key, layerTitle: layer.title })));
 }
 
-// Two routes, not one flow with a toggle. A marketing site compiles to real static
-// HTML today (12 block types, all built and verified). A SaaS app does NOT - only 2
-// of the 109 cataloged SaaS component types (Gated Action Button, StatusBadge) exist
-// anywhere outside Figma, so its route is honestly scoped to an app-shell compile
-// (nav + sidebar, the only SaaS-adjacent blocks with real code) plus a spec record of
-// every other layer, not a claim that the whole app got built.
+// Two routes, not one flow with a toggle. Both compile to real static HTML; they differ
+// in which layers apply and in how the page is assembled (the app route builds a shell
+// with the sidebar as a rail, see renderPage).
+//
+// NO COUNTS HERE. This comment used to say "only 2 of the 109 cataloged SaaS component
+// types exist" and "nav + sidebar, the only SaaS-adjacent blocks with real code", both
+// long dead by the time anyone read them - 14 app-surface types ship. compose.js owns
+// SAAS_BLOCKS and SAAS_CATALOG_TOTAL, project.js derives the gap from them, and a comment
+// restating either is a fourth copy that will disagree with the other three.
 const ROUTES = {
   'marketing-site': LAYERS.filter((l) => l.key !== 'componentStyle').map((l) => l.key),
   'saas-app': LAYERS.filter((l) => l.key !== 'imagery').map((l) => l.key),

@@ -167,19 +167,23 @@ test('no source file uses an em dash as prose punctuation', () => {
   // habit - 220 of these had accumulated across 40 files before anyone counted. Prose
   // is not enforcement; a test is.
   //
-  // Scoped to the SPACED form (space, U+2014, space), which is the punctuation use. A
-  // bare U+2014 as an empty-cell glyph in a table or a UI placeholder is a different
-  // thing: it means "nothing here", and a hyphen there reads as a minus sign. Those
-  // are left alone deliberately, and this test is narrow so it does not sweep them up.
+  // THE FIRST VERSION OF THIS TEST WAS WRONG, and it reported clean. It searched for the
+  // SPACED form (space, U+2014, space), which is what a sweep leaves behind: replacing
+  // " U+2014 " with " - " cannot touch an em dash at END OF LINE, because there is a
+  // newline after it and no trailing space. Eight real prose violations sat in the tree
+  // - one of them in this very directory - while the gate said zero.
   //
-  // The needle is built from its code point rather than typed. A guard written with a
-  // literal copy of the thing it bans FLAGS ITS OWN SOURCE, and the only ways out are
-  // to except the guard from itself - which is how a check quietly stops covering the
-  // file most likely to be edited - or to not write the character at all.
+  // So the rule is now the character itself, with ONE narrow carve-out: an em dash that
+  // is the entire content of a string or an element (`'X'`, `"X"`, `>X<`) is an
+  // empty-cell GLYPH meaning "nothing here", and a hyphen there reads as a minus sign.
+  // That carve-out is structural, not a list of blessed lines - a list would need editing
+  // every time a file moved, which is how a carve-out becomes an escape hatch.
   const fs = require('node:fs');
   const path = require('node:path');
 
-  const NEEDLE = ` ${String.fromCharCode(0x2014)} `;
+  const EM = String.fromCharCode(0x2014);
+  const GLYPH = new RegExp(`(['"\`>])${EM}(['"\`<])`, 'g');
+
   const ROOT = path.join(__dirname, '..');
   const SKIP = new Set(['node_modules', 'scaffolds', 'dist', '.vds', '.git']);
   const offenders = [];
@@ -191,11 +195,16 @@ test('no source file uses an em dash as prose punctuation', () => {
       if (e.isDirectory()) { walk(full); continue; }
       if (!/\.(js|md|html|json)$/.test(e.name)) continue;
       const text = fs.readFileSync(full, 'utf8');
-      const n = text.split(NEEDLE).length - 1;
-      if (n) offenders.push(`${path.relative(ROOT, full)} (${n})`);
+      text.split('\n').forEach((line, i) => {
+        // Strip the glyph use, then any surviving em dash is prose.
+        if (line.replace(GLYPH, '').includes(EM)) {
+          offenders.push(`${path.relative(ROOT, full)}:${i + 1}  ${line.trim().slice(0, 70)}`);
+        }
+      });
     }
   })(ROOT);
 
   assert.deepEqual(offenders, [],
     `em dash used as prose punctuation - replace with a comma, a colon, or a spaced hyphen:\n  ${offenders.join('\n  ')}`);
 });
+

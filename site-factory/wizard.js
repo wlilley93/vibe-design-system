@@ -7,7 +7,7 @@
  *   node wizard.js
  *
  * Asks for a one-paragraph brief, runs suggest.js over config-schema.js's 9 layers
- * / 35 fields to get a fully-filled config, then pages through each layer letting
+ * / every field to get a fully-filled config, then pages through each layer letting
  * you accept or edit any field before compiling. This is the interactive front end;
  * scaffold.js + build.js underneath are unchanged and still work standalone from the
  * CLI flags they always took.
@@ -96,7 +96,7 @@ async function runWizard() {
 
   const config = suggest({ name, tagline, category, description });
   config.identity = { name, tagline, category, description };
-  // Opt-in governance, set from the CLI flag rather than asked as a 36th question.
+  // Opt-in governance, set from the CLI flag rather than asked as one more question.
   config.governance = { vds: process.argv.includes('--vds') };
 
   const routeLayerKeys = new Set(ROUTES[category] || ROUTES['marketing-site']);

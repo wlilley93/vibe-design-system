@@ -20,7 +20,7 @@
  * ledger and the rest came back `rows_considered: 0` / vacuous, with `vds doctor`
  * reporting 0 of the then-10 kinds valid. A gate that cannot fail is not a gate.
  *
- * Pointed at the real surface (`blocks/`, `js`, `dist/home.css`) the same proofs
+ * Pointed at the real surface (`blocks/`, `js`, `dist/${SITE_CSS}`) the same proofs
  * bite: `reconciliation` returned `status: failed` naming all 8 shipped blocks as
  * ungoverned. That failure is the correct genesis state, so this file also emits
  * the register records that let it pass legitimately rather than leaving a red
@@ -163,7 +163,13 @@ function writeConfig(outDir) {
     permitRe,
     [
       'permit_required = [',
-      '  "dist/home.css",',
+      // A TEMPLATE literal, not a single-quoted one. This line said "dist/home.css" while
+      // the build wrote site.css, so VDS S-3(8)'s enforcement surface - the thing a permit
+      // is supposed to protect from being edited - named a file no scaffolded project has.
+      // Then the first fix put ${SITE_CSS} inside single quotes, where it is six literal
+      // characters and not an interpolation. Both failures are silent: the config parses,
+      // the proofs run, and the protected surface is simply not the one that ships.
+      `  "dist/${SITE_CSS}",`,
       '  "blocks/**",',
       '  "build.js",',
       '  ".vds/register/**",',

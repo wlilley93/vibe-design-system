@@ -13,7 +13,6 @@ PYTHON ?= python3
 help:
 	@echo 'make check     format, lint, test, and every VDS gate (what CI runs)'
 	@echo 'make test      the test suite, including every failing-direction test'
-	@echo 'make test-py   the Python tooling suite under tools/tests (no install step)'
 	@echo 'make lint      clippy with warnings denied'
 	@echo 'make fmt       format in place'
 	@echo 'make build     the release binary at $(VDS)'
@@ -39,16 +38,14 @@ test:
 # it and it shipped ungated. Run through tests/gate.js rather than `node --test`
 # directly: a bare glob EXITS 0 WHEN IT MATCHES NOTHING, so a rename would turn the
 # gate off and still report success. The gate asserts a floor on what actually ran.
+#
+# .PHONY matters here more than anywhere: this was the only target in the file without
+# it, and a file or directory named `test-factory` at the repo root would make `make`
+# decide the target is up to date and skip the gate silently. That is exactly the
+# "green light wired to nothing" the comment above exists to prevent.
+.PHONY: test-factory
 test-factory:
 	node site-factory/tests/gate.js
-
-# The Python tooling under tools/ has its own failing-direction suite, and it is
-# kept separate from `make test` because it needs no toolchain at all: python3
-# and nothing else. VDS S-7(2)(2) is why it exists. Pass T=<module> for one file,
-# and VDS_TEST_PROTECT=<tree> to fence an adopting repository's .vds/ as well.
-.PHONY: test-py
-test-py:
-	@tools/run-tests.sh $(T)
 
 .PHONY: build
 build:

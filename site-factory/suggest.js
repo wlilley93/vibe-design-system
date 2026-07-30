@@ -6,7 +6,7 @@
  * This is a rule-based heuristic, not a live model call - there is no API key wired
  * into this script and it does not pretend otherwise. Every rule below is legible and
  * inspectable; nothing is a black box. It exists so the wizard can hand the user a
- * fully-filled ~35-field config to review and edit, instead of 35 blank prompts.
+ * fully-filled config to review and edit, instead of a screen of blank prompts.
  *
  * A future version could replace SUGGEST_RULES's pattern matching with an actual
  * Claude API call over the same brief -> same schema -> same shape contract; the

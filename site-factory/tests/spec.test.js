@@ -166,10 +166,16 @@ test('the README states counts that are actually true', () => {
   }
   assert.ok(readme.includes(SITE_CSS), `the README never mentions ${SITE_CSS}, the stylesheet the build writes`);
 
+  // The number must appear NEXT TO THE THING IT COUNTS, not merely somewhere in the file.
+  // `\b${n}\b` against the whole README passes whenever the new value happens to occur
+  // anywhere else - and with counts like 4, 9, 11 and 24 in one document, it usually does.
+  // That is the presence-not-value defect this suite has now hit three times.
   for (const [n, what] of claims) {
+    const near = new RegExp(`\\b${n}\\b[^\\n]{0,40}${what.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i');
     assert.ok(
-      new RegExp(`\\b${n}\\b`).test(readme),
-      `the README never mentions ${n}, the real number of ${what}`
+      near.test(readme),
+      `the README never states "${n} ${what}". A bare \\b${n}\\b somewhere in the file ` +
+      'is not a claim about this count.'
     );
   }
 
@@ -241,8 +247,17 @@ test('a state is only claimed drawn if the Figma evidence names a layer', () => 
     for (const st of Object.keys(states)) {
       assert.ok(required.includes(st),
         `figma-states.json claims ${block}/${st} is drawn, but ${block}.js never renders it`);
-      assert.ok(String(states[st]).trim().length > 0,
-        `${block}/${st} is claimed drawn with no layer cited - the claim must be checkable`);
+      // Non-empty is not a layer name. The value being waved through was
+      // "That reference does not exist." - an ERROR MESSAGE stored where a layer name
+      // belongs. `figma-states.json` is the evidence for a claim the states proof gates,
+      // so the citation has to be a thing you can find in the file.
+      const cited = String(states[st]).trim();
+      assert.ok(cited.length > 0, `${block}/${st} is claimed drawn with no layer cited`);
+      assert.ok(
+        /^(spec:|state:)/.test(cited),
+        `${block}/${st} cites "${cited}" as its evidence. A layer name must start with ` +
+        'spec: or state: - a sentence is a description, and a description cannot be looked up.'
+      );
     }
   }
 

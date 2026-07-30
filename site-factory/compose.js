@@ -1,7 +1,7 @@
 'use strict';
 
 /*
- * compose.js: the one place a 35-field config becomes (tokens, manifest).
+ * compose.js: the one place a config becomes (tokens, manifest).
  *
  * Both the CLI wizard and the studio server need this mapping. Two copies would
  * drift, and the drift would show up as the studio's live preview disagreeing with

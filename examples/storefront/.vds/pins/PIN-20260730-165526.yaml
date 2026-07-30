@@ -1,0 +1,39 @@
+id: PIN-20260730-165526
+subject: the storefront palette and spacing (decided target read from an export by figma-mcp get_variable_defs, of file version 3841029571, at 2026-07-25T17:00:00Z)
+direction: one_way_derived
+source_of_record:
+  authority_for: what ships
+  locator: app/globals.css
+  digest: sha256:aab9e1b614effdf45840a16e048bee9696733ca92bf4918791fd97b6ade59bb0
+target_of_record:
+  authority_for: what is decided
+  locator: SFDEMO
+  digest: sha256:e10a91d66f6bd925690b49dfcbb5389a5f5d720a32dd59cdff3ff0f9aab4e2a4
+rows:
+- name: sf-control-bg @ Dark
+  agrees: true
+- name: sf-control-bg @ Light
+  agrees: true
+- name: sf-control-fg @ Dark
+  agrees: true
+- name: sf-control-fg @ Light
+  agrees: true
+- name: sf-gap @ Dark
+  agrees: true
+- name: sf-gap @ Light
+  agrees: true
+- name: sf-radius @ Dark
+  agrees: true
+- name: sf-radius @ Light
+  agrees: true
+- name: sf-surface @ Dark
+  agrees: true
+- name: sf-surface @ Light
+  agrees: true
+rows_considered: 10
+rows_enforced: 10
+fails_closed: true
+generated_at: 2026-07-30T16:55:26Z
+generated_by: vds pin generate --file-key SFDEMO --from examples/storefront/figma/variables-export.json --prefix ""
+digest: sha256:54ca08cdcce09137bd33ee14a245ea3fbd9cc0c65fb2dfc4e0300c209dbd793f
+proof_id: null

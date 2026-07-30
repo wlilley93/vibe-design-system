@@ -111,7 +111,7 @@ function extractFromBrief(text) {
 /*
  * site-factory config -> the sales-page pack's config.json.
  *
- * Deliberately leaves blanks. site-factory's 35 fields describe a SITE - its route,
+ * Deliberately leaves blanks. site-factory's config fields describe a SITE - its route,
  * palette, blocks, voice register. They do not describe a market: nothing in them
  * knows the buyer's awareness level, the biggest objection, or what the buyer does
  * instead. Guessing those would poison every skill downstream, because each one
@@ -286,7 +286,7 @@ function briefMarkdown(config, manifest, gaps) {
     lines.push(`**${blanks.length} fields are unsettled and every skill downstream depends on them.**`);
     lines.push('');
     if (toConfirm.length) {
-      lines.push(`${toConfirm.length} came out of the brief and need CONFIRMING, not asking from scratch —`);
+      lines.push(`${toConfirm.length} came out of the brief and need CONFIRMING, not asking from scratch -`);
       lines.push('the author already said this much, so do not make them type it twice:');
       lines.push('');
       for (const f of toConfirm) lines.push(`- \`${f.path}\` - ${f.value}`);
@@ -332,7 +332,7 @@ function briefMarkdown(config, manifest, gaps) {
     lines.push('against a line that already exists.');
     lines.push('');
     lines.push('**Grade the existing line FIRST, before generating alternatives.** Every new line is');
-    lines.push('optimised against the rubric; the incumbent carries things the rubric cannot see —');
+    lines.push('optimised against the rubric; the incumbent carries things the rubric cannot see -');
     lines.push('the person it is written in, the artwork it shares an idea with, the subhead already');
     lines.push('doing half its work. Scoring it last makes replacement look obvious when it is not.');
     lines.push('');

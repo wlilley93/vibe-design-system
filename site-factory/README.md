@@ -49,7 +49,7 @@ brief ──▶ suggest.js ──▶ config (36 fields) ──▶ compose.js ─
 | `studio.js` / `studio.html` | The visual editor |
 | `vds-bridge.js` | The OPTIONAL seam to VDS governance |
 | `figma-spec.js` / `figma-push.js` | Figma spec sheet and project record |
-| `tests/` | 77 tests, run by `make test-factory` |
+| `tests/` | 78 tests, run by `make test-factory` |
 
 ---
 
@@ -170,8 +170,9 @@ the surface at what the project actually ships. Without that repointing the `.vd
 PRESENT BUT BLIND - measured: 3 proofs precondition-fail, the rest return
 `rows_considered: 0`.
 
-**What the repointing actually buys, measured on a generated app project.** Five of ten
-proof kinds enforce; five are vacuous, and the reasons are different:
+**What the repointing actually buys, measured on a generated app project.** The registry
+is CLOSED at eleven kinds (`vds proof --list`), all eleven implemented. Five enforce here;
+six are vacuous, and the reasons are different:
 
 | kind | rows enforced | |
 |---|---|---|
@@ -185,6 +186,11 @@ proof kinds enforce; five are vacuous, and the reasons are different:
 | `register_completeness` | 0 | **structural, see below** |
 | `composition` | 0 | **structural, see below** |
 | `parity` | 0 | **structural, see below** |
+| `screen_parity` | 0 | no screen declares a required arrangement |
+
+That last row is the one this table used to omit, which made "five of ten" a count over a
+registry that holds eleven. A table presented as the whole accounting has to BE the whole
+accounting; a missing row reads as a kind that does not exist.
 
 The three structural ones are not a configuration mistake and no setting fixes them.
 `vds-scan` parses ESM `import` statements; a scaffold resolves its blocks through a

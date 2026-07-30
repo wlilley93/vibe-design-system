@@ -214,3 +214,35 @@ test('every page is scaffolded the blocks it needs, not just the ones home uses'
     fs.rmSync(out, { recursive: true, force: true });
   }
 });
+
+test('a project reports itself governed only when the bridge actually succeeded', () => {
+  // `out.governed = true` was set unconditionally after bridge() returned, and NEITHER of
+  // the two ways it fails throws: refreshLedger catches and returns false, advanceToBuilt
+  // returns {failedAt, error}. So a project with no screens ledger and every record stuck
+  // at `proposed` reported itself governed.
+  //
+  // That is not cosmetic. A record at `proposed` is a candidate, not a contract - `parity`
+  // skips it as `record_below_registered_is_a_candidate_not_a_contract` - so a stuck
+  // lifecycle switches proofs OFF rather than failing them, under a banner saying governed.
+  const { resolveVdsBin } = require('../vds-bridge.js');
+  if (!resolveVdsBin()) return;                     // no binary here; the seam is opt-in
+
+  const out = path.join(tmp('gov'), 'proj');
+  try {
+    const c = config('marketing-site');
+    c.governance = { vds: true };
+    const r = createProject(c, { outDir: out });
+
+    assert.equal(r.governed, true, `governed should be true on a clean run: ${JSON.stringify(r.vds)}`);
+    assert.deepEqual(r.vds.failures, undefined, 'a clean run must report no failures');
+
+    // And the claim has to be backed: every record advanced, and the ledger exists.
+    assert.equal(r.vds.advanced, r.vds.records,
+      `${r.vds.records - r.vds.advanced} records did not reach built, yet governed was true`);
+    assert.equal(r.vds.ledger, true);
+    assert.ok(fs.existsSync(path.join(out, '.vds', 'ledgers', 'screens.yaml')),
+      'governed with no screens ledger on disk');
+  } finally {
+    fs.rmSync(out, { recursive: true, force: true });
+  }
+});

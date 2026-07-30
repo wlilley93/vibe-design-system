@@ -6,7 +6,7 @@
  * The studio's Reroll button hands the renderer combinations nobody chose, so the
  * whole cross-product has to hold up. But a fuzz driven by Math.random that fails
  * once and passes on the retry is close to useless: you cannot reproduce it, so you
- * cannot fix it, so in practice it gets re-run until green. Seeded here instead —
+ * cannot fix it, so in practice it gets re-run until green. Seeded here instead
  * a failure names the seed and the case, and re-running reproduces it exactly.
  *
  * SEED can be overridden to explore beyond the committed run:

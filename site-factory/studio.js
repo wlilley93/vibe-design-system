@@ -14,7 +14,7 @@
  * Routes:
  *   GET  /            the UI
  *   GET  /schema      layers, fields, options, style packs, block variants
- *   POST /suggest     a brief -> a filled 35-field config
+ *   POST /suggest     a brief -> a filled config
  *   POST /render      a config -> a self-contained HTML document
  *   POST /commit      a config -> a real scaffolded project on disk (+ optional VDS)
  */

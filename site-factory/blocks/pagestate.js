@@ -15,7 +15,7 @@ function esc(s) {
  * than a generic grey shimmer.
  */
 
-// pagestate-1: loading. A skeleton of the shape that is coming, not a spinner —
+// pagestate-1: loading. A skeleton of the shape that is coming, not a spinner
 // a spinner tells you to wait, a skeleton tells you what for.
 function pageLoading(content) {
   const rows = Array.from({ length: content.rows || 4 }, (_, i) =>

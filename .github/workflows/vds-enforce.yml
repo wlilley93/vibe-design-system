@@ -56,6 +56,19 @@ jobs:
       - name: Test
         run: cargo test --workspace
 
+      # site-factory is JavaScript, so `cargo test` never touched it and its gate lived
+      # only in `make check`. That made the Makefile's own claim false - "the same set the
+      # CI trust root runs, in the same order" - and left the ONE tree that was added
+      # because it "shipped ungated" enforced by whoever remembered to run make locally.
+      # VDS S-7(2)(3) requires invocation by something other than the author choosing to
+      # run it, and S-7(3) says a Makefile is not CI.
+      #
+      # No setup-node step: ubuntu-latest ships Node, and the suite is dependency-free
+      # (node:test only, no package.json under site-factory/). Adding an action here would
+      # need a SHA pin per the convention above; not needing one is better.
+      - name: site-factory gate
+        run: node site-factory/tests/gate.js
+
       - name: Build
         run: cargo build --release --bin vds
 

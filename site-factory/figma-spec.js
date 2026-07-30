@@ -3,12 +3,12 @@
 /*
  * figma-spec.js: one visible specimen per decision, not a table of strings.
  *
- * The project record page listed all 35 fields as LAYER | FIELD | VALUE text rows.
+ * The project record page listed every field as a LAYER | FIELD | VALUE text row.
  * That is a manifest, not a spec: "cornerRadius: sharp-0" tells you nothing about
  * what sharp-0 looks like next to pill, and a brand sheet whose reader cannot SEE
  * the decision is a sheet nobody uses.
  *
- * Every specimen value here is COMPUTED from the same pipeline that builds the site —
+ * Every specimen value here is COMPUTED from the same pipeline that builds the site
  * configToTokens for the design values, copy.js for the voice ones. Nothing is drawn
  * from memory. A spec sheet showing a radius the build does not use, or copy the
  * generator would not write, is worse than the text table it replaces, because it
@@ -194,7 +194,7 @@ module.exports = { buildSpec, specimensFor, describe, DENSITY, TYPE_SCALE, BORDE
  * whole sheet exists to fix.
  *
  * So: any frame whose fill is the specimen is NAMED `spec:*` when it is created,
- * and the clearing pass skips those names. Name at creation, not afterwards —
+ * and the clearing pass skips those names. Name at creation, not afterwards
  * repairing by inspecting children (looking for the word "Enquire") worked as a
  * one-off rescue but is not a rule, because the next specimen will hold different text.
  */
