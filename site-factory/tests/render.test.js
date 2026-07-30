@@ -148,3 +148,54 @@ test('the width tokens are all consumed, and none is a value nothing reads', () 
   const unused = widthish.filter((n) => !STRUCTURE_CSS.includes(`var(--${n})`));
   assert.deepEqual(unused, [], `width tokens declared and never read: ${unused.join(', ')}`);
 });
+
+test('every font-size comes from the ramp and carries its role leading', () => {
+  // Measured before this existed: 103 font-size declarations and THREE carried a
+  // line-height. A hundred inherited whatever the cascade gave them, so a 13px label and an
+  // 18px paragraph could land on the same leading. The ramp itself held 10, 11, 12, 13, 14
+  // and 15 - six sizes inside a 6px span, which is the arbitrariness the width tokens
+  // already taught us to collapse.
+  //
+  // The rule is Uber Base's, measured out of its Figma file: LEADING IS A FUNCTION OF ROLE.
+  // Label and Paragraph share every size and differ only in leading, because a label does not
+  // wrap and body copy does. A system with one line-height per size cannot say that.
+  const { STRUCTURE_CSS, TYPE_STEPS, TYPE_LEADING } = require('../build.js');
+
+  // No size may be a literal. It has to name a step.
+  //
+  // Matched then FILTERED, not `\s*(?!var\()`. That lookahead sits after a greedy-optional
+  // that can consume nothing, so it is tested against the space and passes on every value -
+  // the same mistake the font-name check made an hour earlier, which flagged all fifteen
+  // correct declarations. A greedy-optional before a lookahead is a lookahead that never
+  // fires where you meant it to.
+  const literals = [...new Set(STRUCTURE_CSS.match(/font-size:[^;}]+/g) || [])]
+    .filter((d) => !/font-size:\s+var\(--text-/.test(d));
+  assert.deepEqual(literals, [], `font sizes outside the ramp: ${literals.join(', ')}`);
+
+  // Nor may a leading be a bare number: that is how 1.1, 1.3 and 1.5 survived as magic.
+  const bareLh = [...new Set(STRUCTURE_CSS.match(/line-height:[^;}]+/g) || [])]
+    .filter((d) => !/line-height:\s+var\(--lh-/.test(d));
+  assert.deepEqual(bareLh, [], `hardcoded line-heights: ${bareLh.join(', ')}`);
+
+  // And every size must be PAIRED with a leading in its own rule. An unleaded size is the
+  // original defect, and it is invisible because the cascade always supplies something.
+  const unleaded = [];
+  let selector = '';
+  for (const line of STRUCTURE_CSS.split('\n')) {
+    const m = line.match(/^([.a-z][^{]*)\{/);
+    if (m) selector = m[1].trim();
+    if (/font-size: var\(--text-/.test(line) && !/line-height: var\(--lh-/.test(line)) {
+      unleaded.push(`${selector}: ${line.trim().slice(0, 60)}`);
+    }
+  }
+  assert.deepEqual(unleaded, [],
+    `font-size with no leading in the same rule:\n  ${unleaded.join('\n  ')}`);
+
+  // Every step and role referenced must be declared, and every one declared must be used.
+  const usedSteps = new Set([...STRUCTURE_CSS.matchAll(/var\(--text-([a-z0-9]+)\)/g)].map((x) => x[1]));
+  const usedRoles = new Set([...STRUCTURE_CSS.matchAll(/var\(--lh-([a-z]+)\)/g)].map((x) => x[1]));
+  for (const s of usedSteps) assert.ok(TYPE_STEPS[s] !== undefined, `--text-${s} is used and not declared`);
+  for (const r of usedRoles) assert.ok(TYPE_LEADING[r] !== undefined, `--lh-${r} is used and not declared`);
+  const deadRoles = Object.keys(TYPE_LEADING).filter((r) => !usedRoles.has(r));
+  assert.deepEqual(deadRoles, [], `leading roles declared and never read: ${deadRoles.join(', ')}`);
+});

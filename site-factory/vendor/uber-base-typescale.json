@@ -1,0 +1,17 @@
+{
+  "_source": "Uber Base, Figma Community file l2llhOXNz1bM4aoLKKb5qi, page 3:4200, frames Display/Heading/Label/Paragraph and their Mono twins",
+  "_measuredAt": "2026-07-30T21:20:00Z",
+  "_how": "Read off every TEXT node's fontName, fontSize, lineHeight and letterSpacing and deduplicated by style signature. Not scraped from base.uber.com: that page is a Zeroheight SPA and WebFetch returns only the shell.",
+  "_families": {
+    "display": "Uber Move (Bold, 700)",
+    "ui-and-body": "Uber Move Text (Medium 500 for labels, Regular 400 for paragraphs)",
+    "mono": "Uber Move Mono (Medium 500 / Regular 400)",
+    "_note": "THREE families, not one. The uber-move-2-cufonfonts.zip download holds only UberMoveMedium.otf and UberMoveBold.otf, so it is missing the entire Text and Mono families as well as a Regular weight. Uber Move's own metadata reads 'This custom font has been licensed exclusively to Uber' (MCKL / Jeremy Mickel, 2018)."
+  },
+  "_theInsight": "Leading is a function of ROLE, not of size. Label and Paragraph share every size (18/16/14/12) and differ only in line height: Label 24/20/16/16, Paragraph 28/24/20/20. A label does not wrap so it can be tight; body copy wraps so it needs air. A system with one line-height per size cannot express that, and site-factory had 13 sizes against 3 line-heights with no relationship between them.",
+  "_tracking": "0px everywhere EXCEPT Heading 20px, which carries 0.25px. One exception in the whole system.",
+  "display":   [{"size":96,"lh":112},{"size":52,"lh":64},{"size":44,"lh":52},{"size":36,"lh":44},{"size":28,"lh":36}],
+  "heading":   [{"size":40,"lh":52},{"size":36,"lh":44},{"size":32,"lh":40},{"size":28,"lh":36},{"size":24,"lh":32},{"size":20,"lh":28,"tracking":0.25}],
+  "label":     [{"size":18,"lh":24},{"size":16,"lh":20},{"size":14,"lh":16},{"size":12,"lh":16}],
+  "paragraph": [{"size":18,"lh":28},{"size":16,"lh":24},{"size":14,"lh":20},{"size":12,"lh":20}]
+}
