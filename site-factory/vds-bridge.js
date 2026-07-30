@@ -5,18 +5,18 @@
  *
  * Both directions have to work, and neither may become a dependency of the other:
  *
- *   VDS without site-factory  — already true and untouched by this file. VDS is a
+ *   VDS without site-factory  - already true and untouched by this file. VDS is a
  *       Rust governance kernel with its own CLI, schema and proofs. Nothing here
  *       modifies it, and nothing in it knows this file exists.
- *   site-factory without VDS  — the default. scaffold.js and build.js never call
+ *   site-factory without VDS  - the default. scaffold.js and build.js never call
  *       into here; a project scaffolded without `--vds` has no `.vds/` at all and
  *       builds exactly the same.
- *   site-factory WITH VDS     — this file, invoked only when asked.
+ *   site-factory WITH VDS     - this file, invoked only when asked.
  *
  * What it fixes: `vds init` writes a Next.js-shaped default surface
  * (`app/**\/page.tsx`, `src/components/ui`, tsx/jsx, `app/globals.css`). A
  * site-factory project has none of those, so the `.vds/` it produced was PRESENT
- * BUT BLIND — measured, not assumed: 3 proofs precondition-failed on a missing
+ * BUT BLIND - measured, not assumed: 3 proofs precondition-failed on a missing
  * ledger and the rest came back `rows_considered: 0` / vacuous, with `vds doctor`
  * reporting 0 of 10 kinds valid. A gate that cannot fail is not a gate.
  *
@@ -30,7 +30,7 @@
  * importer looks for "an export whose name starts with a capital, or a default
  * export" (React convention) and skipped all 8 blocks, because a block exports
  * `module.exports = {'hero-1': fn, 'hero-2': fn}`. Rather than bend VDS to know
- * about site-factory, site-factory — which knows its own blocks exactly — writes
+ * about site-factory, site-factory - which knows its own blocks exactly - writes
  * the records in VDS's published schema.
  */
 
@@ -43,7 +43,7 @@ const { execFileSync } = require('child_process');
  *
  * Order: an explicit VDS_BIN override, then PATH (an installed kernel), then the
  * sibling build inside this repo. Returns null when VDS is simply not present,
- * which is not an error — site-factory runs perfectly well without it, and that is
+ * which is not an error - site-factory runs perfectly well without it, and that is
  * half the requirement.
  */
 function resolveVdsBin() {
@@ -60,7 +60,7 @@ function resolveVdsBin() {
 }
 
 // The real component sets built in the VDS Site Builder Figma file earlier in this
-// program of work. These are observed node ids, not placeholders — each is a
+// program of work. These are observed node ids, not placeholders - each is a
 // 2-variant component set bound to the shared `VDS Tokens` collection.
 const FIGMA_FILE_KEY = '4pPUFvaPdqYzPquBusSfWl';
 const FIGMA_NODES = {
@@ -86,7 +86,7 @@ const FIGMA_NODES = {
   masterdetail: '31:138',
   // Chosen by measured demand across 217 Opbox routes, built in code and Figma in the
   // same pass. Adding a block type without its component set silently divides the bank
-  // — the register record gets `figma: null` and nobody notices.
+  // - the register record gets `figma: null` and nobody notices.
   formfield: '36:189',
   emptystate: '36:204',
   pagestate: '37:143',
@@ -117,7 +117,7 @@ function nowStamp() {
 function writeConfig(outDir) {
   const configPath = path.join(outDir, '.vds', 'config.toml');
   if (!fs.existsSync(configPath)) {
-    throw new Error(`no .vds/config.toml in ${outDir} — run "vds init" there first`);
+    throw new Error(`no .vds/config.toml in ${outDir} - run "vds init" there first`);
   }
   let toml = fs.readFileSync(configPath, 'utf8');
   const changed = [];
@@ -201,14 +201,14 @@ function yamlList(items, indent) {
  *
  * Deliberately at `proposed` with EMPTY required states and EMPTY keyboard: those
  * are the contract, and the contract is a decision nobody has made yet. VDS's own
- * importer takes the same line, and its note says why — a register filled in from
+ * importer takes the same line, and its note says why - a register filled in from
  * the code "describes the code rather than what it must do, and a register that
  * describes the code cannot disagree with it."
  *
  * The one exception is a single contrast floor, and it is a genuine REQUIREMENT
  * rather than a reading of the code: body ink must clear WCAG AA against the page
  * ground. Every block renders text on that ground, and the reason it is worth
- * asserting is that this is a reskinning factory — swapping a style pack is exactly
+ * asserting is that this is a reskinning factory - swapping a style pack is exactly
  * the move that can drop text below legibility, and this floor is what makes that
  * swap fail a gate instead of shipping. It names both ends BY TOKEN NAME, never a
  * value, which is what `no_stored_values` requires (VDS S-2(2)). It is recorded as
@@ -298,11 +298,11 @@ function writeRegister(outDir, blockTypes) {
  *
  * `built` is a fact the factory can vouch for: the code file exists, its Figma
  * component set exists, and it is wired into a manifest that compiles. `verified`
- * is NOT claimed — that needs green proofs, and claiming it here would be the
+ * is NOT claimed - that needs green proofs, and claiming it here would be the
  * overclaim the whole lifecycle exists to prevent.
  *
  * It matters because a `proposed` record ships nothing by construction, so the
- * contrast floor stays unenforceable and the gate reports `vacuous` — measured:
+ * contrast floor stays unenforceable and the gate reports `vacuous` - measured:
  * `rows_considered: 8, rows_enforced: 0, proposed_nothing_shipped_by_construction: 8`.
  * At `built` the same run reads the real stylesheet and enforces all 8.
  */

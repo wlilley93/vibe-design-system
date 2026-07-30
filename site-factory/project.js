@@ -3,8 +3,8 @@
 /*
  * project.js: the ONE path from a config to a project on disk.
  *
- * Before this file there were two — wizard.js's compile() and studio.js's
- * commitProject() — each scaffolding, writing tokens, writing a manifest, building,
+ * Before this file there were two - wizard.js's compile() and studio.js's
+ * commitProject() - each scaffolding, writing tokens, writing a manifest, building,
  * and optionally bridging to VDS in its own slightly different order. Two paths to
  * the same artefact is two things to keep in step, and the CLI and the studio had
  * already drifted: only one of them narrowed the SaaS route, and radiusPx was
@@ -38,7 +38,7 @@ const SAAS_NOTE = 'SaaS route: the app-surface blocks are built (nav, sidebar, f
 
 function saasComponentSpec(config) {
   const cs = config.componentStyle || {};
-  return `# ${config.identity.name} — component spec
+  return `# ${config.identity.name} - component spec
 
 This route compiled a real app surface (dist/home.html) from the seven block types
 that exist in code: nav, sidebar, facetstrip, objecttable, objectview, inspector and
@@ -55,8 +55,8 @@ ${Object.entries(cs).map(([k, v]) => `- ${k}: ${v}`).join('\n')}
 - Master-Detail   two pane / three pane, composed from the four above
 
 ## Built as Figma specimens (VDS Site Builder 4pPUFvaPdqYzPquBusSfWl)
-- Gated Action Button (node 20:12) — Style=Enabled / Style=Blocked
-- StatusBadge (node 20:35) — Style=Pill / Style=Dot, matches statusBadgeStyle above
+- Gated Action Button (node 20:12) - Style=Enabled / Style=Blocked
+- StatusBadge (node 20:35) - Style=Pill / Style=Dot, matches statusBadgeStyle above
 
 ## Cataloged, not built (98 of 109 types)
 See the "SaaS Components" page in the same file (roots 19:3, 19:206, 19:348). Priority
@@ -78,7 +78,7 @@ function createProject(config, opts = {}) {
   const outDir = opts.outDir || path.join(ROOT, 'scaffolds', name);
 
   if (fs.existsSync(outDir)) {
-    throw new Error(`${path.relative(ROOT, outDir)} already exists — rename the project or remove that directory`);
+    throw new Error(`${path.relative(ROOT, outDir)} already exists - rename the project or remove that directory`);
   }
 
   // compose.js already narrows the SaaS route to the blocks that have real code, so
@@ -87,7 +87,7 @@ function createProject(config, opts = {}) {
   // studio from disagreeing about a SaaS build.
   const manifest = configToManifest(config);
   const blocks = manifest.page.map((e) => e.variant);
-  if (!blocks.length) throw new Error('sitemap is empty — pick at least one block');
+  if (!blocks.length) throw new Error('sitemap is empty - pick at least one block');
 
   const result = scaffold({ name, blocks: blocks.join(','), style: config.palette.basePack, outDir });
   log(`scaffolded ${blocks.length} blocks (${result.typesUsed.join(', ')})`);
@@ -114,7 +114,7 @@ function createProject(config, opts = {}) {
   if (gaps.length) {
     fs.writeFileSync(
       path.join(result.outDir, 'COPY-TODO.md'),
-      `# ${config.identity.name} — lines still to write\n\n` +
+      `# ${config.identity.name} - lines still to write\n\n` +
       `${gaps.length} strings are marked CONFIRM: because a one-line brief cannot supply them.\n` +
       'They are visible in the built page on purpose. Replace them in manifests/home.json.\n\n' +
       gaps.map((g) => `- **${g.where}**\n  ${g.value}`).join('\n') + '\n'
@@ -126,7 +126,7 @@ function createProject(config, opts = {}) {
       JSON.stringify(packConfig(config), null, 2)
     );
     fs.writeFileSync(path.join(result.outDir, 'WRITING-BRIEF.md'), briefMarkdown(config, manifest, gaps));
-    log(`${gaps.length} lines still to write — see WRITING-BRIEF.md (skill-assigned)`);
+    log(`${gaps.length} lines still to write - see WRITING-BRIEF.md (skill-assigned)`);
   }
 
   const out = {

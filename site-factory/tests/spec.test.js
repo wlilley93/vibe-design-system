@@ -6,7 +6,7 @@
  * figma-spec.js keeps its own copies of DENSITY, TYPE_SCALE, BORDER_WEIGHT and the
  * elevation set because build.js does not export them. Duplicated tables drift, and
  * a spec sheet drawing a spacing value the CSS does not use is worse than the text
- * table it replaced — it looks authoritative and it is wrong. These tests pin the
+ * table it replaced - it looks authoritative and it is wrong. These tests pin the
  * copies against the real rendered output, so a change in build.js that is not
  * mirrored here fails rather than quietly producing a lying sheet.
  */
@@ -123,15 +123,22 @@ test('a specimen frame is identified by name, not by what it contains', () => {
 });
 
 test('the README states counts that are actually true', () => {
-  // A README is an artefact like any other, and this one quotes numbers: 17 block
-  // types, 34 variants, 4 packs, 35 fields, 9 layers, 54 tests. Numbers in prose rot
-  // silently — nobody re-counts them — and a map that misdescribes the territory is
-  // worse than no map, because it is trusted. Pinned here so adding a block or a
-  // token pack fails until the README is updated too.
+  // A README is an artefact like any other, and this one quotes numbers: block types,
+  // variants, packs, fields, layers, tests. Numbers in prose rot silently - nobody
+  // re-counts them - and a map that misdescribes the territory is worse than no map,
+  // because it is trusted. Pinned here so adding a block or a token pack fails until
+  // the README is updated too.
+  //
+  // The test count was in that sentence and NOT in `claims`, so it was the one number
+  // nothing checked, and it rotted to 59 against a real 67 while every pinned number
+  // stayed true. A comment that says a thing is covered is not coverage. It is in the
+  // list now, read off the gate's floor rather than restated here, so there is one
+  // number and not two.
   const fs = require('node:fs');
   const path = require('node:path');
   const { listBlockVariants, listStylePacks } = require('../compose.js');
   const { LAYERS, fieldCount } = require('../config-schema.js');
+  const { MIN_TESTS } = require('./floors.js');
 
   const readme = fs.readFileSync(path.join(__dirname, '..', 'README.md'), 'utf8');
   const variants = listBlockVariants();
@@ -142,6 +149,7 @@ test('the README states counts that are actually true', () => {
     [listStylePacks().length, 'style packs'],
     [fieldCount(), 'fields'],
     [LAYERS.length, 'layers'],
+    [MIN_TESTS, 'tests'],
   ];
   for (const [n, what] of claims) {
     assert.ok(

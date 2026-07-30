@@ -13,7 +13,7 @@ function esc(s) {
   }[c]));
 }
 
-// hero-1: centered stack — headline, subhead, single CTA.
+// hero-1: centered stack - headline, subhead, single CTA.
 function heroCentered(content) {
   return `<section class="hero hero--centered">
   <div class="hero__inner">
@@ -24,7 +24,7 @@ function heroCentered(content) {
 </section>`;
 }
 
-// hero-2: split — text column left, media placeholder right.
+// hero-2: split - text column left, media placeholder right.
 function heroSplit(content) {
   return `<section class="hero hero--split">
   <div class="hero__text">

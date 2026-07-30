@@ -43,7 +43,7 @@ function ls() {
   console.log(`  routes        ${Object.keys(ROUTES).join(', ')}`);
   console.log(`  layers        ${LAYERS.length} (${fieldCount()} fields)`);
   console.log(`  style packs   ${listStylePacks().join(', ')}`);
-  console.log(`  vds           ${resolveVdsBin() || 'not found — governance is opt-in and will be inert'}`);
+  console.log(`  vds           ${resolveVdsBin() || 'not found - governance is opt-in and will be inert'}`);
   console.log(`\n  blocks (${Object.keys(variants).length} types, ${Object.values(variants).flat().length} variants)`);
   const width = Math.max(...Object.keys(variants).map((k) => k.length));
   for (const [type, vs] of Object.entries(variants)) {
@@ -56,7 +56,7 @@ function ls() {
 }
 
 // One shot: a brief in, a built project out, no prompts. This is the path a script
-// or another agent should use — the wizard is for a human at a terminal.
+// or another agent should use - the wizard is for a human at a terminal.
 function newProject(args) {
   const { suggest } = require('./suggest.js');
   const { createProject } = require('./project.js');
@@ -64,7 +64,7 @@ function newProject(args) {
   if (!args.name) throw new Error('--name is required, e.g. --name "Northgate Trust"');
   // `category` is passed ONLY when --route was given. Passing a default here would be
   // an explicit value, and suggest() lets an explicit category win over what the brief
-  // says — so a hard-coded 'marketing-site' would defeat route inference entirely and
+  // says - so a hard-coded 'marketing-site' would defeat route inference entirely and
   // every app brief would quietly build a hero and a pricing table.
   const seed = {
     name: args.name,

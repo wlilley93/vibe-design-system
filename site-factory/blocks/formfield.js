@@ -8,7 +8,7 @@ function esc(s) {
 
 // Demand measured across 217 Opbox routes: input 54, label 46, textarea 23,
 // native-select 22. Together the highest unbuilt need in the codebase, which is why
-// this is one block rather than four — a field is a label AND a control AND its help
+// this is one block rather than four - a field is a label AND a control AND its help
 // text, and splitting them is how a label ends up orphaned from what it names.
 function control(f) {
   const id = `f-${String(f.name).replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;

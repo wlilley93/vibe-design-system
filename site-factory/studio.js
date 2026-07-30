@@ -8,7 +8,7 @@
  *
  * A local, zero-dependency HTTP server. The browser holds no render logic at all:
  * every preview is produced by the SAME renderPage() that `node build.js` calls, so
- * what the carousel shows is what compiles. That is the point — a preview with its
+ * what the carousel shows is what compiles. That is the point - a preview with its
  * own renderer would eventually lie.
  *
  * Routes:
@@ -84,7 +84,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     // One style pack's real token values. The UI needs these so that rotating the
-    // base pack re-seeds the six explicit colour fields and both fonts — without it
+    // base pack re-seeds the six explicit colour fields and both fonts - without it
     // you would switch pack and see nothing move, because the colour fields still
     // hold the previous pack's hexes. Served from disk rather than duplicated in
     // browser JS, so tokens/ stays the single source.

@@ -244,7 +244,7 @@ async function applyPack(pack) {
 }
 
 // Reroll the DESIGN layers only. Identity, voice and strategy are decisions about
-// the business, not dice — rerolling them would throw away what was typed.
+// the business, not dice - rerolling them would throw away what was typed.
 const DESIGN = { palette: ['basePack'], typography: ['pairingStyle', 'typeScale'], spacing: ['density','cornerRadius','borderWeight','elevation'], imagery: ['imageTreatment','iconStyle'], motion: ['motionIntensity','transitionStyle'] };
 async function reroll() {
   for (const [lk, keys] of Object.entries(DESIGN)) {

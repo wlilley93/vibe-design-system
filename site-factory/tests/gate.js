@@ -5,7 +5,7 @@
  * The site-factory gate. `node tests/gate.js`
  *
  * Why this exists rather than a bare `node --test tests/*.test.js` in the Makefile:
- * that command EXITS 0 WHEN THE GLOB MATCHES NOTHING. Measured, not assumed — an
+ * that command EXITS 0 WHEN THE GLOB MATCHES NOTHING. Measured, not assumed - an
  * empty tests/ directory returns exit code 0, so a rename, a move, or a bad path in
  * CI would turn the gate off and report success. A check that cannot fail is not a
  * check; it is a green light wired to nothing.
@@ -21,10 +21,9 @@ const path = require('node:path');
 
 const TESTS_DIR = __dirname;
 
-// Floors, not exact counts: adding a test must never be a reason to edit this file,
-// but losing one must be caught. Raise them when the suite grows meaningfully.
-const MIN_FILES = 7;
-const MIN_TESTS = 66;
+// Shared with the README test, which checks the README quotes a true test count.
+// One number, two readers - see tests/floors.js for why it is not declared here.
+const { MIN_FILES, MIN_TESTS } = require('./floors.js');
 
 const files = fs.readdirSync(TESTS_DIR)
   .filter((f) => f.endsWith('.test.js'))

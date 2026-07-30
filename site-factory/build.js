@@ -7,7 +7,7 @@
  *   node build.js manifests/manifest-a.json
  *
  * A manifest names one variant per block plus a style pack. This script never makes
- * a design decision itself — it reads the manifest, reads the named token file, renders
+ * a design decision itself - it reads the manifest, reads the named token file, renders
  * the named block variants, and emits one static HTML file plus one CSS file. The same
  * two block variants must produce different output for two reasons only: a different
  * variant was chosen, or a different style pack was chosen. Nothing else may vary.
@@ -25,7 +25,7 @@ const DIST = path.join(ROOT, 'dist');
 const BLOCKS_DIR = path.join(ROOT, 'blocks');
 
 // One registry entry per block TYPE (filename), each holding its variant functions.
-// A block type is never hardcoded here — dropping a new file in blocks/ makes it
+// A block type is never hardcoded here - dropping a new file in blocks/ makes it
 // available to every manifest with no change to this file.
 const BLOCKS = {};
 for (const file of fs.readdirSync(BLOCKS_DIR)) {

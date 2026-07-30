@@ -63,9 +63,9 @@ test(`${CASES} seeded random configs all render (seed ${SEED})`, () => {
     const describe = `seed=${SEED} case=${i} route=${category} pack=${c.palette.basePack} sitemap=${c.strategy.sitemap.join(',')}`;
     let html;
     assert.doesNotThrow(() => { html = renderPage(configToManifest(c), configToTokens(c), null).html; }, describe);
-    assert.ok(html.includes('<body>'), `empty render — ${describe}`);
-    assert.ok(!html.includes('undefined'), `leaked "undefined" — ${describe}`);
-    assert.ok(!html.includes('NaN'), `leaked "NaN" — ${describe}`);
+    assert.ok(html.includes('<body>'), `empty render - ${describe}`);
+    assert.ok(!html.includes('undefined'), `leaked "undefined" - ${describe}`);
+    assert.ok(!html.includes('NaN'), `leaked "NaN" - ${describe}`);
   }
 });
 

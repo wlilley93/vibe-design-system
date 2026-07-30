@@ -4,7 +4,7 @@
  * skills.js: hand the writing to the skills, which is the point of the AI/MCP layer.
  *
  * copy.js writes what a one-line brief genuinely supports and marks the rest
- * `CONFIRM:`. Those markers are not meant to be filled by hand — they are the work
+ * `CONFIRM:`. Those markers are not meant to be filled by hand - they are the work
  * queue for the content skills in agents-final, which is where the actual writing
  * craft lives. This file is the seam between the two.
  *
@@ -75,22 +75,35 @@ const BLANK = '';
  *
  * The rule is the same one copy.js follows: extract, never infer. Each pattern below
  * captures a span the author actually wrote. Nothing is synthesised from a category, a
- * palette match or a keyword — if the sentence does not contain the answer, the field
+ * palette match or a keyword - if the sentence does not contain the answer, the field
  * stays blank and the interview asks for it.
  */
 const EXTRACT = {
   // "for boutique law firms", "aimed at in-house counsel"
-  audience: /\b(?:for|aimed at|built for|serving)\s+([a-z][^.;]{2,60})/i,
+  audience: /\b(?:for|aimed at|built for|serving)\s+([a-z][^.;]+)/i,
   // "replaces spreadsheets and email chains", "instead of a shared inbox"
-  main_alternative: /\b(?:replaces?|replacing|instead of|rather than|to replace)\s+([^.;]{2,80})/i,
+  main_alternative: /\b(?:replaces?|replacing|instead of|rather than|to replace)\s+([^.;]+)/i,
 };
+
+// A cap stops a runaway clause swallowing a paragraph, but a HARD cut is worse than
+// the problem: `{2,80}` clipped "reverse-engineer" to "reverse-enginee", and a quote
+// the author never wrote is exactly the invention this whole file exists to prevent.
+// So cap, then fall back to the last whole word and say it was cut.
+const MAX_SPAN = 80;
+
+function clip(s) {
+  if (s.length <= MAX_SPAN) return s;
+  const cut = s.slice(0, MAX_SPAN);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > 20 ? cut.slice(0, lastSpace) : cut).replace(/[,\s]+$/, '')}…`;
+}
 
 function extractFromBrief(text) {
   const out = {};
   if (!text) return out;
   for (const [field, re] of Object.entries(EXTRACT)) {
     const m = text.match(re);
-    if (m) out[field] = m[1].trim().replace(/[,\s]+$/, '');
+    if (m) out[field] = clip(m[1].trim().replace(/[,\s]+$/, ''));
   }
   return out;
 }
@@ -98,7 +111,7 @@ function extractFromBrief(text) {
 /*
  * site-factory config -> the sales-page pack's config.json.
  *
- * Deliberately leaves blanks. site-factory's 35 fields describe a SITE — its route,
+ * Deliberately leaves blanks. site-factory's 35 fields describe a SITE - its route,
  * palette, blocks, voice register. They do not describe a market: nothing in them
  * knows the buyer's awareness level, the biggest objection, or what the buyer does
  * instead. Guessing those would poison every skill downstream, because each one
@@ -108,7 +121,7 @@ function extractFromBrief(text) {
  * pack then builds on.
  *
  * Extracted values are the third case, and they are neither. They came from the
- * author's own sentence, so they are not invented — but a "for X" span is almost
+ * author's own sentence, so they are not invented - but a "for X" span is almost
  * always the BUYER, and `brand.audience` means the READER. So they carry a `CONFIRM:`
  * tail: the skill sees what was said and the question that is still open, instead of
  * treating a lucky regex match as settled fact.
@@ -123,7 +136,7 @@ function packConfig(config) {
       website: BLANK,
       niche: BLANK,
       audience: found.audience
-        ? `${found.audience} (CONFIRM: taken from the brief — is this who READS the page, or who buys?)`
+        ? `${found.audience} (CONFIRM: taken from the brief - is this who READS the page, or who buys?)`
         : BLANK,
       offer: id.description || BLANK,
       transformation: id.tagline || BLANK,
@@ -161,7 +174,7 @@ function packConfig(config) {
  * Every field the interview still has to settle.
  *
  * A CONFIRM-marked field COUNTS. It has a value, so a plain emptiness test walks past
- * it, and the brief would report fewer open fields than there are — the same undercount
+ * it, and the brief would report fewer open fields than there are - the same undercount
  * auditCopy already had when it counted one marker convention and not the other. A
  * value that is still asking a question is not a settled field.
  *
@@ -227,7 +240,7 @@ function assignments(manifest, gaps) {
    *
    * Gap-filling is only half of what these skills do. headline-lab's actual value is
    * generating fifteen headlines across proven formulas and scoring them on a rubric
-   * — that is worth running against a headline the author already wrote, and a brief
+   * - that is worth running against a headline the author already wrote, and a brief
    * that only ever lists blanks would never offer it. Copy that exists is not
    * automatically copy that works.
    */
@@ -257,7 +270,7 @@ function briefMarkdown(config, manifest, gaps) {
   const { bySkill, unassigned, improvable } = assignments(manifest, gaps);
 
   const lines = [];
-  lines.push(`# ${config.identity.name} — writing brief`);
+  lines.push(`# ${config.identity.name} - writing brief`);
   lines.push('');
   lines.push(`${gaps.length} lines are unwritten. They are not a manual to-do list: each one belongs to a`);
   lines.push('content skill in agents-final, which is where the writing craft lives.');
@@ -276,11 +289,11 @@ function briefMarkdown(config, manifest, gaps) {
       lines.push(`${toConfirm.length} came out of the brief and need CONFIRMING, not asking from scratch —`);
       lines.push('the author already said this much, so do not make them type it twice:');
       lines.push('');
-      for (const f of toConfirm) lines.push(`- \`${f.path}\` — ${f.value}`);
+      for (const f of toConfirm) lines.push(`- \`${f.path}\` - ${f.value}`);
       lines.push('');
     }
     if (blank.length) {
-      lines.push(`${blank.length} are genuinely blank — nothing in the brief speaks to them:`);
+      lines.push(`${blank.length} are genuinely blank - nothing in the brief speaks to them:`);
       lines.push('');
       for (const f of blank) lines.push(`- \`${f.path}\``);
       lines.push('');
@@ -300,7 +313,7 @@ function briefMarkdown(config, manifest, gaps) {
   lines.push('');
   lines.push('## Run order');
   lines.push('');
-  lines.push('The pack declares its own order — the offer must be clear before anything is written');
+  lines.push('The pack declares its own order - the offer must be clear before anything is written');
   lines.push('about it, and the close comes after pricing.');
   lines.push('');
   for (const s of bySkill) {
@@ -308,13 +321,13 @@ function briefMarkdown(config, manifest, gaps) {
     lines.push('');
     lines.push(`Writes ${s.writes}. Blocks: ${s.blocks.join(', ')}. ${s.gaps.length} lines.`);
     lines.push('');
-    for (const g of s.gaps) lines.push(`- \`${g.where}\` — ${g.value}`);
+    for (const g of s.gaps) lines.push(`- \`${g.where}\` - ${g.value}`);
     lines.push('');
   }
   if (improvable.length) {
     lines.push('## Written, but not yet worked');
     lines.push('');
-    lines.push('These blocks have copy. That is not the same as copy that works — these skills');
+    lines.push('These blocks have copy. That is not the same as copy that works - these skills');
     lines.push('generate alternatives across proven formulas and score them, which is worth doing');
     lines.push('against a line that already exists.');
     lines.push('');
@@ -324,7 +337,7 @@ function briefMarkdown(config, manifest, gaps) {
     lines.push('doing half its work. Scoring it last makes replacement look obvious when it is not.');
     lines.push('');
     for (const s of improvable) {
-      lines.push(`- \`${SKILL_ROOT}/${s.skill}\` — ${s.writes} (${s.block})`);
+      lines.push(`- \`${SKILL_ROOT}/${s.skill}\` - ${s.writes} (${s.block})`);
     }
     lines.push('');
   }
@@ -333,7 +346,7 @@ function briefMarkdown(config, manifest, gaps) {
     lines.push('');
     lines.push('No skill in this pack speaks for these. Write them directly, or leave them.');
     lines.push('');
-    for (const g of unassigned) lines.push(`- \`${g.where}\` — ${g.value}`);
+    for (const g of unassigned) lines.push(`- \`${g.where}\` - ${g.value}`);
     lines.push('');
   }
   return lines.join('\n');

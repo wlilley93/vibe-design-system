@@ -6,7 +6,7 @@ function esc(s) {
   }[c]));
 }
 
-// inspector-1: a property panel — grouped label/value rows down a narrow column.
+// inspector-1: a property panel - grouped label/value rows down a narrow column.
 function inspectorProps(content) {
   const groups = content.groups.map((g) => `<div class="insp__group">
       <span class="insp__groupTitle">${esc(g.title)}</span>

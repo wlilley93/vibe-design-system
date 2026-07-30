@@ -3,7 +3,7 @@
 /*
  * suggest.js: propose a value for every field in config-schema.js from a short brief.
  *
- * This is a rule-based heuristic, not a live model call — there is no API key wired
+ * This is a rule-based heuristic, not a live model call - there is no API key wired
  * into this script and it does not pretend otherwise. Every rule below is legible and
  * inspectable; nothing is a black box. It exists so the wizard can hand the user a
  * fully-filled ~35-field config to review and edit, instead of 35 blank prompts.
@@ -62,7 +62,7 @@ function pickPack(text) {
  * from the one-shot path unless the caller already knew to pass --route.
  *
  * MARKETING SIGNALS WIN. "a marketing site for our analytics dashboard" contains both
- * vocabularies, and it is a marketing site — the app words are describing the product
+ * vocabularies, and it is a marketing site - the app words are describing the product
  * being sold, not the surface being built. Getting that precedence backwards is worse
  * than not inferring at all, because the sitemap silently loses the hero.
  *

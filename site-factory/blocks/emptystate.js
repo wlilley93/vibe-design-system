@@ -10,7 +10,7 @@ function esc(s) {
  * Demand: 49 of 217 Opbox routes. It is also "Empty States", a Modular Play the
  * Playbook lists under both Onboarding and Activation, whose whole argument is that
  * a blank screen is a dead end and the play is to teach from it. The play's own
- * "Don't" is explicit: "Leave the screen cryptic — 'No items found.' is not enough."
+ * "Don't" is explicit: "Leave the screen cryptic - 'No items found.' is not enough."
  *
  * So neither variant is allowed to render a bare message: both require an action,
  * because an empty state without a next step is the defect the play names.
@@ -28,7 +28,7 @@ function emptyFirstRun(content) {
 }
 
 // emptystate-2: the filtered-to-nothing case. Records exist; this query found none.
-// A different situation needing a different action — clear the filter, not create.
+// A different situation needing a different action - clear the filter, not create.
 function emptyNoResults(content) {
   return `<section class="empty empty--noresults">
   <h2 class="empty__title">${esc(content.title)}</h2>

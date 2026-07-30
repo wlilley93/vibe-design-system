@@ -27,7 +27,7 @@ const ROOT = __dirname;
 // Node's readline auto-closes its interface the moment a piped (non-TTY) stdin hits
 // EOF, which can land between two `question()` calls and leave the later one hanging
 // forever with no error. That only bites non-interactive stdin (piped input, a test
-// harness, a future batch mode) — a real terminal never sends EOF mid-session — but
+// harness, a future batch mode) - a real terminal never sends EOF mid-session - but
 // it bites it silently, so route around it instead of assuming a human is typing.
 // TTY: normal readline prompting. Non-TTY: read every line up front and hand them out
 // one at a time, echoing the prompt so the transcript still reads like a real session.

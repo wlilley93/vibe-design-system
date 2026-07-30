@@ -1,6 +1,6 @@
 # site-factory
 
-A brief in, a built site out — with the design decisions visible, the writing handed
+A brief in, a built site out - with the design decisions visible, the writing handed
 to the skills that do it well, and the gaps counted rather than hidden.
 
 ```
@@ -38,7 +38,7 @@ brief ──▶ suggest.js ──▶ config (35 fields) ──▶ compose.js ─
 | `config-schema.js` | The 35 fields, 9 layers, and the two routes |
 | `suggest.js` | Brief → a filled config. Rule-based, not a model call |
 | `compose.js` | The ONE place a config becomes (tokens, manifest) |
-| `build.js` | `renderPage()` — the pure renderer. Also the CLI |
+| `build.js` | `renderPage()` - the pure renderer. Also the CLI |
 | `blocks/*.js` | 21 block types, 42 variants. Pure functions |
 | `tokens/*.json` | 4 style packs, real values from real systems |
 | `copy.js` | The voice layer: derive what the brief supports, mark the rest |
@@ -49,7 +49,7 @@ brief ──▶ suggest.js ──▶ config (35 fields) ──▶ compose.js ─
 | `studio.js` / `studio.html` | The visual editor |
 | `vds-bridge.js` | The OPTIONAL seam to VDS governance |
 | `figma-spec.js` / `figma-push.js` | Figma spec sheet and project record |
-| `tests/` | 59 tests, run by `make test-factory` |
+| `tests/` | 68 tests, run by `make test-factory` |
 
 ---
 
@@ -72,7 +72,7 @@ carousel would show something that does not build.
 the source, not kept in a list. A hand-kept list is one more thing that can disagree
 with the code, silently.
 
-**Derive, or MARK — never invent.** `copy.js` writes what the brief genuinely supports
+**Derive, or MARK - never invent.** `copy.js` writes what the brief genuinely supports
 and emits `CONFIRM: <what is needed>` for the rest. Invented filler that reads finished
 is worse than an honest blank, because nobody goes back for it. The convention is
 Balmoral's own (`site/build/templates.js`).
@@ -82,13 +82,13 @@ Balmoral's own (`site/build/templates.js`).
 write on a page that had 17. An undercount reads as a finished audit.
 
 **A gate that cannot fail is not a gate.** `node --test tests/*.test.js` EXITS 0 WHEN
-THE GLOB MATCHES NOTHING — measured, not assumed. `tests/gate.js` asserts a floor on
+THE GLOB MATCHES NOTHING - measured, not assumed. `tests/gate.js` asserts a floor on
 files and tests actually run. Every check here has a test proving it can fire.
 
 **Show the specimen, not the string.** `figma-spec.js` draws every option and marks the
 chosen one. Values are computed from the build (`tests/spec.test.js` pins them against
 `cssVars()`), because a sheet showing a value the CSS does not use looks authoritative
-and is wrong. Motion is REFUSED rather than faked — a still frame cannot show easing.
+and is wrong. Motion is REFUSED rather than faked - a still frame cannot show easing.
 
 **Check the red seed landed before reading the result.** A negative control whose `sed`
 pattern silently matches nothing exits 0, which is indistinguishable from a gate that
@@ -96,7 +96,7 @@ cannot fire. Three seeds here "proved" the Figma-pairing test was dead; the patt
 missing one space. Assert the seed is in the file, then run.
 
 **Figma frames default to opaque white.** Containers need their fill cleared or they
-hide the ground. But some frames' fill IS the specimen — a button with no fill is a
+hide the ground. But some frames' fill IS the specimen - a button with no fill is a
 label. Name those `spec:*` at creation and skip them.
 
 **`resize()` resets sizing modes.** Call it BEFORE setting `primaryAxisSizingMode`, or
@@ -109,11 +109,11 @@ every variant collapses. Eight Figma component variants were 92px tall because o
 Not one flow with a toggle. A marketing site and an app want different layers and
 compile differently.
 
-- **marketing-site** — blocks stack full width. 12 block types.
-- **saas-app** — manifest carries `layout: 'app'`; `renderPage` builds a real shell
+- **marketing-site** - blocks stack full width. 12 block types.
+- **saas-app** - manifest carries `layout: 'app'`; `renderPage` builds a real shell
   with the sidebar as a rail. 11 app-surface block types: the five priority components
   from Opbox's `COMPONENT_INVENTORY.md`, plus four chosen by MEASURED demand across
-  217 real Opbox routes rather than by guess — formfield (input 54 + label 46 +
+  217 real Opbox routes rather than by guess - formfield (input 54 + label 46 +
   textarea 23 + select 22), emptystate (49), pagestate (loading 45 + error 38) and
   confirmdialog (16). Each is also a Modular Play the Playbook already names: Empty
   States, Loading Feedback, Fail Safe. The measurement and the strategy layer agree.
@@ -126,7 +126,7 @@ gets `SAAS-COMPONENTS.md` recording that honestly rather than implying otherwise
 VDS works with no knowledge of site-factory, and site-factory without `--vds` writes no
 `.vds/` at all. With `--vds`, `vds-bridge.js` does what `vds init` alone cannot: point
 the surface at what the project actually ships. Without that repointing the `.vds/` is
-PRESENT BUT BLIND — measured: 3 proofs precondition-fail, the rest return
+PRESENT BUT BLIND - measured: 3 proofs precondition-fail, the rest return
 `rows_considered: 0`.
 
 ## The writing

@@ -8,7 +8,7 @@ function esc(s) {
 
 // A gated action: enabled, or blocked WITH its reason stated inline. Opbox's own
 // inventory names the Gated Action Button as a distinct component precisely because
-// a disabled control with no reason is the defect — the user cannot tell whether
+// a disabled control with no reason is the defect - the user cannot tell whether
 // they lack a permission, a prerequisite, or the feature is simply off.
 function action(a) {
   if (a.blocked) {
@@ -19,7 +19,7 @@ function action(a) {
   return `<a class="oview__action" href="${esc(a.href || '#')}">${esc(a.label)}</a>`;
 }
 
-// objectview-1: the object header — identity, key facts as a definition row, and
+// objectview-1: the object header - identity, key facts as a definition row, and
 // the actions available on it. This is the "Theatre shell" head.
 function objectHeader(content) {
   const facts = content.facts.map((f) => `<div class="oview__fact">

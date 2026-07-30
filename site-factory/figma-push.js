@@ -3,7 +3,7 @@
 /*
  * figma-push.js: generate the use_figma script that records a project in Figma.
  *
- * This is NOT something the CLI can run itself — use_figma is reachable only from
+ * This is NOT something the CLI can run itself - use_figma is reachable only from
  * inside an agent turn, or from the Figma REST API with a personal access token,
  * which is a real credential a user has to provide. So the shape of this step is:
  * the factory writes config.json (every route, every run), and an agent calls
@@ -122,7 +122,7 @@ function cell(parent, str, size, weight, fill, width) {
 }
 
 const shell = figma.createAutoLayout('HORIZONTAL', {
-  name: D.identity.name + ' — project record', itemSpacing: 40,
+  name: D.identity.name + ' - project record', itemSpacing: 40,
   paddingTop: 48, paddingBottom: 48, paddingLeft: 48, paddingRight: 48,
 });
 shell.fills = [{ type: 'SOLID', color: PAPER }];
@@ -130,7 +130,7 @@ shell.counterAxisAlignItems = 'MIN';
 shell.x = 0; shell.y = 0;
 
 // ---------- column 1 ----------
-const col1 = figma.createAutoLayout('VERTICAL', { name: 'Column — decisions', itemSpacing: 24 });
+const col1 = figma.createAutoLayout('VERTICAL', { name: 'Column - decisions', itemSpacing: 24 });
 shell.appendChild(col1);
 col1.layoutSizingHorizontal = 'FIXED';
 col1.resize(${COL1}, col1.height);
@@ -193,12 +193,12 @@ row('LAYER', 'FIELD', 'VALUE', { head: true });
 D.rows.forEach(function (t, i) { row(t[0], t[1], t[2], { tint: i % 2 === 0 }); });
 
 // ---------- column 2 ----------
-const col2 = figma.createAutoLayout('VERTICAL', { name: 'Column — artefact', itemSpacing: 14 });
+const col2 = figma.createAutoLayout('VERTICAL', { name: 'Column - artefact', itemSpacing: 14 });
 shell.appendChild(col2);
 col2.layoutSizingHorizontal = 'FIXED';
 col2.resize(${COL2}, col2.height);
 
-cell(col2, 'COMPILED — dist/home.html', 10, 'Semi Bold', GREY);
+cell(col2, 'COMPILED - dist/home.html', 10, 'Semi Bold', GREY);
 const shot = figma.createRectangle();
 shot.name = 'Compiled site screenshot';
 shot.resize(${COL2}, D.shotH);

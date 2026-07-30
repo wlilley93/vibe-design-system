@@ -16,7 +16,7 @@
  *
  * Three honest categories, and the sheet labels each:
  *   specimen  the option can be drawn, and is (25 fields)
- *   text      the value IS the content — a name, a note, a list (8 fields)
+ *   text      the value IS the content - a name, a note, a list (8 fields)
  *   not-static  motion. A still frame cannot show duration or easing, and a swatch
  *               pretending to is a lie. Named and left undrawn (2 fields).
  */
@@ -142,7 +142,7 @@ module.exports = { buildSpec, specimensFor, DENSITY, TYPE_SCALE, BORDER_WEIGHT, 
  *
  * Figma auto-layout frames default to an opaque white fill, so a sheet built on a
  * paper ground needs every CONTAINER's fill cleared. But some frames' fill IS the
- * specimen — a button with no fill is not a button, it is a label. A blanket
+ * specimen - a button with no fill is not a button, it is a label. A blanket
  * "clear every FRAME" pass cannot tell the two apart, and on the first build it
  * wiped 3 buttons, 1 badge and 8 block chips, leaving rows that read as if the
  * decision had no visual consequence at all. Which is precisely the failure the

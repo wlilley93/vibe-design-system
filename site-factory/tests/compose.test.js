@@ -83,7 +83,7 @@ for (const [layerKey, field, [a, b], cssVar] of REAL_CONTROLS) {
     };
     assert.notStrictEqual(
       grab(ca), grab(cb),
-      `${layerKey}.${field} produced identical ${cssVar} for "${a}" and "${b}" — the control is decorative`
+      `${layerKey}.${field} produced identical ${cssVar} for "${a}" and "${b}" - the control is decorative`
     );
   });
 }
@@ -142,7 +142,7 @@ test('the palette layer overrides the base pack rather than being overwritten by
 });
 
 test('keyword stems match inflected words, not just the bare stem', () => {
-  // "structur" inside \b(...)\b can never match "structuring" — the boundary after
+  // "structur" inside \b(...)\b can never match "structuring" - the boundary after
   // the stem fails on the following letter. The bug was masked for the whole life of
   // the file because "trust" and "estate" fired on the same briefs. A stem that
   // cannot match is a rule that silently does nothing.
@@ -170,7 +170,7 @@ test('the four demand-measured blocks render on the saas route', () => {
 
 test('an empty state always offers a next step', () => {
   // "Empty States" is a Playbook play whose Don't is explicit: "Leave the screen
-  // cryptic — 'No items found.' is not enough." A blank with no action is the defect.
+  // cryptic - 'No items found.' is not enough." A blank with no action is the defect.
   const { BLOCKS } = require('../build.js');
   const { placeholderContent } = require('../scaffold.js');
   for (const variant of Object.keys(BLOCKS.emptystate)) {

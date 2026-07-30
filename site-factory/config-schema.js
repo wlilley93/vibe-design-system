@@ -36,7 +36,7 @@ const LAYERS = [
       { key: 'name', label: 'Project name', type: 'text' },
       { key: 'tagline', label: 'One-line tagline', type: 'text' },
       { key: 'category', label: 'Route', type: 'enum', options: ['marketing-site', 'saas-app'],
-        help: 'Two separate routes, not one flow with a toggle — a marketing site and a SaaS app want different layers and compile differently. Picked first; everything after is route-specific.' },
+        help: 'Two separate routes, not one flow with a toggle - a marketing site and a SaaS app want different layers and compile differently. Picked first; everything after is route-specific.' },
       { key: 'description', label: 'One-paragraph brief (drives every suggestion below)', type: 'text' },
     ],
   },
@@ -149,7 +149,7 @@ function allFields() {
 }
 
 // Two routes, not one flow with a toggle. A marketing site compiles to real static
-// HTML today (12 block types, all built and verified). A SaaS app does NOT — only 2
+// HTML today (12 block types, all built and verified). A SaaS app does NOT - only 2
 // of the 109 cataloged SaaS component types (Gated Action Button, StatusBadge) exist
 // anywhere outside Figma, so its route is honestly scoped to an app-shell compile
 // (nav + sidebar, the only SaaS-adjacent blocks with real code) plus a spec record of

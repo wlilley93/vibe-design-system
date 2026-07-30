@@ -5,8 +5,8 @@
  *
  * copyRegister, readingLevel and ctaStyle were in the schema, rotatable in the
  * studio, and read by NOTHING. That is the same defect the design layers had before
- * density and typeScale were wired to the stylesheet — a control the artefact
- * ignores is a control that lies — and it was worse here, because every generated
+ * density and typeScale were wired to the stylesheet - a control the artefact
+ * ignores is a control that lies - and it was worse here, because every generated
  * page still said "Replace this headline".
  *
  * WHAT THIS IS NOT: a language model. There is no API key in this repo and this file
@@ -15,7 +15,7 @@
  *
  *   DERIVE, OR MARK. Anything genuinely derivable from the brief (the project name,
  *   the tagline the author wrote, the one-line description) is used. Anything that
- *   is NOT derivable — feature names, FAQ answers, plan tiers, testimonials — is
+ *   is NOT derivable - feature names, FAQ answers, plan tiers, testimonials - is
  *   emitted as `CONFIRM: <the specific thing needed>` rather than invented.
  *
  * That marker is Balmoral's own convention (site/build/templates.js,
@@ -26,8 +26,8 @@
  *
  * The register definitions are Balmoral's competitor research, not invention: 13
  * real sites sorted into three registers (Jellytot docs,
- * brand-reference-teardown-2026-07-28.md, section 05). Register B — the
- * interchangeable "Innovative Software Solutions" middle — is deliberately not
+ * brand-reference-teardown-2026-07-28.md, section 05). Register B - the
+ * interchangeable "Innovative Software Solutions" middle - is deliberately not
  * offered, because that document names it as the failure mode rather than a style.
  */
 
@@ -60,8 +60,8 @@ function ctaLabel(voice) {
 }
 
 /*
- * The hero. h1 is the author's own tagline where they wrote one — no generator
- * beats the line the person actually chose — and a marked CONFIRM where they did
+ * The hero. h1 is the author's own tagline where they wrote one - no generator
+ * beats the line the person actually chose - and a marked CONFIRM where they did
  * not, rather than a manufactured headline.
  */
 function heroCopy(identity, voice) {
@@ -85,7 +85,7 @@ function heroCopy(identity, voice) {
 function ctaCopy(identity, voice) {
   const claim = stripTrailingStop(identity.tagline);
   const heading = claim
-    ? (voice.copyRegister === 'A-institutional-authority' ? `${claim}.` : `${claim} — see how.`)
+    ? (voice.copyRegister === 'A-institutional-authority' ? `${claim}.` : `${claim} - see how.`)
     : CONFIRM('a closing line that repeats the single claim this site makes');
   return {
     heading,
@@ -170,7 +170,7 @@ function copyFor(type, identity, voice) {
  * TWO markers, deliberately, because there are two sources. copy.js writes
  * `CONFIRM:` for the blocks the voice layer governs; scaffold.js writes "Replace
  * this…" neutral placeholders for the blocks it does not (pricing tiers,
- * testimonials, team bios — none of them derivable from a one-line brief).
+ * testimonials, team bios - none of them derivable from a one-line brief).
  *
  * Counting only the first produced an UNDERCOUNT: a page reported 12 lines to write
  * while pricing and testimonials sat there saying "Replace this line", uncounted. An

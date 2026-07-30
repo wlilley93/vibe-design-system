@@ -5,7 +5,7 @@
  *
  * Both the CLI wizard and the studio server need this mapping. Two copies would
  * drift, and the drift would show up as the studio's live preview disagreeing with
- * what `node build.js` actually writes — which is the one thing a live preview must
+ * what `node build.js` actually writes - which is the one thing a live preview must
  * never do. So neither owns it; this does.
  */
 
@@ -57,7 +57,7 @@ function listBlockVariants() {
  * The base pack supplies anything the config does not name (notably `space.unit`
  * and the mono font); every field the config DOES name wins. The scale/border/
  * elevation blocks are what make the density, typeScale, borderWeight and
- * elevation controls real rather than decorative — see cssVars in build.js.
+ * elevation controls real rather than decorative - see cssVars in build.js.
  */
 function configToTokens(config) {
   const packName = config.palette.basePack;
@@ -88,7 +88,7 @@ function configToTokens(config) {
 }
 
 // The block types that make sense on a SaaS app surface. The route is still
-// narrowed — a marketing pricing table has no place in an app shell — but the
+// narrowed - a marketing pricing table has no place in an app shell - but the
 // narrowing is now to what genuinely exists in code, not to nav+sidebar alone.
 // Opbox's COMPONENT_INVENTORY.md priority order (FacetStrip -> ObjectTable ->
 // Object View -> Inspector -> Master-Detail Assembly) is all built.
@@ -96,7 +96,7 @@ function configToTokens(config) {
 // input 54, label 46, textarea 23, native-select 22 (formfield, 145 combined);
 // empty-state 49; page-loading 45 + page-error 38 (pagestate, 83);
 // destructive-action-dialog 16. Each is also a Modular Play the Playbook already
-// names — Empty States, Loading Feedback, Fail Safe — so the measurement and the
+// names - Empty States, Loading Feedback, Fail Safe - so the measurement and the
 // strategy layer agree rather than one being invented to justify the other.
 const SAAS_BLOCKS = new Set(['nav', 'sidebar', 'facetstrip', 'objecttable', 'objectview', 'inspector', 'masterdetail', 'formfield', 'emptystate', 'pagestate', 'confirmdialog']);
 // masterdetail-2 renders its own facet strip from content.facets, so a standalone
@@ -129,7 +129,7 @@ function configToManifest(config) {
     const content = JSON.parse(JSON.stringify(placeholderContent(type)));
 
     // The voice layer reaches the page here. copy.js derives what the brief genuinely
-    // supports and marks the rest CONFIRM: rather than inventing filler — see that
+    // supports and marks the rest CONFIRM: rather than inventing filler - see that
     // file for why an invented line that reads finished is worse than a blank one.
     // Blocks it does not speak for keep scaffold.js's neutral placeholder.
     const authored = copyFor(type, config.identity, config.voice);

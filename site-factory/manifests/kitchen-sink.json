@@ -1,5 +1,5 @@
 {
-  "title": "Kitchen sink — all 12 block types, one page",
+  "title": "Kitchen sink - all 12 block types, one page",
   "stylePack": "geist",
   "page": [
     {
@@ -25,7 +25,7 @@
         "items": [
           { "title": "Real tokens", "body": "Colors and fonts extracted from real design systems, not guessed." },
           { "title": "Two variants each", "body": "Every block ships a second structural take, not just a second color." },
-          { "title": "Zero hardcoded hex", "body": "grep the CSS — every color traces back to a token file." }
+          { "title": "Zero hardcoded hex", "body": "grep the CSS - every color traces back to a token file." }
         ]
       }
     },
@@ -43,7 +43,7 @@
     {
       "block": "testimonials", "variant": "testimonials-2",
       "content": {
-        "featured": { "quote": "The same block, wearing a different system — that's the whole pitch, and it actually holds up.", "name": "Someone", "role": "Design lead" }
+        "featured": { "quote": "The same block, wearing a different system - that's the whole pitch, and it actually holds up.", "name": "Someone", "role": "Design lead" }
       }
     },
     {
@@ -63,7 +63,7 @@
       "content": {
         "heading": "FAQ",
         "items": [
-          { "question": "Does this replace Figma?", "answer": "No — the Figma components and the code blocks read the same tokens, on purpose." },
+          { "question": "Does this replace Figma?", "answer": "No - the Figma components and the code blocks read the same tokens, on purpose." },
           { "question": "Can I add a new block?", "answer": "Drop a file in blocks/, export named variant functions, build.js finds it automatically." }
         ]
       }

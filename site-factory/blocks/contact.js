@@ -19,7 +19,7 @@ function contactForm(content) {
 </section>`;
 }
 
-// contact-2: split — info column left, form right.
+// contact-2: split - info column left, form right.
 function contactSplit(content) {
   return `<section class="contact contact--split">
   <div class="contact__info">

@@ -48,21 +48,21 @@ test('voice.ctaStyle changes the call to action', () => {
   const fact = cfg({ voice: { ctaStyle: 'fact-stated' } });
   const verb = cfg({ voice: { ctaStyle: 'verb-led' } });
   const label = (c) => configToManifest(c).page.find((p) => p.block === 'hero').content.ctaLabel;
-  assert.notStrictEqual(label(fact), label(verb), 'ctaStyle produced the same CTA for both options — decorative');
+  assert.notStrictEqual(label(fact), label(verb), 'ctaStyle produced the same CTA for both options - decorative');
 });
 
 test('voice.copyRegister changes the closing line', () => {
   const a = cfg({ voice: { copyRegister: 'A-institutional-authority' } });
   const c = cfg({ voice: { copyRegister: 'C-voice-with-a-face' } });
   const heading = (x) => configToManifest(x).page.find((p) => p.block === 'cta').content.heading;
-  assert.notStrictEqual(heading(a), heading(c), 'copyRegister produced identical copy — decorative');
+  assert.notStrictEqual(heading(a), heading(c), 'copyRegister produced identical copy - decorative');
 });
 
 test('voice.readingLevel changes wording', () => {
   const plain = cfg({ voice: { readingLevel: 'plain', ctaStyle: 'verb-led' } });
   const tech = cfg({ voice: { readingLevel: 'technical', ctaStyle: 'verb-led' } });
   const label = (c) => configToManifest(c).page.find((p) => p.block === 'hero').content.ctaLabel;
-  assert.notStrictEqual(label(plain), label(tech), 'readingLevel produced identical copy — decorative');
+  assert.notStrictEqual(label(plain), label(tech), 'readingLevel produced identical copy - decorative');
 });
 
 test('no generated page contains a disqualifying filler word', () => {
@@ -94,7 +94,7 @@ test('the banned-word check can actually fire', () => {
 test('what cannot be derived is marked CONFIRM, and every marker carries an instruction', () => {
   const c = cfg();
   const gaps = auditCopy(configToManifest(c));
-  assert.ok(gaps.length > 0, 'a one-line brief cannot supply features, FAQ and pricing — those must be marked');
+  assert.ok(gaps.length > 0, 'a one-line brief cannot supply features, FAQ and pricing - those must be marked');
 
   // Scoped to the markers copy.js itself writes. auditCopy deliberately also returns
   // scaffold.js's neutral "Replace this…" placeholders so the count is not an
@@ -137,7 +137,7 @@ test('generated copy survives rendering intact', () => {
 test('the audit counts BOTH unwritten conventions, not just its own', () => {
   // copy.js marks CONFIRM:; scaffold.js leaves "Replace this…" on the blocks copy.js
   // does not govern. Counting only the first reported 12 lines to write on a page
-  // that really had 17 — pricing and testimonials sat there uncounted. An undercount
+  // that really had 17 - pricing and testimonials sat there uncounted. An undercount
   // reads as a finished audit, which is worse than no audit.
   const c = cfg();
   c.strategy.sitemap = ['hero-1', 'features-1', 'pricing-1', 'testimonials-1'];
@@ -160,4 +160,42 @@ test('a fully written page audits clean', () => {
     }],
   };
   assert.deepEqual(auditCopy(written), []);
+});
+
+test('no source file uses an em dash as prose punctuation', () => {
+  // A standing writing rule that lives only in someone's head is not a rule, it is a
+  // habit - 220 of these had accumulated across 40 files before anyone counted. Prose
+  // is not enforcement; a test is.
+  //
+  // Scoped to the SPACED form (space, U+2014, space), which is the punctuation use. A
+  // bare U+2014 as an empty-cell glyph in a table or a UI placeholder is a different
+  // thing: it means "nothing here", and a hyphen there reads as a minus sign. Those
+  // are left alone deliberately, and this test is narrow so it does not sweep them up.
+  //
+  // The needle is built from its code point rather than typed. A guard written with a
+  // literal copy of the thing it bans FLAGS ITS OWN SOURCE, and the only ways out are
+  // to except the guard from itself - which is how a check quietly stops covering the
+  // file most likely to be edited - or to not write the character at all.
+  const fs = require('node:fs');
+  const path = require('node:path');
+
+  const NEEDLE = ` ${String.fromCharCode(0x2014)} `;
+  const ROOT = path.join(__dirname, '..');
+  const SKIP = new Set(['node_modules', 'scaffolds', 'dist', '.vds', '.git']);
+  const offenders = [];
+
+  (function walk(dir) {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (SKIP.has(e.name)) continue;
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) { walk(full); continue; }
+      if (!/\.(js|md|html|json)$/.test(e.name)) continue;
+      const text = fs.readFileSync(full, 'utf8');
+      const n = text.split(NEEDLE).length - 1;
+      if (n) offenders.push(`${path.relative(ROOT, full)} (${n})`);
+    }
+  })(ROOT);
+
+  assert.deepEqual(offenders, [],
+    `em dash used as prose punctuation - replace with a comma, a colon, or a spaced hyphen:\n  ${offenders.join('\n  ')}`);
 });

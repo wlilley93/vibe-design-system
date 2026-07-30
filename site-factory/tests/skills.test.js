@@ -9,7 +9,7 @@
  * reads as a work order and resolves to nothing. So the paths are checked against
  * the real library.
  *
- * The library lives outside this repo, so its absence is a SKIP, not a failure — a
+ * The library lives outside this repo, so its absence is a SKIP, not a failure - a
  * machine without agents-final has not broken anything. But when it IS present, a
  * missing skill is a hard failure, because then the reference really is dead.
  */
@@ -46,7 +46,7 @@ test('every skill the brief can name exists in the library', { skip: havelib ? f
   for (const rel of named) {
     assert.ok(
       fs.existsSync(path.join(LIBRARY, rel, 'SKILL.md')),
-      `the brief names ${rel}, which has no SKILL.md — a work order pointing at nothing`
+      `the brief names ${rel}, which has no SKILL.md - a work order pointing at nothing`
     );
   }
 });
@@ -104,7 +104,7 @@ test('every unwritten line is assigned to a skill, or explicitly unassigned', ()
   const assigned = bySkill.reduce((n, s) => n + s.gaps.length, 0);
   assert.equal(
     assigned + unassigned.length, gaps.length,
-    'a gap vanished between the audit and the brief — every line must be accounted for'
+    'a gap vanished between the audit and the brief - every line must be accounted for'
   );
   assert.ok(bySkill.length > 0, 'no skill was assigned any work');
 });
@@ -125,7 +125,7 @@ test('the brief names its blanks so they can be filled before any skill runs', (
   assert.match(md, /sales-page-setup/, 'the brief must say how to fill the blanks');
   assert.match(md, /market\.awareness_level/, 'the brief must name the specific blank fields');
   assert.match(md, /headline-lab/,
-    'headline-lab must be offered even when the hero already has a line — a brief that only ' +
+    'headline-lab must be offered even when the hero already has a line - a brief that only ' +
     'lists blanks never improves copy that exists');
 });
 
@@ -179,7 +179,7 @@ test('the route is inferred from the brief, and marketing wins over app words', 
   assert.equal(inferRoute('A matter-management app for boutique law firms'), 'saas-app');
   assert.equal(inferRoute('An internal dashboard for the ops team'), 'saas-app');
   assert.equal(inferRoute('A marketing site for our analytics dashboard'), 'marketing-site',
-    'both vocabularies present — it is a marketing site, the app words describe the product being sold');
+    'both vocabularies present - it is a marketing site, the app words describe the product being sold');
   assert.equal(inferRoute('A landing page for our SaaS platform'), 'marketing-site');
   assert.equal(inferRoute('Northgate Trust, an advisory firm'), null,
     'nothing said either way must return null so the caller keeps its own default');
@@ -242,4 +242,23 @@ test('the writing brief shows confirm-these and ask-these separately', () => {
   assert.match(md, /need CONFIRMING, not asking from scratch/);
   assert.match(md, /boutique law firms/, 'the brief must quote back what the author already said');
   assert.match(md, /genuinely blank/);
+});
+
+test('a long extracted span is cut at a word, not through one', () => {
+  // `{2,80}` clipped "reverse-engineer" to "reverse-enginee". A quote the author never
+  // wrote is the same failure as an invented value, just harder to spot.
+  const { extractFromBrief } = require('../skills.js');
+
+  const long = 'Instead of a page builder that hides its choices, or a template you have to reverse-engineer yourself.';
+  const got = extractFromBrief(long).main_alternative;
+
+  assert.ok(got.length <= 82, `span not capped: ${got.length} chars`);
+  assert.ok(got.endsWith('…'), 'a cut span must show that it was cut');
+  const body = got.slice(0, -1);
+  assert.ok(long.includes(body), `the kept text is not a substring of the brief: ${body}`);
+  assert.ok(!/\breverse-enginee$/.test(body), 'cut through the middle of a word');
+
+  // A span that fits is returned whole, with no ellipsis.
+  const short = extractFromBrief('Replaces spreadsheets.').main_alternative;
+  assert.equal(short, 'spreadsheets');
 });

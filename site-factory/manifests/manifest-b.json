@@ -1,12 +1,12 @@
 {
-  "title": "Manifest B — hero-2 + footer-b, geist style",
+  "title": "Manifest B - hero-2 + footer-b, geist style",
   "stylePack": "geist",
   "page": [
     {
       "block": "hero", "variant": "hero-2",
       "content": {
         "h1": "The same block, wearing a different system.",
-        "sub": "This page is hero-2 + footer-b under Geist's real extracted tokens — not a redraw, a re-skin.",
+        "sub": "This page is hero-2 + footer-b under Geist's real extracted tokens - not a redraw, a re-skin.",
         "ctaLabel": "Read the tokens",
         "ctaHref": "#",
         "mediaAlt": "Placeholder media panel"

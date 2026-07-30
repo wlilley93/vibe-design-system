@@ -7,8 +7,8 @@
  *   node scaffold.js --name my-app --blocks nav-1,hero-2,features-1,cta-1,footer-b --style geist
  *
  * This is the one place the shared bank (this repo, and the VDS Site Builder Figma file it
- * mirrors) touches a new project. It COPIES — block templates, one token file, a generated
- * manifest — into scaffolds/<name>/, a self-contained tree with no path back to this repo.
+ * mirrors) touches a new project. It COPIES - block templates, one token file, a generated
+ * manifest - into scaffolds/<name>/, a self-contained tree with no path back to this repo.
  *
  * That is deliberate. VDS is per-project: it derives and proves against ONE project's own
  * globals.css and its own decided-target Figma file, never a shared live dependency (VDS.md
@@ -16,7 +16,7 @@
  * at build time, the bank would become a second authority the moment two projects diverged on
  * a block's markup. Instead the new project owns its own copy from the moment it exists, and
  * this script has no further involvement in its life. A factory stamps out a copy and cuts it
- * loose — it does not stay wired into what it made.
+ * loose - it does not stay wired into what it made.
  */
 
 const fs = require('fs');
@@ -50,12 +50,12 @@ function scaffold({ name, blocks, style, outDir: outDirOverride }) {
 
   // Callers may place the project anywhere; scaffolds/<name> is only the default.
   const outDir = outDirOverride || path.join(ROOT, 'scaffolds', name);
-  if (fs.existsSync(outDir)) throw new Error(`${path.relative(ROOT, outDir)} already exists — pick a new name or remove it first`);
+  if (fs.existsSync(outDir)) throw new Error(`${path.relative(ROOT, outDir)} already exists - pick a new name or remove it first`);
   fs.mkdirSync(path.join(outDir, 'blocks'), { recursive: true });
   fs.mkdirSync(path.join(outDir, 'tokens'), { recursive: true });
   fs.mkdirSync(path.join(outDir, 'manifests'), { recursive: true });
 
-  // Copy only the block TYPES actually used — not the whole bank. A new project owns exactly
+  // Copy only the block TYPES actually used - not the whole bank. A new project owns exactly
   // what it asked for, nothing it didn't.
   //
   // ...plus whatever those types require. An ASSEMBLY block (masterdetail) calls its
@@ -72,13 +72,13 @@ function scaffold({ name, blocks, style, outDir: outDirOverride }) {
   }
 
   // Copy one token file, renamed to tokens/default.json so the new project doesn't inherit
-  // the bank's naming — it can rename/edit it freely from day one.
+  // the bank's naming - it can rename/edit it freely from day one.
   const tokenSrc = path.join(TOKENS_DIR, `${style}.json`);
   if (!fs.existsSync(tokenSrc)) throw new Error(`no style pack "${style}" in ${TOKENS_DIR}`);
   const tokenData = JSON.parse(fs.readFileSync(tokenSrc, 'utf8'));
   fs.writeFileSync(path.join(outDir, 'tokens', 'default.json'), JSON.stringify(tokenData, null, 2));
 
-  // A copy of the build engine. It is a copy, not a reference — editing it here never touches
+  // A copy of the build engine. It is a copy, not a reference - editing it here never touches
   // the bank, and editing the bank never touches this.
   fs.copyFileSync(path.join(ROOT, 'build.js'), path.join(outDir, 'build.js'));
 
@@ -114,7 +114,7 @@ Replace the placeholder content in manifests/home.json, then this is a real, ind
  *
  * Derived, not declared: the answer comes from the same text Node will execute, so it
  * cannot drift from what the file actually needs. Cycles terminate on the `seen` set,
- * and a require of something that is not a sibling block is ignored — only files that
+ * and a require of something that is not a sibling block is ignored - only files that
  * live in blocks/ are block dependencies.
  */
 function collectWithDeps(types) {
@@ -136,7 +136,7 @@ function collectWithDeps(types) {
 
 // Accept a bare variant name ("hero-1", "footer-a") and infer its block type from everything
 // before the last hyphen, so callers don't have to type "hero:hero-1" redundantly. Safe because
-// no current block type name itself contains a hyphen — if one ever does, pass "type:variant"
+// no current block type name itself contains a hyphen - if one ever does, pass "type:variant"
 // explicitly instead.
 function inferTypeVariant(variantName) {
   const idx = variantName.lastIndexOf('-');
@@ -145,7 +145,7 @@ function inferTypeVariant(variantName) {
 }
 
 // Each entry is the UNION of every field any variant of that block type reads from `content`
-// (checked against blocks/*.js directly — see git history for the grep). A type's two variants
+// (checked against blocks/*.js directly - see git history for the grep). A type's two variants
 // often want different shapes (footer-a wants flat `links`, footer-b wants grouped `columns`);
 // carrying both means either variant renders clean regardless of which one was requested.
 function placeholderContent(type) {
@@ -200,7 +200,7 @@ function placeholderContent(type) {
     team: {
       heading: 'Team',
       // `bio` is read by team-2 only. It was missing here, so team-2 rendered the
-      // literal string "undefined" into every row — caught by tests/render.test.js
+      // literal string "undefined" into every row - caught by tests/render.test.js
       // on its first run, which is the whole argument for the union rule above.
       people: [
         { name: 'Replace me', role: 'Replace this role', bio: 'Replace this one-line bio.' },
@@ -303,7 +303,7 @@ function placeholderContent(type) {
     inspectorVariant: 'properties',
   };
 
-  return PLACEHOLDERS[type] || { note: `Fill in content for block type "${type}" — see blocks/${type}.js for the expected shape.` };
+  return PLACEHOLDERS[type] || { note: `Fill in content for block type "${type}" - see blocks/${type}.js for the expected shape.` };
 }
 
 function name_placeholder() { return 'Your Company'; }

@@ -6,7 +6,7 @@ function esc(s) {
   }[c]));
 }
 
-// footer-a: one row — wordmark, inline links, copyright.
+// footer-a: one row - wordmark, inline links, copyright.
 function footerSimple(content) {
   const links = content.links.map((l) => `<a class="footer__link" href="${esc(l.href)}">${esc(l.label)}</a>`).join('\n      ');
   return `<footer class="footer footer--simple">

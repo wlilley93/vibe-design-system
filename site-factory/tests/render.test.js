@@ -29,7 +29,7 @@ test('every block variant renders with its own placeholder content', () => {
     const content = placeholderContent(type);
     assert.ok(
       !Object.prototype.hasOwnProperty.call(content, 'note'),
-      `block type "${type}" has no real placeholder — it fell through to the generic {note} object, ` +
+      `block type "${type}" has no real placeholder - it fell through to the generic {note} object, ` +
       'which no render function can destructure'
     );
     for (const variant of Object.keys(BLOCKS[type])) {

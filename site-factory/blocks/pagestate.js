@@ -11,7 +11,7 @@ function esc(s) {
  * unbuilt need.
  *
  * "Loading Feedback" is a Playbook play, and its Do is "design loading as a branded,
- * ownable surface" — which is why the skeleton uses the project's own tokens rather
+ * ownable surface" - which is why the skeleton uses the project's own tokens rather
  * than a generic grey shimmer.
  */
 
@@ -28,7 +28,7 @@ function pageLoading(content) {
 </section>`;
 }
 
-// pagestate-2: error. Names what failed, what it means, and what to do — an error
+// pagestate-2: error. Names what failed, what it means, and what to do - an error
 // that only says "something went wrong" leaves the reader with no move.
 function pageError(content) {
   return `<section class="pstate pstate--error" role="alert">
