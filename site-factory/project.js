@@ -18,6 +18,7 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 
 const { configToTokens, configToManifest } = require('./compose.js');
+const { auditCopy } = require('./copy.js');
 const { scaffold } = require('./scaffold.js');
 const { bridge, resolveVdsBin } = require('./vds-bridge.js');
 
@@ -105,6 +106,21 @@ function createProject(config, opts = {}) {
   execFileSync(process.execPath, ['build.js', 'manifests/home.json'], { cwd: result.outDir, stdio: 'pipe' });
   log('built dist/home.html');
 
+  // An audit nobody reads is the same as no audit. Report the unwritten lines at the
+  // moment the project is made, and write them to a file the author can work through,
+  // so "CONFIRM:" is a task list rather than a marker that ships.
+  const gaps = auditCopy(manifest);
+  if (gaps.length) {
+    fs.writeFileSync(
+      path.join(result.outDir, 'COPY-TODO.md'),
+      `# ${config.identity.name} — lines still to write\n\n` +
+      `${gaps.length} strings are marked CONFIRM: because a one-line brief cannot supply them.\n` +
+      'They are visible in the built page on purpose. Replace them in manifests/home.json.\n\n' +
+      gaps.map((g) => `- **${g.where}**\n  ${g.value}`).join('\n') + '\n'
+    );
+    log(`${gaps.length} lines still to write — see COPY-TODO.md`);
+  }
+
   const out = {
     name,
     outDir: result.outDir,
@@ -114,6 +130,7 @@ function createProject(config, opts = {}) {
     governed: false,
     vds: null,
     note: null,
+    copyGaps: gaps.length,
   };
 
   if (config.identity.category === 'saas-app') {

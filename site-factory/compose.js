@@ -13,6 +13,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { placeholderContent } = require('./scaffold.js');
+const { copyFor } = require('./copy.js');
 
 const ROOT = __dirname;
 const TOKENS_DIR = path.join(ROOT, 'tokens');
@@ -121,17 +122,12 @@ function configToManifest(config) {
     const type = idx === -1 ? variant : variant.slice(0, idx);
     const content = JSON.parse(JSON.stringify(placeholderContent(type)));
 
-    if (type === 'hero') {
-      if (config.identity.tagline) content.h1 = config.identity.tagline;
-      if (config.identity.description) content.sub = config.identity.description;
-    }
-    if (type === 'nav' || type === 'footer') {
-      content.wordmark = config.identity.name;
-      if (content.copyright) content.copyright = `© 2026 ${config.identity.name}`;
-    }
-    if (type === 'cta' && config.identity.tagline) {
-      content.heading = config.identity.tagline;
-    }
+    // The voice layer reaches the page here. copy.js derives what the brief genuinely
+    // supports and marks the rest CONFIRM: rather than inventing filler — see that
+    // file for why an invented line that reads finished is worse than a blank one.
+    // Blocks it does not speak for keep scaffold.js's neutral placeholder.
+    const authored = copyFor(type, config.identity, config.voice);
+    if (authored) Object.assign(content, authored);
     // componentStyle.statusBadgeStyle reaches the artefact here. Without this the
     // field would be another control that changes the config and not the page.
     const badgeStyle = (config.componentStyle || {}).statusBadgeStyle || 'pill';
