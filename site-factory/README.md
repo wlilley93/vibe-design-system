@@ -49,7 +49,7 @@ brief ──▶ suggest.js ──▶ config (35 fields) ──▶ compose.js ─
 | `studio.js` / `studio.html` | The visual editor |
 | `vds-bridge.js` | The OPTIONAL seam to VDS governance |
 | `figma-spec.js` / `figma-push.js` | Figma spec sheet and project record |
-| `tests/` | 68 tests, run by `make test-factory` |
+| `tests/` | 70 tests, run by `make test-factory` |
 
 ---
 
@@ -95,6 +95,19 @@ pattern silently matches nothing exits 0, which is indistinguishable from a gate
 cannot fire. Three seeds here "proved" the Figma-pairing test was dead; the pattern was
 missing one space. Assert the seed is in the file, then run.
 
+**A vacuous proof reports a pass.** `rows_enforced: 0` with `rows_considered: 8` is a
+gate that looked at everything and decided nothing, and it prints green. Read
+`rows_enforced`, never the status. Four of site-factory's components rendered a state in
+code that the Figma file never drew, and the proof said nothing until the register
+declared the states.
+
+**Derive a state from the code, and its drawing from the file.** `states.required` comes
+from markers the block renders CONDITIONALLY - `field--invalid` sits behind a ternary, so
+one component renders with and without it; `pagestate--error` is flat, so it is variant 2
+of 2 and not a state. `states.drawn` is measured out of Figma into `figma-states.json`
+and cites the layer. Claiming a state is drawn to quiet the gate is the exact defect the
+gate exists to catch.
+
 **Figma frames default to opaque white.** Containers need their fill cleared or they
 hide the ground. But some frames' fill IS the specimen - a button with no fill is a
 label. Name those `spec:*` at creation and skip them.
@@ -128,6 +141,33 @@ VDS works with no knowledge of site-factory, and site-factory without `--vds` wr
 the surface at what the project actually ships. Without that repointing the `.vds/` is
 PRESENT BUT BLIND - measured: 3 proofs precondition-fail, the rest return
 `rows_considered: 0`.
+
+**What the repointing actually buys, measured on a generated app project.** Five of ten
+proof kinds enforce; five are vacuous, and the reasons are different:
+
+| kind | rows enforced | |
+|---|---|---|
+| `no_stored_values` | 20 | |
+| `reconciliation` | 14 of 35 | |
+| `states` | 7 | |
+| `contrast` | 7 | |
+| `ledger_staleness` | 1 | |
+| `retirement_drain` | 0 | correct - nothing is deprecated |
+| `token_pin` | 0 | correct - no pins yet |
+| `register_completeness` | 0 | **structural, see below** |
+| `composition` | 0 | **structural, see below** |
+| `parity` | 0 | **structural, see below** |
+
+The three structural ones are not a configuration mistake and no setting fixes them.
+`vds-scan` parses ESM `import` statements; a scaffold resolves its blocks through a
+dynamic `require()` because dropping a file in `blocks/` is meant to register it. There
+is no static import graph to walk, so no screen yields a governed reference. `parity`
+additionally wants a capitalised or default export, and a block exports a kebab-keyed
+object. Recorded rather than papered over, because a vacuous proof reports a pass.
+
+`states` used to be vacuous too, and that one WAS a real gap: `required: []` meant 8 rows
+considered and 0 enforced. A proof that considers every row and enforces none is switched
+off. It is derived now - see below.
 
 ## The writing
 

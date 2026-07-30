@@ -167,3 +167,71 @@ test('the README states counts that are actually true', () => {
     );
   }
 });
+
+test('states are derived from what the code conditionally renders', () => {
+  // `required: []` made the states proof vacuous on every generated project: 8 rows
+  // considered, 0 enforced. A proof that looks at every row and enforces none is
+  // switched off, and it reports a pass.
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const { deriveStates } = require('../vds-bridge.js');
+
+  const ROOT = path.join(__dirname, '..');
+  const read = (b) => fs.readFileSync(path.join(ROOT, 'blocks', `${b}.js`), 'utf8');
+
+  // Conditional markers ARE states.
+  assert.deepEqual(deriveStates(read('formfield'), 'formfield', {}).required, ['error'],
+    'field--invalid sits behind a ternary, so one component renders with and without it');
+  assert.deepEqual(deriveStates(read('sidebar'), 'sidebar', {}).required, ['active']);
+  assert.deepEqual(deriveStates(read('segmentedcontrol'), 'segmentedcontrol', {}).required, ['selected']);
+
+  // Flat markers are hard-coded EXAMPLES, not states, and objectview is the case that
+  // proves the rule bites: line 15 renders `aria-disabled="true"` unconditionally, so
+  // that variant always draws one blocked action as an illustration. Its only real
+  // state is the conditional tab marker.
+  //
+  // Written against objectview and NOT pagestate on purpose. `pstate--error` also looks
+  // like a flat state, but `--error` is not in STATE_MARKERS at all, so asserting []
+  // there passes whether the conditional filter works or not - a green light wired to
+  // nothing. Removing the filter entirely left that assertion passing.
+  assert.deepEqual(deriveStates(read('objectview'), 'objectview', {}).required, ['selected'],
+    'a flat aria-disabled is a drawn example, not a state the component takes');
+  assert.deepEqual(deriveStates(read('card'), 'card', {}).required, []);
+  assert.deepEqual(deriveStates(read('toast'), 'toast', {}).required, []);
+
+  // Only VDS's vocabulary. It REFUSES a record naming anything else and runs nothing,
+  // which is how `on` and `invalid` took the whole proof offline.
+  const VDS_STATES = new Set(['default', 'hover', 'focus', 'active', 'selected', 'disabled', 'loading', 'error', 'success']);
+  for (const f of fs.readdirSync(path.join(ROOT, 'blocks'))) {
+    const b = path.basename(f, '.js');
+    for (const st of deriveStates(read(b), b, {}).required) {
+      assert.ok(VDS_STATES.has(st), `block ${b} derives "${st}", which VDS's state enum does not accept`);
+    }
+  }
+});
+
+test('a state is only claimed drawn if the Figma evidence names a layer', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const { deriveStates } = require('../vds-bridge.js');
+
+  const ROOT = path.join(__dirname, '..');
+  const evidence = JSON.parse(fs.readFileSync(path.join(ROOT, 'figma-states.json'), 'utf8'));
+
+  // Nothing may be claimed drawn for a state the code does not require: that would be a
+  // measurement of a component that does not exist.
+  for (const [block, states] of Object.entries(evidence.drawn)) {
+    const src = fs.readFileSync(path.join(ROOT, 'blocks', `${block}.js`), 'utf8');
+    const required = deriveStates(src, block, {}).required;
+    for (const st of Object.keys(states)) {
+      assert.ok(required.includes(st),
+        `figma-states.json claims ${block}/${st} is drawn, but ${block}.js never renders it`);
+      assert.ok(String(states[st]).trim().length > 0,
+        `${block}/${st} is claimed drawn with no layer cited - the claim must be checkable`);
+    }
+  }
+
+  // With no evidence file at all, every state reports NOT drawn. Understating is safe;
+  // a bridge that claimed drawn because it could not reach Figma would be the worst case.
+  assert.deepEqual(deriveStates(fs.readFileSync(path.join(ROOT, 'blocks', 'sidebar.js'), 'utf8'), 'sidebar', {}).drawn, []);
+});

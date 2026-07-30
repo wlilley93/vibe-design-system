@@ -1,0 +1,29 @@
+{
+  "_why": "Which component states are actually DRAWN in the Figma file, measured by reading every component set's layer and text names rather than asserted from memory. vds-bridge.js reads this to fill `states.drawn` in each register record. A snapshot, not a live query: scaffolding must work offline, and a bridge that silently claimed a state was drawn because it could not reach Figma would be the worst of both.",
+  "_howToRefresh": "Re-read the 24 component sets in file 4pPUFvaPdqYzPquBusSfWl, look for the evidence layer named below, and update. tests/spec.test.js pins that every block naming a state here is one whose code conditionally renders it.",
+  "fileKey": "4pPUFvaPdqYzPquBusSfWl",
+  "measuredAt": "2026-07-30T16:35:00Z",
+  "drawn": {
+    "formfield": {
+      "error": "That reference does not exist."
+    },
+    "segmentedcontrol": {
+      "selected": "spec:on"
+    },
+    "sidebar": {
+      "active": "state:active"
+    },
+    "objecttable": {
+      "selected": "state:selected"
+    },
+    "objectview": {
+      "selected": "state:selected"
+    },
+    "facetstrip": {
+      "selected": "state:selected"
+    }
+  },
+  "notDrawn": {},
+  "_vocabulary": "VDS state names, not CSS class names. VDS accepts default|hover|focus|active|selected|disabled|loading|error|success and REFUSES a record naming anything else.",
+  "_evidence": "Each value names a LAYER in the component set. Verified present by re-reading the file after drawing, not asserted. A claim that a state is drawn is exactly the claim the states proof gates, so it has to be checkable."
+}

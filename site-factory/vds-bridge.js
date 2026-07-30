@@ -189,6 +189,61 @@ function measureDemand(outDir) {
   return counts;
 }
 
+
+/*
+ * The states a block ACTUALLY renders, read out of its source.
+ *
+ * `required: []` made the `states` proof vacuous on every generated project: 8 rows
+ * considered, 0 enforced, `record_declares_no_required_state`. A proof that considers
+ * every row and enforces none is switched off, and it reports a pass.
+ *
+ * The line the register note draws is right, though - "required states are decisions
+ * nobody has made yet" - so this does NOT invent them. A state the code renders
+ * CONDITIONALLY is a decision already made and shipped; deriving it is reading the
+ * artefact, which is what every other field here does.
+ *
+ * Conditional is the whole test, and it is what separates a state from a variant.
+ * `pagestate--error` is flat: it is variant 2 of 2, a different function. `field--invalid`
+ * sits behind `f.error ? ... : ''`, so one component renders with and without it. Treat
+ * the flat ones as states and every two-variant block would claim a spurious pair.
+ *
+ * This is a FLOOR, not a ceiling. Hover, focus and disabled may also be required and
+ * nothing here can know that - the note on each record says so.
+ */
+// The RIGHT-HAND side is VDS's vocabulary, not the stylesheet's. VDS accepts exactly
+// default | hover | focus | active | selected | disabled | loading | error | success,
+// and refuses a record naming anything else - it did, on `on` and `invalid`, and
+// refused to run rather than skipping the row.
+//
+// That refusal is the useful part. The CSS says `--on`, `--current` and `--invalid` for
+// what are three instances of two governed states, and mapping them here is a design
+// system doing its job: the block keeps the class name that reads well in markup, the
+// register speaks the one vocabulary every proof can reason about.
+const STATE_MARKERS = [
+  [/--on\b|--current\b|--selected\b/, 'selected'],
+  [/--active\b/, 'active'],
+  [/--invalid\b|aria-invalid/, 'error'],
+  [/--disabled\b|aria-disabled/, 'disabled'],
+];
+
+function deriveStates(source, block, drawnMap) {
+  const required = [];
+  for (const line of source.split('\n')) {
+    // A conditional: a ternary, a short-circuit, or an if. Comments cannot qualify.
+    if (line.trim().startsWith('*') || line.trim().startsWith('//')) continue;
+    if (!/\?|&&|\bif\b/.test(line)) continue;
+    for (const [re, name] of STATE_MARKERS) {
+      if (re.test(line) && !required.includes(name)) required.push(name);
+    }
+  }
+  // `drawn` is MEASURED from the Figma file (figma-states.json), never assumed. A state
+  // required and not drawn is a real finding and the `states` proof is the gate for it;
+  // claiming it drawn to make the gate quiet is the defect the gate exists to catch.
+  const drawnFor = (drawnMap || {})[block] || {};
+  const drawn = required.filter((st) => Object.prototype.hasOwnProperty.call(drawnFor, st));
+  return { required, drawn };
+}
+
 function nextIdNumber(registerDir) {
   if (!fs.existsSync(registerDir)) return 1;
   let highest = 0;
@@ -227,6 +282,13 @@ function writeRegister(outDir, blockTypes) {
   fs.mkdirSync(registerDir, { recursive: true });
   const demand = measureDemand(outDir);
   const stamp = nowStamp();
+  // Measured evidence of which states the Figma file actually draws. Read once here
+  // rather than per record, and tolerated as absent: a project scaffolded without it
+  // declares nothing drawn, which understates rather than overstates.
+  let drawnMap = {};
+  try {
+    drawnMap = JSON.parse(fs.readFileSync(path.join(__dirname, 'figma-states.json'), 'utf8')).drawn || {};
+  } catch { /* no measurement on file; every state reports as not drawn */ }
   let n = nextIdNumber(registerDir);
   const written = [];
 
@@ -235,6 +297,8 @@ function writeRegister(outDir, blockTypes) {
     n++;
     const name = type.charAt(0).toUpperCase() + type.slice(1);
     const node = FIGMA_NODES[type];
+    const blockSrc = fs.readFileSync(path.join(outDir, 'blocks', `${type}.js`), 'utf8');
+    const st = deriveStates(blockSrc, type, drawnMap);
     const figmaBlock = node
       ? [
           'figma:',
@@ -260,9 +324,9 @@ function writeRegister(outDir, blockTypes) {
       '  required: true',
       '  figmaProperty: null',
       'states:',
-      '  required: []',
-      '  drawn:' + yamlList(['default'], '  '),
-      '  built:' + yamlList(['default'], '  '),
+      '  required:' + yamlList(['default', ...st.required], '  '),
+      '  drawn:' + yamlList(['default', ...st.drawn], '  '),
+      '  built:' + yamlList(['default', ...st.required], '  '),
       'a11y:',
       '  role: null',
       '  accessibleNameSource: none_decorative',
@@ -359,6 +423,7 @@ function bridge(outDir, blockTypes, opts = {}) {
 }
 
 module.exports = {
+  deriveStates,
   bridge, writeConfig, writeRegister, measureDemand, advanceToBuilt, refreshLedger,
   resolveVdsBin, SURFACE, FIGMA_NODES, FIGMA_FILE_KEY,
 };
