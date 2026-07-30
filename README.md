@@ -91,22 +91,34 @@ Per project, in a committed `.vds/`:
 | logs | decision logs and self-filed breach reports |
 | locks | the designpack digest, the install state, and the enforcement surface |
 
-**Ten proof kinds are a closed registry** (VDS S-7(5)), and closure is enforced by the type
-system: `ProofKind` is an enum, so a kind outside the registry does not fail validation, it
-fails to compile. Seven are implemented. The other three each say **why** they are not:
+**Eleven proof kinds are a closed registry** (VDS S-7(5)), and closure is enforced by the
+type system: `ProofKind` is an enum, so a kind outside the registry does not fail validation,
+it fails to compile. **All eleven are implemented** (`vds proof --list`).
+
+This table said ten kinds, seven implemented, and named `contrast`, `parity` and `token_pin`
+as unbuilt. All three had been built and were being run daily; `screen_parity` was missing
+from the table altogether. Read `vds proof --list`, which derives this from the enum, rather
+than trusting the copy below.
 
 | kind | state |
 |---|---|
 | `register_completeness` | implemented |
 | `reconciliation` | implemented, with limbs (c) and (d) of VDS S-5(6) disclosed as out of reach |
 | `composition` | implemented |
+| `contrast` | implemented |
 | `states` | implemented |
+| `parity` | implemented |
+| `token_pin` | implemented |
 | `retirement_drain` | implemented |
 | `ledger_staleness` | implemented |
 | `no_stored_values` | implemented, with the preimage limb disclosed as undischarged |
-| `contrast` | needs the subject project's shipped CSS and theme set |
-| `parity` | needs TypeScript analysis of the component source |
-| `token_pin` | needs both named records, one of which is a network read |
+| `screen_parity` | implemented |
+
+Implemented is not the same as ENFORCING on a given project. A kind with nothing to look at
+returns `vacuous`, which is recorded and is never evidence (VDS S-7(2)(4)) - so read
+`rows_enforced`, not the status. `examples/storefront` enforces all eleven; this repository
+ships no screens and is honestly vacuous on most of them, which `.vds/config.toml` states in
+its own header.
 
 A proof is valid only if it is re-runnable, falsifiable by a named test that seeds a
 violation, invoked by something other than the author, non-vacuous, and captured
@@ -185,4 +197,4 @@ See [`docs/ADOPTING.md`](docs/ADOPTING.md) for the full order of operations, and
 | [`docs/FIGMA-ROUND-TRIP.md`](docs/FIGMA-ROUND-TRIP.md) | prompt to Figma, Figma to code |
 | [`docs/RELATIONSHIP-TO-VJS.md`](docs/RELATIONSHIP-TO-VJS.md) | the division of labour, and the routing rule |
 | [`docs/GOAL.md`](docs/GOAL.md) | ten measurable done criteria, and the current measured position |
-| [`schema/`](schema/) | six JSON Schemas, GENERATED from the Rust types. Do not hand-edit: `vds schema check` diffs them. |
+| [`schema/`](schema/) | seven JSON Schemas, GENERATED from the Rust types. Do not hand-edit: `vds schema check` diffs them. |

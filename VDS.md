@@ -700,6 +700,11 @@ it down, which is the state that produced both defects at S-1(4).
 cheap, and the proofs, most of which are small scripts of the kind already written in this
 project. Two of the eleven proof kinds exist today in some form.
 
+> **Superseded on this point by S-14A(3): all eleven are implemented.** S-14(2) is left as
+> written because it is a COST FORECAST made at drafting, and a statute that quietly edits its
+> own forecasts to match the outcome cannot be checked against what it predicted. The number
+> here is history; S-14A(3) is the current state. Read them in that order.
+
 **S-14(3)** What VDS adds in ongoing cost, stated so nobody is surprised: every new
 component needs a record before it may be used; every contract change needs an amendment
 entry; every warrant re-runs its proofs when the surface changes; and the reconciliation

@@ -55,7 +55,12 @@ For each entry in `.vds/enforcement.lock`, at least one `invoked_by` entry with
 `surface: ci_workflow` and `blocking: true`. A local hook alone is an interim state and is
 recorded as such, because `git commit --no-verify` bypasses it.
 
-Settled by: a scan over the lock, cross-checked against the workflow files it names.
+Settled by: a scan over the lock. **NOT cross-checked against the workflow files it names**,
+which this line used to claim. Nothing resolves an `invocation.reference` to a real job or
+step: measured 2026-07-30 by renaming the step so ZERO steps were named `Proofs` while 12 lock
+entries still cited `step:Proofs`, after which D4 went on reporting Met. Filed as BREACH-0004
+with the remedy and the failing-direction test the remedy needs. Until that lands, this
+criterion establishes what the lock SAYS about CI and not what CI does.
 
 ### D5 Zero enforcement-surface drift
 
@@ -131,13 +136,13 @@ vacuous here, and nothing is warranted because VDS is not commenced (VDS S-15).
 
 | measurement | value | how measured |
 |---|---|---|
-| tests | 382 | `cargo test --workspace` |
+| tests | 806 | `cargo test --workspace` |
 | clippy warnings | 0 | `cargo clippy --workspace --all-targets -- -D warnings` |
-| proof kinds implemented | 7 of 10 | `vds proof --list` |
-| proof kinds with a named failing-direction test | 7 of 7 implemented | `vds lock verify` |
-| gates pinned in the enforcement lock | 9 | `vds lock verify` |
-| gates with a blocking CI invocation | 9 of 9 | `vds lock verify` |
-| JSON Schemas, generated from the types | 6 | `vds schema check` |
+| proof kinds implemented | 11 of 11 | `vds proof --list` |
+| proof kinds with a named failing-direction test | 11 of 11 implemented | `vds lock verify` |
+| gates pinned in the enforcement lock | 16 | `vds lock verify` |
+| gates with a blocking CI invocation | 16 of 16 **as the lock declares it**, unverified against the workflow - see BREACH-0004 | `vds lock verify` |
+| JSON Schemas, generated from the types | 7 | `vds schema check` |
 | reserved matters filed | 6 | `vds doctor` D10 |
 
 Three things this table says plainly.

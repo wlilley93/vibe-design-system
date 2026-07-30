@@ -1,6 +1,6 @@
 //! Helpers for hand-written `JsonSchema` impls.
 //!
-//! The six JSON Schemas under `schema/` are GENERATED from these types rather
+//! The JSON Schemas under `schema/` are GENERATED from these types rather
 //! than maintained beside them. That is the derive-don't-store discipline
 //! applied to VDS's own contract: a schema stored next to the type it describes
 //! is a second opinion that drifts, and VDS exists because a second opinion that

@@ -99,7 +99,7 @@ vds figma frames --file-key <key> --from capture-1.json capture-2.json
 
 # The declared surface and the proofs
 vds ledger screens
-vds proof --list                      # the closed registry, and why three are unbuilt
+vds proof --list                      # the closed registry of 11, all implemented
 vds proof <kind> | --all [--invoked-by ci_workflow] [--allow-vacuous] [--no-capture]
 
 # The design round trip

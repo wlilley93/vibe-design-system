@@ -114,7 +114,7 @@ WCAG 2.2 SC 1.4.11 says so; `#ebebeb` has nowhere to go.
 ## 6. Run the proofs
 
 ```bash
-vds proof --list          # the closed registry, and why three kinds are unbuilt
+vds proof --list          # the closed registry of 11, all implemented
 vds proof --all
 ```
 
