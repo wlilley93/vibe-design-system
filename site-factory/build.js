@@ -466,21 +466,36 @@ ${bodyHtml}
   return { html, css };
 }
 
+/*
+ * ONE stylesheet for the whole site, not one per page.
+ *
+ * A four-page build wrote four byte-identical CSS files (measured: same md5), which is
+ * four chances for them to stop being identical and four times the bytes over the wire.
+ * The name is fixed rather than derived from the manifest, because every page has to
+ * point at the SAME file for a browser to reuse it - `about.css` and `index.css` with
+ * identical contents are still two downloads.
+ *
+ * Every page's CSS comes out of the same `cssVars(tokens) + STRUCTURE_CSS`, so this is
+ * not a merge: pages built from one token pack produce one stylesheet by construction.
+ * `tests/render.test.js` pins that, so a future per-page rule cannot land here silently.
+ */
+const SITE_CSS = 'site.css';
+
 function build(manifestPath) {
   const manifest = readJson(manifestPath);
   const tokens = readJson(path.join(ROOT, 'tokens', `${manifest.stylePack}.json`));
   const name = path.basename(manifestPath, '.json');
 
-  const { html, css } = renderPage(manifest, tokens, `${name}.css`);
+  const { html, css } = renderPage(manifest, tokens, SITE_CSS);
 
   fs.mkdirSync(DIST, { recursive: true });
-  fs.writeFileSync(path.join(DIST, `${name}.css`), css);
+  fs.writeFileSync(path.join(DIST, SITE_CSS), css);
   fs.writeFileSync(path.join(DIST, `${name}.html`), html);
   const summary = manifest.page.map((e) => `${e.block}=${e.variant}`).join(' ');
   console.log(`${name}: ${summary} style=${manifest.stylePack} -> dist/${name}.html`);
 }
 
-module.exports = { renderPage, build, cssVars, BLOCKS, STRUCTURE_CSS };
+module.exports = { renderPage, build, cssVars, BLOCKS, STRUCTURE_CSS, SITE_CSS };
 
 if (require.main === module) {
   const arg = process.argv[2];

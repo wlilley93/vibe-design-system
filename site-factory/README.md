@@ -17,11 +17,11 @@ Zero dependencies. Node's built-in `http` and `node:test`, nothing installed.
 
 ## The shape
 
-A **config** (35 fields, 9 layers) is composed into **tokens** + a **manifest**, which
+A **config** (36 fields, 9 layers) is composed into **tokens** + a **manifest**, which
 a **block** registry renders into static HTML and CSS.
 
 ```
-brief ──▶ suggest.js ──▶ config (35 fields) ──▶ compose.js ──┬──▶ tokens
+brief ──▶ suggest.js ──▶ config (36 fields) ──▶ compose.js ──┬──▶ tokens
                               │                              └──▶ manifest
                               │                                     │
                               ├──▶ copy.js      (the voice layer writes, or marks)
@@ -35,7 +35,7 @@ brief ──▶ suggest.js ──▶ config (35 fields) ──▶ compose.js ─
 
 | File | Does |
 |---|---|
-| `config-schema.js` | The 35 fields, 9 layers, and the two routes |
+| `config-schema.js` | The 36 fields, 9 layers, and the two routes |
 | `suggest.js` | Brief → a filled config. Rule-based, not a model call |
 | `compose.js` | The ONE place a config becomes (tokens, manifest) |
 | `build.js` | `renderPage()` - the pure renderer. Also the CLI |
@@ -49,7 +49,7 @@ brief ──▶ suggest.js ──▶ config (35 fields) ──▶ compose.js ─
 | `studio.js` / `studio.html` | The visual editor |
 | `vds-bridge.js` | The OPTIONAL seam to VDS governance |
 | `figma-spec.js` / `figma-push.js` | Figma spec sheet and project record |
-| `tests/` | 70 tests, run by `make test-factory` |
+| `tests/` | 74 tests, run by `make test-factory` |
 
 ---
 
@@ -116,6 +116,34 @@ label. Name those `spec:*` at creation and skip them.
 every variant collapses. Eight Figma component variants were 92px tall because of this.
 
 ---
+
+## A site is more than a page
+
+The factory built exactly ONE page, and every link in it was `href="#"`. The field named
+`sitemap` is a BLOCK sequence - its own label says "Block sequence (type:variant,
+ordered)" - so nothing in the config ever described a second page. A `notfound` block type
+existed with no page for a 404 to be.
+
+`strategy.pages` is the sitemap. A marketing site gets home, about, contact and a 404;
+an app gets one page, because an app shell routes inside itself. A config with no `pages`
+gets one page built from `sitemap`, exactly as before.
+
+- **Home is `index.html`**, because that is what a server returns for `/`. A nav linking
+  `home.html` against a host serving `index.html` 404s on its own logo.
+- **The nav and footer links are DERIVED from the page set**, so adding a page cannot
+  leave the navigation behind - which is the failure the one-page version made permanent.
+- **The 404 is off the nav on purpose.** A 404 you can navigate to is not a 404.
+- **A secondary page keeps home's frame** - the same nav variant, the same footer variant
+  - so the site does not change shape when you click a link.
+- **CTAs point at contact, DERIVED from the page set.** A site without a contact page
+  keeps `#`: inventing a URL that 404s is worse than an honest dead anchor.
+- **One `site.css` for the whole site.** A four-page build wrote four byte-identical
+  stylesheets (measured, same md5). Identical contents under different names are still
+  separate downloads.
+
+`tests/project.test.js` walks every `href` in every built page and fails on one that
+points at a missing file, or at a bare `#`. Nothing caught the original defect because
+nothing ever asked where a link went.
 
 ## The two routes
 

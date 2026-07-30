@@ -24,7 +24,7 @@ const { execFileSync } = require('node:child_process');
 
 const { suggest } = require('../suggest.js');
 const { configToTokens, configToManifest, listBlockVariants } = require('../compose.js');
-const { renderPage } = require('../build.js');
+const { renderPage, SITE_CSS } = require('../build.js');
 const { createProject } = require('../project.js');
 
 const ROOT = path.join(__dirname, '..');
@@ -45,12 +45,12 @@ test('a scaffolded project builds on its own, with no path back to the factory',
   const out = path.join(tmp('build'), 'proj');
   try {
     const r = createProject(config('marketing-site'), { outDir: out });
-    assert.ok(fs.existsSync(path.join(out, 'dist', 'home.html')), 'no dist/home.html');
+    assert.ok(fs.existsSync(path.join(out, 'dist', 'index.html')), 'no dist/index.html');
     assert.ok(fs.existsSync(path.join(out, 'tokens', 'default.json')), 'no tokens/default.json');
 
     // Rebuild from inside the copied tree: this is what proves it stands alone.
-    execFileSync(process.execPath, ['build.js', 'manifests/home.json'], { cwd: out, stdio: 'pipe' });
-    const html = fs.readFileSync(path.join(out, 'dist', 'home.html'), 'utf8');
+    execFileSync(process.execPath, ['build.js', 'manifests/index.json'], { cwd: out, stdio: 'pipe' });
+    const html = fs.readFileSync(path.join(out, 'dist', 'index.html'), 'utf8');
     assert.ok(html.includes('Probe Co'), 'the identity layer did not reach the built page');
     assert.ok(r.blocks.length > 0);
   } finally {
@@ -68,7 +68,7 @@ test('scaffolding an assembly copies the blocks it requires, transitively', () =
       assert.ok(copied.includes(needed), `blocks/${needed}.js was not copied; got ${copied.join(', ')}`);
     }
     // The real check: it builds. A missing require only shows up when Node loads it.
-    execFileSync(process.execPath, ['build.js', 'manifests/home.json'], { cwd: out, stdio: 'pipe' });
+    execFileSync(process.execPath, ['build.js', 'manifests/index.json'], { cwd: out, stdio: 'pipe' });
   } finally {
     fs.rmSync(out, { recursive: true, force: true });
   }
@@ -80,8 +80,8 @@ test('every block type can be scaffolded together and still build', () => {
     const first = Object.entries(listBlockVariants()).map(([, v]) => v[0]);
     const c = config('marketing-site', first);
     createProject(c, { outDir: out });
-    execFileSync(process.execPath, ['build.js', 'manifests/home.json'], { cwd: out, stdio: 'pipe' });
-    assert.ok(fs.statSync(path.join(out, 'dist', 'home.html')).size > 0);
+    execFileSync(process.execPath, ['build.js', 'manifests/index.json'], { cwd: out, stdio: 'pipe' });
+    assert.ok(fs.statSync(path.join(out, 'dist', 'index.html')).size > 0);
   } finally {
     fs.rmSync(out, { recursive: true, force: true });
   }
@@ -94,8 +94,8 @@ test('the in-process preview is byte-identical to what the project compiles', ()
     createProject(c, { outDir: out });
 
     const preview = renderPage(configToManifest(c), configToTokens(c), null);
-    const builtHtml = fs.readFileSync(path.join(out, 'dist', 'home.html'), 'utf8');
-    const builtCss = fs.readFileSync(path.join(out, 'dist', 'home.css'), 'utf8');
+    const builtHtml = fs.readFileSync(path.join(out, 'dist', 'index.html'), 'utf8');
+    const builtCss = fs.readFileSync(path.join(out, 'dist', SITE_CSS), 'utf8');
 
     const body = (s) => s.slice(s.indexOf('<body>'), s.indexOf('</body>'));
     assert.equal(body(preview.html), body(builtHtml), 'preview body differs from the compiled page');
@@ -141,6 +141,75 @@ test('a saas project writes its component spec and records the gap honestly', ()
 
     assert.ok(r.note, 'a saas build must return a note about the narrowing');
     assert.ok(r.note.includes(String(gap)), 'the returned note must quote the same gap as the spec');
+  } finally {
+    fs.rmSync(out, { recursive: true, force: true });
+  }
+});
+
+test('a built site has no link pointing at a file that does not exist', () => {
+  // The defect this is the gate for: the factory shipped ONE page and every nav link in
+  // it was `href="#"`. A site whose navigation goes nowhere is a mockup. Nothing caught
+  // it because nothing ever asked where a link went.
+  const out = path.join(tmp('links'), 'proj');
+  try {
+    createProject(config('marketing-site'), { outDir: out });
+    const dist = path.join(out, 'dist');
+    const pages = fs.readdirSync(dist).filter((f) => f.endsWith('.html'));
+    assert.ok(pages.length > 1, `a marketing site must build more than one page, got ${pages.length}`);
+
+    const dead = [];
+    for (const f of pages) {
+      const html = fs.readFileSync(path.join(dist, f), 'utf8');
+      const hrefs = [...new Set((html.match(/href="[^"]+"/g) || []).map((h) => h.slice(6, -1)))];
+      for (const h of hrefs) {
+        if (/^(https?:|mailto:|tel:)/.test(h)) continue;
+        // A bare `#` is the failure, not an exemption: it is what every CTA and nav
+        // link used to be, and it is indistinguishable from "we forgot".
+        if (h === '#') { dead.push(`${f} -> "#"`); continue; }
+        if (h.startsWith('#')) continue;                     // a real in-page anchor
+        if (!fs.existsSync(path.join(dist, h))) dead.push(`${f} -> ${h} (missing)`);
+      }
+    }
+    assert.deepEqual(dead, [], `links that go nowhere:\n  ${dead.join('\n  ')}`);
+  } finally {
+    fs.rmSync(out, { recursive: true, force: true });
+  }
+});
+
+test('the whole site shares one stylesheet', () => {
+  // A four-page build wrote four byte-identical CSS files. Four chances to diverge, and
+  // four downloads for one stylesheet - identical contents under different names are
+  // still separate files to a browser.
+  const out = path.join(tmp('css'), 'proj');
+  try {
+    createProject(config('marketing-site'), { outDir: out });
+    const dist = path.join(out, 'dist');
+    const css = fs.readdirSync(dist).filter((f) => f.endsWith('.css'));
+    assert.deepEqual(css, [SITE_CSS], `expected exactly ${SITE_CSS}, got ${css.join(', ')}`);
+
+    // And every page must point at THAT file, or the sharing is nominal.
+    for (const f of fs.readdirSync(dist).filter((x) => x.endsWith('.html'))) {
+      const html = fs.readFileSync(path.join(dist, f), 'utf8');
+      assert.match(html, new RegExp(`href="${SITE_CSS}"`), `${f} does not link ${SITE_CSS}`);
+    }
+  } finally {
+    fs.rmSync(out, { recursive: true, force: true });
+  }
+});
+
+test('every page is scaffolded the blocks it needs, not just the ones home uses', () => {
+  // Scaffolding from the home manifest copied 8 blocks and the about page then failed to
+  // build on `team`. A secondary page uses blocks home never mentions.
+  const out = path.join(tmp('union'), 'proj');
+  try {
+    const c = config('marketing-site');
+    createProject(c, { outDir: out });
+    const { configToSite } = require('../compose.js');
+
+    const needed = new Set(configToSite(c).flatMap((pg) => pg.manifest.page.map((e) => e.block)));
+    const copied = new Set(fs.readdirSync(path.join(out, 'blocks')).map((f) => path.basename(f, '.js')));
+    const missing = [...needed].filter((b) => !copied.has(b));
+    assert.deepEqual(missing, [], `pages reference blocks the scaffold never copied: ${missing.join(', ')}`);
   } finally {
     fs.rmSync(out, { recursive: true, force: true });
   }

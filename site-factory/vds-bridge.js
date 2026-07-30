@@ -103,11 +103,17 @@ const FIGMA_NODES = {
 
 // The surface a site-factory project actually has. Every value here is a path that
 // exists in a scaffolded project, which is the whole point of the file.
+const { SITE_CSS } = require('./build.js');
+
 const SURFACE = {
   screen_globs: '["manifests/*.json"]',
   library_dirs: '["blocks"]',
   component_extensions: '["js"]',
-  stylesheet: '"dist/home.css"',
+  // The ONE stylesheet the whole site shares. Renaming home.css to site.css took the
+  // contrast proof offline: it REFUSED and ran nothing, with the right reason - "a caller
+  // told that every boundary clears its floor, about a stylesheet that was never opened,
+  // has been told nothing." Read off build.js so the two cannot disagree again.
+  stylesheet: `"dist/${SITE_CSS}"`,
 };
 
 function nowStamp() {

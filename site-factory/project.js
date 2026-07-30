@@ -18,7 +18,7 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 
 const {
-  configToTokens, configToManifest, listBlockVariants, SAAS_BLOCKS, SAAS_CATALOG_TOTAL,
+  configToTokens, configToManifest, configToSite, listBlockVariants, SAAS_BLOCKS, SAAS_CATALOG_TOTAL,
 } = require('./compose.js');
 
 const variantsOf = (block) => listBlockVariants()[block] || [];
@@ -93,11 +93,16 @@ function createProject(config, opts = {}) {
   // from it (rather than from config.strategy.sitemap) is what keeps the CLI and the
   // studio from disagreeing about a SaaS build.
   const manifest = configToManifest(config);
-  const blocks = manifest.page.map((e) => e.variant);
+  // The UNION across every page, not just home. Scaffolding from the home manifest
+  // alone copied 8 blocks and then the about page failed to build on `team`, because
+  // a secondary page uses blocks the home page never mentions. Deduped in first-seen
+  // order so the copy list stays stable between runs.
+  const site = configToSite(config);
+  const blocks = [...new Set(site.flatMap((pg) => pg.manifest.page.map((e) => e.variant)))];
   if (!blocks.length) throw new Error('sitemap is empty - pick at least one block');
 
   const result = scaffold({ name, blocks: blocks.join(','), style: config.palette.basePack, outDir });
-  log(`scaffolded ${blocks.length} blocks (${result.typesUsed.join(', ')})`);
+  log(`scaffolded ${blocks.length} blocks across ${site.length} page${site.length === 1 ? '' : 's'} (${result.typesUsed.join(', ')})`);
 
   // Overwrite the scaffold's starter token file and manifest with the composed ones,
   // so what lands on disk is exactly what the preview showed.
@@ -105,14 +110,21 @@ function createProject(config, opts = {}) {
     path.join(result.outDir, 'tokens', 'default.json'),
     JSON.stringify(configToTokens(config), null, 2)
   );
-  fs.writeFileSync(
-    path.join(result.outDir, 'manifests', 'home.json'),
-    JSON.stringify({ ...manifest, stylePack: 'default' }, null, 2)
-  );
+  // Every page, not just home. `home` is written as `index.html` because that is what a
+  // web server serves for `/`, and because navLinks() points at it - a nav linking to
+  // `home.html` on a host that serves `index.html` is a nav that 404s on its own logo.
+  const built = [];
+  for (const { slug, manifest: pm } of site) {
+    const file = slug === 'home' ? 'index' : slug;
+    fs.writeFileSync(
+      path.join(result.outDir, 'manifests', `${file}.json`),
+      JSON.stringify({ ...pm, stylePack: 'default' }, null, 2)
+    );
+    execFileSync(process.execPath, ['build.js', `manifests/${file}.json`], { cwd: result.outDir, stdio: 'pipe' });
+    built.push(`${file}.html`);
+  }
   fs.writeFileSync(path.join(result.outDir, 'config.json'), JSON.stringify(config, null, 2));
-
-  execFileSync(process.execPath, ['build.js', 'manifests/home.json'], { cwd: result.outDir, stdio: 'pipe' });
-  log('built dist/home.html');
+  log(`built ${built.length} page${built.length === 1 ? '' : 's'}: ${built.join(', ')}`);
 
   // An audit nobody reads is the same as no audit. Report the unwritten lines at the
   // moment the project is made, and write them to a file the author can work through,
@@ -123,7 +135,7 @@ function createProject(config, opts = {}) {
       path.join(result.outDir, 'COPY-TODO.md'),
       `# ${config.identity.name} - lines still to write\n\n` +
       `${gaps.length} strings are marked CONFIRM: because a one-line brief cannot supply them.\n` +
-      'They are visible in the built page on purpose. Replace them in manifests/home.json.\n\n' +
+      'They are visible in the built page on purpose. Replace them in the page manifest each one names.\n\n' +
       gaps.map((g) => `- **${g.where}**\n  ${g.value}`).join('\n') + '\n'
     );
     // The gaps are a work queue for the content skills, not a manual to-do list.

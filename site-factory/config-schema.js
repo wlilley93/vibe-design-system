@@ -124,7 +124,13 @@ const LAYERS = [
         'Small Quirk', 'Spark Curiosity', 'Success Moments', 'System Widget', 'The Paywall',
         'Time to Value', 'Value Replay', 'Variable Reward',
       ] },
-      { key: 'sitemap', label: 'Block sequence (type:variant, ordered)', type: 'block-list' },
+      // Named `sitemap` for backward compatibility and it is NOT one: a sitemap is a
+      // list of pages, and this is the block sequence of a single page. The real page
+      // list is `pages`, added after the factory spent its whole life building one page
+      // with every nav link pointing at "#". Renaming the field would break every
+      // config on disk; the label says what it is instead.
+      { key: 'sitemap', label: 'Block sequence for the home page (type:variant, ordered)', type: 'block-list' },
+      { key: 'pages', label: 'Pages ({slug, title, nav}); empty means home only', type: 'page-list' },
     ],
   },
   {

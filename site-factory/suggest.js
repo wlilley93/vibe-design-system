@@ -137,6 +137,18 @@ function suggest(brief) {
       sitemap: isSaas
         ? ['nav-1', 'sidebar-2', 'masterdetail-2']
         : ['nav-1', 'hero-1', 'features-1', 'pricing-1', 'testimonials-1', 'faq-1', 'cta-1', 'footer-a'],
+      // The page list, not the block list. An app gets one page because an app shell
+      // routes inside itself; a marketing site gets the four compose.js defaults, named
+      // here so the studio can show and edit them rather than having them appear from
+      // nowhere at build time.
+      pages: isSaas
+        ? [{ slug: 'home', title: 'Home', nav: false }]
+        : [
+            { slug: 'home', title: 'Home', nav: true },
+            { slug: 'about', title: 'About', nav: true },
+            { slug: 'contact', title: 'Contact', nav: true },
+            { slug: '404', title: 'Not found', nav: false },
+          ],
     },
     componentStyle: {
       buttonShape: matched.radius === 'sharp-0' ? 'square' : matched.radius === 'round-16' ? 'pill' : 'rounded',

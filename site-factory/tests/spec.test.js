@@ -235,3 +235,29 @@ test('a state is only claimed drawn if the Figma evidence names a layer', () => 
   // a bridge that claimed drawn because it could not reach Figma would be the worst case.
   assert.deepEqual(deriveStates(fs.readFileSync(path.join(ROOT, 'blocks', 'sidebar.js'), 'utf8'), 'sidebar', {}).drawn, []);
 });
+
+test('the VDS surface points at paths a scaffolded project actually has', () => {
+  // Renaming home.css to site.css took the `contrast` proof offline. It REFUSED and ran
+  // nothing, which is the right behaviour and the reason the break was findable at all:
+  // "a caller told that every boundary clears its floor, about a stylesheet that was
+  // never opened, has been told nothing." A proof that had instead skipped its rows would
+  // have reported a pass over a file that does not exist.
+  //
+  // So the declared surface is checked against the build, not against a memory of it.
+  const path = require('node:path');
+  const { SURFACE } = require('../vds-bridge.js');
+  const { SITE_CSS } = require('../build.js');
+
+  assert.equal(SURFACE.stylesheet, `"dist/${SITE_CSS}"`,
+    'the surface names a stylesheet the build does not write');
+
+  // Every path in the surface must be one a project has. Globs are checked by their
+  // literal directory prefix, which is the part that either exists or does not.
+  const dirs = [
+    ['library_dirs', 'blocks'],
+    ['screen_globs', 'manifests'],
+  ];
+  for (const [key, dir] of dirs) {
+    assert.match(SURFACE[key], new RegExp(dir), `${key} no longer names ${dir}/`);
+  }
+});

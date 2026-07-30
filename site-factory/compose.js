@@ -111,16 +111,79 @@ const SAAS_CATALOG_TOTAL = 109;
 const SAAS_DEFAULT = ['nav-1', 'sidebar-2', 'masterdetail-2'];
 
 /*
- * Config -> a manifest. Placeholder content per block type, with the identity layer
- * written over the fields it genuinely owns (wordmark, h1, sub, copyright).
+ * The pages a site has, as opposed to the blocks one page stacks.
  *
- * The SaaS route keeps only app-surface blocks. 107 of the 109 cataloged SaaS
- * component types still do not exist in code, and SAAS-COMPONENTS.md records them
- * as decisions rather than claiming they were built.
+ * `strategy.sitemap` is a BLOCK sequence - its own label in config-schema.js says
+ * "Block sequence (type:variant, ordered)" - so the field named `sitemap` was never a
+ * sitemap, and the factory shipped exactly one page. Every nav link in every generated
+ * site pointed at `href="#"`. A `notfound` block type existed with no way to reach it,
+ * because there was no second page for a 404 to be.
+ *
+ * `strategy.pages` is the real thing. A config that does not carry it gets ONE page,
+ * home, built from `sitemap` exactly as before, so nothing that worked stops working.
+ *
+ * Marketing sites get a default set; an app gets one, because an app shell routes
+ * inside itself and a second static HTML file is not what it needs.
  */
-function configToManifest(config) {
+const DEFAULT_PAGES = [
+  { slug: 'home', title: 'Home', nav: true },
+  { slug: 'about', title: 'About', nav: true },
+  { slug: 'contact', title: 'Contact', nav: true },
+  // Off the nav on purpose. A 404 you can navigate to is not a 404, and a nav that
+  // offers one reads as a broken link even when it resolves.
+  { slug: '404', title: 'Not found', nav: false },
+];
+
+// Which blocks belong on a page that is not home. Home keeps the full sitemap; the
+// others carry the frame (nav, footer) plus what the page is actually for, so an
+// "about" page is not a second copy of the pitch.
+const PAGE_BLOCKS = {
+  about: ['team-1', 'features-1', 'cta-1'],
+  contact: ['contact-1'],
+  404: ['notfound-1'],
+};
+
+const FRAME_BEFORE = 'nav';
+const FRAME_AFTER = 'footer';
+
+function pagesOf(config) {
+  const declared = (config.strategy || {}).pages;
+  if (Array.isArray(declared) && declared.length) return declared;
+  if (config.identity.category === 'saas-app') return [{ slug: 'home', title: 'Home', nav: false }];
+  return DEFAULT_PAGES.map((p) => ({ ...p }));
+}
+
+// Every page in the nav, as {label, href}. Derived, so adding a page cannot leave the
+// navigation behind - which is the failure the single-page version made permanent.
+function navLinks(config) {
+  return pagesOf(config)
+    .filter((p) => p.nav !== false)
+    .map((p) => ({ label: p.title, href: p.slug === 'home' ? 'index.html' : `${p.slug}.html` }));
+}
+
+/*
+ * Config -> a manifest for ONE page. Placeholder content per block type, with the
+ * identity layer written over the fields it genuinely owns (wordmark, h1, sub,
+ * copyright).
+ *
+ * The SaaS route keeps only app-surface blocks. SAAS-COMPONENTS.md records the
+ * cataloged-and-unbuilt types as decisions rather than claiming they were built; the
+ * count is derived there, never restated here.
+ */
+function configToManifest(config, pageSlug = 'home') {
   const isSaas = config.identity.category === 'saas-app';
+  const links = navLinks(config);
+  const contact = links.find((l) => /contact/i.test(l.href));
+  const cta = contact ? contact.href : null;
   let blocks = config.strategy.sitemap.slice();
+
+  if (pageSlug !== 'home') {
+    // A secondary page keeps the frame the home page uses - the same nav variant, the
+    // same footer variant - so the site does not change shape when you click a link.
+    const frame = (which) => blocks.find((b) => b.startsWith(`${which}-`));
+    const body = PAGE_BLOCKS[pageSlug] || ['features-1'];
+    blocks = [frame(FRAME_BEFORE), ...body, frame(FRAME_AFTER)].filter(Boolean);
+  }
   if (isSaas) {
     blocks = blocks.filter((b) => SAAS_BLOCKS.has(b.slice(0, b.lastIndexOf('-'))));
     if (blocks.some((b) => b.startsWith('masterdetail'))) {
@@ -146,12 +209,59 @@ function configToManifest(config) {
     if (type === 'objecttable') content.badgeStyle = badgeStyle;
     if (type === 'masterdetail' && content.master) content.master.badgeStyle = badgeStyle;
     if (type === 'objectview') content.title = config.identity.name;
+
+    // The navigation reaches the artefact HERE, and this is the whole point of the
+    // change: every generated nav and footer link used to be `href="#"`. A site whose
+    // links go nowhere is a mockup, not a site.
+    if (type === 'nav' || type === 'footer') {
+      if (links.length) content.links = links.map((l) => ({ ...l }));
+    }
+
+    /*
+     * Where a call to action goes.
+     *
+     * Every generated CTA - the nav button, the hero button, both pricing buttons, the
+     * closing banner - shipped as `href="#"`. On a page whose entire job is to get one
+     * click, the one link that must resolve was the only one that never did.
+     *
+     * `contact` is the destination, and it is DERIVED from the page set rather than
+     * assumed: a site without a contact page keeps `#`, because inventing a URL that
+     * 404s is worse than an honest dead anchor. The 404's own link goes home, which is
+     * the only sensible destination a not-found page has.
+     */
+    if (cta) {
+      if (type === 'nav') content.ctaHref = cta;
+      if (type === 'hero' || type === 'cta') content.ctaHref = cta;
+      if (type === 'pricing' && Array.isArray(content.plans)) {
+        for (const plan of content.plans) plan.ctaHref = cta;
+      }
+    }
+    if (type === 'notfound') content.homeHref = 'index.html';
+
     return { block: type, variant, content };
   });
 
-  const manifest = { title: config.identity.name, stylePack: config.palette.basePack, page };
+  const pageMeta = pagesOf(config).find((p) => p.slug === pageSlug);
+  const manifest = {
+    title: pageSlug === 'home' || !pageMeta
+      ? config.identity.name
+      : `${pageMeta.title} - ${config.identity.name}`,
+    slug: pageSlug,
+    stylePack: config.palette.basePack,
+    page,
+  };
   if (isSaas) manifest.layout = 'app';
   return manifest;
 }
 
-module.exports = { configToTokens, configToManifest, radiusPx, listStylePacks, listBlockVariants, RADIUS, SAAS_BLOCKS, SAAS_CATALOG_TOTAL };
+// Every page of the site, as {slug, manifest}. The one place that knows a site is more
+// than a page, so nothing downstream has to reimplement the loop.
+function configToSite(config) {
+  return pagesOf(config).map((p) => ({
+    slug: p.slug,
+    title: p.title,
+    manifest: configToManifest(config, p.slug),
+  }));
+}
+
+module.exports = { configToTokens, configToManifest, configToSite, pagesOf, navLinks, radiusPx, listStylePacks, listBlockVariants, RADIUS, SAAS_BLOCKS, SAAS_CATALOG_TOTAL };
