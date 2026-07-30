@@ -1,6 +1,6 @@
 # The Figma master file
 
-File key `4pPUFvaPdqYzPquBusSfWl`. One file, twelve pages, 42 component sets and 20
+File key `4pPUFvaPdqYzPquBusSfWl`. One file, fifteen pages, 42 component sets and 23
 documentation frames. It is the design half of site-factory: the code half is `blocks/`,
 and three measured manifests hold the two together.
 
@@ -38,6 +38,26 @@ The import path is blocked on a user action and the page says exactly which one.
 order, reproduced in full: 42,486 characters, nothing summarised. A prompt is the one part
 of this system that never appears in the output it produces, which makes it the least
 inspectable and most load-bearing artefact in the chain.
+
+**System: Jellytot**, **System: Opbox marketing**, **System: Opbox design** - three brand and
+product systems documented the way Uber Base documents itself: palette with an ink per tone,
+type scale with its leading and tracking, radius and spacing scales, component counts, and
+the provenance of every value. Each page names the files it was measured from and ends with
+its findings, because in all three cases the interesting thing was a disagreement:
+
+- Jellytot has THREE sources of truth and seven of eleven palette roles differ between the
+  brand doc and the shipped CSS. The live stylesheet is also malformed - a hex split across a
+  line break at lines 5-6 swallows `--muted` and `--rule` - and its `.vds/config.toml` points
+  at `app/globals.css` and `app/**/page.tsx` in a repo that ships `public/style.css`, so every
+  proof there runs over zero rows.
+- Opbox marketing is authored in oklch, which makes its ink and mute steps even in LIGHTNESS
+  rather than even in hex. Its accent moved from a warm red to blue, and the old red survives
+  as the corporate-services industry accent, so one hue now means two things. None of the six
+  industry accents declares an ink.
+- Opbox design already has the tone/ink pattern under another name (`--status-*-fg`), and its
+  `statusMeaning` vocabulary - aligned / floor / migrating - is the most transferable idea in
+  any of the three: `floor` says a per-theme value is legitimate and the CONTRAST RATIO is the
+  contract, which is exactly what BREACH-0001 was about.
 
 **Skills** - the agents-final survey. **Playbook** - the Product Design Playbook catalog.
 **Glossary** - the Framer design vocabulary, two frames. **SaaS Components** - the

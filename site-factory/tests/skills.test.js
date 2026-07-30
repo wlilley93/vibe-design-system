@@ -607,3 +607,45 @@ test('the page inventory accounts for every page, and no page is silently empty'
     'the set list and the declared component-set total disagree'
   );
 });
+
+test('any block whose Figma set draws more variants than the code exports says why', () => {
+  // Every block type exports exactly two render functions. Six component sets draw three to
+  // six. That is a modelling difference rather than a gap - an axis the code takes as CONTENT
+  // is an axis Figma has to draw as a VARIANT, because a static drawing cannot take a prop -
+  // but silent, it reads as four missing variants to anyone comparing the counts.
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const { FIGMA_NODES } = require('../vds-bridge.js');
+  const { listBlockVariants } = require('../compose.js');
+  const measured = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'figma-nodes.json'), 'utf8'));
+  const axes = measured.variantAxes || {};
+  const code = listBlockVariants();
+
+  const undeclared = [], stale = [];
+  for (const [type, id] of Object.entries(FIGMA_NODES)) {
+    const set = measured.sets[id];
+    if (!set) continue; // the existence test owns that failure
+    const codeCount = code[type].length;
+    if (set.variants > codeCount) {
+      if (!axes[type]) undeclared.push(`${type}: figma draws ${set.variants}, code exports ${codeCount}`);
+      else if (axes[type].length < 40) undeclared.push(`${type}: declared with no usable reason`);
+    } else if (axes[type]) {
+      // The other direction: a declaration left behind after the counts converge is a note
+      // explaining a difference that no longer exists.
+      stale.push(`${type}: declared as drawing more than code, but figma has ${set.variants} and code ${codeCount}`);
+    }
+    // Figma must never draw FEWER than the code exports: that really is a missing drawing.
+    assert.ok(set.variants >= codeCount,
+      `${type}: the Figma set draws ${set.variants} variants and the code exports ${codeCount}. A render ` +
+      'function with no drawing is the divergence FIGMA_NODES exists to prevent.');
+  }
+
+  assert.deepEqual(undeclared, [],
+    `these blocks draw more variants in Figma than they export in code, with no reason recorded in ` +
+    `figma-nodes.json variantAxes:\n  ${undeclared.join('\n  ')}`);
+  assert.deepEqual(stale, [], `stale variantAxes declarations:\n  ${stale.join('\n  ')}`);
+
+  // Every declaration must name a real block type.
+  const phantom = Object.keys(axes).filter((k) => !k.startsWith('_') && !code[k]);
+  assert.deepEqual(phantom, [], `variantAxes names block types that do not exist: ${phantom.join(', ')}`);
+});

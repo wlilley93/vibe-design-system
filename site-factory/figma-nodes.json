@@ -2,12 +2,12 @@
   "_what": "A measured read of the Figma file named by FIGMA_FILE_KEY: every page with its top-level contents, and every COMPONENT_SET keyed by node id. EVIDENCE, not intent. FIGMA_NODES in vds-bridge.js pairs a block type to an id, and until this file existed the only test on that pairing checked the id's SHAPE (/^\\d+:\\d+$/) and never that anything was there, so a deleted component set failed nothing.",
   "_correction": "This file was first written on the strength of a finding that was WRONG, and the mistake is worth more than the file. A survey walked figma.root.children and read p.children on each page, and reported SEVEN OF TEN PAGES EMPTY - Examples, Playbook, Glossary, SaaS Components and the three project/spec pages - all of which the task log records as built. I reported that as a probable concurrent-writer wipe. It was not. This file runs in Figma's dynamic-page mode, where a page's children are NOT available until the page has been loaded, and the survey never loaded them: the three pages that reported content were simply the ones already loaded in that session. Re-measured with `await p.loadAsync()` on every page, there are 12 pages, 42 component sets, 20 frames and ZERO empty pages. Every page holds exactly the work the task log claims, under sensible names. Nothing was lost. THE LESSON: an empty collection returned by an API that loads lazily is not evidence of absence, it is the absence of evidence, and reading it as fact manufactured a data-loss incident out of a missing await.",
   "_how": "Re-derive with the Figma MCP: for every page in figma.root.children call `await page.loadAsync()` FIRST, then record its top-level children and every child of type COMPONENT_SET as id -> {name, page, variants}. Do not use setCurrentPageAsync for a survey and do not read page.children without loading - see _correction.",
-  "measured_at": "2026-07-30 (re-measured with loadAsync)",
+  "measured_at": "2026-07-30 (re-measured with loadAsync after the three system pages landed)",
   "file_key": "4pPUFvaPdqYzPquBusSfWl",
   "pageTotals": {
-    "pages": 12,
+    "pages": 15,
     "componentSets": 42,
-    "frames": 20,
+    "frames": 23,
     "emptyPages": 0
   },
   "pages": {
@@ -52,7 +52,25 @@
       "5. pricing-section-designer",
       "6. objection-and-faq-engine",
       "7. cta-and-close-writer"
+    ],
+    "System: Jellytot": [
+      "Jellytot \u2014 brand system"
+    ],
+    "System: Opbox marketing": [
+      "Opbox marketing \u2014 Will Style"
+    ],
+    "System: Opbox design": [
+      "Opbox design \u2014 product system"
     ]
+  },
+  "variantAxes": {
+    "_what": "Where a component set draws MORE variants than the block exports render functions, and why. Every block type exports exactly two variants; six Figma sets draw three to six. That is not a gap, it is a modelling difference, and it has to be written down because someone comparing the two counts would otherwise read it as four missing variants. The rule: an axis the CODE takes as content is an axis FIGMA draws as a variant, because a static drawing cannot take a prop and a design system that only draws one tone has not shown the component.",
+    "banner": "code: 2 render functions (full, inline). figma: 4, one per tone. `tone` is content in code and resolves to --color-<tone> plus its per-tone ink; drawing one tone would hide that warning is the tone whose ink is dark.",
+    "systembanner": "code: 2 (dismissible, action). figma: 4, one per tone. Same reason as banner.",
+    "pagination": "code: 2 (numbered, cursor). figma: 4 = Layout Compact/Full x State Enabled/Disabled, because the disabled row is where the selected chip has to keep its chip and drop its contrast, and that is invisible in an enabled-only drawing.",
+    "progressbar": "code: 2 (percent, count). figma: 4 = Size Small/Medium x Layout Label/None. Size is a token decision (2px against 4px, measured from Base) rather than a copy decision, so it is a variant there and not a render function here.",
+    "checkbox": "code: 2 (single, group). figma: 3 = unchecked, checked, indeterminate. The third state is the reason the block exists separately from switch, and a drawing has to show it because markup cannot set `indeterminate`.",
+    "notificationbadge": "code: 2 (dot, count). figma: 3 = dot, count, count over its cap. The overflow form is a layout decision, so it is drawn."
   },
   "sets": {
     "9:25": {
