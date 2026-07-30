@@ -19,6 +19,7 @@ const { execFileSync } = require('child_process');
 
 const { configToTokens, configToManifest } = require('./compose.js');
 const { auditCopy } = require('./copy.js');
+const { packConfig, briefMarkdown } = require('./skills.js');
 const { scaffold } = require('./scaffold.js');
 const { bridge, resolveVdsBin } = require('./vds-bridge.js');
 
@@ -118,7 +119,14 @@ function createProject(config, opts = {}) {
       'They are visible in the built page on purpose. Replace them in manifests/home.json.\n\n' +
       gaps.map((g) => `- **${g.where}**\n  ${g.value}`).join('\n') + '\n'
     );
-    log(`${gaps.length} lines still to write — see COPY-TODO.md`);
+    // The gaps are a work queue for the content skills, not a manual to-do list.
+    // copy-brief.json is this project in the shape every skill in the pack reads.
+    fs.writeFileSync(
+      path.join(result.outDir, 'copy-brief.json'),
+      JSON.stringify(packConfig(config), null, 2)
+    );
+    fs.writeFileSync(path.join(result.outDir, 'WRITING-BRIEF.md'), briefMarkdown(config, manifest, gaps));
+    log(`${gaps.length} lines still to write — see WRITING-BRIEF.md (skill-assigned)`);
   }
 
   const out = {
