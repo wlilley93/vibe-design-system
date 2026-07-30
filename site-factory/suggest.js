@@ -38,7 +38,12 @@ const STRATEGY_PLAYS = {
 };
 
 const KEYWORD_PACKS = [
-  { re: /\b(legal|law|trust|advisory|estate|ownership|structur|govern|compliance)\b/i, pack: 'balmoral', register: 'A-institutional-authority', radius: 'sharp-0' },
+  // STEMS MUST NOT CARRY A TRAILING \b. "structur" wrapped in \b(...)\b can never match
+  // "structuring" or "structure", because the boundary after "structur" fails on the
+  // following letter. That stem was dead from the day it was written and the bug was
+  // masked by "trust"/"estate"/"advisory" firing on the same briefs. Whole words keep
+  // their boundaries; stems are matched separately.
+  { re: /\b(legal|law|trust|advisory|estate|ownership|govern|compliance)\b|structur|jurisdiction/i, pack: 'balmoral', register: 'A-institutional-authority', radius: 'sharp-0' },
   { re: /\b(playful|fun|kids|game|creative|community|hobby)\b/i, pack: 'jellytot', register: 'C-voice-with-a-face', radius: 'round-16' },
   { re: /\b(saas|dashboard|platform|tool|workflow|api|developer|analytics)\b/i, pack: 'geist', register: 'A-institutional-authority', radius: 'soft-6' },
 ];

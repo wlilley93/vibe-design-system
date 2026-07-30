@@ -140,3 +140,18 @@ test('the palette layer overrides the base pack rather than being overwritten by
   assert.equal(tok.colors.accent, '#ABCDEF', 'an explicit palette value lost to the base pack');
   assert.ok(cssVars(tok).includes('--color-accent: #ABCDEF'));
 });
+
+test('keyword stems match inflected words, not just the bare stem', () => {
+  // "structur" inside \b(...)\b can never match "structuring" — the boundary after
+  // the stem fails on the following letter. The bug was masked for the whole life of
+  // the file because "trust" and "estate" fired on the same briefs. A stem that
+  // cannot match is a rule that silently does nothing.
+  const { suggest: s } = require('../suggest.js');
+  for (const text of ['Global structuring, agnostic', 'we structure holdings', 'offshore jurisdiction advice']) {
+    const c = s({ name: 'X', category: 'marketing-site', description: text });
+    assert.equal(c.palette.basePack, 'balmoral', `"${text}" should select the balmoral pack`);
+  }
+  // ...and the stem must not be so greedy it swallows unrelated briefs.
+  const saas = s({ name: 'X', category: 'marketing-site', description: 'An analytics platform for developer teams' });
+  assert.equal(saas.palette.basePack, 'geist');
+});
