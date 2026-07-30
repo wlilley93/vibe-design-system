@@ -225,6 +225,96 @@ fn d3(store: &Store) -> Result<Row> {
     })
 }
 
+/// Resolve a `ci_workflow` invocation reference against the workflow file it names.
+///
+/// D4 used to be settled by `LockEntry::has_blocking_ci`, which reads the lock's own
+/// `invoked_by` list and nothing else. Every reference in this repository has the shape
+/// `.github/workflows/vds-enforce.yml job:enforce step:Proofs`, and no code resolved that
+/// string, so D4 certified that sixteen gates reach CI on evidence establishing only that
+/// sixteen lock entries SAY they do.
+///
+/// Measured on 2026-07-30 by renaming the step so ZERO steps were named `Proofs` while
+/// twelve entries still cited `step:Proofs`: D4 went on reporting
+/// "Met - 16 pinned gates, every one invoked by a blocking ci_workflow". Filed as
+/// BREACH-0004, whose remedy is this function.
+///
+/// Returns `None` when the reference resolves, `Some(reason)` naming precisely what is
+/// missing. The reason is per-site and specific: "the workflow file is gone" and "the step
+/// was renamed" want different fixes, and a single "unresolvable" would hide which.
+///
+/// WHAT THIS DOES NOT ESTABLISH, stated because VDS S-8(5) forbids overclaiming an
+/// enforcement surface: it proves a step of that name exists in that job. It does not prove
+/// the step RUNS the gate. A step named `Proofs` that runs `echo hi` resolves here and
+/// enforces nothing. Binding a gate to the command inside its step needs the step's `run:`
+/// body parsed against the gate's own invocation, which is a separate question from this one.
+fn resolve_ci_reference(root: &std::path::Path, reference: &str) -> Option<String> {
+    // `<path> job:<job> step:<step name>`. The step name may contain spaces, so it is
+    // taken to end of string rather than split on whitespace.
+    let Some((path_part, rest)) = reference.split_once(" job:") else {
+        return Some(format!(
+            "reference {reference:?} does not name a job, so nothing can be resolved. \
+             Expected `<workflow path> job:<job> step:<step name>`"
+        ));
+    };
+    let (job, step) = match rest.split_once(" step:") {
+        Some((j, s)) => (j.trim(), s.trim()),
+        None => (rest.trim(), ""),
+    };
+
+    let workflow = root.join(path_part.trim());
+    let text = match std::fs::read_to_string(&workflow) {
+        Ok(t) => t,
+        Err(_) => {
+            return Some(format!(
+                "the workflow {} does not exist, so the invocation is a name and not a wiring",
+                path_part.trim()
+            ));
+        }
+    };
+    let doc: serde_yaml::Value = match serde_yaml::from_str(&text) {
+        Ok(d) => d,
+        Err(e) => {
+            return Some(format!(
+                "the workflow {} does not parse: {e}",
+                path_part.trim()
+            ));
+        }
+    };
+
+    let Some(jobs) = doc.get("jobs").and_then(|j| j.get(job)) else {
+        return Some(format!(
+            "the workflow {} has no job {job:?}",
+            path_part.trim()
+        ));
+    };
+    if step.is_empty() {
+        return None; // a job-level reference, and the job exists
+    }
+
+    let Some(steps) = jobs.get("steps").and_then(|s| s.as_sequence()) else {
+        return Some(format!(
+            "job {job:?} declares no steps, so step {step:?} cannot run"
+        ));
+    };
+    let found = steps
+        .iter()
+        .filter_map(|s| s.get("name").and_then(|n| n.as_str()))
+        .any(|name| name == step);
+
+    if found {
+        None
+    } else {
+        let names: Vec<&str> = steps
+            .iter()
+            .filter_map(|s| s.get("name").and_then(|n| n.as_str()))
+            .collect();
+        Some(format!(
+            "job {job:?} has no step named {step:?}. Steps present: {}",
+            names.join(", ")
+        ))
+    }
+}
+
 fn d4(store: &Store) -> Result<Row> {
     let Some(lock) = store.read_lock()? else {
         return Ok(Row {
@@ -237,29 +327,47 @@ fn d4(store: &Store) -> Result<Row> {
             settled_by: "a scan over .vds/enforcement.lock",
         });
     };
-    let hook_only: Vec<String> = lock
-        .entries
-        .iter()
-        .filter(|e| !e.has_blocking_ci())
-        .map(|e| format!("{}: no blocking ci_workflow invocation", e.path))
-        .collect();
+    let mut problems: Vec<String> = Vec::new();
+    for entry in &lock.entries {
+        if !entry.has_blocking_ci() {
+            problems.push(format!(
+                "{}: no blocking ci_workflow invocation",
+                entry.path
+            ));
+            continue;
+        }
+        // A DECLARED invocation is not a wiring. Resolve each blocking ci_workflow
+        // reference against the workflow it names; an entry whose reference points at a
+        // job or step that does not exist is a gate nothing runs, under a lock that says
+        // otherwise.
+        for inv in &entry.invoked_by {
+            if inv.surface != vds_core::InvokedBy::CiWorkflow || !inv.blocking {
+                continue;
+            }
+            if let Some(reason) = resolve_ci_reference(&store.project.root, &inv.reference) {
+                problems.push(format!("{}: {reason}", entry.path));
+            }
+        }
+    }
+
     Ok(Row {
         id: "D4 ",
         title: "every gate is invoked by CI, not only by a hook",
-        verdict: if hook_only.is_empty() && !lock.entries.is_empty() {
+        verdict: if problems.is_empty() && !lock.entries.is_empty() {
             Verdict::Met
         } else {
             Verdict::Unmet
         },
-        detail: if hook_only.is_empty() {
+        detail: if problems.is_empty() {
             vec![format!(
-                "{} pinned gates, every one invoked by a blocking ci_workflow",
+                "{} pinned gates, every one invoked by a blocking ci_workflow whose job and \
+                 step were RESOLVED in the workflow file",
                 lock.entries.len()
             )]
         } else {
-            hook_only
+            problems
         },
-        settled_by: "a scan over .vds/enforcement.lock",
+        settled_by: "the lock, with every blocking ci_workflow reference resolved against the workflow file it names",
     })
 }
 
@@ -719,6 +827,71 @@ mod tests {
             "the specification reserves {} clauses. If that is right, this number moves with \
              it deliberately; if it is not, a marker has been misread: {reserved:?}",
             reserved.len()
+        );
+    }
+    /// The failing-direction test VDS S-7(2)(2) requires for the D4 remedy.
+    ///
+    /// D4 reported "Met - 16 pinned gates, every one invoked by a blocking ci_workflow"
+    /// while ZERO steps of the cited name existed, because it read the lock's own
+    /// declaration and never opened the workflow. BREACH-0004 records the measurement; this
+    /// is the test that stops it coming back, and without it the fix would be unproven and
+    /// therefore not a proof of anything.
+    ///
+    /// Every arm seeds a DIFFERENT way for a reference to be a name rather than a wiring,
+    /// because "unresolvable" collapses four distinct fixes into one word.
+    #[test]
+    fn a_ci_reference_naming_a_step_that_does_not_exist_is_refused() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let workflows = root.join(".github/workflows");
+        std::fs::create_dir_all(&workflows).unwrap();
+        std::fs::write(
+            workflows.join("ci.yml"),
+            "name: ci\njobs:\n  enforce:\n    steps:\n      - name: Proofs\n        run: vds proof --all\n",
+        )
+        .unwrap();
+
+        // The reference that resolves. If this arm ever fails the test below proves nothing,
+        // because every arm would pass on a resolver that refused everything.
+        assert_eq!(
+            resolve_ci_reference(root, ".github/workflows/ci.yml job:enforce step:Proofs"),
+            None,
+            "a reference naming a step that EXISTS must resolve"
+        );
+
+        // A step that was renamed away. This is the exact seed that left the old D4 Met.
+        let renamed = resolve_ci_reference(
+            root,
+            ".github/workflows/ci.yml job:enforce step:Proofs-RENAMED",
+        )
+        .expect("a step that does not exist must be refused");
+        assert!(
+            renamed.contains("no step named") && renamed.contains("Proofs"),
+            "the reason must name the missing step AND the steps present, so the fix is \
+             obvious from the report: {renamed}"
+        );
+
+        // A job that does not exist.
+        assert!(
+            resolve_ci_reference(root, ".github/workflows/ci.yml job:nope step:Proofs")
+                .expect("a missing job must be refused")
+                .contains("no job"),
+        );
+
+        // A workflow file that does not exist. This is the case where the gate is most
+        // thoroughly unwired, and the one a digest-only lock cannot see at all.
+        assert!(
+            resolve_ci_reference(root, ".github/workflows/gone.yml job:enforce step:Proofs")
+                .expect("a missing workflow must be refused")
+                .contains("does not exist"),
+        );
+
+        // A reference with no job at all cannot be resolved and must say so rather than
+        // silently passing as "nothing to check".
+        assert!(
+            resolve_ci_reference(root, "make gates")
+                .expect("a reference naming no job must be refused")
+                .contains("does not name a job"),
         );
     }
 }

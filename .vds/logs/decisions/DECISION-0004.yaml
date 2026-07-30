@@ -1,0 +1,41 @@
+id: DECISION-0004
+at: 2026-07-30T18:10:00Z
+by: lexby
+decision: >-
+  Re-pin crates/vds-store/src/lock.rs in .vds/enforcement.lock after changing the
+  failing-direction-test check from "the test FILE exists" to "the named TEST exists in
+  that file", and add the failing-direction test for the new condition.
+court_required: false
+why: >-
+  The change STRENGTHENS the gate and removes nothing, so it is not a matter for the
+  court. The old check could not fail: failing_direction_test.path is identical to
+  entry.path for all sixteen entries in this lock, and the check sat inside the match arm
+  reached only when that same file's digest had just been read successfully, so "does the
+  file exist" was already answered yes before it was asked. Nothing in production could
+  make it false.
+  Its own test passed because the fixture gave the gate and its test SEPARATE paths, a
+  shape the real lock never has, and the fixture wrote `fn seeds()` against an entry
+  naming `gate_fails_on_a_seeded_violation` - so the fixture disagreed with the lock and
+  the check was too weak to notice. Both are corrected: the fixture now contains the test
+  it names, and a new test keeps the file while renaming the function away, which is what
+  a rename actually looks like and the only way the claim can be false in production.
+  The gate this entry witnesses, no_stored_values, is unchanged and passes.
+  Files changed: crates/vds-store/src/lock.rs (resolve the test name rather than stat the
+  file), crates/vds-core/src/types/lock.rs (the finding message now states what is checked
+  and records that the old form could not fail), crates/vds-cli/src/doctor.rs (D4 resolves
+  every blocking ci_workflow reference against the workflow, plus the failing-direction test
+  a_ci_reference_naming_a_step_that_does_not_exist_is_refused).
+  LIMITS STATED, because VDS S-8(5) forbids overclaiming an enforcement surface. Resolving a
+  NAME proves a function of that name exists in that file; it does not prove the test asserts
+  the failing direction of this gate, and a test named correctly asserting nothing resolves.
+  D4's resolver proves a step of the cited name exists in the cited job; it does not prove the
+  step RUNS the gate, and a step named Proofs whose body is `echo hi` resolves. Both limits are
+  recorded on the functions themselves rather than left to be rediscovered.
+
+basis:
+- 'VDS S-7(2)(2): a check is a proof only if a named test seeds a violation and asserts the non-zero exit'
+- 'VDS S-8(4) and S-12(3): a re-pin needs a recorded rationale, and vds lock repin refused the first attempt for having none'
+- '.vds/logs/breaches/BREACH-0004.yaml, whose recorded remedy this lands'
+- '.vds/logs/breaches/BREACH-0005.yaml, filed for the lock.rs check that could not fail'
+submission_id: null
+supersedes_digest: null

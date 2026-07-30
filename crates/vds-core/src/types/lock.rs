@@ -208,9 +208,11 @@ impl std::fmt::Display for DriftFinding {
                 writeln!(f, "           names: {test_path}::{test_name}")?;
                 write!(
                     f,
-                    "           actual: that test file does not exist, so the entry's claim \
-                     that the gate's failing direction is asserted somewhere is unbacked \
-                     (VDS S-7(2)(2))."
+                    "           actual: no function of that name exists in that file, so the \
+                     entry's claim that the gate's failing direction is asserted somewhere is \
+                     unbacked (VDS S-7(2)(2)). This used to check only that the FILE existed, \
+                     which for every entry in this lock was the same file whose digest had \
+                     just been read - a condition that could not fail."
                 )
             }
         }

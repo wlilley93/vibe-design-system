@@ -1,0 +1,14 @@
+id: BREACH-0005
+at: 2026-07-30T18:10:00Z
+by: jellytot
+what_happened: 'The `lock verify` check that a pinned gate has a real failing-direction test could not fail. It stated `failing_direction_test.path` and reported MissingFailingDirectionTest when that file was absent - but that path is IDENTICAL to `entry.path` for all sixteen entries in this lock, and the check sits inside the match arm reached only when that same file digested successfully. The file provably exists by the time the question is asked. So the condition VDS S-7(2)(2) turns on, that each gate has a named test asserting its failing direction, was witnessed by a check that could return only one answer. `test_name` was stored on every entry and resolved by nothing.'
+law_breached:
+- 'VDS S-7(2)(2): a check is a proof only if a named test seeds a violation and asserts the non-zero exit. The lock recorded such a test per gate and never confirmed one existed.'
+- 'VDS S-8(5), which forbids overclaiming the enforcement surface. `vds lock verify` printed the test name for every entry under "failing-direction test:", which reads as confirmation and was transcription.'
+discovered_by: 'A five-lens read-only audit, 2026-07-30, 43 agents with independent refutation. Confirmed by reading the lock: 16 of 16 entries have failing_direction_test.path == entry.path.'
+containment: 'Its own test PASSED throughout, which is why this survived. The fixture gave the gate and its test separate paths - a shape the real lock never has - and wrote `fn seeds()` against an entry naming `gate_fails_on_a_seeded_violation`, so the fixture disagreed with the lock and the check was too weak to notice. A guard exercised only against a fixture that cannot occur is a guard against nothing.'
+remedy:
+- 'The check resolves the NAME inside the named file, so it bites whether or not the two paths coincide.'
+- 'The fixture now contains the test it names, and a_test_file_that_exists_but_no_longer_contains_the_named_test_is_a_finding covers the case the real lock can hit: file present, function renamed away, which is what a rename looks like.'
+- 'Negative control run: reverting the check to `test_file.is_file()` fails the new test. Re-pinned under DECISION-0004 after the rationale was recorded - `vds lock repin` REFUSED the first attempt for having none, which is that gate working.'
+prevention: 'Two rules earned. First, the one BREACH-0004 shares: a stored name that nothing resolves is not evidence, and `test_name` here was the same defect as `invocation.reference` there, in a second file, found in the same hour. Second, and new: check what the FIXTURE asserts against what production actually looks like. This check was tested against a two-path shape that occurs in no real lock, so the test proved the code worked in a world that does not exist. When a guard has never fired in anger, compare its fixture to the real artefact before believing it.'

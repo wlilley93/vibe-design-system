@@ -66,13 +66,36 @@ pub fn verify_lock(store: &Store, gate_paths: &[String]) -> Result<LockVerdict> 
                 proves: entry.proves.clone(),
             }),
             Some(_) => {
-                // The bytes match. Two further conditions still apply.
-                if !store
-                    .project
-                    .root
-                    .join(&entry.failing_direction_test.path)
-                    .is_file()
-                {
+                /*
+                 * The bytes match. Two further conditions still apply.
+                 *
+                 * This used to test only that the test FILE exists, and it could not fail.
+                 * `failing_direction_test.path` is identical to `entry.path` for all 16
+                 * entries in this repository's lock, and the check sits inside the arm
+                 * reached only when that same file's digest was read successfully - so the
+                 * file provably exists by the time the question is asked.
+                 *
+                 * Its own test passed because the fixture gives the gate and the test
+                 * SEPARATE paths, a shape the real lock never has. A guard exercised only
+                 * against a fixture that cannot occur is a guard against nothing.
+                 *
+                 * So resolve the NAME, which is the claim S-7(2)(2) actually makes: the
+                 * entry says the gate's failing direction is asserted by a test called
+                 * this, and until now nothing looked for it. A stored name nobody resolves
+                 * is the same defect as D4's unresolved CI reference, in a second place.
+                 *
+                 * What this does NOT establish: that the test asserts the failing direction
+                 * of THIS gate. It proves a function of that name exists in that file. A
+                 * test named right and asserting nothing resolves here.
+                 */
+                let test_file = store.project.root.join(&entry.failing_direction_test.path);
+                let names_the_test = std::fs::read_to_string(&test_file)
+                    .ok()
+                    .is_some_and(|text| {
+                        let needle = format!("fn {}(", entry.failing_direction_test.test_name);
+                        text.contains(&needle)
+                    });
+                if !names_the_test {
                     verdict
                         .findings
                         .push(DriftFinding::MissingFailingDirectionTest {
@@ -248,7 +271,14 @@ mod tests {
         .unwrap();
         std::fs::create_dir_all(tmp.path().join("gates")).unwrap();
         std::fs::write(tmp.path().join("gates/a.rs"), "fn gate() {}\n").unwrap();
-        std::fs::write(tmp.path().join("gates/a_test.rs"), "fn seeds() {}\n").unwrap();
+        // The fixture must CONTAIN the test the lock entry names. It wrote `fn seeds()`
+        // against an entry naming `gate_fails_on_a_seeded_violation`, which passed only
+        // because the check tested that the file existed and never resolved the name.
+        std::fs::write(
+            tmp.path().join("gates/a_test.rs"),
+            "fn gate_fails_on_a_seeded_violation() {}\n",
+        )
+        .unwrap();
         let project = Project::discover(Some(tmp.path())).unwrap();
         Scaffold { _tmp: tmp, project }
     }
@@ -350,6 +380,35 @@ mod tests {
                 [DriftFinding::MissingFailingDirectionTest { .. }]
             ),
             "{:?}",
+            verdict.findings
+        );
+    }
+
+    /// The case the REAL lock can hit and the old check could not see.
+    ///
+    /// Every entry in this repository's lock has `failing_direction_test.path` identical to
+    /// `entry.path`, and the check ran inside the arm reached only when that file's digest
+    /// had been read successfully - so "does the file exist" was already answered yes. The
+    /// only way the claim can be false in production is for the file to be present and the
+    /// NAMED TEST to be gone, which is what a rename or a deletion actually looks like.
+    #[test]
+    fn a_test_file_that_exists_but_no_longer_contains_the_named_test_is_a_finding() {
+        let s = scaffold();
+        let store = Store::new(&s.project);
+        // File kept, function renamed away. This is a rename, the ordinary case.
+        std::fs::write(
+            s.project.root.join("gates/a_test.rs"),
+            "fn renamed_during_a_refactor() {}\n",
+        )
+        .unwrap();
+        write_lock(&s.project, vec![entry(&s.project, true)]).unwrap();
+        let verdict = verify_lock(&store, &[]).unwrap();
+        assert!(
+            matches!(
+                verdict.findings.as_slice(),
+                [DriftFinding::MissingFailingDirectionTest { .. }]
+            ),
+            "a named test that no longer exists must be a finding even though its file does: {:?}",
             verdict.findings
         );
     }
