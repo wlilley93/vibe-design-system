@@ -321,6 +321,47 @@ function fieldEl(l, f, i) {
       h.textContent = 'Click order is page order: ' + (val.join(' → ') || '(empty)');
       box.appendChild(h);
     }
+  } else if (f.type === 'page-list') {
+    // Without this branch `pages` fell through to the text input, which rendered
+    // "[object Object],[object Object]" and, on the first edit, replaced the array of
+    // pages with that string. A field the editor cannot edit is a control that lies; one
+    // that silently corrupts the config is worse.
+    const wrap = document.createElement('div'); wrap.className = 'chips';
+    for (let i = 0; i < val.length; i++) {
+      const pg = val[i];
+      const c = document.createElement('span');
+      // The nav flag is the state worth showing: it is the difference between a page a
+      // reader can reach and one only a wrong URL finds, and 404 is deliberately the
+      // second kind.
+      c.className = 'chip' + (pg.nav === false ? '' : ' on');
+      c.textContent = pg.nav === false ? `${pg.slug} (hidden)` : pg.slug;
+      c.title = 'Click to show or hide in the navigation';
+      c.onclick = (e) => {
+        e.stopPropagation();
+        config[l.key][f.key][i].nav = pg.nav === false;
+        drawFields(); schedule();
+      };
+      wrap.appendChild(c);
+    }
+    box.appendChild(wrap);
+
+    const row = document.createElement('div'); row.className = 'chips';
+    const add = document.createElement('input');
+    add.type = 'text'; add.placeholder = 'add a page: slug';
+    add.onchange = () => {
+      const slug = add.value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
+      if (!slug) return;
+      if (val.some((p) => p.slug === slug)) { add.value = ''; return; }
+      const title = slug.charAt(0).toUpperCase() + slug.slice(1);
+      config[l.key][f.key].push({ slug, title, nav: true });
+      add.value = ''; drawFields(); schedule();
+    };
+    row.appendChild(add);
+    box.appendChild(row);
+
+    const h = document.createElement('div'); h.className = 'hint';
+    h.textContent = 'home builds as index.html. Nav links are derived from this list, so a page added here appears in every nav.';
+    box.appendChild(h);
   } else if (f.type === 'number') {
     const inp = document.createElement('input'); inp.type = 'number'; inp.min = '1'; inp.max = '16'; inp.value = val;
     inp.onchange = () => { config[l.key][f.key] = Number(inp.value); schedule(); };

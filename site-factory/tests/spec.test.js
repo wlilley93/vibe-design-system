@@ -261,3 +261,29 @@ test('the VDS surface points at paths a scaffolded project actually has', () => 
     assert.match(SURFACE[key], new RegExp(dir), `${key} no longer names ${dir}/`);
   }
 });
+
+test('the studio can edit every field type the schema declares', () => {
+  // `pages` was declared as `page-list` and the studio had no branch for it, so it fell
+  // through to the text input: it rendered "[object Object],[object Object]" and the
+  // first edit replaced the page array with that string. A field the editor cannot edit
+  // is a control that lies; one that corrupts the config is worse.
+  //
+  // The fall-through `else` is what makes this invisible - every unhandled type gets a
+  // text box that looks deliberate. So the types are compared, not eyeballed.
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const { LAYERS } = require('../config-schema.js');
+
+  const html = fs.readFileSync(path.join(__dirname, '..', 'studio.html'), 'utf8');
+  // Any receiver, not just `f`: the enum branch lives in a helper whose parameter is
+  // named `field`, so a pattern hard-coded to `f.type` reported enum as unhandled. The
+  // test failed for the wrong reason, which is its own kind of wrong.
+  const handled = new Set([...html.matchAll(/\b\w+\.type === '([a-z-]+)'/g)].map((m) => m[1]));
+  // `text` is the fall-through and needs no branch: a text box IS the right editor for it.
+  handled.add('text');
+
+  const declared = new Set(LAYERS.flatMap((l) => (l.fields || []).map((f) => f.type)).filter(Boolean));
+  const unhandled = [...declared].filter((t) => !handled.has(t));
+  assert.deepEqual(unhandled, [],
+    `the schema declares field types the studio has no editor for: ${unhandled.join(', ')}`);
+});
