@@ -1,0 +1,11 @@
+id: BREACH-0003
+at: 2026-07-30T13:57:04Z
+by: jellytot
+what_happened: 'Five pinned gate files were edited and shipped without re-pinning the enforcement lock: crates/vds-proof/src/{ledger_staleness,reconciliation,states}.rs and crates/vds-scan/src/{jsx,lib}.rs. The edits themselves are sound and tested (674 workspace tests green), but the lock still pinned their prior digests, so ''vds lock verify'' reported 5 DRIFT findings and ''make check'' could not go green. An unrepinned lock cannot distinguish a reviewed gate change from an unreviewed one.'
+law_breached:
+- VDS S-8(4)
+discovered_by: make check, run before pushing 3 unpushed commits
+containment: 'Nothing shipped on the drift: the gate failed closed and blocked the push rather than passing on a stale pin.'
+remedy:
+- vds lock repin, recording the superseded digest for each of the five gates, with this log as the rationale.
+prevention: 'Run ''make check'' BEFORE committing a gate-file edit, not before pushing. A gate file edit and its re-pin belong in the same commit, so the diff shows both halves of the act (VDS S-8(5): the lock makes the act visible, it does not prevent it).'

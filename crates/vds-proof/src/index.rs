@@ -265,7 +265,10 @@ mod tests {
         let store = h.store();
         let error = RegisterIndex::build(&store).unwrap_err().to_string();
         assert!(error.contains("supersededBy"), "{error}");
-        assert!(error.contains("Retiring alone does NOT clear this"), "{error}");
+        assert!(
+            error.contains("Retiring alone does NOT clear this"),
+            "{error}"
+        );
     }
 
     /// A DECLARED succession is not a collision, and the SUCCESSOR owns the slot.
