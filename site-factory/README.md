@@ -49,7 +49,7 @@ brief ──▶ suggest.js ──▶ config (36 fields) ──▶ compose.js ─
 | `studio.js` / `studio.html` | The visual editor |
 | `vds-bridge.js` | The OPTIONAL seam to VDS governance |
 | `figma-spec.js` / `figma-push.js` | Figma spec sheet and project record |
-| `tests/` | 91 tests, run by `make test-factory` |
+| `tests/` | 92 tests, run by `make test-factory` |
 
 ---
 

@@ -1,0 +1,70 @@
+{
+  "_what": "The seven skill prompts the writing run invokes, and the fingerprint of each as written VERBATIM into the `Prompts (verbatim)` page of the Figma file. A prompt is the one part of this system that is never visible in the output it produces, so it is reproduced in full for inspection rather than summarised.",
+  "_how": "checksum is sum over i of charCodeAt(i) * (i%7+1), mod 2147483647 - deliberately trivial, because the Figma plugin sandbox has no crypto and the script had to recompute it there to prove the text it had just placed matched the file it came from. Re-derive by reading each SKILL.md and applying the same function.",
+  "_limit": "This fingerprints the LOCAL skill file. It cannot see the Figma page, so it catches a prompt that has changed in agents-final since it was written out - which is the drift that matters, because the Figma copy is then stale - but not an edit made inside Figma. The write script verified the Figma side at the time by reading the characters back off the node.",
+  "measured_at": "2026-07-30",
+  "figma_file_key": "4pPUFvaPdqYzPquBusSfWl",
+  "figma_page": "Prompts (verbatim)",
+  "library": "~/Documents/agents-final/skill-library",
+  "runOrder": [
+    "offer-clarifier",
+    "headline-lab",
+    "offer-stack-builder",
+    "proof-and-testimonial-engine",
+    "pricing-section-designer",
+    "objection-and-faq-engine",
+    "cta-and-close-writer"
+  ],
+  "totalChars": 42486,
+  "prompts": {
+    "offer-clarifier": {
+      "order": 1,
+      "path": "revenue/skills/offer-clarifier/SKILL.md",
+      "chars": 5690,
+      "lines": 79,
+      "checksum": 2035797
+    },
+    "headline-lab": {
+      "order": 2,
+      "path": "revenue/skills/headline-lab/SKILL.md",
+      "chars": 5599,
+      "lines": 79,
+      "checksum": 2012937
+    },
+    "offer-stack-builder": {
+      "order": 3,
+      "path": "revenue/skills/offer-stack-builder/SKILL.md",
+      "chars": 6175,
+      "lines": 74,
+      "checksum": 2231621
+    },
+    "proof-and-testimonial-engine": {
+      "order": 4,
+      "path": "revenue/skills/proof-and-testimonial-engine/SKILL.md",
+      "chars": 6450,
+      "lines": 75,
+      "checksum": 2360956
+    },
+    "pricing-section-designer": {
+      "order": 5,
+      "path": "revenue/skills/pricing-section-designer/SKILL.md",
+      "chars": 6455,
+      "lines": 67,
+      "checksum": 2362420
+    },
+    "objection-and-faq-engine": {
+      "order": 6,
+      "path": "product/skills/objection-and-faq-engine/SKILL.md",
+      "chars": 6436,
+      "lines": 98,
+      "checksum": 2314269
+    },
+    "cta-and-close-writer": {
+      "order": 7,
+      "path": "revenue/skills/cta-and-close-writer/SKILL.md",
+      "chars": 5681,
+      "lines": 59,
+      "checksum": 2047828
+    }
+  }
+}

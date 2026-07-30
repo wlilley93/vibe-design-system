@@ -501,3 +501,60 @@ test('every Uber Base set has exactly one tier, and the tiers reconcile with the
   assert.deepEqual(notDrawn, ['Typography'],
     `tier 1 is settled, so every set but Typography must be drawn. Not drawn: ${notDrawn.join(', ')}`);
 });
+
+test('every prompt written into Figma still matches the skill file it came from', { skip: havelib ? false : 'agents-final not present on this machine' }, () => {
+  // The seven prompts are reproduced VERBATIM on the `Prompts (verbatim)` page of the Figma
+  // file, because a prompt is the one part of this system that never appears in the output it
+  // produces: a page can be read and argued with, the instruction that generated it usually
+  // cannot. figma-prompts.json fingerprints each one at the moment it was written out.
+  //
+  // What this catches: a prompt edited in agents-final after it was written into Figma, which
+  // makes the Figma copy stale. What it CANNOT catch is an edit made inside Figma, and the
+  // manifest says so rather than implying otherwise - the write script verified that side at
+  // the time by reading the characters back off the node and comparing.
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'figma-prompts.json'), 'utf8'));
+
+  // The same trivial checksum the Figma plugin sandbox had to be able to recompute, since it
+  // has no crypto. Deliberately weak against an adversary, entirely adequate against a typo.
+  const ck = (t) => {
+    let a = 0;
+    for (let i = 0; i < t.length; i++) a = (a + t.charCodeAt(i) * (i % 7 + 1)) % 2147483647;
+    return a;
+  };
+
+  const drifted = [];
+  for (const [slug, rec] of Object.entries(manifest.prompts)) {
+    const file = path.join(LIBRARY, rec.path);
+    if (!fs.existsSync(file)) { drifted.push(`${slug}: ${rec.path} no longer exists`); continue; }
+    const t = fs.readFileSync(file, 'utf8');
+    if (t.length !== rec.chars) drifted.push(`${slug}: ${t.length} chars against ${rec.chars} written to Figma`);
+    else if (ck(t) !== rec.checksum) drifted.push(`${slug}: same length, different content (checksum ${ck(t)} against ${rec.checksum})`);
+    if (t.split('\n').length !== rec.lines) drifted.push(`${slug}: ${t.split('\n').length} lines against ${rec.lines}`);
+  }
+  assert.deepEqual(drifted, [],
+    'these prompts have changed since they were written into Figma, so the page is now stale:\n  ' +
+    `${drifted.join('\n  ')}\n Re-run the write and update figma-prompts.json.`);
+
+  // The manifest must cover the whole run order, in order, and nothing else.
+  assert.deepEqual(Object.keys(manifest.prompts).sort(), manifest.runOrder.slice().sort(),
+    'the fingerprinted prompts and the declared run order disagree');
+  const orders = manifest.runOrder.map((s) => manifest.prompts[s].order);
+  assert.deepEqual(orders, orders.slice().sort((a, b) => a - b),
+    'the declared order does not follow the run order, so the page is numbered against the sequence');
+
+  // The total is derived, not declared.
+  assert.equal(
+    manifest.totalChars,
+    Object.values(manifest.prompts).reduce((a, r) => a + r.chars, 0),
+    'the declared total is not the sum of the parts'
+  );
+
+  // Every skill in RUN_ORDER must be fingerprinted. Adding an eighth skill to the run without
+  // writing it out would otherwise leave a prompt nobody can inspect.
+  const fingerprinted = new Set(Object.values(manifest.prompts).map((r) => r.path.replace(/\/SKILL\.md$/, '')));
+  const missing = RUN_ORDER.filter((rel) => !fingerprinted.has(rel));
+  assert.deepEqual(missing, [],
+    `these skills are in the run order and have no prompt written out for inspection: ${missing.join(', ')}`);
+});
