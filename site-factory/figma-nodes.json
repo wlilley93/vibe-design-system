@@ -1,51 +1,270 @@
 {
-  "_what": "A measured read of every COMPONENT_SET in the Figma file named by FIGMA_FILE_KEY, keyed by node id. EVIDENCE, not intent. FIGMA_NODES in vds-bridge.js pairs a block type to an id; until this file existed, the only test on that pairing checked the id's SHAPE (/^\\d+:\\d+$/) and never that anything was there. A deleted component set therefore failed nothing, which matters because seven pages of this same file were found empty on 2026-07-30 having been recorded as built.",
-  "_how": "Re-derive with the Figma MCP: walk figma.root.children, setCurrentPageAsync each page (children are not loaded otherwise), and record every child of type COMPONENT_SET as id -> {name, page, variants}.",
-  "measured_at": "2026-07-30",
+  "_what": "A measured read of the Figma file named by FIGMA_FILE_KEY: every page with its top-level contents, and every COMPONENT_SET keyed by node id. EVIDENCE, not intent. FIGMA_NODES in vds-bridge.js pairs a block type to an id, and until this file existed the only test on that pairing checked the id's SHAPE (/^\\d+:\\d+$/) and never that anything was there, so a deleted component set failed nothing.",
+  "_correction": "This file was first written on the strength of a finding that was WRONG, and the mistake is worth more than the file. A survey walked figma.root.children and read p.children on each page, and reported SEVEN OF TEN PAGES EMPTY - Examples, Playbook, Glossary, SaaS Components and the three project/spec pages - all of which the task log records as built. I reported that as a probable concurrent-writer wipe. It was not. This file runs in Figma's dynamic-page mode, where a page's children are NOT available until the page has been loaded, and the survey never loaded them: the three pages that reported content were simply the ones already loaded in that session. Re-measured with `await p.loadAsync()` on every page, there are 12 pages, 42 component sets, 20 frames and ZERO empty pages. Every page holds exactly the work the task log claims, under sensible names. Nothing was lost. THE LESSON: an empty collection returned by an API that loads lazily is not evidence of absence, it is the absence of evidence, and reading it as fact manufactured a data-loss incident out of a missing await.",
+  "_how": "Re-derive with the Figma MCP: for every page in figma.root.children call `await page.loadAsync()` FIRST, then record its top-level children and every child of type COMPONENT_SET as id -> {name, page, variants}. Do not use setCurrentPageAsync for a survey and do not read page.children without loading - see _correction.",
+  "measured_at": "2026-07-30 (re-measured with loadAsync)",
   "file_key": "4pPUFvaPdqYzPquBusSfWl",
+  "pageTotals": {
+    "pages": 12,
+    "componentSets": 42,
+    "frames": 20,
+    "emptyPages": 0
+  },
+  "pages": {
+    "Skills": [
+      "Skills \u2014 agents-final survey"
+    ],
+    "Examples": [
+      "Design & creative-agency references"
+    ],
+    "Playbook": [
+      "Product Design Playbook \u2014 full catalog"
+    ],
+    "Components": 26,
+    "Glossary": [
+      "Glossary \u2014 Framer design vocabulary (1/2)",
+      "Glossary \u2014 Framer design vocabulary (2/2)"
+    ],
+    "SaaS Components": [
+      "SaaS component taxonomy (1/3)",
+      "SaaS component taxonomy (2/3)",
+      "SaaS component taxonomy (3/3)"
+    ],
+    "Project: Oneshot": [
+      "Oneshot \u2014 project record"
+    ],
+    "Project: Meridian Labs": [
+      "Meridian Labs \u2014 project record"
+    ],
+    "Spec: Balmoral & Co": [
+      "Balmoral & Co \u2014 spec sheet"
+    ],
+    "Base (redrawn)": 16,
+    "Uber Base \u2014 full catalogue": [
+      "Uber Base \u2014 92 sets, 3,211 variants"
+    ],
+    "Prompts (verbatim)": [
+      "Prompts \u2014 what the writing actually runs on",
+      "1. offer-clarifier",
+      "2. headline-lab",
+      "3. offer-stack-builder",
+      "4. proof-and-testimonial-engine",
+      "5. pricing-section-designer",
+      "6. objection-and-faq-engine",
+      "7. cta-and-close-writer"
+    ]
+  },
   "sets": {
-    "9:25": { "name": "Hero", "page": "Components", "variants": 2 },
-    "10:28": { "name": "Footer", "page": "Components", "variants": 2 },
-    "15:18": { "name": "Nav", "page": "Components", "variants": 2 },
-    "15:64": { "name": "Pricing", "page": "Components", "variants": 2 },
-    "15:80": { "name": "Testimonials", "page": "Components", "variants": 2 },
-    "15:107": { "name": "Features", "page": "Components", "variants": 2 },
-    "16:21": { "name": "FAQ", "page": "Components", "variants": 2 },
-    "16:35": { "name": "CTA", "page": "Components", "variants": 2 },
-    "16:54": { "name": "Sidebar", "page": "Components", "variants": 2 },
-    "16:82": { "name": "Team", "page": "Components", "variants": 2 },
-    "16:107": { "name": "Contact", "page": "Components", "variants": 2 },
-    "16:119": { "name": "404", "page": "Components", "variants": 2 },
-    "20:12": { "name": "Gated Action Button", "page": "Components", "variants": 2 },
-    "20:35": { "name": "StatusBadge", "page": "Components", "variants": 2 },
-    "28:29": { "name": "FacetStrip", "page": "Components", "variants": 2 },
-    "28:71": { "name": "ObjectTable", "page": "Components", "variants": 2 },
-    "29:50": { "name": "Object View", "page": "Components", "variants": 2 },
-    "29:79": { "name": "Inspector", "page": "Components", "variants": 2 },
-    "31:138": { "name": "Master-Detail Assembly", "page": "Components", "variants": 2 },
-    "36:189": { "name": "FormField", "page": "Components", "variants": 2 },
-    "36:204": { "name": "EmptyState", "page": "Components", "variants": 2 },
-    "37:143": { "name": "PageState", "page": "Components", "variants": 2 },
-    "37:165": { "name": "ConfirmDialog", "page": "Components", "variants": 2 },
-    "39:139": { "name": "Toast", "page": "Components", "variants": 2 },
-    "39:161": { "name": "SegmentedControl", "page": "Components", "variants": 2 },
-    "39:178": { "name": "Card", "page": "Components", "variants": 2 },
-    "47:13": { "name": "Base/Switch", "page": "Base (redrawn)", "variants": 2 },
-    "47:25": { "name": "Base/Check", "page": "Base (redrawn)", "variants": 3 },
-    "47:33": { "name": "Base/Radio", "page": "Base (redrawn)", "variants": 2 },
-    "47:42": { "name": "Base/Tooltip", "page": "Base (redrawn)", "variants": 2 },
-    "47:54": { "name": "Base/Notification badge", "page": "Base (redrawn)", "variants": 3 },
-    "47:63": { "name": "Base/Divider", "page": "Base (redrawn)", "variants": 2 },
-    "54:26": { "name": "Base/System banner", "page": "Base (redrawn)", "variants": 4 },
-    "54:55": { "name": "Base/Banner", "page": "Base (redrawn)", "variants": 4 },
-    "54:69": { "name": "Base/Message card", "page": "Base (redrawn)", "variants": 2 },
-    "55:106": { "name": "Base/Page controls", "page": "Base (redrawn)", "variants": 2 },
-    "55:121": { "name": "Base/Progress bar - Determinate", "page": "Base (redrawn)", "variants": 4 },
-    "56:36": { "name": "Base/Menu item", "page": "Base (redrawn)", "variants": 6 },
-    "56:69": { "name": "Base/Menu", "page": "Base (redrawn)", "variants": 2 },
-    "56:150": { "name": "Base/Draggable list", "page": "Base (redrawn)", "variants": 2 },
-    "57:91": { "name": "Base/Pagination", "page": "Base (redrawn)", "variants": 4 },
-    "57:135": { "name": "Base/Progress steps", "page": "Base (redrawn)", "variants": 2 }
+    "9:25": {
+      "name": "Hero",
+      "page": "Components",
+      "variants": 2
+    },
+    "10:28": {
+      "name": "Footer",
+      "page": "Components",
+      "variants": 2
+    },
+    "15:18": {
+      "name": "Nav",
+      "page": "Components",
+      "variants": 2
+    },
+    "15:64": {
+      "name": "Pricing",
+      "page": "Components",
+      "variants": 2
+    },
+    "15:80": {
+      "name": "Testimonials",
+      "page": "Components",
+      "variants": 2
+    },
+    "15:107": {
+      "name": "Features",
+      "page": "Components",
+      "variants": 2
+    },
+    "16:21": {
+      "name": "FAQ",
+      "page": "Components",
+      "variants": 2
+    },
+    "16:35": {
+      "name": "CTA",
+      "page": "Components",
+      "variants": 2
+    },
+    "16:54": {
+      "name": "Sidebar",
+      "page": "Components",
+      "variants": 2
+    },
+    "16:82": {
+      "name": "Team",
+      "page": "Components",
+      "variants": 2
+    },
+    "16:107": {
+      "name": "Contact",
+      "page": "Components",
+      "variants": 2
+    },
+    "16:119": {
+      "name": "404",
+      "page": "Components",
+      "variants": 2
+    },
+    "20:12": {
+      "name": "Gated Action Button",
+      "page": "Components",
+      "variants": 2
+    },
+    "20:35": {
+      "name": "StatusBadge",
+      "page": "Components",
+      "variants": 2
+    },
+    "28:29": {
+      "name": "FacetStrip",
+      "page": "Components",
+      "variants": 2
+    },
+    "28:71": {
+      "name": "ObjectTable",
+      "page": "Components",
+      "variants": 2
+    },
+    "29:50": {
+      "name": "Object View",
+      "page": "Components",
+      "variants": 2
+    },
+    "29:79": {
+      "name": "Inspector",
+      "page": "Components",
+      "variants": 2
+    },
+    "31:138": {
+      "name": "Master-Detail Assembly",
+      "page": "Components",
+      "variants": 2
+    },
+    "36:189": {
+      "name": "FormField",
+      "page": "Components",
+      "variants": 2
+    },
+    "36:204": {
+      "name": "EmptyState",
+      "page": "Components",
+      "variants": 2
+    },
+    "37:143": {
+      "name": "PageState",
+      "page": "Components",
+      "variants": 2
+    },
+    "37:165": {
+      "name": "ConfirmDialog",
+      "page": "Components",
+      "variants": 2
+    },
+    "39:139": {
+      "name": "Toast",
+      "page": "Components",
+      "variants": 2
+    },
+    "39:161": {
+      "name": "SegmentedControl",
+      "page": "Components",
+      "variants": 2
+    },
+    "39:178": {
+      "name": "Card",
+      "page": "Components",
+      "variants": 2
+    },
+    "47:13": {
+      "name": "Base/Switch",
+      "page": "Base (redrawn)",
+      "variants": 2
+    },
+    "47:25": {
+      "name": "Base/Check",
+      "page": "Base (redrawn)",
+      "variants": 3
+    },
+    "47:33": {
+      "name": "Base/Radio",
+      "page": "Base (redrawn)",
+      "variants": 2
+    },
+    "47:42": {
+      "name": "Base/Tooltip",
+      "page": "Base (redrawn)",
+      "variants": 2
+    },
+    "47:54": {
+      "name": "Base/Notification badge",
+      "page": "Base (redrawn)",
+      "variants": 3
+    },
+    "47:63": {
+      "name": "Base/Divider",
+      "page": "Base (redrawn)",
+      "variants": 2
+    },
+    "54:26": {
+      "name": "Base/System banner",
+      "page": "Base (redrawn)",
+      "variants": 4
+    },
+    "54:55": {
+      "name": "Base/Banner",
+      "page": "Base (redrawn)",
+      "variants": 4
+    },
+    "54:69": {
+      "name": "Base/Message card",
+      "page": "Base (redrawn)",
+      "variants": 2
+    },
+    "55:106": {
+      "name": "Base/Page controls",
+      "page": "Base (redrawn)",
+      "variants": 2
+    },
+    "55:121": {
+      "name": "Base/Progress bar - Determinate",
+      "page": "Base (redrawn)",
+      "variants": 4
+    },
+    "56:36": {
+      "name": "Base/Menu item",
+      "page": "Base (redrawn)",
+      "variants": 6
+    },
+    "56:69": {
+      "name": "Base/Menu",
+      "page": "Base (redrawn)",
+      "variants": 2
+    },
+    "56:150": {
+      "name": "Base/Draggable list",
+      "page": "Base (redrawn)",
+      "variants": 2
+    },
+    "57:91": {
+      "name": "Base/Pagination",
+      "page": "Base (redrawn)",
+      "variants": 4
+    },
+    "57:135": {
+      "name": "Base/Progress steps",
+      "page": "Base (redrawn)",
+      "variants": 2
+    }
   },
   "unpaired": {
     "20:12": "Gated Action Button - drawn early in the programme, no block type ever built for it",

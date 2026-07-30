@@ -172,10 +172,18 @@ test('no Figma node id is claimed for a block type that does not exist', () => {
 
 test('every paired Figma node exists, and every drawn set is paired or declared unpaired', () => {
   // The two tests above check that a block type HAS an id and that the id LOOKS like an
-  // id. Neither opens the file, so a deleted component set failed nothing. That is not
-  // hypothetical here: on 2026-07-30 seven pages of this same file were found empty having
-  // been recorded as built, and the only reason no pairing broke is that what was lost was
-  // frames rather than component sets. The id-shape check would not have told us either way.
+  // id. Neither opens the file, so a deleted component set failed nothing.
+  //
+  // This test was written on the strength of a finding that turned out to be WRONG, and the
+  // correction is recorded in figma-nodes.json under _correction. A survey read p.children on
+  // every page and reported seven of ten pages EMPTY; I read that as a probable wipe. The file
+  // runs in Figma's dynamic-page mode, where a page's children are not available until the
+  // page is loaded, and the survey never awaited p.loadAsync() - so the pages that reported
+  // content were simply the ones already loaded. Re-measured properly: 12 pages, 42 sets, 20
+  // frames, nothing missing. A missing await manufactured a data-loss incident.
+  //
+  // The test stays, because the hole it closes is real whether or not anything has fallen
+  // through it yet: an id-shape check cannot tell a live pairing from a dangling one.
   //
   // So the pairing is now against a MEASURED read of the file. It is a snapshot, and a
   // snapshot cannot see a deletion that happens after it is taken - the honest limit, and
@@ -557,4 +565,45 @@ test('every prompt written into Figma still matches the skill file it came from'
   const missing = RUN_ORDER.filter((rel) => !fingerprinted.has(rel));
   assert.deepEqual(missing, [],
     `these skills are in the run order and have no prompt written out for inspection: ${missing.join(', ')}`);
+});
+
+test('the page inventory accounts for every page, and no page is silently empty', () => {
+  // The counterpart to the correction in figma-nodes.json. A page with no content is a page
+  // whose work is gone or was never done, and the only reason that read as normal for a whole
+  // session is that nothing had ever written down what each page should hold.
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const measured = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'figma-nodes.json'), 'utf8'));
+
+  const pages = measured.pages;
+  assert.equal(Object.keys(pages).length, measured.pageTotals.pages,
+    'the page inventory and the declared page count disagree');
+  assert.equal(measured.pageTotals.emptyPages, 0,
+    `${measured.pageTotals.emptyPages} pages were measured empty and that has not been explained`);
+
+  // A page is recorded either as a NUMBER of component sets or as the LIST of frames it holds.
+  // Anything else - zero, an empty list - is a page with nothing in it.
+  const empty = [];
+  for (const [name, content] of Object.entries(pages)) {
+    if (typeof content === 'number') { if (content < 1) empty.push(`${name} (0 sets)`); continue; }
+    if (!Array.isArray(content) || content.length === 0) { empty.push(`${name} (no frames)`); continue; }
+    for (const frame of content) {
+      if (typeof frame !== 'string' || !frame.trim()) empty.push(`${name} (unnamed frame)`);
+    }
+  }
+  assert.deepEqual(empty, [], `these pages hold nothing: ${empty.join(', ')}`);
+
+  // The component-set totals must reconcile with the per-id set list, so the two halves of
+  // this manifest cannot drift from each other.
+  const setsByPage = {};
+  for (const s of Object.values(measured.sets)) setsByPage[s.page] = (setsByPage[s.page] || 0) + 1;
+  for (const [name, content] of Object.entries(pages)) {
+    if (typeof content !== 'number') continue;
+    assert.equal(content, setsByPage[name],
+      `page "${name}" claims ${content} component sets; the set list holds ${setsByPage[name]}`);
+  }
+  assert.equal(
+    Object.keys(measured.sets).length, measured.pageTotals.componentSets,
+    'the set list and the declared component-set total disagree'
+  );
 });

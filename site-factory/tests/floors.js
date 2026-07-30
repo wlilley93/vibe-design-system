@@ -14,5 +14,5 @@
  */
 module.exports = {
   MIN_FILES: 7,
-  MIN_TESTS: 92,
+  MIN_TESTS: 93,
 };
