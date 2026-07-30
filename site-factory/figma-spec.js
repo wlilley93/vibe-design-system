@@ -83,6 +83,27 @@ function specimensFor(field, config) {
     case 'sitemap':
       return { kind: 'stack', options: (config.strategy.sitemap || []).map((v) => ({ label: v })) };
 
+    /*
+     * The site's pages, drawn as the routes they compile to.
+     *
+     * Without this case `pages` fell to the text default and the spec sheet printed
+     * `chosen: "[object Object], [object Object], [object Object]"`. The same defect had
+     * just been fixed in the studio, and the test written for it could not see this one,
+     * because it only read studio.html. Two renderers consume the schema and only one was
+     * checked.
+     *
+     * The file name is what the sheet shows, not the slug: `index.html` is the thing that
+     * exists on disk, and the nav flag is the difference between a page a reader can reach
+     * and one only a wrong URL finds.
+     */
+    case 'pages':
+      return {
+        kind: 'stack',
+        options: (config.strategy.pages || []).map((pg) => ({
+          label: `${pg.slug === 'home' ? 'index.html' : `${pg.slug}.html`}${pg.nav === false ? '  (off the nav)' : ''}`,
+        })),
+      };
+
     // The voice fields are drawn as the copy they actually produce. This is the only
     // way to show what a register decision means, and it is real output.
     case 'copyRegister':
@@ -105,9 +126,33 @@ function specimensFor(field, config) {
   }
 }
 
+/*
+ * The value the sheet prints as "chosen".
+ *
+ * `Array.prototype.join` on an array of OBJECTS gives
+ * "[object Object], [object Object]", and `String(v)` on one object gives the same. Both
+ * are the default-stringification tell: a value arrived that this function has no idea
+ * how to describe, and it printed something that looks like output.
+ *
+ * So an object is summarised by the field that identifies it - `slug` for a page - and
+ * anything genuinely unrenderable is named as such rather than smuggled through. A sheet
+ * that says "[object Object]" next to a design decision looks authoritative and says
+ * nothing, which is the failure figma-spec.js exists to avoid.
+ */
+function describe(v) {
+  if (v == null) return '';
+  if (Array.isArray(v)) return v.map(describe).join(', ');
+  if (typeof v === 'object') {
+    for (const key of ['slug', 'name', 'label', 'id']) {
+      if (v[key] != null) return String(v[key]);
+    }
+    return `{${Object.keys(v).join(', ')}}`;
+  }
+  return String(v);
+}
+
 function chosenValue(layerKey, field, config) {
-  const v = (config[layerKey] || {})[field.key];
-  return Array.isArray(v) ? v.join(', ') : String(v == null ? '' : v);
+  return describe((config[layerKey] || {})[field.key]);
 }
 
 function buildSpec(config) {
@@ -135,7 +180,7 @@ function buildSpec(config) {
   return { identity: config.identity, palette: config.palette, sections, counts };
 }
 
-module.exports = { buildSpec, specimensFor, DENSITY, TYPE_SCALE, BORDER_WEIGHT, ELEVATION, NOT_STATIC };
+module.exports = { buildSpec, specimensFor, describe, DENSITY, TYPE_SCALE, BORDER_WEIGHT, ELEVATION, NOT_STATIC };
 
 /*
  * The rule the spec-sheet drawing script must follow, learned by breaking it.

@@ -18,7 +18,7 @@
  * site-factory project has none of those, so the `.vds/` it produced was PRESENT
  * BUT BLIND - measured, not assumed: 3 proofs precondition-failed on a missing
  * ledger and the rest came back `rows_considered: 0` / vacuous, with `vds doctor`
- * reporting 0 of 10 kinds valid. A gate that cannot fail is not a gate.
+ * reporting 0 of the then-10 kinds valid. A gate that cannot fail is not a gate.
  *
  * Pointed at the real surface (`blocks/`, `js`, `dist/home.css`) the same proofs
  * bite: `reconciliation` returned `status: failed` naming all 8 shipped blocks as

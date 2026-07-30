@@ -302,3 +302,64 @@ test('the studio can edit every field type the schema declares', () => {
   assert.deepEqual(unhandled, [],
     `the schema declares field types the studio has no editor for: ${unhandled.join(', ')}`);
 });
+
+test('no spec sheet row prints a default-stringified object', () => {
+  // "[object Object]" is the tell that a value arrived which the renderer has no idea how
+  // to describe, and printed something that looks like output anyway. The spec sheet said
+  // exactly that next to `pages`, which is a design decision - a sheet that looks
+  // authoritative and says nothing is the failure figma-spec.js exists to avoid.
+  //
+  // The studio had the identical bug and the test written for it could NOT see this one,
+  // because it only read studio.html. Two renderers consume the schema; checking one is
+  // checking half.
+  const { buildSpec, describe } = require('../figma-spec.js');
+  const { suggest } = require('../suggest.js');
+
+  for (const route of ['marketing-site', 'saas-app']) {
+    const cfg = suggest({ name: 'Probe', category: route, description: 'A site for a law firm.' });
+    const spec = buildSpec(cfg);
+    for (const section of spec.sections) {
+      for (const row of section.rows || []) {
+        assert.ok(!/\[object Object\]/.test(String(row.chosen)),
+          `${route} ${section.title}/${row.key} prints a stringified object: ${row.chosen}`);
+        for (const opt of row.options || []) {
+          assert.ok(!/\[object Object\]/.test(String(opt.label)),
+            `${route} ${section.title}/${row.key} has an option labelled with a stringified object`);
+        }
+      }
+    }
+  }
+
+  // describe() is the guard, so it is tested directly on the shapes that broke it.
+  assert.equal(describe([{ slug: 'home' }, { slug: '404' }]), 'home, 404');
+  assert.equal(describe({ nav: true }), '{nav}', 'an object with no identifying key names its keys rather than stringifying');
+  assert.equal(describe(null), '');
+  assert.equal(describe(['a', 'b']), 'a, b');
+});
+
+test('every field the schema declares reaches the spec sheet as a real specimen', () => {
+  // A field with no `case` in specimensFor falls to the text default. That is correct for
+  // some fields and wrong for any field whose VALUE is not a string - which is how `pages`
+  // ended up stringified. Pinned by shape rather than by a hand-kept list of exceptions.
+  const { LAYERS } = require('../config-schema.js');
+  const { buildSpec } = require('../figma-spec.js');
+  const { suggest } = require('../suggest.js');
+
+  const cfg = suggest({ name: 'Probe', category: 'marketing-site', description: 'A site for a law firm.' });
+  const spec = buildSpec(cfg);
+  const rows = new Map(spec.sections.flatMap((s) => (s.rows || []).map((r) => [r.key, r])));
+
+  for (const layer of LAYERS) {
+    if (layer.key === 'identity') continue;
+    for (const field of layer.fields) {
+      const row = rows.get(field.key);
+      assert.ok(row, `the schema declares ${layer.key}.${field.key} and the spec sheet has no row for it`);
+      const value = (cfg[layer.key] || {})[field.key];
+      const isStructured = Array.isArray(value) && value.some((v) => v && typeof v === 'object');
+      if (isStructured) {
+        assert.notEqual(row.kind, 'text',
+          `${field.key} holds objects, so a text row would stringify them - it needs its own specimen`);
+      }
+    }
+  }
+});
