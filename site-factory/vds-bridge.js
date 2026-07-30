@@ -109,6 +109,18 @@ const FIGMA_NODES = {
   tooltip: '47:42',
   notificationbadge: '47:54',
   divider: '47:63',
+  pagination: '57:91',
+  pagecontrols: '55:106',
+  // Base declares Menu and Menu item as separate sets; they are one block type here,
+  // because a menu item outside a menu is not a thing a page ever places. The set at
+  // 56:36 (Menu item) is therefore drawn and deliberately unpaired.
+  menu: '56:69',
+  draggablelist: '56:150',
+  progressbar: '55:121',
+  progresssteps: '57:135',
+  banner: '54:55',
+  systembanner: '54:26',
+  messagecard: '54:69',
 };
 
 /*

@@ -354,6 +354,69 @@ function placeholderContent(type) {
     divider: {
       label: 'Replace this label', inset: false,
     },
+    pagination: {
+      // Page 4 of 12, so the elision renders on BOTH sides. A placeholder on page 1
+      // shows a row that never elides, which is the half of the component that is hard.
+      label: 'Pagination', total: 12, current: 4, hrefPattern: '#page=',
+      prevHref: '#newer', nextHref: '#older', prevLabel: 'Newer', nextLabel: 'Older',
+      caption: 'Ordered by date. There is no page count because the set changes as you read it.',
+    },
+    pagecontrols: {
+      label: 'Pages', count: 7, current: 3,
+    },
+    menu: {
+      label: 'Actions', size: 'small',
+      items: [
+        { label: 'Replace this action', shortcut: 'R' },
+        { label: 'Replace this action', shortcut: 'D' },
+        { label: 'Replace this action', disabled: true },
+      ],
+      groups: [
+        { title: 'Replace this group', items: [{ label: 'Replace this action', shortcut: 'R' }, { label: 'Replace this action' }] },
+        { title: 'Replace this group', items: [{ label: 'Replace this action' }] },
+      ],
+      destructive: [{ label: 'Replace this destructive action' }],
+    },
+    draggablelist: {
+      label: 'Order', hint: 'Drag a row, or use the arrow buttons.',
+      items: [
+        { label: 'Replace this row', meta: 'Replace this detail' },
+        { label: 'Replace this row', meta: 'Replace this detail' },
+        { label: 'Replace this row', meta: 'Replace this detail' },
+      ],
+    },
+    progressbar: {
+      label: 'Replace this label', value: 24, max: 40, unit: 'items', size: 'medium',
+    },
+    progresssteps: {
+      // Step 2 of 3, so all three states render: one done, one current, one to come. A
+      // placeholder on step 1 shows two of the three and hides the tick.
+      label: 'Progress', current: 2,
+      items: [
+        { label: 'Replace this step', detail: 'Replace this detail' },
+        { label: 'Replace this step', detail: 'Replace this detail' },
+        { label: 'Replace this step', detail: 'Replace this detail' },
+      ],
+    },
+    banner: {
+      // Warning, because it is the tone whose ink is dark. A placeholder in an
+      // easy tone never exercises the per-tone ink that the block exists to carry.
+      tone: 'warning',
+      headline: 'Replace this headline.',
+      body: 'Replace this line with what happened and what it means.',
+      actionLabel: 'Replace this action', actionHref: '#',
+    },
+    systembanner: {
+      tone: 'warning',
+      message: 'Replace this line with the system-wide state.',
+      dismissLabel: 'Dismiss',
+      actionLabel: 'Replace this action', actionHref: '#',
+    },
+    messagecard: {
+      heading: 'Replace this heading.',
+      body: 'Replace this line with the invitation.',
+      actionLabel: 'Replace this action', actionHref: '#',
+    },
   };
 
   // masterdetail is an ASSEMBLY: it calls the other blocks' render functions, so its

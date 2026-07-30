@@ -139,6 +139,31 @@ const SAAS_BLOCKS = new Set(['nav', 'sidebar', 'facetstrip', 'objecttable', 'obj
 // real figure was 95.
 const SAAS_CATALOG_TOTAL = 109;
 
+/*
+ * The control layer, derived from Uber Base's 92 component sets rather than from Opbox's
+ * 109-type catalogue. SEPARATE FROM SAAS_BLOCKS ON PURPOSE, and the reason is arithmetic
+ * rather than tidiness.
+ *
+ * `project.js` states the gap as SAAS_CATALOG_TOTAL - SAAS_BLOCKS.size: 95 of 109
+ * cataloged and not built. Dropping these fifteen into SAAS_BLOCKS would move that line
+ * to 80 of 109 and claim fifteen more of OPBOX's catalogue had been built, when they came
+ * out of a different taxonomy entirely. Two measurements of two different populations
+ * cannot be added, and a coverage figure that silently mixes them is the kind of number
+ * this repo exists to refuse.
+ *
+ * So the gap keeps reading the Opbox set alone, and the app route unions both, because
+ * these ARE app-surface components and a control nothing can reach is a control nobody
+ * built. A test holds the two sets disjoint and holds the gap to the Opbox set.
+ */
+const BASE_BLOCKS = new Set([
+  'switch', 'checkbox', 'radio', 'tooltip', 'notificationbadge', 'divider',
+  'pagination', 'pagecontrols', 'menu', 'draggablelist',
+  'progressbar', 'progresssteps', 'banner', 'systembanner', 'messagecard',
+]);
+
+// What the saas-app route may place: everything from either provenance.
+const APP_BLOCKS = new Set([...SAAS_BLOCKS, ...BASE_BLOCKS]);
+
 const SAAS_DEFAULT = ['nav-1', 'sidebar-2', 'masterdetail-2'];
 
 /*
@@ -216,7 +241,9 @@ function configToManifest(config, pageSlug = 'home') {
     blocks = [frame(FRAME_BEFORE), ...body, frame(FRAME_AFTER)].filter(Boolean);
   }
   if (isSaas) {
-    blocks = blocks.filter((b) => SAAS_BLOCKS.has(b.slice(0, b.lastIndexOf('-'))));
+    // APP_BLOCKS, not SAAS_BLOCKS: the control layer is reachable here too. The gap
+    // arithmetic in project.js deliberately still reads SAAS_BLOCKS alone.
+    blocks = blocks.filter((b) => APP_BLOCKS.has(b.slice(0, b.lastIndexOf('-'))));
     if (blocks.some((b) => b.startsWith('masterdetail'))) {
       blocks = blocks.filter((b) => !b.startsWith('facetstrip'));
     }
@@ -318,4 +345,4 @@ function configToSite(config) {
   }));
 }
 
-module.exports = { configToTokens, configToManifest, configToSite, pagesOf, navLinks, radiusPx, listStylePacks, listBlockVariants, RADIUS, SAAS_BLOCKS, SAAS_CATALOG_TOTAL };
+module.exports = { configToTokens, configToManifest, configToSite, pagesOf, navLinks, radiusPx, listStylePacks, listBlockVariants, RADIUS, SAAS_BLOCKS, BASE_BLOCKS, APP_BLOCKS, SAAS_CATALOG_TOTAL };

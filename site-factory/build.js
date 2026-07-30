@@ -603,6 +603,7 @@ a { color: var(--color-accent); }
 .tip__target--text { width: auto; height: auto; border-radius: var(--radius-sm); padding: calc(var(--space) * 2) calc(var(--space) * 3); line-height: var(--lh-label); font-size: var(--text-sm); color: var(--color-ink); }
 .tip__glyph { line-height: var(--lh-label); font-size: var(--text-xs); font-weight: 600; color: var(--color-muted); }
 .tip__bubble { background: var(--color-ink); color: var(--color-bg); padding: calc(var(--space) * 2) calc(var(--space) * 3); border-radius: var(--radius-sm); line-height: var(--lh-label); font-size: var(--text-xs); box-shadow: var(--shadow); max-width: var(--measure-narrow); }
+.tip--rich { flex-direction: column; align-items: flex-start; gap: calc(var(--space) * 1); }
 .tip__bubble--rich { display: flex; flex-direction: column; gap: calc(var(--space) * 1); padding: calc(var(--space) * 3); }
 .tip__title { line-height: var(--lh-label); font-size: var(--text-xs); font-weight: 600; }
 .tip__body { line-height: var(--lh-body); font-size: var(--text-xs); }
@@ -621,6 +622,148 @@ a { color: var(--color-accent); }
 .rule__labelled { display: flex; align-items: center; gap: calc(var(--space) * 4); margin: calc(var(--space) * 6) 0; }
 .rule__line { flex: 1; height: var(--border-weight); background: var(--color-border); }
 .rule__label { line-height: var(--lh-label); font-size: var(--text-xs); font-weight: 600; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* Pagination. Measured from Base: a 48 outer cell with 6 padding round a 36 chip at
+   radius 8, so the hit area stays 48 square whether or not the chip is filled. */
+.pag { display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
+.pag__row { display: flex; list-style: none; margin: 0; padding: 0; }
+.pag__cell { width: calc(var(--space) * 12); height: calc(var(--space) * 12); display: flex; align-items: center; justify-content: center; }
+.pag__chip { width: calc(var(--space) * 9); height: calc(var(--space) * 9); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; text-decoration: none; line-height: var(--lh-label); font-size: var(--text-sm); color: var(--color-ink); border: 0; background: none; cursor: pointer; }
+.pag__chip:hover { background: var(--color-surface); }
+.pag__chip--on { background: var(--color-ink); color: var(--color-bg); font-weight: 600; }
+.pag__chip--off { color: var(--color-muted); cursor: default; }
+.pag__chip--gap { color: var(--color-muted); }
+.pag__status { line-height: var(--lh-label); font-size: var(--text-xs); color: var(--color-muted); margin: 0; }
+.pag--cursor .pag__cell { width: auto; }
+.pag--cursor .pag__chip { width: auto; padding: 0 calc(var(--space) * 3); }
+.pag__sr { position: absolute; width: var(--border-weight); height: var(--border-weight); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Page controls. The dot sizes are inline because each is derived from that dot's
+   distance from the current page; a class per size could not express the relationship. */
+.pctl { display: flex; flex-direction: column; align-items: center; gap: calc(var(--space) * 2); }
+.pctl__row { display: flex; align-items: center; gap: calc(var(--space) * 2); padding: calc(var(--space) * 1) calc(var(--space) * 3); }
+.pctl__dot { border-radius: 999px; border: 0; background: var(--color-border); padding: 0; cursor: pointer; }
+.pctl__dot--on { background: var(--color-ink); }
+.pctl__count { line-height: var(--lh-label); font-size: var(--text-xs); color: var(--color-muted); margin: 0; }
+.pctl__sr { position: absolute; width: var(--border-weight); height: var(--border-weight); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Menu. Measured from Base: radius 12 on the container, rows flush with no gap, and the
+   two sizes differing only in the row's vertical padding. */
+.menu { background: var(--color-surface); border: var(--border-weight) solid var(--color-border); border-radius: var(--radius-lg); box-shadow: var(--shadow); overflow: hidden; width: var(--pane-inspector); }
+.menu__list, .menu__groups { list-style: none; margin: 0; padding: 0; }
+.menu__item { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: calc(var(--space) * 4); border: 0; background: none; cursor: pointer; text-align: left; line-height: var(--lh-label); font-size: var(--text-sm); color: var(--color-ink); }
+/* The two sizes differ ONLY in the row's vertical padding: measured 8/20/8 for a 36 row
+   and 12/24/12 for 48. Small is written out rather than baked into .menu__item, so
+   neither size is the silent default and both say what they are. */
+.menu__item--small { padding: calc(var(--space) * 2) calc(var(--space) * 4); }
+.menu__item--medium { padding: calc(var(--space) * 3) calc(var(--space) * 4); }
+.menu__item:hover { background: var(--color-bg); }
+.menu__item--off { color: var(--color-muted); cursor: default; }
+.menu__item--destructive { color: var(--color-danger); }
+.menu__label { flex: 1; }
+.menu__shortcut { color: var(--color-muted); line-height: var(--lh-label); font-size: var(--text-xs); }
+.menu__groupTitle { line-height: var(--lh-label); font-size: var(--text-xs); font-weight: 600; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 0; padding: calc(var(--space) * 2) calc(var(--space) * 4) calc(var(--space) * 1); }
+.menu__group + .menu__group { border-top: var(--border-weight) solid var(--color-border); }
+/* The destructive group is separated MORE than groups are from each other. A Delete flush
+   against a Duplicate is a Delete one slip away from being pressed, and the block's own
+   comment promised this separation while the stylesheet did not deliver it. */
+.menu__group--danger { margin-top: calc(var(--space) * 2); }
+
+/* Draggable list. The divider insets to the text, or past the artwork, so the rows read
+   as rows of one thing rather than as a stack of sections. */
+.drag { display: flex; flex-direction: column; gap: calc(var(--space) * 2); max-width: var(--measure-form); }
+.drag__hint { line-height: var(--lh-label); font-size: var(--text-xs); color: var(--color-muted); margin: 0; }
+.drag__list { list-style: none; margin: 0; padding: 0; border: var(--border-weight) solid var(--color-border); border-radius: var(--radius-sm); }
+.drag__row { display: flex; align-items: center; gap: calc(var(--space) * 4); padding: calc(var(--space) * 4); position: relative; }
+/* The divider is INSET so it starts under the text, which is Base's measured 16, or 80
+   past the artwork. A border-top on the row would run full width and read as a boundary
+   between sections rather than between rows of one kind - which is what this stylesheet
+   actually did while the block's comment claimed the inset. A positioned rule can start
+   where a border cannot. */
+.drag__row + .drag__row::before { content: ''; position: absolute; top: 0; left: calc(var(--space) * 4); right: 0; height: var(--border-weight); background: var(--color-border); }
+.drag--art .drag__row + .drag__row::before { left: calc(var(--space) * 20); }
+.drag__art { width: calc(var(--space) * 12); height: calc(var(--space) * 12); border-radius: var(--radius-sm); background: var(--color-border); flex-shrink: 0; }
+.drag__pos { width: calc(var(--space) * 6); line-height: var(--lh-label); font-size: var(--text-sm); font-weight: 600; color: var(--color-muted); flex-shrink: 0; }
+.drag__text { display: flex; flex-direction: column; gap: calc(var(--space) * 1); flex: 1; min-width: 0; }
+.drag__title { line-height: var(--lh-label); font-size: var(--text-sm); font-weight: 600; color: var(--color-ink); }
+.drag__meta { line-height: var(--lh-body); font-size: var(--text-xs); color: var(--color-muted); }
+.drag__controls { display: flex; align-items: center; gap: calc(var(--space) * 1); flex-shrink: 0; }
+.drag__move { width: calc(var(--space) * 7); height: calc(var(--space) * 7); border: var(--border-weight) solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); color: var(--color-ink); cursor: pointer; line-height: var(--lh-label); font-size: var(--text-xs); }
+.drag__move[aria-disabled="true"] { color: var(--color-muted); cursor: default; }
+.drag__handle { display: flex; flex-direction: column; gap: calc(var(--space) * 0.75); padding: 0 calc(var(--space) * 2); cursor: grab; }
+.drag__handle span { width: calc(var(--space) * 4); height: var(--border-weight); background: var(--color-muted); }
+.drag__sr { position: absolute; width: var(--border-weight); height: var(--border-weight); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Progress bar, determinate. Base measured 2px at Small and 4px at Medium. The fill's
+   width is inline because it is the DATA: it is derived from value over max, and no class
+   can carry a number that changes per render. */
+.pbar { display: flex; flex-direction: column; gap: calc(var(--space) * 3); max-width: var(--measure-form); }
+.pbar__track { width: 100%; background: var(--color-border); border-radius: 999px; overflow: hidden; }
+.pbar__track--small { height: calc(var(--space) * 0.5); }
+.pbar__track--medium { height: calc(var(--space) * 1); }
+.pbar__fill { height: 100%; background: var(--color-accent); border-radius: 999px; }
+.pbar__label { line-height: var(--lh-label); font-size: var(--text-sm); color: var(--color-ink); margin: 0; }
+.pbar__figure { color: var(--color-muted); }
+
+/* Progress steps. The vertical connector is a child of the step's rail, so the spacing
+   around the step cannot squeeze it to nothing - which it did, measurably, in the Figma
+   redraw when the gap lived in the row's padding instead. */
+.psteps { max-width: var(--measure-wide); }
+.psteps__row { display: flex; align-items: flex-start; justify-content: space-between; list-style: none; margin: 0; padding: 0 calc(var(--space) * 10); gap: calc(var(--space) * 4); }
+.psteps__col { list-style: none; margin: 0; padding: 0; }
+.psteps__step { display: flex; flex-direction: column; align-items: center; gap: calc(var(--space) * 2); flex: 1; }
+.psteps__dot { width: calc(var(--space) * 9); height: calc(var(--space) * 9); border-radius: 999px; display: flex; align-items: center; justify-content: center; line-height: var(--lh-label); font-size: var(--text-sm); font-weight: 600; flex-shrink: 0; }
+.psteps__dot--done, .psteps__dot--current { background: var(--color-accent); color: var(--color-accentInk); }
+.psteps__dot--todo { border: calc(var(--border-weight) * 2) solid var(--color-border); color: var(--color-muted); }
+/* All three states set their own label, so none of them is the silent default. The
+   hierarchy is deliberate: the CURRENT step is the one a reader needs, so done recedes
+   rather than competing with it. */
+.psteps__label { line-height: var(--lh-label); font-size: var(--text-xs); color: var(--color-muted); font-weight: 400; }
+.psteps__step--done .psteps__label { color: var(--color-muted); font-weight: 600; }
+.psteps__step--current .psteps__label { color: var(--color-ink); font-weight: 600; }
+.psteps__step--todo .psteps__label { color: var(--color-muted); font-weight: 400; }
+.psteps__detail { line-height: var(--lh-body); font-size: var(--text-xs); color: var(--color-muted); }
+.psteps--vertical .psteps__step { flex-direction: row; align-items: flex-start; gap: calc(var(--space) * 4); }
+.psteps__rail { display: flex; flex-direction: column; align-items: center; gap: calc(var(--space) * 1); }
+.psteps__line { width: var(--border-weight); height: calc(var(--space) * 5); background: var(--color-border); }
+.psteps__body { display: flex; flex-direction: column; gap: calc(var(--space) * 0.5); padding-bottom: calc(var(--space) * 5); }
+.psteps__sr { position: absolute; width: var(--border-weight); height: var(--border-weight); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Banner and system banner. The tone is a name and the ink is a per-tone token, because
+   warning is the one tone whose accessible ink is dark. One ink for every tone either
+   fails contrast on amber or washes out on red. */
+.banner { display: flex; align-items: flex-start; gap: calc(var(--space) * 4); padding: calc(var(--space) * 4); border-radius: var(--radius-lg); max-width: var(--measure-wide); }
+.banner__mark { width: calc(var(--space) * 5); height: calc(var(--space) * 5); border-radius: 999px; background: currentColor; flex-shrink: 0; opacity: 0.9; }
+.banner__text { display: flex; flex-direction: column; gap: calc(var(--space) * 1); flex: 1; }
+.banner__headline { line-height: var(--lh-label); font-size: var(--text-md); font-weight: 600; margin: 0; }
+.banner__body { line-height: var(--lh-body); font-size: var(--text-sm); margin: 0; }
+.banner__action { color: currentColor; font-weight: 600; text-decoration: underline; line-height: var(--lh-label); font-size: var(--text-sm); flex-shrink: 0; }
+.banner--inline { align-items: center; }
+.banner--accent { background: var(--color-accent); color: var(--color-accentInk); }
+.banner--info { background: var(--color-info); color: var(--color-infoInk); }
+.banner--success { background: var(--color-success); color: var(--color-successInk); }
+.banner--warning { background: var(--color-warning); color: var(--color-warningInk); }
+.banner--danger { background: var(--color-danger); color: var(--color-dangerInk); }
+
+.sysbanner { display: flex; align-items: center; gap: calc(var(--space) * 3); padding: calc(var(--space) * 4) calc(var(--space) * 6); width: 100%; }
+.sysbanner__mark { width: calc(var(--space) * 3); height: calc(var(--space) * 3); border-radius: 999px; background: currentColor; flex-shrink: 0; }
+.sysbanner__message { flex: 1; line-height: var(--lh-label); font-size: var(--text-sm); font-weight: 500; margin: 0; }
+.sysbanner__dismiss { border: 0; background: none; color: currentColor; font: inherit; font-weight: 600; line-height: var(--lh-label); font-size: var(--text-sm); cursor: pointer; text-decoration: underline; }
+.sysbanner__link { color: currentColor; font-weight: 600; text-decoration: underline; line-height: var(--lh-label); font-size: var(--text-sm); }
+.sysbanner--accent { background: var(--color-accent); color: var(--color-accentInk); }
+.sysbanner--info { background: var(--color-info); color: var(--color-infoInk); }
+.sysbanner--success { background: var(--color-success); color: var(--color-successInk); }
+.sysbanner--warning { background: var(--color-warning); color: var(--color-warningInk); }
+.sysbanner--danger { background: var(--color-danger); color: var(--color-dangerInk); }
+
+/* Message card. Bordered rather than tonal: a tone would say "state", and this is an
+   invitation. Its action is tertiary so it cannot compete with the page's own. */
+.mcard { display: flex; align-items: stretch; gap: calc(var(--space) * 2); background: var(--color-surface); border: var(--border-weight) solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; max-width: var(--measure); }
+.mcard__content { display: flex; flex-direction: column; gap: calc(var(--space) * 1); padding: calc(var(--space) * 4); flex: 1; align-items: flex-start; }
+.mcard__heading { line-height: var(--lh-label); font-size: var(--text-md); font-weight: 600; color: var(--color-ink); margin: 0; }
+.mcard__body { line-height: var(--lh-body); font-size: var(--text-sm); color: var(--color-muted); margin: 0; }
+.mcard__action { line-height: var(--lh-label); font-size: var(--text-sm); font-weight: 600; color: var(--color-accent); text-decoration: none; margin-top: calc(var(--space) * 1); }
+.mcard__art { width: calc(var(--space) * 28); background: var(--color-border); flex-shrink: 0; }
 `;
 
 /*

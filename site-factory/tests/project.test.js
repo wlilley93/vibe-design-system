@@ -246,3 +246,35 @@ test('a project reports itself governed only when the bridge actually succeeded'
     fs.rmSync(out, { recursive: true, force: true });
   }
 });
+
+test('two taxonomies are never added together, and the Opbox gap reads the Opbox set alone', () => {
+  // The control layer came out of Uber Base's 92 component sets. The gap line in
+  // project.js reads SAAS_CATALOG_TOTAL - SAAS_BLOCKS.size, and SAAS_CATALOG_TOTAL is
+  // the size of OPBOX's catalogue. Dropping fifteen Base-derived controls into
+  // SAAS_BLOCKS would have moved that line from 95 of 109 to 80 of 109 and claimed
+  // fifteen more of Opbox's catalogue had been built. Two populations, one denominator.
+  //
+  // So this is the check that keeps them apart, rather than the comment that asks nicely.
+  const { SAAS_BLOCKS, BASE_BLOCKS, APP_BLOCKS, SAAS_CATALOG_TOTAL } = require('../compose.js');
+
+  const both = [...BASE_BLOCKS].filter((b) => SAAS_BLOCKS.has(b));
+  assert.deepEqual(both, [],
+    `these block types are claimed by both taxonomies, so the gap arithmetic double-counts them: ${both.join(', ')}`);
+
+  // The union is what the route may place, and it must be exactly the two sets. A block
+  // in neither is a block the saas route silently drops.
+  assert.equal(APP_BLOCKS.size, SAAS_BLOCKS.size + BASE_BLOCKS.size,
+    'APP_BLOCKS is not the union of the two provenances');
+
+  // Every Base-derived control must actually exist in blocks/, or the route filter admits
+  // a name nothing can render.
+  const types = new Set(Object.keys(listBlockVariants()));
+  const phantom = [...BASE_BLOCKS].filter((b) => !types.has(b));
+  assert.deepEqual(phantom, [], `BASE_BLOCKS names block types with no file: ${phantom.join(', ')}`);
+
+  // And the denominator must stay bigger than the numerator it is measured against. If
+  // SAAS_BLOCKS ever exceeds the catalogue it claims to be a subset of, one of the two
+  // numbers has been repurposed.
+  assert.ok(SAAS_BLOCKS.size < SAAS_CATALOG_TOTAL,
+    `SAAS_BLOCKS (${SAAS_BLOCKS.size}) is not a subset of a ${SAAS_CATALOG_TOTAL}-type catalogue`);
+});

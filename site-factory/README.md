@@ -39,7 +39,7 @@ brief ──▶ suggest.js ──▶ config (36 fields) ──▶ compose.js ─
 | `suggest.js` | Brief → a filled config. Rule-based, not a model call |
 | `compose.js` | The ONE place a config becomes (tokens, manifest) |
 | `build.js` | `renderPage()` - the pure renderer. Also the CLI |
-| `blocks/*.js` | 30 block types, 60 variants. Pure functions |
+| `blocks/*.js` | 39 block types, 78 variants. Pure functions |
 | `tokens/*.json` | 4 style packs, real values from real systems |
 | `copy.js` | The voice layer: derive what the brief supports, mark the rest |
 | `skills.js` | Assigns each unwritten line to the agents-final skill that writes it |
@@ -49,7 +49,7 @@ brief ──▶ suggest.js ──▶ config (36 fields) ──▶ compose.js ─
 | `studio.js` / `studio.html` | The visual editor |
 | `vds-bridge.js` | The OPTIONAL seam to VDS governance |
 | `figma-spec.js` / `figma-push.js` | Figma spec sheet and project record |
-| `tests/` | 87 tests, run by `make test-factory` |
+| `tests/` | 88 tests, run by `make test-factory` |
 
 ---
 
