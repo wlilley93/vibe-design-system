@@ -46,10 +46,14 @@ the provenance of every value. Each page names the files it was measured from an
 its findings, because in all three cases the interesting thing was a disagreement:
 
 - Jellytot has THREE sources of truth and seven of eleven palette roles differ between the
-  brand doc and the shipped CSS. The live stylesheet is also malformed - a hex split across a
-  line break at lines 5-6 swallows `--muted` and `--rule` - and its `.vds/config.toml` points
-  at `app/globals.css` and `app/**/page.tsx` in a repo that ships `public/style.css`, so every
-  proof there runs over zero rows.
+  brand doc and the shipped CSS. The live stylesheet had a hex split across a line break at
+  lines 5-6; the first reading of that (and the first version of the page) said the block was
+  invalid and `--muted` and `--rule` were lost with it. THAT WAS WRONG. A custom property value
+  is a token stream terminated by the next top-level semicolon, so `--sec` took the invalid
+  value `#4A386 1` and the next two declarations parsed normally - and line 11 re-declared
+  `--sec` correctly, so nothing rendered wrong. Tidied anyway, behaviour-neutrally. Its
+  `.vds/config.toml` DOES point at `app/globals.css` and `app/**/page.tsx` in a repo that ships
+  `public/style.css`, so every proof there runs over zero rows: present but blind.
 - Opbox marketing is authored in oklch, which makes its ink and mute steps even in LIGHTNESS
   rather than even in hex. Its accent moved from a warm red to blue, and the old red survives
   as the corporate-services industry accent, so one hue now means two things. None of the six
@@ -82,3 +86,14 @@ by reading the geometry back and asserting it, never by looking.
 
 A third, smaller one: `FILL` describes a child's relationship to its parent, so
 `layoutSizingHorizontal = 'FILL'` throws on a node that has not been appended yet.
+
+## And one trap that is not Figma's
+
+Twice in one session I took a claim from a survey and wrote it down as established: that seven
+pages had been wiped, and that a split hex had swallowed two custom properties. Both were
+plausible, both were repeated into a commit message, and both were wrong - the first because
+`page.children` needs `loadAsync`, the second because CSS custom property values are token
+streams. Neither cost anything because both were checked before the work depended on them, but
+the pattern is worth naming: A SURVEY REPORTS WHAT IT SAW, WHICH IS NOT THE SAME AS WHAT IS
+TRUE. Verify the mechanism before writing the consequence down, especially when the consequence
+is "something was destroyed".
