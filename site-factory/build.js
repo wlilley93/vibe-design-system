@@ -546,6 +546,81 @@ a { color: var(--color-accent); }
 .notfound__link { color: var(--color-accent); font-weight: 600; text-decoration: none; }
 .notfound__searchForm { margin: 0 0 calc(var(--space) * 6); }
 .notfound__searchInput { width: 100%; padding: calc(var(--space) * 3); border: var(--border-weight) solid var(--color-border); border-radius: var(--radius-sm); line-height: var(--lh-body); font-size: var(--text-sm); }
+
+/* ---- The control layer, measured out of Uber Base and drawn on the
+   \`Base (redrawn)\` Figma page. These are controls rather than page blocks, and they
+   live in the same flat registry as \`toast\` and \`segmentedcontrol\` already did:
+   the bank is one registry of renderable units, not two. ---- */
+
+/* Switch. The track is a fixed 2:1 so the thumb has exactly its own width to travel;
+   expressing it as space multiples rather than a px pair keeps it on the density unit. */
+.switch { display: flex; align-items: center; gap: calc(var(--space) * 3); }
+.switch__track { width: calc(var(--space) * 11); height: calc(var(--space) * 6); border-radius: 999px; border: var(--border-weight) solid var(--color-border); background: var(--color-border); padding: 0; display: flex; align-items: center; cursor: pointer; }
+.switch__track--on { background: var(--color-accent); border-color: var(--color-accent); justify-content: flex-end; }
+.switch__thumb { width: calc(var(--space) * 5); height: calc(var(--space) * 5); border-radius: 999px; background: var(--color-bg); box-shadow: var(--shadow); margin: 0 calc(var(--space) * 0.5); }
+.switch__label { line-height: var(--lh-label); font-size: var(--text-sm); color: var(--color-ink); cursor: pointer; }
+.switch__group { display: flex; flex-direction: column; gap: calc(var(--space) * 4); border: 0; padding: 0; margin: 0; max-width: var(--measure-form); }
+.switch__setting { display: flex; align-items: flex-start; justify-content: space-between; gap: calc(var(--space) * 6); }
+.switch__text { display: flex; flex-direction: column; gap: calc(var(--space) * 1); }
+.switch__desc { line-height: var(--lh-body); font-size: var(--text-xs); color: var(--color-muted); margin: 0; max-width: var(--measure); }
+
+/* Check. The mixed state gets its own rule rather than borrowing the checked one,
+   because "some of these" and "all of these" must not look the same. */
+.check { display: flex; align-items: center; gap: calc(var(--space) * 3); }
+.check__box { width: calc(var(--space) * 5); height: calc(var(--space) * 5); border-radius: var(--radius-sm); border: var(--border-weight) solid var(--color-border); background: var(--color-bg); display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; }
+.check__box--on { background: var(--color-accent); border-color: var(--color-accent); }
+.check__box--mixed { background: var(--color-accent); border-color: var(--color-accent); }
+.check__box--off .check__mark { visibility: hidden; }
+.check__mark { line-height: var(--lh-label); font-size: var(--text-sm); color: var(--color-accentInk); }
+.check__label { line-height: var(--lh-label); font-size: var(--text-sm); color: var(--color-ink); cursor: pointer; }
+.check__group { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: calc(var(--space) * 3); max-width: var(--measure); }
+.check__legend { line-height: var(--lh-label); font-size: var(--text-xs); font-weight: 600; color: var(--color-ink); padding: 0; }
+.check--parent { padding-bottom: calc(var(--space) * 2); border-bottom: var(--border-weight) solid var(--color-border); }
+.check__count { color: var(--color-muted); font-weight: 400; }
+.check__children { display: flex; flex-direction: column; gap: calc(var(--space) * 3); padding-left: calc(var(--space) * 8); }
+
+/* Radio. The pip is a child rather than a background so the ring stays visible
+   underneath it: a filled circle and a ringed circle with a dot read differently. */
+.radio { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: calc(var(--space) * 3); max-width: var(--measure); }
+.radio__legend { line-height: var(--lh-label); font-size: var(--text-xs); font-weight: 600; color: var(--color-ink); padding: 0; }
+.radio__option { display: flex; align-items: center; gap: calc(var(--space) * 3); }
+.radio__dot { width: calc(var(--space) * 5); height: calc(var(--space) * 5); border-radius: 999px; border: var(--border-weight) solid var(--color-border); background: var(--color-bg); display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; flex-shrink: 0; }
+.radio__dot--on { border-color: var(--color-accent); }
+.radio__dot--on .radio__pip { background: var(--color-accent); }
+.radio__pip { width: calc(var(--space) * 2.5); height: calc(var(--space) * 2.5); border-radius: 999px; }
+.radio__label { line-height: var(--lh-label); font-size: var(--text-sm); color: var(--color-ink); cursor: pointer; }
+.radio--cards { gap: calc(var(--space) * 2); }
+.radio__card { display: flex; align-items: flex-start; gap: calc(var(--space) * 3); padding: calc(var(--space) * 4); border: var(--border-weight) solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; }
+.radio__card--on { border-color: var(--color-accent); background: var(--color-surface); }
+.radio__cardText { display: flex; flex-direction: column; gap: calc(var(--space) * 1); }
+.radio__cardTitle { line-height: var(--lh-label); font-size: var(--text-sm); font-weight: 600; color: var(--color-ink); }
+.radio__cardDesc { line-height: var(--lh-body); font-size: var(--text-xs); color: var(--color-muted); }
+
+/* Tooltip. Rendered open, because a static page cannot hover and a system that only
+   shows the resting state has not shown the component. */
+.tip { display: inline-flex; align-items: center; gap: calc(var(--space) * 2); position: relative; }
+.tip__target { width: calc(var(--space) * 8); height: calc(var(--space) * 8); border-radius: 999px; border: var(--border-weight) solid var(--color-border); background: var(--color-bg); display: inline-flex; align-items: center; justify-content: center; cursor: help; padding: 0; }
+.tip__target--text { width: auto; height: auto; border-radius: var(--radius-sm); padding: calc(var(--space) * 2) calc(var(--space) * 3); line-height: var(--lh-label); font-size: var(--text-sm); color: var(--color-ink); }
+.tip__glyph { line-height: var(--lh-label); font-size: var(--text-xs); font-weight: 600; color: var(--color-muted); }
+.tip__bubble { background: var(--color-ink); color: var(--color-bg); padding: calc(var(--space) * 2) calc(var(--space) * 3); border-radius: var(--radius-sm); line-height: var(--lh-label); font-size: var(--text-xs); box-shadow: var(--shadow); max-width: var(--measure-narrow); }
+.tip__bubble--rich { display: flex; flex-direction: column; gap: calc(var(--space) * 1); padding: calc(var(--space) * 3); }
+.tip__title { line-height: var(--lh-label); font-size: var(--text-xs); font-weight: 600; }
+.tip__body { line-height: var(--lh-body); font-size: var(--text-xs); }
+
+/* Notification badge. The screen-reader span is the component, not an accessory: a
+   coloured dot with no text says nothing at all to a reader that cannot see it. */
+.nbadge { display: inline-flex; align-items: center; gap: calc(var(--space) * 2); line-height: var(--lh-label); font-size: var(--text-sm); color: var(--color-ink); }
+.nbadge__dot { width: calc(var(--space) * 2); height: calc(var(--space) * 2); border-radius: 999px; background: var(--color-danger); flex-shrink: 0; }
+.nbadge__count { min-width: calc(var(--space) * 5); height: calc(var(--space) * 5); padding: 0 calc(var(--space) * 1.5); border-radius: 999px; background: var(--color-danger); color: var(--color-dangerInk); line-height: var(--lh-label); font-size: var(--text-xs); font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
+.nbadge__sr { position: absolute; width: var(--border-weight); height: var(--border-weight); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Divider. The inset is the whole component: full-bleed separates SECTIONS, inset
+   separates ROWS of the same kind. */
+.rule { border: 0; border-top: var(--border-weight) solid var(--color-border); margin: calc(var(--space) * 6) 0; }
+.rule--inset { margin-left: calc(var(--space) * 4); margin-right: 0; }
+.rule__labelled { display: flex; align-items: center; gap: calc(var(--space) * 4); margin: calc(var(--space) * 6) 0; }
+.rule__line { flex: 1; height: var(--border-weight); background: var(--color-border); }
+.rule__label { line-height: var(--lh-label); font-size: var(--text-xs); font-weight: 600; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.06em; }
 `;
 
 /*

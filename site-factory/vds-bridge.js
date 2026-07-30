@@ -99,6 +99,16 @@ const FIGMA_NODES = {
   toast: '39:139',
   segmentedcontrol: '39:161',
   card: '39:178',
+  // The control layer, redrawn from Uber Base's measured geometry on the
+  // `Base (redrawn)` page. Controls rather than page blocks, in the same flat registry
+  // that already held `toast` and `segmentedcontrol`: the bank is one registry of
+  // renderable units and splitting it would put the same pairing test in two places.
+  switch: '47:13',
+  checkbox: '47:25',
+  radio: '47:33',
+  tooltip: '47:42',
+  notificationbadge: '47:54',
+  divider: '47:63',
 };
 
 /*

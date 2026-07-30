@@ -313,6 +313,47 @@ function placeholderContent(type) {
       homeHref: '#', homeLabel: 'Back to home',
       searchAction: '#', searchPlaceholder: 'Search',
     },
+
+    /* The control layer. Each placeholder shows the state that is easiest to get wrong,
+       rather than the empty one: a switch that is ON, a checkbox group that is PARTLY
+       ticked, a count OVER its cap. A placeholder in the resting state renders a control
+       nobody can tell is working. */
+    switch: {
+      label: 'Replace this setting name', on: true,
+      settings: [
+        { label: 'Replace this setting name', description: 'Replace this line with what the setting does.', on: true },
+        { label: 'Replace this setting name', description: 'Replace this line with what the setting does.', on: false },
+      ],
+    },
+    checkbox: {
+      label: 'Replace this label', checked: true, allLabel: 'Select all',
+      // Two of three, so the parent renders MIXED. An all-or-nothing placeholder never
+      // shows the third state, which is the only reason this block is separate.
+      items: [
+        { label: 'Replace this option', checked: true },
+        { label: 'Replace this option', checked: true },
+        { label: 'Replace this option', checked: false },
+      ],
+    },
+    radio: {
+      label: 'Replace this question', value: 'one',
+      items: [
+        { label: 'Replace this option', value: 'one', description: 'Replace this line with what the option means.' },
+        { label: 'Replace this option', value: 'two', description: 'Replace this line with what the option means.' },
+      ],
+    },
+    tooltip: {
+      label: 'Replace this control name', glyph: 'i',
+      targetLabel: 'Replace this label',
+      title: 'Replace this title', body: 'Replace this line with the detail the control does not carry.',
+    },
+    notificationbadge: {
+      label: 'Replace this label', srLabel: 'has updates',
+      count: 128, cap: 99, unit: 'unread',
+    },
+    divider: {
+      label: 'Replace this label', inset: false,
+    },
   };
 
   // masterdetail is an ASSEMBLY: it calls the other blocks' render functions, so its
