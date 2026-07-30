@@ -39,7 +39,7 @@ brief ──▶ suggest.js ──▶ config (35 fields) ──▶ compose.js ─
 | `suggest.js` | Brief → a filled config. Rule-based, not a model call |
 | `compose.js` | The ONE place a config becomes (tokens, manifest) |
 | `build.js` | `renderPage()` - the pure renderer. Also the CLI |
-| `blocks/*.js` | 21 block types, 42 variants. Pure functions |
+| `blocks/*.js` | 24 block types, 48 variants. Pure functions |
 | `tokens/*.json` | 4 style packs, real values from real systems |
 | `copy.js` | The voice layer: derive what the brief supports, mark the rest |
 | `skills.js` | Assigns each unwritten line to the agents-final skill that writes it |
@@ -111,14 +111,14 @@ compile differently.
 
 - **marketing-site** - blocks stack full width. 12 block types.
 - **saas-app** - manifest carries `layout: 'app'`; `renderPage` builds a real shell
-  with the sidebar as a rail. 11 app-surface block types: the five priority components
+  with the sidebar as a rail. 14 app-surface block types: the five priority components
   from Opbox's `COMPONENT_INVENTORY.md`, plus four chosen by MEASURED demand across
   217 real Opbox routes rather than by guess - formfield (input 54 + label 46 +
   textarea 23 + select 22), emptystate (49), pagestate (loading 45 + error 38) and
   confirmdialog (16). Each is also a Modular Play the Playbook already names: Empty
   States, Loading Feedback, Fail Safe. The measurement and the strategy layer agree.
 
-98 of the 109 cataloged SaaS component types do **not** exist in code. A saas project
+95 of the 109 cataloged SaaS component types do **not** exist in code. A saas project
 gets `SAAS-COMPONENTS.md` recording that honestly rather than implying otherwise.
 
 ## Governance is opt-in, both ways

@@ -124,8 +124,23 @@ test('a saas project writes its component spec and records the gap honestly', ()
     const r = createProject(config('saas-app'), { outDir: out });
     const spec = fs.readFileSync(path.join(out, 'SAAS-COMPONENTS.md'), 'utf8');
     assert.ok(spec.includes('Cataloged, not built'), 'the spec must state what was NOT built');
-    assert.ok(/\d+ of 109/.test(spec), 'the spec must quantify the remaining gap');
+
+    // `/\d+ of 109/` only proved A number was there, not the RIGHT one, so the spec
+    // said 98 of 109 for three commits while the truth moved to 95. A check that any
+    // digit is present is not a check on the count.
+    const { SAAS_BLOCKS, SAAS_CATALOG_TOTAL } = require('../compose.js');
+    const gap = SAAS_CATALOG_TOTAL - SAAS_BLOCKS.size;
+    assert.match(spec, new RegExp(`${gap} of ${SAAS_CATALOG_TOTAL} types`),
+      `the spec must state the real gap, ${gap} of ${SAAS_CATALOG_TOTAL}`);
+
+    // And every built block must be named, so adding one to the route cannot leave the
+    // spec claiming it was only cataloged.
+    for (const b of SAAS_BLOCKS) {
+      assert.ok(spec.includes(b), `SAAS-COMPONENTS.md never mentions the built block "${b}"`);
+    }
+
     assert.ok(r.note, 'a saas build must return a note about the narrowing');
+    assert.ok(r.note.includes(String(gap)), 'the returned note must quote the same gap as the spec');
   } finally {
     fs.rmSync(out, { recursive: true, force: true });
   }

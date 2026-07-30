@@ -98,10 +98,16 @@ function configToTokens(config) {
 // destructive-action-dialog 16. Each is also a Modular Play the Playbook already
 // names - Empty States, Loading Feedback, Fail Safe - so the measurement and the
 // strategy layer agree rather than one being invented to justify the other.
-const SAAS_BLOCKS = new Set(['nav', 'sidebar', 'facetstrip', 'objecttable', 'objectview', 'inspector', 'masterdetail', 'formfield', 'emptystate', 'pagestate', 'confirmdialog']);
+const SAAS_BLOCKS = new Set(['nav', 'sidebar', 'facetstrip', 'objecttable', 'objectview', 'inspector', 'masterdetail', 'formfield', 'emptystate', 'pagestate', 'confirmdialog', 'toast', 'segmentedcontrol', 'card']);
 // masterdetail-2 renders its own facet strip from content.facets, so a standalone
 // facetstrip in the same page draws it twice. Verified: the first Atlas Ops build
 // showed two identical strips stacked.
+// The size of the catalogue extracted from Opbox's COMPONENT_INVENTORY.md. The only
+// number here that is genuinely a constant: the gap is DERIVED from it and from
+// SAAS_BLOCKS, never restated. Two hand-kept copies said 98 and 107 on the day the
+// real figure was 95.
+const SAAS_CATALOG_TOTAL = 109;
+
 const SAAS_DEFAULT = ['nav-1', 'sidebar-2', 'masterdetail-2'];
 
 /*
@@ -148,4 +154,4 @@ function configToManifest(config) {
   return manifest;
 }
 
-module.exports = { configToTokens, configToManifest, radiusPx, listStylePacks, listBlockVariants, RADIUS };
+module.exports = { configToTokens, configToManifest, radiusPx, listStylePacks, listBlockVariants, RADIUS, SAAS_BLOCKS, SAAS_CATALOG_TOTAL };

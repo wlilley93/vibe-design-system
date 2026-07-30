@@ -285,6 +285,29 @@ function placeholderContent(type) {
       confirmLabel: 'Delete', confirmHref: '#',
       cancelLabel: 'Cancel', cancelHref: '#',
     },
+    // UNION of every field both variants read. A placeholder missing one field prints
+    // a literal "undefined" into the page, which is how team-2 shipped a bio-less card.
+    toast: {
+      body: 'Replace this line with what just happened.',
+      dismissLabel: 'Dismiss',
+      undoLabel: 'Undo', window: '10 seconds',
+    },
+    segmentedcontrol: {
+      label: 'View', value: 'list',
+      items: [
+        { label: 'List', value: 'list', href: '#', count: 24 },
+        { label: 'Board', value: 'board', href: '#', count: 24 },
+        { label: 'Archived', value: 'archived', href: '#', count: 0 },
+      ],
+    },
+    card: {
+      title: 'Replace this title', href: '#',
+      body: 'Replace this line with a one-sentence summary of the record.',
+      badge: 'Open', meta: ['Replace this', 'Replace this'],
+      label: 'Replace this label', figure: '0',
+      change: 'Replace this with the change and its direction',
+      asOf: 'as at a date you replace',
+    },
     notfound: {
       code: '404', heading: "This page doesn't exist.", sub: 'Replace this subhead.',
       homeHref: '#', homeLabel: 'Back to home',

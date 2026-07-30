@@ -91,6 +91,14 @@ const FIGMA_NODES = {
   emptystate: '36:204',
   pagestate: '37:143',
   confirmdialog: '37:165',
+  // Third measured tier, re-counted at 224 routes (the repo grew from 217): toast 19,
+  // segmentedcontrol 13, card 12. property-list (54) and page-header (48) score higher
+  // and are deliberately NOT here - inspector already renders row/label/value, and
+  // objectview already renders title+actions. Building them again would have split one
+  // component across two names, which is the drift the register exists to catch.
+  toast: '39:139',
+  segmentedcontrol: '39:161',
+  card: '39:178',
 };
 
 // The surface a site-factory project actually has. Every value here is a path that
