@@ -35,6 +35,43 @@ impl LockVerdict {
     }
 }
 
+/// Does a test file actually contain a test of this name?
+///
+/// The retired check matched only `fn <name>(`, a Rust `#[test]` declaration. Every host
+/// project whose failing-direction tests are vitest `it('description')` / jest `test("...")`
+/// was therefore reported UNTESTED by a check that could not pass for the framework the host
+/// actually uses. That is the check-that-cannot-go-green twin of the defect this resolver was
+/// written to close: a guard that fires on every row reads as enforcement while binding
+/// nothing.
+///
+/// Recognised forms:
+///   - Rust:       `fn <name>(`
+///   - vitest/jest: `it('<name>'`, `it("<name>"`, `test(...)`, with `.only` / `.skip` /
+///     `.todo` / `.concurrent`. The name is the description string the runner reports, which
+///     is what a host cites in the lock.
+///
+/// Rigour matches the Rust form this generalises: a substring of the named test, anchored to
+/// a call site rather than a comment. A description that appears only in prose does not, in
+/// either language, name a test that runs.
+fn test_name_resolves(text: &str, name: &str) -> bool {
+    if name.is_empty() {
+        return false;
+    }
+    if text.contains(&format!("fn {}(", name)) {
+        return true;
+    }
+    for caller in ["it", "test"] {
+        for accessor in ["", ".only", ".skip", ".todo", ".concurrent"] {
+            for quote in ['\'', '"'] {
+                if text.contains(&format!("{caller}{accessor}({quote}{name}")) {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
 /// Recompute every pinned digest and report what moved.
 ///
 /// `gate_paths` is the set of paths the caller considers to be gates, used to
@@ -91,10 +128,7 @@ pub fn verify_lock(store: &Store, gate_paths: &[String]) -> Result<LockVerdict> 
                 let test_file = store.project.root.join(&entry.failing_direction_test.path);
                 let names_the_test = std::fs::read_to_string(&test_file)
                     .ok()
-                    .is_some_and(|text| {
-                        let needle = format!("fn {}(", entry.failing_direction_test.test_name);
-                        text.contains(&needle)
-                    });
+                    .is_some_and(|text| test_name_resolves(&text, &entry.failing_direction_test.test_name));
                 if !names_the_test {
                     verdict
                         .findings
@@ -411,6 +445,43 @@ mod tests {
             "a named test that no longer exists must be a finding even though its file does: {:?}",
             verdict.findings
         );
+    }
+
+    /// A vitest `it('description')` resolves the same way a Rust `fn name()` does.
+    ///
+    /// The resolver this replaces matched only `fn name(`, so a host project whose
+    /// failing-direction tests are vitest `it('description', ...)` was reported UNTESTED on
+    /// every entry by a check that could not pass for the framework it uses. The opbox lock
+    /// cites descriptions like `exits NON-ZERO when a control boundary is regressed below 3:1`
+    /// against `.test.ts` files, and `vds lock verify` blocked every push.
+    #[test]
+    fn a_vitest_it_description_names_the_test() {
+        assert!(test_name_resolves(
+            "  it('exits NON-ZERO when a control boundary is regressed below 3:1', () => {})\n",
+            "exits NON-ZERO when a control boundary is regressed below 3:1",
+        ));
+        // double quotes, test(), and the .only/.skip accessors all count.
+        assert!(test_name_resolves(
+            "test(\"red seed\", fn)",
+            "red seed",
+        ));
+        assert!(test_name_resolves("it.skip('skipped but present', () => {})", "skipped but present"));
+        // And the Rust form still resolves, so this generalises rather than replaces.
+        assert!(test_name_resolves("fn gate_fails_on_a_seeded_violation() {}", "gate_fails_on_a_seeded_violation"));
+    }
+
+    #[test]
+    fn a_description_that_only_appears_in_prose_does_not_name_a_test() {
+        // The session's standing rule: a check must be able to go red. A description mentioned
+        // only in a comment or a string literal that is not a test call must NOT resolve, or a
+        // deleted test would read as present forever.
+        assert!(!test_name_resolves(
+            "// TODO: restore 'exits NON-ZERO when a control boundary is regressed below 3:1'\nfn unrelated() {}",
+            "exits NON-ZERO when a control boundary is regressed below 3:1",
+        ));
+        // A description whose substring appears but not as a test argument does not resolve.
+        assert!(!test_name_resolves("it('a different test', () => {})", "red seed"));
+        assert!(!test_name_resolves("", "anything"));
     }
 
     #[test]
