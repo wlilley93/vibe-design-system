@@ -49,6 +49,11 @@ brief ──▶ suggest.js ──▶ config (36 fields) ──▶ compose.js ─
 | `studio.js` / `studio.html` | The visual editor |
 | `vds-bridge.js` | The OPTIONAL seam to VDS governance |
 | `figma-spec.js` / `figma-push.js` | Figma spec sheet and project record |
+| `figma-nodes.json` | MEASURED: every page and component set in the master Figma file |
+| `figma-variables.json` | MEASURED: the `VDS Tokens` collection, per mode, paired to the style packs |
+| `figma-prompts.json` | MEASURED: the fingerprint of every prompt written into Figma verbatim |
+| `vendor/uber-base-*.json` | The Uber Base harvest (92 sets, 3,211 variants) and each set's tier |
+| `docs/FIGMA-MASTER-FILE.md` | What is on each of the twelve Figma pages, and the traps it has sprung |
 | `tests/` | 93 tests, run by `make test-factory` |
 
 ---
