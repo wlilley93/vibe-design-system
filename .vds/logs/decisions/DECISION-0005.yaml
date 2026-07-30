@@ -1,0 +1,30 @@
+id: DECISION-0005
+at: 2026-07-30T18:45:00Z
+by: lexby
+decision: >-
+  Strengthen doctor D2 and D3 to derive from the thing rather than read the field, and
+  declare crates/vds-cli/src/doctor.rs on the permit surface. Filed as BREACH-0006.
+court_required: false
+why: >-
+  Both changes STRENGTHEN a criterion and remove nothing, so this is not a matter for the
+  court. D3's title is "no vacuous passes" and it filtered on the status label, so a record
+  reading passed over rows_enforced 0 - which IS a vacuous pass - was accepted. D2's
+  named_test limb tested that a lock ENTRY existed rather than that the test it names exists,
+  and its invoked limb tested that invoked_by was NON-EMPTY, so a manual non-blocking entry
+  satisfied VDS S-7(2)(3), the limb whose whole purpose is to exclude invocation by the
+  author choosing to run it. Both were measured by seeding the contradiction, and both seeds
+  are caught by the fix.
+  Declaring doctor.rs in permit_required is a recorded declaration and not yet a gate, which
+  is what that list is for: config.toml states plainly that the permit lifecycle at S-12(1)
+  is specified and not implemented and that nothing reads those globs. It is added because
+  the file grades every criterion and was on NEITHER enforcement list, so the three
+  weakenings and strengthenings of D2, D3 and D4 today produced no drift finding at all.
+  No re-pin was needed: doctor.rs is not a pinned path, which is the defect rather than a
+  convenience. vds lock verify exits 0 before and after.
+basis:
+- 'VDS S-7(2)(2), (3) and (4): the three limbs D2 and D3 were reporting on without establishing'
+- 'VDS S-8(5): the enforcement surface may not be overclaimed'
+- '.vds/logs/breaches/BREACH-0004.yaml remedy item 3, which is the item this closes'
+- '.vds/logs/breaches/BREACH-0006.yaml, filed for these two defects and the third one found while fixing them'
+submission_id: null
+supersedes_digest: null

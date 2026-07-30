@@ -150,8 +150,34 @@ fn d2(store: &Store) -> Result<Row> {
         let entry = lock
             .as_ref()
             .and_then(|l| l.entries.iter().find(|e| e.proves.contains(&kind)));
-        let named_test = entry.is_some();
-        let invoked = entry.is_some_and(|e| !e.invoked_by.is_empty());
+        /*
+         * Both of these limbs used to be satisfied by a FIELD BEING PRESENT.
+         *
+         * `named_test` was `entry.is_some()` - a lock entry existing, not the test it names
+         * existing. `invoked` was `!invoked_by.is_empty()`, so a `surface: manual` entry
+         * satisfied VDS S-7(2)(3), the limb that exists specifically to require invocation
+         * by something OTHER than the author choosing to run it. Measured 2026-07-30:
+         * rewriting one entry to manual and non-blocking left D2's invocation limb happy
+         * while D4 correctly refused the same entry.
+         *
+         * Both now hold to the standard the rest of the system already holds: the test name
+         * must resolve in its file, and the invocation must be a blocking ci_workflow whose
+         * job and step resolve in the workflow.
+         */
+        let named_test = entry.is_some_and(|e| {
+            let file = store.project.root.join(&e.failing_direction_test.path);
+            std::fs::read_to_string(&file).is_ok_and(|text| {
+                text.contains(&format!("fn {}(", e.failing_direction_test.test_name))
+            })
+        });
+        let invoked = entry.is_some_and(|e| {
+            e.has_blocking_ci()
+                && e.invoked_by.iter().any(|i| {
+                    i.surface == vds_core::InvokedBy::CiWorkflow
+                        && i.blocking
+                        && resolve_ci_reference(&store.project.root, &i.reference).is_none()
+                })
+        });
         let automatic = last
             .as_ref()
             .is_some_and(|r| r.capture_mode == vds_core::CaptureMode::Automatic);
@@ -164,10 +190,10 @@ fn d2(store: &Store) -> Result<Row> {
                 why.push("not implemented");
             }
             if !named_test {
-                why.push("no lock entry naming a failing-direction test");
+                why.push("no lock entry whose named failing-direction test resolves");
             }
             if !invoked {
-                why.push("no invocation");
+                why.push("no blocking ci_workflow invocation that resolves to a real step");
             }
             if !has_run {
                 why.push("no run with rows_enforced > 0");
@@ -200,12 +226,39 @@ fn d2(store: &Store) -> Result<Row> {
 
 fn d3(store: &Store) -> Result<Row> {
     let census = store.proof_census()?;
+    /*
+     * DERIVED from rows_enforced, not read off `status`.
+     *
+     * This filtered on `status == Vacuous` alone - and a record saying `status: passed`
+     * over `rows_enforced: 0` IS a vacuous pass, which is the exact thing this criterion is
+     * named for. Measured 2026-07-30: relabelling one record's status while leaving its rows
+     * at zero made D3 stop flagging that kind altogether.
+     *
+     * So the count is the evidence and the label is corroboration. A record whose two
+     * disagree is reported as its own problem rather than being quietly resolved in favour
+     * of either, because that disagreement means something wrote a record it had not earned
+     * and nothing else in the system is looking for it.
+     */
     let vacuous: Vec<String> = census
         .iter()
         .filter_map(|(kind, (_, last))| {
-            last.as_ref()
-                .filter(|r| r.status == ProofStatus::Vacuous)
-                .map(|r| format!("{kind}: {} is vacuous", r.id))
+            let r = last.as_ref()?;
+            let says_vacuous = r.status == ProofStatus::Vacuous;
+            let enforced_nothing = r.rows_enforced == 0;
+            match (says_vacuous, enforced_nothing) {
+                (_, true) if says_vacuous => Some(format!("{kind}: {} is vacuous", r.id)),
+                (false, true) => Some(format!(
+                    "{kind}: {} reports {} over rows_enforced: 0, which is a vacuous pass \
+                     wearing another label",
+                    r.id, r.status
+                )),
+                (true, false) => Some(format!(
+                    "{kind}: {} is labelled vacuous but enforced {} rows; the record and its \
+                     own count disagree",
+                    r.id, r.rows_enforced
+                )),
+                _ => None,
+            }
         })
         .collect();
     Ok(Row {
@@ -221,7 +274,7 @@ fn d3(store: &Store) -> Result<Row> {
         } else {
             vacuous
         },
-        settled_by: "a scan over .vds/proofs/",
+        settled_by: "rows_enforced in the most recent record per kind, with `status` as corroboration",
     })
 }
 
@@ -892,6 +945,51 @@ mod tests {
             resolve_ci_reference(root, "make gates")
                 .expect("a reference naming no job must be refused")
                 .contains("does not name a job"),
+        );
+    }
+    /// D3's whole name is "no vacuous passes", and it read the LABEL.
+    ///
+    /// A record saying `status: passed` over `rows_enforced: 0` is a vacuous pass. Measured
+    /// 2026-07-30: relabelling one record while leaving its rows at zero made D3 stop
+    /// flagging that kind. The count is the evidence; the label is corroboration.
+    #[test]
+    fn a_pass_over_zero_rows_is_still_a_vacuous_pass() {
+        // The classifier D3 applies, exercised over the four combinations that matter. Kept
+        // as a pure function of (status, rows) so the arms are readable and the honest cases
+        // are asserted alongside the dishonest ones - a rule that flagged everything would
+        // pass every negative arm and prove nothing.
+        let classify = |status: ProofStatus, rows: u64| -> Option<&'static str> {
+            let says_vacuous = status == ProofStatus::Vacuous;
+            match (says_vacuous, rows == 0) {
+                (_, true) if says_vacuous => Some("vacuous"),
+                (false, true) => Some("vacuous pass wearing another label"),
+                (true, false) => Some("record disagrees with its own count"),
+                _ => None,
+            }
+        };
+
+        // The honest cases: nothing to report.
+        assert_eq!(
+            classify(ProofStatus::Passed, 12),
+            None,
+            "a real pass over real rows is fine"
+        );
+
+        // Labelled vacuous over zero rows: reported, as it always was.
+        assert_eq!(classify(ProofStatus::Vacuous, 0), Some("vacuous"));
+
+        // THE DEFECT. Passed over zero rows had to be reported and was not.
+        assert_eq!(
+            classify(ProofStatus::Passed, 0),
+            Some("vacuous pass wearing another label"),
+            "a pass over zero rows is the vacuous pass this criterion is named for"
+        );
+
+        // And the inverse disagreement, which means something wrote a record it had not
+        // earned. Resolving it silently in favour of either field would hide that.
+        assert_eq!(
+            classify(ProofStatus::Vacuous, 7),
+            Some("record disagrees with its own count")
         );
     }
 }

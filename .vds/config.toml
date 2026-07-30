@@ -63,6 +63,14 @@ component_extensions = ["tsx", "jsx"]
 # counts them toward no criterion.
 permit_required = [
   "crates/vds-proof/**",
+  # The criteria machinery itself. It was on NEITHER list: not pinned in
+  # enforcement.lock, not covered here, while every proof it reports on was on both.
+  # D2, D3 and D4 were all weakened and then strengthened on 2026-07-30 and no drift
+  # finding fired, because nothing watches the file that decides whether the gates work.
+  # A reporting surface outside the enforcement surface is the one place a weakening is
+  # invisible: change a proof and the lock objects, change the thing that grades the
+  # proofs and nothing does.
+  "crates/vds-cli/src/doctor.rs",
   "crates/vds-core/src/types/**",
   "VDS.md",
   "designpack/**",
