@@ -76,6 +76,14 @@ const FIGMA_NODES = {
   team: '16:82',
   contact: '16:107',
   notfound: '16:119',
+  // The five SaaS app components, built in code and in Figma together. Master-Detail
+  // is an assembly in both places: the Figma set is made of INSTANCES of the other
+  // four, exactly as masterdetail.js calls their render functions.
+  facetstrip: '28:29',
+  objecttable: '28:71',
+  objectview: '29:50',
+  inspector: '29:79',
+  masterdetail: '31:138',
 };
 
 // The surface a site-factory project actually has. Every value here is a path that

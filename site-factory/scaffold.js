@@ -57,7 +57,14 @@ function scaffold({ name, blocks, style, outDir: outDirOverride }) {
 
   // Copy only the block TYPES actually used — not the whole bank. A new project owns exactly
   // what it asked for, nothing it didn't.
-  const typesUsed = [...new Set(entries.map((e) => e.type))];
+  //
+  // ...plus whatever those types require. An ASSEMBLY block (masterdetail) calls its
+  // sibling blocks rather than restating their markup, so copying only the named types
+  // produced a project that scaffolded clean and then died at build with
+  // MODULE_NOT_FOUND on ./objecttable.js. The dependency list is DERIVED by reading the
+  // require() calls out of the source, never stored alongside it: a hand-kept list is
+  // one more thing that can disagree with the code, and it would disagree silently.
+  const typesUsed = collectWithDeps(entries.map((e) => e.type));
   for (const type of typesUsed) {
     const src = path.join(BLOCKS_DIR, `${type}.js`);
     if (!fs.existsSync(src)) throw new Error(`no block type "${type}" in ${BLOCKS_DIR}`);
@@ -100,6 +107,31 @@ Replace the placeholder content in manifests/home.json, then this is a real, ind
 `);
 
   return { outDir, typesUsed, blockCount: entries.length };
+}
+
+/*
+ * Walk `require('./x.js')` edges out of the block sources, transitively.
+ *
+ * Derived, not declared: the answer comes from the same text Node will execute, so it
+ * cannot drift from what the file actually needs. Cycles terminate on the `seen` set,
+ * and a require of something that is not a sibling block is ignored — only files that
+ * live in blocks/ are block dependencies.
+ */
+function collectWithDeps(types) {
+  const seen = new Set();
+  const queue = [...new Set(types)];
+  while (queue.length) {
+    const type = queue.shift();
+    if (seen.has(type)) continue;
+    seen.add(type);
+    const src = path.join(BLOCKS_DIR, `${type}.js`);
+    if (!fs.existsSync(src)) continue; // reported by the copy loop, with a better message
+    const text = fs.readFileSync(src, 'utf8');
+    for (const m of text.matchAll(/require\(['"]\.\/([A-Za-z0-9_-]+)\.js['"]\)/g)) {
+      if (!seen.has(m[1])) queue.push(m[1]);
+    }
+  }
+  return [...seen];
 }
 
 // Accept a bare variant name ("hero-1", "footer-a") and infer its block type from everything
@@ -173,12 +205,65 @@ function placeholderContent(type) {
       heading: 'Get in touch', sub: 'Replace this subhead.', email: 'hello@example.com',
       formAction: '#', ctaLabel: 'Send',
     },
+    facetstrip: {
+      resultLabel: '24 of 128 records',
+      searchAction: '#', searchPlaceholder: 'Filter records',
+      facets: [{ label: 'All', active: true, count: 128 }, { label: 'Open', count: 24 }, { label: 'Closed', count: 104 }],
+      groups: [{ title: 'Status', facets: [{ label: 'Open', active: true }, { label: 'Closed' }] }, { title: 'Owner', facets: [{ label: 'Me' }, { label: 'Anyone' }] }],
+    },
+    objecttable: {
+      heading: 'Records', meta: '128 total', keyColumn: 'Reference',
+      columns: ['Owner', 'Updated'],
+      actionLabel: 'Open',
+      badgeStyle: 'pill',
+      rows: [
+        { key: 'REC-0001', cells: ['Replace me', '2 days ago'], status: { label: 'Open', tone: 'info' }, selected: true, href: '#' },
+        { key: 'REC-0002', cells: ['Replace me', '5 days ago'], status: { label: 'Closed', tone: 'success' }, href: '#' },
+        { key: 'REC-0003', cells: ['Replace me', '1 week ago'], status: { label: 'Blocked', tone: 'danger' }, href: '#' },
+      ],
+    },
+    objectview: {
+      kind: 'Record', title: 'REC-0001', sub: 'Replace this subtitle.',
+      facts: [
+        { label: 'Status', value: 'Open' },
+        { label: 'Owner', value: 'Replace me' },
+        { label: 'Opened', value: '2 days ago' },
+      ],
+      actions: [
+        { label: 'Edit', href: '#' },
+        { label: 'Approve', blocked: true, blockedReason: 'needs a second reviewer' },
+      ],
+      tabs: [{ label: 'Overview', active: true }, { label: 'Activity', count: 12 }, { label: 'Files', count: 3 }],
+    },
+    inspector: {
+      heading: 'Properties',
+      groups: [
+        { title: 'Identity', rows: [{ label: 'Reference', value: 'REC-0001' }, { label: 'Kind', value: 'Record' }] },
+        { title: 'Ownership', rows: [{ label: 'Owner', value: 'Replace me' }, { label: 'Team', value: 'Replace me' }] },
+      ],
+      events: [
+        { when: '2026-07-30 09:14', what: 'Status set to Open', who: 'replace.me' },
+        { when: '2026-07-28 16:02', what: 'Record created', who: 'replace.me' },
+      ],
+    },
     notfound: {
       code: '404', heading: "This page doesn't exist.", sub: 'Replace this subhead.',
       homeHref: '#', homeLabel: 'Back to home',
       searchAction: '#', searchPlaceholder: 'Search',
     },
   };
+
+  // masterdetail is an ASSEMBLY: it calls the other blocks' render functions, so its
+  // placeholder nests their placeholders rather than restating their shapes. Restating
+  // them would mean fixing the same content twice every time a block's fields change.
+  PLACEHOLDERS.masterdetail = {
+    facets: PLACEHOLDERS.facetstrip,
+    master: PLACEHOLDERS.objecttable,
+    detail: PLACEHOLDERS.objectview,
+    inspector: PLACEHOLDERS.inspector,
+    inspectorVariant: 'properties',
+  };
+
   return PLACEHOLDERS[type] || { note: `Fill in content for block type "${type}" — see blocks/${type}.js for the expected shape.` };
 }
 

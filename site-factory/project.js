@@ -30,28 +30,36 @@ function slug(s) {
     .replace(/^-+|-+$/g, '') || 'my-project';
 }
 
-const SAAS_NOTE = 'SaaS route: only the app shell (nav + sidebar) has real code renderers. ' +
-  'The other component decisions are recorded in config.json and SAAS-COMPONENTS.md, not built.';
+const SAAS_NOTE = 'SaaS route: the app-surface blocks are built (nav, sidebar, facetstrip, objecttable, ' +
+  'objectview, inspector, masterdetail). The 102 other cataloged component types are recorded in ' +
+  'SAAS-COMPONENTS.md as decisions, not built.';
 
 function saasComponentSpec(config) {
   const cs = config.componentStyle || {};
   return `# ${config.identity.name} — component spec
 
-This route compiled a real app shell only (nav + sidebar -> dist/home.html), because
-those are the only SaaS-adjacent blocks with actual code renderers today. Everything
-below is a DECISION recorded in config.json, not a build.
+This route compiled a real app surface (dist/home.html) from the seven block types
+that exist in code: nav, sidebar, facetstrip, objecttable, objectview, inspector and
+the masterdetail assembly. Everything below is a DECISION recorded in config.json.
 
 ## componentStyle layer
 ${Object.entries(cs).map(([k, v]) => `- ${k}: ${v}`).join('\n')}
 
-## Built so far (Figma specimens, VDS Site Builder 4pPUFvaPdqYzPquBusSfWl)
+## Built in code (blocks/, 2 variants each)
+- FacetStrip      chips with counts / grouped with search
+- ObjectTable     grid / selectable list, status column honours statusBadgeStyle
+- Object View     header with gated actions / the same plus a tab strip
+- Inspector       property panel / activity trail
+- Master-Detail   two pane / three pane, composed from the four above
+
+## Built as Figma specimens (VDS Site Builder 4pPUFvaPdqYzPquBusSfWl)
 - Gated Action Button (node 20:12) — Style=Enabled / Style=Blocked
 - StatusBadge (node 20:35) — Style=Pill / Style=Dot, matches statusBadgeStyle above
 
-## Cataloged, not built (107 of 109 types)
+## Cataloged, not built (102 of 109 types)
 See the "SaaS Components" page in the same file (roots 19:3, 19:206, 19:348). Priority
-order per Opbox's COMPONENT_INVENTORY.md: FacetStrip -> ObjectTable -> Object View ->
-Inspector -> Master-Detail Assembly.
+order per Opbox's COMPONENT_INVENTORY.md is complete; what remains is the long tail
+across Forms & Inputs, Overlays & Dialogs, Communication and Domain & Commerce.
 `;
 }
 

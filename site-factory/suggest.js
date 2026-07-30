@@ -102,7 +102,7 @@ function suggest(brief) {
       productStrategies: strategies,
       modularPlays: plays,
       sitemap: isSaas
-        ? ['sidebar-2', 'nav-1']
+        ? ['nav-1', 'sidebar-2', 'masterdetail-2']
         : ['nav-1', 'hero-1', 'features-1', 'pricing-1', 'testimonials-1', 'faq-1', 'cta-1', 'footer-a'],
     },
     componentStyle: {

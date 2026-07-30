@@ -86,21 +86,34 @@ function configToTokens(config) {
   return tok;
 }
 
+// The block types that make sense on a SaaS app surface. The route is still
+// narrowed — a marketing pricing table has no place in an app shell — but the
+// narrowing is now to what genuinely exists in code, not to nav+sidebar alone.
+// Opbox's COMPONENT_INVENTORY.md priority order (FacetStrip -> ObjectTable ->
+// Object View -> Inspector -> Master-Detail Assembly) is all built.
+const SAAS_BLOCKS = new Set(['nav', 'sidebar', 'facetstrip', 'objecttable', 'objectview', 'inspector', 'masterdetail']);
+// masterdetail-2 renders its own facet strip from content.facets, so a standalone
+// facetstrip in the same page draws it twice. Verified: the first Atlas Ops build
+// showed two identical strips stacked.
+const SAAS_DEFAULT = ['nav-1', 'sidebar-2', 'masterdetail-2'];
+
 /*
  * Config -> a manifest. Placeholder content per block type, with the identity layer
  * written over the fields it genuinely owns (wordmark, h1, sub, copyright).
  *
- * A SaaS route is narrowed to the blocks that have real code renderers. There are
- * 109 cataloged SaaS component types and only 2 exist as Figma specimens, none as
- * code, so composing a whole app here would be an overclaim.
+ * The SaaS route keeps only app-surface blocks. 107 of the 109 cataloged SaaS
+ * component types still do not exist in code, and SAAS-COMPONENTS.md records them
+ * as decisions rather than claiming they were built.
  */
 function configToManifest(config) {
   const isSaas = config.identity.category === 'saas-app';
   let blocks = config.strategy.sitemap.slice();
   if (isSaas) {
-    const nav = blocks.find((b) => b.startsWith('nav'));
-    const sidebar = blocks.find((b) => b.startsWith('sidebar'));
-    blocks = [nav || 'nav-1', sidebar || 'sidebar-2'];
+    blocks = blocks.filter((b) => SAAS_BLOCKS.has(b.slice(0, b.lastIndexOf('-'))));
+    if (blocks.some((b) => b.startsWith('masterdetail'))) {
+      blocks = blocks.filter((b) => !b.startsWith('facetstrip'));
+    }
+    if (!blocks.length) blocks = SAAS_DEFAULT.slice();
   }
 
   const page = blocks.map((variant) => {
@@ -119,10 +132,18 @@ function configToManifest(config) {
     if (type === 'cta' && config.identity.tagline) {
       content.heading = config.identity.tagline;
     }
+    // componentStyle.statusBadgeStyle reaches the artefact here. Without this the
+    // field would be another control that changes the config and not the page.
+    const badgeStyle = (config.componentStyle || {}).statusBadgeStyle || 'pill';
+    if (type === 'objecttable') content.badgeStyle = badgeStyle;
+    if (type === 'masterdetail' && content.master) content.master.badgeStyle = badgeStyle;
+    if (type === 'objectview') content.title = config.identity.name;
     return { block: type, variant, content };
   });
 
-  return { title: config.identity.name, stylePack: config.palette.basePack, page };
+  const manifest = { title: config.identity.name, stylePack: config.palette.basePack, page };
+  if (isSaas) manifest.layout = 'app';
+  return manifest;
 }
 
 module.exports = { configToTokens, configToManifest, radiusPx, listStylePacks, listBlockVariants, RADIUS };
