@@ -6,8 +6,16 @@
     "ink": "#171717",
     "muted": "#6b6b6b",
     "border": "#e5e5e5",
-    "accent": "#3b82f6",
-    "accentInk": "#ffffff"
+    "accent": "#2970ed",
+    "accentInk": "#ffffff",
+    "danger": "#de1135",
+    "dangerInk": "#ffffff",
+    "warning": "#f6bc2f",
+    "warningInk": "#171717",
+    "success": "#0e8345",
+    "successInk": "#ffffff",
+    "info": "#276ef1",
+    "infoInk": "#ffffff"
   },
   "font": {
     "family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",

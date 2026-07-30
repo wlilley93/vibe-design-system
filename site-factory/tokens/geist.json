@@ -8,7 +8,15 @@
     "muted": "#8f8f8f",
     "border": "#eaeaea",
     "accent": "#0070f3",
-    "accentInk": "#ffffff"
+    "accentInk": "#ffffff",
+    "danger": "#de1135",
+    "dangerInk": "#ffffff",
+    "warning": "#f6bc2f",
+    "warningInk": "#171717",
+    "success": "#0e8345",
+    "successInk": "#ffffff",
+    "info": "#276ef1",
+    "infoInk": "#ffffff"
   },
   "font": {
     "family": "'GeistSans', 'GeistSans Fallback', ui-sans-serif, system-ui, sans-serif",

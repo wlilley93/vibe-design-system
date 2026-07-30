@@ -8,7 +8,15 @@
     "muted": "#6E6862",
     "border": "#CFC8BA",
     "accent": "#A93A24",
-    "accentInk": "#F2EFE8"
+    "accentInk": "#F2EFE8",
+    "danger": "#8c1c24",
+    "dangerInk": "#F2EFE8",
+    "warning": "#a8741a",
+    "warningInk": "#17140F",
+    "success": "#1f5c3a",
+    "successInk": "#F2EFE8",
+    "info": "#2a4a7c",
+    "infoInk": "#F2EFE8"
   },
   "font": {
     "family": "'PP Right Grotesk Compact', ui-sans-serif, system-ui, sans-serif",

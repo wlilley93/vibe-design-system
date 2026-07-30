@@ -270,3 +270,74 @@ test('every enum field moves the output, or is exempt with a stated reason', () 
   assert.deepEqual(dead, [],
     'controls the renderer ignores. Wire them, or add them to NO_SURFACE with the reason:\n  ' + dead.join('\n  '));
 });
+
+/*
+ * The contrast maths, once, so both tests below derive rather than assert.
+ * WCAG 2.2 relative luminance, SC 1.4.3.
+ */
+function contrast(a, b) {
+  const lum = (h) => {
+    const c = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255)
+      .map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  };
+  const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+test('a selector named for a meaning does not resolve to the brand accent', () => {
+  // `.badge--danger` rendered in `--color-accent`. So did an invalid field's border, a
+  // destructive dialog's consequence line and its confirm button. A danger badge and a
+  // "Get started" button were the same colour, which means the page could not say danger.
+  //
+  // The drift is the interesting part: the Figma VDS Tokens collection ALREADY declared
+  // color/danger, color/warning, color/success and color/info. The code had none of them, so
+  // one half of the system had a vocabulary the other half could not express - exactly what
+  // this repo exists to catch, found in the repo itself.
+  const { STRUCTURE_CSS } = require('../build.js');
+  const MEANS = /danger|error|invalid|consequence|destruct|warning|success/i;
+
+  const offenders = [];
+  let selector = '';
+  for (const line of STRUCTURE_CSS.split('\n')) {
+    const m = line.match(/^([.a-z][^{]*)\{/);
+    if (m) selector = m[1].trim();
+    if (MEANS.test(selector) && /var\(--color-accent(Ink)?\)/.test(line)) {
+      offenders.push(`${selector}: ${line.trim().slice(0, 60)}`);
+    }
+  }
+  assert.deepEqual(offenders, [],
+    `these selectors are named for a meaning and painted with the brand accent:\n  ${offenders.join('\n  ')}`);
+});
+
+test('every tone clears WCAG AA against the ink chosen for it, in every pack', () => {
+  // This is BREACH-0001's own gate, one level down. That breach was a control boundary
+  // DECLARED aligned and never measured, shipping at 1.15:1 across five themes. So no tone
+  // here is asserted: the ratio is computed from the two values in the pack.
+  //
+  // It has already earned itself. Deriving the inks flagged jellytot's danger at 4.17:1, and
+  // the first repair walked the red DARKER against a dark ink, which made it worse and found
+  // no candidate at all. That failure was the loop telling the truth rather than settling for
+  // the closest miss.
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const { listStylePacks } = require('../compose.js');
+
+  const AA = 4.5;
+  const TONES = ['danger', 'warning', 'success', 'info'];
+  const failures = [];
+
+  for (const pack of listStylePacks()) {
+    const c = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'tokens', `${pack}.json`), 'utf8')).colors;
+    for (const tone of TONES) {
+      assert.ok(c[tone], `${pack} declares no ${tone} tone`);
+      assert.ok(c[`${tone}Ink`], `${pack} declares ${tone} with no ${tone}Ink to read it against`);
+      const r = contrast(c[tone], c[`${tone}Ink`]);
+      if (r < AA) failures.push(`${pack}/${tone}: ${c[tone]} on ${c[`${tone}Ink`]} is ${r.toFixed(2)}:1`);
+    }
+    // The brand accent too, since it carries accentInk on every button.
+    const ar = contrast(c.accent, c.accentInk);
+    if (ar < AA) failures.push(`${pack}/accent: ${c.accent} on ${c.accentInk} is ${ar.toFixed(2)}:1`);
+  }
+  assert.deepEqual(failures, [], `tone pairs below WCAG AA ${AA}:1:\n  ${failures.join('\n  ')}`);
+});

@@ -396,8 +396,9 @@ a { color: var(--color-accent); }
 .badge { display: inline-flex; align-items: center; gap: calc(var(--space) * 1.5); line-height: var(--lh-label); font-size: var(--text-xs); font-weight: 600; white-space: nowrap; }
 .badge--pill { padding: calc(var(--space) * 1) calc(var(--space) * 2.5); border-radius: 999px; border: var(--border-weight) solid var(--color-border); background: var(--color-surface); color: var(--color-ink); }
 .badge--dot i { width: calc(var(--space) * 2); height: calc(var(--space) * 2); border-radius: 999px; background: var(--color-accent); display: inline-block; }
-.badge--danger { color: var(--color-accent); }
-.badge--success i, .badge--info i { background: var(--color-accent); }
+.badge--danger { color: var(--color-danger); }
+.badge--success i { background: var(--color-success); }
+.badge--info i { background: var(--color-info); }
 .badge--warning i { background: var(--color-muted); }
 
 .otable { padding: calc(var(--space) * 5) calc(var(--space) * 6); }
@@ -463,8 +464,8 @@ a { color: var(--color-accent); }
 .field__input--area { resize: vertical; min-height: calc(var(--space) * 20); }
 .field__check { width: calc(var(--space) * 4); height: calc(var(--space) * 4); accent-color: var(--color-accent); }
 .field__note { line-height: var(--lh-label); font-size: var(--text-xs); color: var(--color-muted); }
-.field__note--error { color: var(--color-accent); font-weight: 600; }
-.field--invalid .field__input { border-color: var(--color-accent); border-width: calc(var(--border-weight) * 2); }
+.field__note--error { color: var(--color-danger); font-weight: 600; }
+.field--invalid .field__input { border-color: var(--color-danger); border-width: calc(var(--border-weight) * 2); }
 .fieldset__actions { display: flex; align-items: center; gap: calc(var(--space) * 4); grid-column: 1 / -1; margin-top: calc(var(--space) * 2); }
 .fieldset__submit { background: var(--color-accent); color: var(--color-accentInk); border: none; padding: calc(var(--space) * 3) calc(var(--space) * 6); border-radius: var(--radius-sm); font: inherit; line-height: var(--lh-label); font-size: var(--text-sm); font-weight: 600; cursor: pointer; }
 .fieldset__cancel { line-height: var(--lh-label); font-size: var(--text-sm); color: var(--color-muted); text-decoration: none; }
@@ -519,13 +520,13 @@ a { color: var(--color-accent); }
 .cdialog__panel { background: var(--color-bg); border: var(--border-weight) solid var(--color-border); border-radius: var(--radius-lg); box-shadow: var(--shadow); padding: calc(var(--space) * 6); max-width: var(--measure-narrow); width: 100%; }
 .cdialog__title { line-height: var(--lh-heading); font-size: var(--text-md); margin: 0; }
 .cdialog__body { line-height: var(--lh-body); font-size: var(--text-sm); color: var(--color-muted); margin: calc(var(--space) * 3) 0 0; }
-.cdialog__consequence { line-height: var(--lh-body); font-size: var(--text-xs); color: var(--color-accent); font-weight: 600; margin: calc(var(--space) * 3) 0 0; }
+.cdialog__consequence { line-height: var(--lh-body); font-size: var(--text-xs); color: var(--color-danger); font-weight: 600; margin: calc(var(--space) * 3) 0 0; }
 .cdialog__form { margin-top: calc(var(--space) * 4); display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
 .cdialog__label { line-height: var(--lh-label); font-size: var(--text-xs); color: var(--color-muted); }
 .cdialog__input { padding: calc(var(--space) * 2.5) calc(var(--space) * 3); border: var(--border-weight) solid var(--color-border); border-radius: var(--radius-sm); font-family: var(--font-mono); line-height: var(--lh-body); font-size: var(--text-sm); background: var(--color-bg); color: var(--color-ink); }
 .cdialog__actions { display: flex; justify-content: flex-end; gap: calc(var(--space) * 4); align-items: center; margin-top: calc(var(--space) * 5); }
 .cdialog__cancel { line-height: var(--lh-label); font-size: var(--text-sm); color: var(--color-muted); text-decoration: none; }
-.cdialog__confirm { background: var(--color-accent); color: var(--color-accentInk); border: none; text-decoration: none; padding: calc(var(--space) * 2.5) calc(var(--space) * 5); border-radius: var(--button-radius); font: inherit; line-height: var(--lh-label); font-size: var(--text-sm); font-weight: 600; cursor: pointer; }
+.cdialog__confirm { background: var(--color-danger); color: var(--color-dangerInk); border: none; text-decoration: none; padding: calc(var(--space) * 2.5) calc(var(--space) * 5); border-radius: var(--button-radius); font: inherit; line-height: var(--lh-label); font-size: var(--text-sm); font-weight: 600; cursor: pointer; }
 
 /* The app shell: sidebar as a rail beside the content, not a band above it. */
 .shell { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; min-height: 0; }

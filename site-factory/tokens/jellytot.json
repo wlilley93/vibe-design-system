@@ -1,6 +1,6 @@
 {
   "name": "jellytot",
-  "_source": "Real values from the live 'Jellytot · Brand' Figma variable collection (15 tokens), as documented in ~/Projects/Jellytot/docs/HANDOVER-brand-2026-07-28.md lines 53-59. Radius is NOT a decided brand fact yet (that question is still open as of 2026-07-30), so it is left at a neutral default rather than fabricated as settled. Font is the pairing named at line 91/329 of the same doc: PP Right Grotesk (sans, H1/body) + PP Acma (serif, H2) - PP Acma is not wired into this schema (only one display family + one mono slot exist here) so it is left as a documented gap, not silently dropped.",
+  "_source": "Real values from the live 'Jellytot \u00b7 Brand' Figma variable collection (15 tokens), as documented in ~/Projects/Jellytot/docs/HANDOVER-brand-2026-07-28.md lines 53-59. Radius is NOT a decided brand fact yet (that question is still open as of 2026-07-30), so it is left at a neutral default rather than fabricated as settled. Font is the pairing named at line 91/329 of the same doc: PP Right Grotesk (sans, H1/body) + PP Acma (serif, H2) - PP Acma is not wired into this schema (only one display family + one mono slot exist here) so it is left as a documented gap, not silently dropped.",
   "colors": {
     "bg": "#FFF8E7",
     "surface": "#F5EFE0",
@@ -8,7 +8,15 @@
     "muted": "#7A7286",
     "border": "#E4DCC6",
     "accent": "#6B4C9A",
-    "accentInk": "#FFF8E7"
+    "accentInk": "#FFF8E7",
+    "danger": "#e83e39",
+    "dangerInk": "#1C0D30",
+    "warning": "#f6bc2f",
+    "warningInk": "#1C0D30",
+    "success": "#1f9d55",
+    "successInk": "#1C0D30",
+    "info": "#3490dc",
+    "infoInk": "#1C0D30"
   },
   "font": {
     "family": "'PP Right Grotesk', ui-sans-serif, system-ui, sans-serif",
