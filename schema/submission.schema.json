@@ -231,6 +231,30 @@
         "breaking"
       ]
     },
+    "ArrangementContract": {
+      "description": "What arrangement this screen requires. A requirement, never a realisation.",
+      "type": "object",
+      "required": [
+        "columns"
+      ],
+      "properties": {
+        "columns": {
+          "description": "How many side-by-side content PANES the screen requires, left to right.\n\nA count, not a width. See the module note: a width is a realisation and has nowhere to live here.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "regions": {
+          "description": "The named regions the screen requires, in the project's own vocabulary (`rail`, `cmdbar`, `body`, `statusbar` in the subject this was derived from).\n\nFree strings and not an enum, because the region vocabulary is the SUBJECT's and not VDS's. A closed set here would be VDS deciding what a screen is made of, which is the fourth authority [2026] VJS-CC-OPBOX 3 forbids. The generator is told which names to look for through `[screens] region_names` in the project config, so the two halves read one list.",
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "AssentSource": {
       "type": "string",
       "enum": [
@@ -373,6 +397,28 @@
         },
         "status": {
           "$ref": "#/definitions/ProofStatus"
+        }
+      },
+      "additionalProperties": false
+    },
+    "FigmaFrame": {
+      "description": "The frame a screen record is drawn by.\n\nDeliberately NOT [`super::FigmaNode`], even though the fields coincide today. A node is a component set and carries variants; a frame is a screen drawing and carries an authority layer. Sharing the type would make a screen record and a component record interchangeable at the seam where they are read, and the first field either one gains that the other must not have would then be an amendment to both.",
+      "type": "object",
+      "required": [
+        "capturedAt",
+        "fileKey",
+        "nodeId"
+      ],
+      "properties": {
+        "capturedAt": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "fileKey": {
+          "type": "string"
+        },
+        "nodeId": {
+          "description": "A Figma node id, `<digits>:<digits>` in a file URL and `<digits>-<digits>` in a deep link. Both spellings are accepted because both are what a designer actually copies.",
+          "type": "string"
         }
       },
       "additionalProperties": false
@@ -590,6 +636,13 @@
           "enum": [
             "no_stored_values"
           ]
+        },
+        {
+          "description": "Each registered screen's required arrangement is the arrangement its authoritative frame draws. The only kind whose subject is a SCREEN.",
+          "type": "string",
+          "enum": [
+            "screen_parity"
+          ]
         }
       ]
     },
@@ -654,6 +707,11 @@
         }
       },
       "additionalProperties": false
+    },
+    "ScreenId": {
+      "description": "A registered screen: one route's ARRANGEMENT requirement, allocated as the highest on disk plus one (VDS S-4(4)).",
+      "type": "string",
+      "pattern": "^SCR-[0-9]{4}$"
     },
     "Severity": {
       "type": "string",

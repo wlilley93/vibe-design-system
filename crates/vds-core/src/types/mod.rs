@@ -1,11 +1,11 @@
-//! The artefact types. VDS holds exactly eight artefact kinds (VDS S-4(1)).
+//! The artefact types. VDS holds exactly nine artefact kinds (VDS S-4(1)).
 //!
 //! Every closed set in the specification is an `enum` here rather than a
 //! validated string. That is the strongest available form of the rule: VDS S-5(3)
 //! says a record "may not invent a tenth" state, and with [`State`] as an enum a
 //! tenth state is not a validation failure but an unrepresentable value. The same
 //! goes for the seven lifecycle statuses (VDS S-5(4)) and the closed registry of
-//! ten proof kinds (VDS S-7(5)).
+//! eleven proof kinds (VDS S-7(5)).
 //!
 //! None of these types can hold a design REALISATION. There is no colour field,
 //! no length field, no font field, no duration field and no easing field anywhere
@@ -17,6 +17,7 @@ mod lock;
 mod log;
 mod pin;
 mod proof;
+mod screen;
 mod submission;
 mod warrant;
 
@@ -25,6 +26,7 @@ pub use lock::*;
 pub use log::*;
 pub use pin::*;
 pub use proof::*;
+pub use screen::*;
 pub use submission::*;
 pub use warrant::*;
 

@@ -22,10 +22,14 @@ pub mod schema_util;
 pub mod timestamp;
 pub mod types;
 
-pub use config::{Config, Governance, PathRole, Paths, SurfaceConfig, default_config};
+pub use config::{
+    Config, Governance, PathRole, Paths, ScreensConfig, SurfaceConfig, default_config,
+};
 pub use digest::{Digest, canonical_json, digest_rows};
 pub use error::{EXIT_PASSED, EXIT_PRECONDITION, EXIT_VACUOUS, EXIT_VIOLATION, Result, VdsError};
-pub use ids::{BreachId, ComponentId, DecisionId, PinId, ProofId, SubmissionId, WarrantId};
+pub use ids::{
+    BreachId, ComponentId, DecisionId, PinId, ProofId, ScreenId, SubmissionId, WarrantId,
+};
 pub use project::{Project, write_atomically, write_text_atomically, yaml_files};
 pub use timestamp::Timestamp;
 pub use types::*;
@@ -104,6 +108,14 @@ mod tests {
             (
                 "enforcement-lock-entry",
                 serde_json::to_string(&generator.root_schema_for::<LockEntry>()).unwrap(),
+            ),
+            // The screen record is the artefact most at risk of this, because
+            // the arrangement it describes is naturally spoken about in widths:
+            // the prior art it derives from records a frame's columns as
+            // `[924, 420]`. It holds a COUNT.
+            (
+                "screen-record",
+                serde_json::to_string(&generator.root_schema_for::<ScreenRecord>()).unwrap(),
             ),
         ];
         // Property NAMES only. A description may legitimately use the word

@@ -210,20 +210,26 @@ ignored. A governance record that is gitignored is not a record.
 
 ## S-4 The artefact set
 
-**S-4(1)** VDS holds exactly eight artefact kinds. Six have a JSON Schema under `schema/`,
+**S-4(1)** VDS holds exactly nine artefact kinds. Seven have a JSON Schema under `schema/`,
 and a file that does not validate against its schema is not an artefact of that kind. The
 remaining two, the decision log and the breach report, are ADOPTED from VJS and are validated
 against VJS's schemas rather than redefined here; saying "each has a schema under `schema/`"
-was wrong, because two of the eight never did.
+was wrong, because two of the nine never did.
 
-The six schemas are GENERATED from the implementation's types and are not maintained beside
-them. A hand-written schema and a hand-written parser are two opinions about one shape, and
-two opinions drift; `vds schema check` regenerates and diffs, so a divergence is a failing
-check rather than a discovery months later.
+The seven schemas are GENERATED from the implementation's types and are not maintained
+beside them. A hand-written schema and a hand-written parser are two opinions about one
+shape, and two opinions drift; `vds schema check` regenerates and diffs, so a divergence is
+a failing check rather than a discovery months later.
+
+The ninth kind, the SCREEN RECORD, was added by amendment on 2026-07-30 under S-7(6). The
+reason is recorded at S-5A(1) and is not a matter of completeness: every artefact kind before
+it described a COMPONENT, so a page could render only registered components, each in an
+enforceable status, arranged in a way its frame does not draw, and every proof stayed green.
 
 | artefact | path | schema | what it is |
 |---|---|---|---|
 | component record | `.vds/register/<id>.yaml` | `component-record.schema.json` | one registered component, its contract and its lineage |
+| screen record | `.vds/screens/<id>.yaml` | `screen-record.schema.json` | one governed screen and the ARRANGEMENT it requires |
 | warrant | `.vds/warrants/<id>.yaml` | `warrant.schema.json` | a stage gate granted on an evidence digest |
 | proof result | `.vds/proofs/<id>.yaml` | `proof-result.schema.json` | machine output a warrant was granted against |
 | pin | `.vds/pins/<id>.yaml` | `pin.schema.json` | a derived one-way agreement assertion between two named records |
@@ -299,6 +305,75 @@ set is a violation.
 **S-5(7)** `demand` is measured, never estimated. The record carries the command that
 measured it and the timestamp. A `demand` figure older than its ledger's generation is
 stale and the reconciliation proof says so.
+
+---
+
+## S-5A The screen register
+
+**S-5A(1)** The register at S-5 governs COMPONENTS, and parity is a claim about SCREENS. That
+gap is not a matter of coverage, it is structural: with a component register alone, a page
+that renders only registered components, each in an enforceable status, in an arrangement its
+frame does not draw, passes every proof at S-7(5)(1) to (10). The evidence is a real one. In
+the subject this amendment was drawn from, a route was marked complete on 2026-07-30 while
+rendering a whole extra column its Figma frame does not draw, and nothing in VDS could have
+seen it, because the two proof kinds that say the word "screen" read a screen's REFERENCES
+(which components it names, at which line) and never its arrangement.
+
+**S-5A(2)** One record per governed screen, per `schema/screen-record.schema.json`. The
+record holds: the screen's own name for itself (a route, a path), a lifecycle status from
+S-5(4), the frame in the decided-target file that DRAWS it, and an arrangement contract.
+
+**S-5A(3)** The arrangement contract holds a COUNT of side-by-side content panes and a list of
+region NAMES. It may not hold a width, a height or any other length, because S-2(4) admits a
+requirement and refuses a realisation and a width is the design's own answer. The prior art
+this is drawn from records a frame's columns as `[924, 420]`; under `.vds/**` that is the
+storing form S-2(2) prohibits, `no_stored_values` would fail on it, and it would go on failing
+forever on a file VDS wrote itself, because a record is never deleted (S-9(1)).
+
+**S-5A(4)** A screen with no split requires ONE column and never zero. One register for both
+sides: where the two halves of a comparison count different things, agreement reads as a
+deviation, and the prior art scored a route `frame=0 code=1` for agreeing. A contract of zero
+columns is refused by the proof under S-7(2)(4), because no arrangement can render fewer than
+zero panes and a requirement nothing can fail is not a requirement. A contract above the
+ceiling the implementation fixes is refused for the twin reason: a row that can never pass is
+the one people route around, and they take the other checks with them.
+
+**S-5A(5)** The AUTHORITY of a frame is read from its layer names, and a frame is not one
+drawing. It carries several and says which one governs. The vocabulary belongs to the project
+that drew it and is configured, never fixed here; fixing it would make VDS an authority on
+what a design file may call its own layers, which is the fourth authority
+[2026] VJS-CC-OPBOX 3 forbids. A frame may also DISCLAIM ITSELF, saying in its own name that
+it is not source-current or was never built. Such a frame states no contract, and a difference
+measured against one is real and means nothing.
+
+**S-5A(6)** The frame ledger is generated out of band from a SAVED capture and is a ledger
+under S-4(2), with a staleness test. It records the CAPTURE DEPTH it derived and marks every
+reading taken at that boundary. This is not caution. A Figma response carries no flag saying a
+subtree was cut off, so a childless node at the capture depth and a genuinely empty one are
+the same bytes, and only the depth asked for knows the difference. "The frame draws nothing
+here" and "we did not look" may not be the same value, and a reading taken at the boundary may
+not be enforced against.
+
+**S-5A(7)** COVERAGE IS PART OF THE RESULT. The screen proof reports, per run, how many
+registered screens were SCORED, how many were UNSCORED, and how many were EXCLUDED, and a run
+whose tally does not account for every screen it considered is a precondition failure rather
+than a pass. UNSCORED means a requirement exists and the run could not measure it, and every
+one is a violation. EXCLUDED means the DESIGN states nothing to measure against, which is a
+different fact and is not a failure. The rule exists because a screen gate that measures the
+routes it happens to understand and prints a clean pass is the exact failure this whole
+capability was added to prevent: the prior art's own gate scored 32% of routes and would have
+reported zero deviations while 75 routes with a real multi-column contract were never compared
+once.
+
+**S-5A(8)** The CODE side is a seam and not a rule. A route's column count is the SUM of the
+contribution of every node on the path from the route entry to the leaf: the innermost layout
+component, every enclosing layout, and any shell whose count is fixed in the component rather
+than in a prop. Reading that requires parsing the subject's own layout components and there is
+no general answer, so the implementation states an interface a subject implements and VDS sums
+what it returns. A node the subject cannot read makes the total UNKNOWN and the screen
+UNSCORED, never a smaller number: contributing zero for a node nobody understood is
+indistinguishable from a node that genuinely adds nothing, and the screen would then be scored
+against a total that is quietly too low and passed.
 
 ---
 
@@ -404,6 +479,12 @@ that is the honest description of where they stand.
 | `retirement_drain` | a component proposed for retirement has zero remaining consumers, S-9 |
 | `ledger_staleness` | each generated ledger is current with its source, S-4(2) |
 | `no_stored_values` | `.vds/**` holds no realisation AND yields none under the S-2(9) recovery test, S-2(8) |
+| `screen_parity` | each registered screen's required arrangement is the one its authoritative frame draws, S-5A |
+
+The eleventh kind was added by amendment on 2026-07-30, by the route S-7(6) requires. The
+first ten all read a COMPONENT; `register_completeness` and `composition` say "screen" and
+read a screen's REFERENCES. So the arrangement of a page was checked by nothing, and S-5A(1)
+records the defect that made that visible.
 
 **S-7(6)** Adding a proof kind is an amendment to this specification and to the invariant
 registry, not a script anyone may drop in. The registry is closed for the same reason VJS
@@ -617,7 +698,7 @@ it down, which is the state that produced both defects at S-1(4).
 
 **S-14(2)** What VDS adds on top of the register is the gating, which is comparatively
 cheap, and the proofs, most of which are small scripts of the kind already written in this
-project. Two of the ten proof kinds exist today in some form.
+project. Two of the eleven proof kinds exist today in some form.
 
 **S-14(3)** What VDS adds in ongoing cost, stated so nobody is surprised: every new
 component needs a record before it may be used; every contract change needs an amendment
@@ -647,7 +728,7 @@ unrepresentable rather than invalid. Where a rule can be made structural it is m
 structural, because a rule enforced at runtime is a rule that can be reached with the check
 disabled.
 
-**S-14A(3)** All ten proof kinds at S-7(5) are implemented. `unimplemented_because` is kept on
+**S-14A(3)** All eleven proof kinds at S-7(5) are implemented. `unimplemented_because` is kept on
 the type rather than deleted: a kind that later has to be withdrawn must record WHY, per kind,
 rather than disappearing from a match arm, and the difference between work and a dependency is
 what tells a reader which it is. What remains unbuilt is a pin GENERATOR: `token_pin` checks a

@@ -36,7 +36,7 @@ Settled by: the `reconciliation` proof result, `status: passed`.
 
 ### D2 Every proof kind in the closed registry is valid on all five limbs of VDS S-7(2)
 
-For each of the ten kinds: a named command, a named test that seeds a violation and asserts
+For each of the eleven kinds: a named command, a named test that seeds a violation and asserts
 the non-zero exit, an `invoked_by` entry in the enforcement lock, `rows_enforced` > 0 on the
 last run, and `capture_mode: automatic`.
 
@@ -119,7 +119,7 @@ vacuous here, and nothing is warranted because VDS is not commenced (VDS S-15).
 | criterion | verdict | measured |
 |---|---|---|
 | D1 register reconciles | UNMET | `reconciliation` last run vacuous, rows_enforced 0: no library directories |
-| D2 all five limbs, all ten kinds | UNMET | 2 of 10. Three kinds unimplemented; five vacuous here |
+| D2 all five limbs, all eleven kinds | UNMET | 2 of 10 at the time of the measurement below. Three kinds were then unimplemented and five vacuous here; the eleventh kind, `screen_parity`, was added by amendment on 2026-07-30 and this table has not been re-measured since. Run `vds doctor` for the live number rather than quoting this row. |
 | D3 no vacuous passes | UNMET | 5 kinds' most recent result is vacuous |
 | D4 every gate invoked by CI | **MET** | 9 pinned gates, every one with a blocking `ci_workflow` invocation |
 | D5 zero enforcement drift | **MET** | every pinned path matches its digest |

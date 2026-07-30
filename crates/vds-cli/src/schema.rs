@@ -5,7 +5,7 @@
 //! is the derive-don't-store rule applied to VDS's own contract, and it closes a
 //! defect the previous arrangement had: a hand-written schema and a hand-written
 //! parser are two opinions about one shape, and two opinions drift. The audit
-//! found exactly that, twice: two of the six committed schemas described fields
+//! found exactly that, twice: two of the then-six committed schemas described fields
 //! no code read, and one described a Figma node id in a form the tool's own help
 //! text told authors to produce and the schema then rejected.
 //!
@@ -19,8 +19,8 @@ use std::path::PathBuf;
 use clap::{Args as ClapArgs, Subcommand};
 use schemars::r#gen::{SchemaGenerator, SchemaSettings};
 use vds_core::{
-    ComponentRecord, EXIT_VIOLATION, LockEntry, Pin, ProofResult, Result, Submission, VdsError,
-    Warrant, write_text_atomically,
+    ComponentRecord, EXIT_VIOLATION, LockEntry, Pin, ProofResult, Result, ScreenRecord, Submission,
+    VdsError, Warrant, write_text_atomically,
 };
 
 use crate::{Context, PASSED};
@@ -72,6 +72,7 @@ fn schemas() -> Result<BTreeMap<&'static str, String>> {
         };
     }
     emit!("component-record", ComponentRecord);
+    emit!("screen-record", ScreenRecord);
     emit!("warrant", Warrant);
     emit!("proof-result", ProofResult);
     emit!("pin", Pin);
@@ -177,9 +178,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn six_schemas_are_generated_and_each_is_valid_json() {
+    fn seven_schemas_are_generated_and_each_is_valid_json() {
         let generated = schemas().unwrap();
-        assert_eq!(generated.len(), 6);
+        assert_eq!(
+            generated.len(),
+            7,
+            "VDS S-4(1): seven of the nine artefact kinds have a schema here. The screen record \
+             is the seventh, added by amendment on 2026-07-30; the decision log and the breach \
+             report are adopted from VJS and validated against its schemas."
+        );
         for (name, text) in &generated {
             let value: serde_json::Value = serde_json::from_str(text)
                 .unwrap_or_else(|e| panic!("{name} is not valid JSON: {e}"));

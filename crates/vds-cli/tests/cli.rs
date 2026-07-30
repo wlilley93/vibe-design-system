@@ -333,8 +333,12 @@ fn a_malformed_figma_node_is_refused_where_the_author_can_act_on_it() {
 
 // -- proofs -----------------------------------------------------------------
 
-/// The registry is closed at ten and every one of them is now built, so `--list`
-/// must name all ten and claim no gap it does not have.
+/// The registry is closed at eleven and every one of them is now built, so
+/// `--list` must name all eleven and claim no gap it does not have.
+///
+/// The list is written out rather than derived from `ProofKind::ALL`, and that
+/// is the point of it: a test that iterated the enum would pass for a kind whose
+/// name `--list` never printed. This is the one place the two are compared.
 #[test]
 fn proof_list_names_the_whole_closed_registry() {
     let f = Fixture::new();
@@ -352,6 +356,7 @@ fn proof_list_names_the_whole_closed_registry() {
         "retirement_drain",
         "ledger_staleness",
         "no_stored_values",
+        "screen_parity",
     ] {
         run.says(kind);
     }

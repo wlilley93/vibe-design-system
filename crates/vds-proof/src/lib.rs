@@ -1,12 +1,12 @@
 //! The proof kinds, and the engine that captures them.
 //!
-//! VDS S-7(5) fixes ten kinds as a CLOSED registry and VDS S-7(6) makes adding
-//! one an amendment to the specification rather than a script anyone may drop
-//! in. That closure is enforced here by construction: [`run`] matches on
+//! VDS S-7(5) fixes eleven kinds as a CLOSED registry and VDS S-7(6) makes
+//! adding one an amendment to the specification rather than a script anyone may
+//! drop in. That closure is enforced here by construction: [`run`] matches on
 //! [`ProofKind`], which is an enum, so a new kind cannot be dispatched without
 //! adding a variant to the type the specification names.
 //!
-//! All ten are implemented. [`ProofKind::unimplemented_because`] returns None
+//! All eleven are implemented. [`ProofKind::unimplemented_because`] returns None
 //! for every one of them, and the type still carries it: a kind that later has to
 //! be withdrawn must say WHY, per kind, rather than disappearing from a match.
 
@@ -26,6 +26,7 @@ pub mod reconciliation;
 pub mod register_completeness;
 pub mod retirement_drain;
 pub mod run;
+pub mod screen_parity;
 pub mod states;
 pub mod token_pin;
 
@@ -106,6 +107,7 @@ pub fn run(kind: ProofKind, ctx: &ProofContext, out: &mut dyn Write) -> Result<O
         ProofKind::LedgerStaleness => ledger_staleness::run(ctx, out),
         ProofKind::NoStoredValues => no_stored_values::run(ctx, out),
         ProofKind::TokenPin => token_pin::run(ctx, out),
+        ProofKind::ScreenParity => screen_parity::run(ctx, out),
     }
 }
 
@@ -214,6 +216,7 @@ pub const GATE_PATHS: &[&str] = &[
     parity::GATE,
     states::GATE,
     token_pin::GATE,
+    screen_parity::GATE,
 ];
 
 /// A timestamp helper for proofs that must record when they measured something.

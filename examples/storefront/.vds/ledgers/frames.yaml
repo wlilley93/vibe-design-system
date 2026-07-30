@@ -1,0 +1,65 @@
+schema_version: 1
+generated_at: 2026-07-30T16:39:01Z
+generated_by: vds figma frames
+file_key: SFDEMO
+capture_depth: 4
+truncated_leaves: 4
+content_digest: sha256:cc81c5707b1f33656bdeed94426d9def27fb215b34e7d2a6c15a7028b0530b4e
+frames:
+- node_id: 100:1
+  frame_name: Screen · /
+  authority_layer: CURRENT SOURCE · / · order queue
+  authority_by: named_layer
+  quarantined: []
+  disclaimed: false
+  regions:
+  - body
+  columns: 1
+  truncated: false
+- node_id: 100:2
+  frame_name: Screen · /settings
+  authority_layer: Screen · /settings
+  authority_by: frame_own_children
+  quarantined: []
+  disclaimed: false
+  regions:
+  - rail
+  - body
+  columns: 2
+  truncated: false
+- node_id: 100:3
+  frame_name: Screen · /checkout
+  authority_layer: CURRENT SOURCE · /checkout · single form
+  authority_by: named_layer
+  quarantined:
+  - LEGACY UNDERLAY · /checkout · two-pane
+  disclaimed: false
+  regions:
+  - body
+  columns: 1
+  truncated: false
+- node_id: 100:4
+  frame_name: LEGACY / TARGET REFERENCE · /experiments · NOT SOURCE CURRENT
+  authority_layer: LEGACY / TARGET REFERENCE · /experiments · NOT SOURCE CURRENT
+  authority_by: frame_own_children
+  quarantined: []
+  disclaimed: true
+  regions:
+  - body
+  columns: 2
+  truncated: false
+- node_id: 100:5
+  frame_name: Screen · /returns
+  authority_layer: Screen · /returns
+  authority_by: frame_own_children
+  quarantined: []
+  disclaimed: false
+  regions:
+  - body
+  columns: 1
+  truncated: false
+notes:
+- derived from a saved nodes response at examples/storefront/figma/frames-SFDEMO.json
+- 'This ledger records frame names, layer names, region names and a COUNT of content columns. It records no width, height, colour, font or radius: those stay in the Figma file, which [2026] VJS-CC-OPBOX 3 D1 makes the system of record for what is decided, and a length under `.vds/**` is the storing form VDS S-2(2) prohibits.'
+- '[capture-depth] the deepest chain in this capture is 4, and 4 leaf node(s) sit at it. A Figma response carries no "this subtree was cut off" flag, so a childless node at that depth and a genuinely empty one are the same bytes. Every frame whose column derivation read one is marked `truncated`, and no proof may enforce such a row: "the frame draws nothing here" and "we did not look" must not be the same value.'
+- '1 frame(s) DISCLAIM THEMSELVES: their authoritative layer says in its own name that it is not source-current, or was never built. Such a frame states no contract, so measuring anything against it produces a difference that is real and means nothing.'

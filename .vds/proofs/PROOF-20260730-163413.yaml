@@ -1,0 +1,23 @@
+id: PROOF-20260730-163413
+kind: screen_parity
+status: vacuous
+warrant_id: null
+command: vds proof screen_parity
+script: crates/vds-proof/src/screen_parity.rs
+script_digest: sha256:9edc31840d63b2bbb25e4ee44b717c4e0df90d3ccccbe2575cec90f3da814c58
+exit_code: 0
+rows_considered: 0
+rows_enforced: 0
+rows_skipped_reasons: {}
+violations: []
+notes:
+- '[reach] this run establishes that each registered screen''s required arrangement is the one its AUTHORITATIVE FRAME draws, in the decided-target file, as of the capture the frame ledger was derived from. It does NOT establish what the code renders. Counting a route''s columns from its source means parsing the subject''s own layout components, and there is no general answer to that: in the subject this was derived from it took an AST pass over one component''s three pane props PLUS the rails contributed by every enclosing layout, and both halves were defects before they were features. A subject that can read its own arrangement supplies an `ArrangementSource` and the same rules run over it. Until it does, a pass here is a pass about the FRAME, and saying so is the point: three separate numbers in the subject were reported as parity and none of them was.'
+- '[coverage] 0 of 0 registered screen(s) were SCORED (0%). 0 UNSCORED: a requirement exists and this run could not measure it, which is a finding and never a pass. 0 EXCLUDED: the design states nothing to measure against, which is a different fact from the code being wrong.'
+- no screen is registered and no frame ledger exists, so this run considered nothing. Register a screen with `vds screen add` and capture its frame with `vds figma frames`.
+inputs_digest: sha256:9c81a577f884c5566e125d3cad27f5456d4397354027a40fb77eaa11ead7809c
+digest: sha256:dee0d0e6f8ec47ec1860037afca83a3a7d0e42ce82f70b3e8f8dae114cf5ce2b
+designpack_digest: sha256:f9c369f3175c15169dafde47c01d7efc2f45c64090444f17f5b3f480e710ec5a
+captured_at: 2026-07-30T16:34:03Z
+capture_mode: automatic
+invoked_by: package_script
+duration_ms: 0

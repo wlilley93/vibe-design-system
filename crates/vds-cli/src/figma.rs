@@ -46,8 +46,31 @@ enum FigmaAction {
     /// inside a proof, so this runs out of band and the proofs read what it
     /// wrote.
     Pull(PullArgs),
+    /// Derive the SCREEN FRAME ledger from saved `nodes` captures.
+    ///
+    /// The other half of the Figma seam, and the one `screen_parity` reads.
+    /// `pull` records the file's COMPONENT sets; this records what its SCREEN
+    /// frames draw. Both are ledger generators run out of band, because
+    /// VDS S-7(2)(1) forbids a network call inside a proof.
+    ///
+    /// There is deliberately no API transport here. A screen file's frames come
+    /// in batches with an ids list in the query string, and building that
+    /// batching into VDS would put a retry loop, a resume and a rate limit
+    /// inside a governance tool. The capture is the subject's to run, with its
+    /// own token, and this reads what it wrote.
+    Frames(FramesArgs),
     /// Report what the ledger says, and what it cannot say.
     Status,
+}
+
+#[derive(ClapArgs)]
+pub struct FramesArgs {
+    /// The decided-target file. Defaults to the one every SCREEN record names.
+    #[arg(long)]
+    file_key: Option<String>,
+    /// One or more saved `GET /v1/files/:key/nodes` responses.
+    #[arg(long, value_name = "PATH", required = true, num_args = 1..)]
+    from: Vec<PathBuf>,
 }
 
 #[derive(ClapArgs)]
@@ -195,6 +218,7 @@ pub fn run_figma(ctx: &Context, args: &FigmaArgs) -> Result<i32> {
     let store = Store::new(&project);
     match &args.action {
         FigmaAction::Pull(pull_args) => pull_command(&store, pull_args),
+        FigmaAction::Frames(frames_args) => frames_command(&project, &store, frames_args),
         FigmaAction::Status => status(&store),
     }
 }
@@ -448,4 +472,62 @@ fn emit(text: &str, out: &Option<PathBuf>) -> Result<()> {
             Ok(())
         }
     }
+}
+
+// ----------------------------------------------------------- vds figma frames
+
+/// Derive the frame ledger from saved captures.
+///
+/// Every number in it is derived and nothing is asserted: re-running against a
+/// fresh capture is the only way to change it, which is what makes it a ledger
+/// (VDS S-4(2)) rather than a record somebody maintains.
+fn frames_command(project: &vds_core::Project, store: &Store, args: &FramesArgs) -> Result<i32> {
+    let file_key = match &args.file_key {
+        Some(key) => key.clone(),
+        None => vds_figma::frames::declared_file_key(store)?.ok_or_else(|| {
+            VdsError::precondition(
+                "no screen record names a Figma file, so there is no decided-target file to \
+                 derive a frame ledger from.\n  Register a screen with: \
+                 vds screen add --route <route> --columns <n> --file-key <key> --node-id <id>\n  \
+                 Or name the file here with --file-key.",
+            )
+        })?,
+    };
+
+    let ledger = vds_figma::frames::from_saved(&file_key, &args.from, &project.config.screens)?;
+    let path = vds_figma::frames::write(project, &ledger)?;
+
+    let disclaimed = ledger.frames.iter().filter(|f| f.disclaimed).count();
+    let truncated = ledger.frames.iter().filter(|f| f.truncated).count();
+    let quarantined = ledger
+        .frames
+        .iter()
+        .filter(|f| !f.quarantined.is_empty())
+        .count();
+
+    println!("wrote {}", project.rel(&path));
+    println!("  frames:          {}", ledger.frames.len());
+    println!("  capture depth:   {}", ledger.capture_depth);
+    println!("  content_digest:  {}", ledger.content_digest);
+    println!();
+    println!(
+        "  {quarantined} frame(s) carry a layer nobody may build from (a legacy underlay, a \
+         reference, a target). They are RECORDED rather than dropped: \"this route has a \
+         legacy underlay\" is exactly the fact a reader needs in order to not build from it."
+    );
+    println!(
+        "  {disclaimed} frame(s) DISCLAIM THEMSELVES, so they state no contract and \
+         screen_parity excludes them rather than measuring a difference that means nothing."
+    );
+    if truncated > 0 {
+        println!();
+        println!(
+            "  {truncated} frame(s) derived their column count from a subtree that reaches the \
+             CAPTURE BOUNDARY, and screen_parity will report each as a finding rather than \
+             scoring it. A response carries no \"cut off here\" flag, so \"draws nothing\" \
+             and \"we did not look\" are the same bytes and only the depth asked for knows \
+             the difference. Re-capture deeper."
+        );
+    }
+    Ok(PASSED)
 }

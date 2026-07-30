@@ -21,8 +21,8 @@ use serde::de::DeserializeOwned;
 use vds_core::{
     BreachReport, ComponentId, ComponentRecord, DecisionLog, Digest, EnforcementLock,
     LOCK_FILE_NAME, LOCK_SCHEMA_VERSION, PathRole, Pin, Project, ProofId, ProofKind, ProofResult,
-    Result, Stage, Submission, Timestamp, VdsError, Warrant, WarrantId, WarrantStatus,
-    write_text_atomically, yaml_files,
+    Result, ScreenId, ScreenRecord, Stage, Submission, Timestamp, VdsError, Warrant, WarrantId,
+    WarrantStatus, write_text_atomically, yaml_files,
 };
 
 pub mod lock;
@@ -165,6 +165,64 @@ impl<'a> Store<'a> {
             }
         }
         Ok(records)
+    }
+
+    // -- the screen register -------------------------------------------------
+
+    pub fn screens_dir(&self) -> PathBuf {
+        self.project.path(PathRole::Screens)
+    }
+
+    pub fn screen_path(&self, id: &ScreenId) -> PathBuf {
+        self.screens_dir().join(format!("{id}.yaml"))
+    }
+
+    /// Every screen record, refusing any entry this reader would not pick up.
+    ///
+    /// The same two guards as [`Self::read_register`], and for the same reason
+    /// rather than by copying: a record in a subdirectory is invisible to every
+    /// count and every digest, so a warrant citing a digest taken over the
+    /// readable subset cannot distinguish two states of the world. A screen
+    /// record hidden that way would take a whole route out of `screen_parity`
+    /// with nothing saying so, which is precisely the shape of the gap this
+    /// artefact exists to close.
+    pub fn read_screens(&self) -> Result<Vec<Located<ScreenRecord>>> {
+        self.refuse_unreadable_entries(&self.screens_dir(), "screen record")?;
+        let records: Vec<Located<ScreenRecord>> = self.read_all(&self.screens_dir())?;
+        for record in &records {
+            let expected = format!("{}.yaml", record.value.id);
+            let actual = record
+                .path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or_default();
+            if actual != expected {
+                return Err(VdsError::Artefact {
+                    path: self.project.rel(&record.path),
+                    message: format!(
+                        "is filed as {actual} and carries id {}. One of those is the \
+                         identifier and nothing says which, so this is refused rather than \
+                         guessed (VDS S-4(4)). Rename the file to {expected}.",
+                        record.value.id
+                    ),
+                });
+            }
+        }
+        Ok(records)
+    }
+
+    pub fn read_screen(&self, id: &ScreenId) -> Result<Located<ScreenRecord>> {
+        let path = self.screen_path(id);
+        if !path.is_file() {
+            return Err(VdsError::precondition(format!(
+                "no screen record at {}",
+                self.project.rel(&path)
+            )));
+        }
+        Ok(Located {
+            value: self.read(&path)?,
+            path,
+        })
     }
 
     /// Refuse any entry in a record directory this reader would not pick up.

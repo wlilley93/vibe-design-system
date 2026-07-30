@@ -33,6 +33,7 @@ mod proof;
 mod prune;
 mod register;
 mod schema;
+mod screen;
 mod warrant;
 
 #[derive(Parser)]
@@ -69,6 +70,13 @@ enum Command {
     /// Boxed: `register` takes more arguments than any other subcommand, and an
     /// unboxed variant makes every `Command` the size of this one.
     Register(Box<register::Args>),
+    /// Register a screen's ARRANGEMENT requirement.
+    ///
+    /// A separate front door from `register`, because a screen and a component
+    /// are different subjects: a screen record holds no props, no states and no
+    /// contrast floor, and folding them together would make "how many
+    /// components are registered" a question nobody could answer by counting.
+    Screen(screen::Args),
     /// Run one proof kind, or every implemented kind.
     /// The governance logs: a decisive call, or a self-reported breach.
     Log(log::Args),
@@ -120,6 +128,7 @@ fn dispatch(cli: &Cli) -> Result<i32> {
         Command::Init(args) => init::run(&ctx, args),
         Command::Ledger(args) => ledger::run(&ctx, args),
         Command::Register(args) => register::run(&ctx, args),
+        Command::Screen(args) => screen::run(&ctx, args),
         Command::Log(args) => log::run(&ctx, args),
         Command::Pin(args) => figma::run_pin(&ctx, args),
         Command::Proof(args) => proof::run(&ctx, args),

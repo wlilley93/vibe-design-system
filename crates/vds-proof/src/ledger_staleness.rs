@@ -50,6 +50,8 @@ const RULE_NO_STALENESS_TEST: &str = "VDS S-4(2) ledger_staleness R2: every ledg
      one decays with nothing to say so";
 const RULE_FIGMA_LEDGER: &str = "VDS S-4(2) ledger_staleness R3: the figma ledger is self-consistent, agrees with the file \
      the register names, and is not older than the records that read it";
+const RULE_FRAME_LEDGER: &str = "VDS S-4(2) ledger_staleness R4: the frame ledger is self-consistent, agrees with the file \
+     the screen register names, and is not older than the screen records that read it";
 
 /// What the figma ledger's staleness test can and cannot establish.
 ///
@@ -78,12 +80,31 @@ pub const REGENERATION_NOTE: &str = "the screens ledger's staleness test REGENER
 /// What this run does not reach. Silent narrowing is the defect VDS exists to
 /// catch, so the narrowing is written into the record and not left to a reader
 /// to infer from the row counts.
-pub const REACH_NOTE: &str = "what this run does NOT reach: this build holds one staleness test, the screens ledger's. \
-     For every other file in the ledgers directory it establishes only that no staleness test \
-     exists, never that the file is current, because there is no generator here to re-run \
-     against it. It reaches nothing outside the configured ledgers directory. And where the \
-     declared screens ledger is absent the run is a precondition failure at exit 2, so the \
-     other files in that directory go unexamined rather than passing.";
+/// What the frame ledger's staleness test can and cannot establish.
+///
+/// The same three limbs as the figma ledger's, and the same fourth it cannot,
+/// because it has the same shape of source: a Figma file behind a network call.
+/// It is stated separately rather than shared, because the two ledgers are read
+/// by different proofs and a reader of `screen_parity` is owed the limit of the
+/// ledger IT reads, not a paragraph about a different one.
+pub const FRAME_LEDGER_NOTE: &str = "[frame-ledger] the frame ledger's staleness test settles three things and cannot settle the \
+     fourth. It settles that the ledger is SELF-CONSISTENT (its content digest matches its \
+     contents, so it was not hand-edited), that it agrees with the decided-target file the \
+     SCREEN register names, and that it is not OLDER than the screen records that read it. It \
+     cannot settle whether the decided-target file has changed since the capture, because that \
+     is a network read VDS S-7(2)(1) forbids inside a proof. It also cannot settle whether the \
+     capture went DEEP ENOUGH: the ledger records the depth it derived and marks every reading \
+     taken at the boundary, and `screen_parity` refuses to enforce those rows, which is the \
+     furthest an offline test can go.";
+
+pub const REACH_NOTE: &str = "what this run does NOT reach: this build holds one REGENERATING staleness test, the screens \
+     ledger's. The figma ledger (R3) and the frame ledger (R4) have self-consistency tests \
+     instead, because their source is behind a network call and there is no generator here to \
+     re-run against it. For every other file in the ledgers directory it establishes only that \
+     no staleness test exists, never that the file is current. It reaches nothing outside the \
+     configured ledgers directory. And where the declared screens ledger is absent the run is a \
+     precondition failure at exit 2, so the other files in that directory go unexamined rather \
+     than passing.";
 
 pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
     let project = ctx.project;
@@ -175,6 +196,7 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
     }
 
     let figma_rel = project.rel(&vds_figma::pull::ledger_path(&ctx.store()));
+    let frame_rel = project.rel(&vds_figma::frames::ledger_path(project));
 
     for rel in &ledgers {
         run.row(Verdict::Enforced);
@@ -186,6 +208,16 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
         if rel == &figma_rel {
             run.note(FIGMA_LEDGER_NOTE);
             report_figma_ledger(&mut run, ctx, rel)?;
+            continue;
+        }
+
+        // R4. The frame ledger, added with the eleventh proof kind. Without
+        // this arm it would land in R2's territory and fail as a ledger with no
+        // staleness test, which is the correct answer to a question nobody had
+        // yet answered and the wrong one now that it has a test.
+        if rel == &frame_rel {
+            run.note(FRAME_LEDGER_NOTE);
+            report_frame_ledger(&mut run, ctx, rel)?;
             continue;
         }
 
@@ -356,6 +388,70 @@ fn report_figma_ledger(run: &mut ProofRun, ctx: &ProofContext, rel: &str) -> Res
     run.note(format!(
         "[figma-ledger-age] this ledger was generated at {}, from file {} version {}. Nothing          offline can establish whether that file has changed since.",
         ledger.generated_at, ledger.file_key, ledger.file_version
+    ));
+    Ok(())
+}
+
+/// R4: everything about the frame ledger a local check can settle.
+fn report_frame_ledger(run: &mut ProofRun, ctx: &ProofContext, rel: &str) -> Result<()> {
+    let project = ctx.project;
+    let store = ctx.store();
+    let Some(ledger) = vds_figma::frames::read(project)? else {
+        // Listed in the directory and unreadable as a frame ledger: R2's
+        // territory rather than R4's, and reported there.
+        return Ok(());
+    };
+
+    let declared = vds_figma::frames::declared_file_key(&store)?;
+    if let Err(why) = vds_figma::frames::check_fresh(&ledger, declared.as_deref()) {
+        run.fail(Violation::fatal(
+            rel.to_owned(),
+            RULE_FRAME_LEDGER,
+            "a frame ledger whose content digest matches its own contents and whose file key is \
+             the one the screen register names",
+            format!("{why}"),
+        ));
+        return Ok(());
+    }
+
+    // A screen record pointed at a frame AFTER the capture is a record this
+    // ledger has never seen, so `screen_parity` would report R3 (no row) on a
+    // frame that exists and was simply captured too early. The same shape as
+    // the figma ledger's check above.
+    let mut newer: Vec<String> = Vec::new();
+    for located in store.read_screens()? {
+        if let Some(frame) = &located.value.frame
+            && frame.captured_at.as_str() > ledger.generated_at.as_str()
+        {
+            newer.push(format!("{} at {}", located.value.id, frame.captured_at));
+        }
+    }
+    if !newer.is_empty() {
+        run.fail(Violation::fatal(
+            rel.to_owned(),
+            RULE_FRAME_LEDGER,
+            format!(
+                "a frame ledger generated no earlier than every screen record that reads it, so \
+                 every record has a row in it. This one was generated at {}",
+                ledger.generated_at
+            ),
+            format!(
+                "{} screen record(s) name a frame captured after it: {}. The ledger has never \
+                 seen them, so screen_parity would report them as frames the capture does not \
+                 reach. Regenerate with: {} --from <capture.json>",
+                newer.len(),
+                newer.join(", "),
+                vds_figma::frames::GENERATOR_COMMAND
+            ),
+        ));
+        return Ok(());
+    }
+
+    run.note(format!(
+        "[frame-ledger-age] this ledger was derived at {} from a capture of file {} at depth \
+         {}, in which {} leaf node(s) sat on the boundary. Nothing offline can establish \
+         whether that file has changed since, nor whether the depth was enough.",
+        ledger.generated_at, ledger.file_key, ledger.capture_depth, ledger.truncated_leaves
     ));
     Ok(())
 }
@@ -760,6 +856,57 @@ mod tests {
             "the age has to be on the record so a reader can weigh it: {:?}",
             record.notes
         );
+    }
+
+    /// R4. Without its own arm the frame ledger would fall into R2 and be
+    /// reported as a ledger with no staleness test, which was the right answer
+    /// until it had one.
+    #[test]
+    fn a_frame_ledger_with_a_test_is_not_reported_as_untested() {
+        let h = seeded();
+        h.frames(&[Harness::frame("1:1", "Screen · /x", &["body"], 2)]);
+
+        let (outcome, text) = run_kind(&h, ProofKind::LedgerStaleness);
+        assert_eq!(outcome.exit_code, EXIT_PASSED, "{text}");
+        assert_eq!(outcome.rows_enforced, 2, "one row per ledger: {text}");
+        assert!(text.contains("[frame-ledger]"), "{text}");
+        assert!(text.contains("[frame-ledger-age]"), "{text}");
+    }
+
+    #[test]
+    fn ledger_staleness_fails_on_a_hand_edited_frame_ledger() {
+        let h = seeded();
+        h.frames(&[Harness::frame("1:1", "Screen · /x", &["body"], 2)]);
+        let path = h.root().join(".vds/ledgers/frames.yaml");
+        let text = std::fs::read_to_string(&path).unwrap();
+        std::fs::write(&path, text.replace("columns: 2", "columns: 1")).unwrap();
+
+        let (outcome, text) = run_kind(&h, ProofKind::LedgerStaleness);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("R4"), "{text}");
+        assert!(text.contains("edited after it was generated"), "{text}");
+    }
+
+    /// The same defect R3 catches for the component register: a record pointed
+    /// at a node after the capture is a record the ledger has never seen, and
+    /// `screen_parity` would blame the capture for a frame that exists.
+    #[test]
+    fn ledger_staleness_fails_on_a_frame_ledger_a_screen_record_is_newer_than() {
+        let h = seeded();
+        h.frames(&[Harness::frame("1:1", "Screen · /x", &["body"], 2)]);
+        h.screen_record("SCR-0001", "/x", 2, &[], Some("1:1"));
+        h.amend_screen("SCR-0001", |record| {
+            if let Some(frame) = record.frame.as_mut() {
+                // Far enough ahead to beat the ledger's `generated_at`, which is
+                // `Timestamp::now()` at the moment the fixture wrote it.
+                frame.captured_at = vds_core::Timestamp::fixed(2099, 1, 1, 0, 0, 0);
+            }
+        });
+
+        let (outcome, text) = run_kind(&h, ProofKind::LedgerStaleness);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("captured after it"), "{text}");
+        assert!(text.contains("vds figma frames"), "{text}");
     }
 
     fn write_figma_ledger(h: &Harness, at: &str) {

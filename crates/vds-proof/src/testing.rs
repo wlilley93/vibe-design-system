@@ -14,9 +14,10 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use vds_core::{
-    Accessibility, CodeCounterpart, ComponentId, ComponentRecord, ContrastFloor, Demand,
-    FloorScope, InvokedBy, NameSource, Project, ProofKind, ProofResult, State, StateContract,
-    Status, Timestamp, VdsError, default_config,
+    Accessibility, ArrangementContract, CodeCounterpart, ComponentId, ComponentRecord,
+    ContrastFloor, Demand, FigmaFrame, FloorScope, InvokedBy, NameSource, Project, ProofKind,
+    ProofResult, ScreenId, ScreenRecord, State, StateContract, Status, Timestamp, VdsError,
+    default_config,
 };
 use vds_store::Store;
 
@@ -41,7 +42,7 @@ impl Harness {
     pub fn with_config(config: &str) -> Harness {
         let tmp = tempfile::tempdir().expect("a temporary directory");
         for dir in [
-            "register", "warrants", "proofs", "pins", "ledgers", "logs", "permits",
+            "register", "screens", "warrants", "proofs", "pins", "ledgers", "logs", "permits",
         ] {
             std::fs::create_dir_all(tmp.path().join(".vds").join(dir)).unwrap();
         }
@@ -224,6 +225,193 @@ impl Harness {
         let mut record = store.read_record(id).unwrap().value;
         edit(&mut record);
         store.replace(&store.record_path(id), &record).unwrap();
+    }
+
+    // -- the screen register -------------------------------------------------
+
+    /// A screen record, written THROUGH THE STORE.
+    ///
+    /// The same rule as `register_as` above and for the same reason: a fixture
+    /// that hand-assembles YAML can construct a record the writer would refuse,
+    /// and a proof tested only against impossible records has been tested
+    /// against nothing a user can produce.
+    pub fn screen_record(
+        &self,
+        id: &str,
+        route: &str,
+        columns: u32,
+        regions: &[&str],
+        node_id: Option<&str>,
+    ) -> ScreenId {
+        let id = ScreenId::parse(id).unwrap();
+        let record = ScreenRecord {
+            id: id.clone(),
+            route: route.into(),
+            status: Status::Registered,
+            contract_version: 1,
+            frame: node_id.map(|node_id| FigmaFrame {
+                file_key: "KEY".into(),
+                node_id: node_id.into(),
+                captured_at: Timestamp::fixed(2026, 7, 30, 10, 0, 0),
+            }),
+            arrangement: ArrangementContract {
+                columns,
+                regions: regions.iter().map(|r| (*r).to_owned()).collect(),
+            },
+            basis: vec!["ACT-VDS-001:s5a".into()],
+            notes: None,
+        };
+        let store = self.store();
+        let path = store.screen_path(&id);
+        if path.exists() {
+            store.replace(&path, &record).unwrap();
+        } else {
+            store.create(&path, &record).unwrap();
+        }
+        id
+    }
+
+    pub fn amend_screen(&self, id: &str, edit: impl FnOnce(&mut ScreenRecord)) {
+        let id = ScreenId::parse(id).unwrap();
+        let store = self.store();
+        let mut record = store.read_screen(&id).unwrap().value;
+        edit(&mut record);
+        store.replace(&store.screen_path(&id), &record).unwrap();
+    }
+
+    // -- the frame ledger ----------------------------------------------------
+
+    /// One screen frame, drawn as `columns` disjoint panes inside a `body`.
+    ///
+    /// The geometry is written out rather than abstracted because the column
+    /// derivation is geometric: a fixture that produced the count directly
+    /// would test the proof against a number nothing measured.
+    ///
+    /// Each pane carries a child, and that is not decoration. The capture depth
+    /// is DERIVED from the deepest chain present, so a pane drawn as a leaf
+    /// would sit exactly on the boundary and every single-pane fixture would
+    /// read as truncated. A real pane has content in it; a fixture whose shape
+    /// no real capture has is a fixture that tests the wrong thing.
+    pub fn frame(
+        node_id: &str,
+        name: &str,
+        regions: &[&str],
+        columns: u32,
+    ) -> (String, serde_json::Value) {
+        let mut children = Vec::new();
+        for region in regions {
+            let panes: Vec<serde_json::Value> = if *region == "body" {
+                (0..columns)
+                    .map(|i| {
+                        Self::node(
+                            "pane",
+                            f64::from(i) * 400.0,
+                            360.0,
+                            700.0,
+                            serde_json::json!([Self::node(
+                                "content",
+                                f64::from(i) * 400.0,
+                                340.0,
+                                600.0,
+                                serde_json::json!([])
+                            )]),
+                        )
+                    })
+                    .collect()
+            } else {
+                vec![Self::node(
+                    "chrome",
+                    0.0,
+                    200.0,
+                    40.0,
+                    serde_json::json!([]),
+                )]
+            };
+            children.push(Self::node(
+                region,
+                0.0,
+                1440.0,
+                860.0,
+                serde_json::json!(panes),
+            ));
+        }
+        (
+            node_id.to_owned(),
+            Self::node(name, 0.0, 1440.0, 900.0, serde_json::json!(children)),
+        )
+    }
+
+    /// A frame whose content band is CHILDLESS AT the capture boundary.
+    ///
+    /// The prior art's own case: a `children: []` that means "nothing fetched
+    /// this", recorded by the ledger as "draws nothing here". The two are the
+    /// same bytes and only the depth asked for knows the difference.
+    pub fn boundary_frame(node_id: &str, name: &str) -> (String, serde_json::Value) {
+        (
+            node_id.to_owned(),
+            Self::node(
+                name,
+                0.0,
+                1440.0,
+                900.0,
+                serde_json::json!([Self::node(
+                    "body",
+                    0.0,
+                    1440.0,
+                    860.0,
+                    serde_json::json!([Self::node(
+                        "hub",
+                        0.0,
+                        1440.0,
+                        800.0,
+                        serde_json::json!([])
+                    )])
+                )]),
+            ),
+        )
+    }
+
+    fn node(
+        name: &str,
+        x: f64,
+        width: f64,
+        height: f64,
+        children: serde_json::Value,
+    ) -> serde_json::Value {
+        serde_json::json!({
+            "id": "0:0",
+            "name": name,
+            "type": "FRAME",
+            "absoluteBoundingBox": {"x": x, "y": 0, "width": width, "height": height},
+            "children": children,
+        })
+    }
+
+    /// Generate the frame ledger from these frames.
+    pub fn frames(&self, frames: &[(String, serde_json::Value)]) {
+        let mut nodes = serde_json::Map::new();
+        for (node_id, document) in frames {
+            nodes.insert(
+                node_id.clone(),
+                serde_json::json!({"document": document.clone()}),
+            );
+        }
+        self.write_frames_capture(&serde_json::Value::Object(nodes));
+    }
+
+    /// Generate the frame ledger from a raw `nodes` map, for the tests whose
+    /// subject is the capture itself.
+    pub fn write_frames_capture(&self, nodes: &serde_json::Value) {
+        let project = self.project();
+        let body = serde_json::json!({"nodes": nodes}).to_string();
+        let ledger = vds_figma::frames::build_ledger(
+            "KEY",
+            &[body],
+            &project.config.screens,
+            "a test capture",
+        )
+        .expect("the frame ledger generator");
+        vds_figma::frames::write(&project, &ledger).expect("the frame ledger writer");
     }
 
     // -- running proofs ------------------------------------------------------

@@ -88,6 +88,11 @@ lexical_id!(
     "A registered component, allocated as the highest on disk plus one (VDS S-4(4))."
 );
 lexical_id!(
+    ScreenId,
+    r"^SCR-[0-9]{4}$",
+    "A registered screen: one route's ARRANGEMENT requirement, allocated as the highest on disk plus one (VDS S-4(4))."
+);
+lexical_id!(
     WarrantId,
     r"^WARRANT-W[1-4]-[0-9]{3}$",
     "A warrant record. The stage number is part of the identifier so the four series are independent."
@@ -134,6 +139,31 @@ impl ComponentId {
             ));
         }
         Self::parse(format!("CMP-{:04}", highest + 1))
+    }
+}
+
+impl ScreenId {
+    /// The next free screen id, read off disk. VDS S-4(4).
+    ///
+    /// A separate series from `CMP-`, and not a suffix on it, because a screen
+    /// and a component are different subjects: a screen record holds no props,
+    /// no states and no contrast floor, and numbering them together would make
+    /// "how many components are registered" a question nobody could answer by
+    /// counting.
+    pub fn allocate(screens_dir: &Path) -> Result<Self> {
+        let highest = highest_numbered(screens_dir, |stem| {
+            stem.strip_prefix("SCR-")
+                .filter(|rest| rest.len() == 4)
+                .and_then(|rest| rest.parse::<u32>().ok())
+        })?;
+        if highest >= 9999 {
+            return Err(VdsError::Identifier(
+                "the screen id space SCR-0001..SCR-9999 is exhausted. Widening it is an \
+                 amendment to the screen-record schema, not a change to this allocator."
+                    .into(),
+            ));
+        }
+        Self::parse(format!("SCR-{:04}", highest + 1))
     }
 }
 
@@ -290,6 +320,26 @@ mod tests {
             "CMP-0008",
             "allocation takes the maximum plus one, not the count plus one"
         );
+    }
+
+    /// The two series are independent, so registering a screen never consumes a
+    /// component number and a directory of screens does not make the next
+    /// component id jump.
+    #[test]
+    fn screen_ids_are_their_own_series() {
+        assert!(ScreenId::parse("SCR-0001").is_ok());
+        assert!(ScreenId::parse("SCR-1").is_err());
+        assert!(ScreenId::parse("CMP-0001").is_err());
+
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(tmp.path().join("CMP-0009.yaml"), "").unwrap();
+        assert_eq!(
+            ScreenId::allocate(tmp.path()).unwrap().as_str(),
+            "SCR-0001",
+            "a component in the directory is not a screen and must not move the screen series"
+        );
+        std::fs::write(tmp.path().join("SCR-0004.yaml"), "").unwrap();
+        assert_eq!(ScreenId::allocate(tmp.path()).unwrap().as_str(), "SCR-0005");
     }
 
     #[test]

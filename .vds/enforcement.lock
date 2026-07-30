@@ -1,5 +1,5 @@
 schema_version: 1
-generated_at: 2026-07-30T13:57:10Z
+generated_at: 2026-07-30T16:38:22Z
 entries:
 - path: crates/vds-proof/src/composition.rs
   digest: sha256:f0265e72bed6a05c7f524a93e2aad3990739fd48208699032ccb0413d323a078
@@ -40,7 +40,7 @@ entries:
   supersedes_digest: sha256:cb7d188e20124fba772d9a5f84a77d4d1d00fa6e62fce376c2da3006b81f66a5
   relock_rationale: 'Adversarial review found all three new gates unsound; four criticals and five highs are closed. contrast: unclassified_palette_scopes returned empty on a sheet with no :root, so R6 was structurally dead and a palette nothing measured passed at exit 0 (the founding defect through the gate written to catch it); the redactor covered three of six realisation shapes and redacted only a colour function''s head; two findings named the default stylesheet rather than the one read. parity: an extends/intersection props type reported a SUBSET as complete, so R6 fired on inherited props or credited the row as enforced. token_pin: the redaction screen closed hex and left base64 open, the locator was never screened, the evidence digest was keyed on pin.id (which carries generated_at), coverage was reported before the currency check, and Store::read_pins never refused an unreadable entry.'
 - path: crates/vds-proof/src/ledger_staleness.rs
-  digest: sha256:1999023ccc1214d2a10a907b6c2b8b6e64bdcd26c52aa9c41719140c5289bb26
+  digest: sha256:72a23125c57768a7580dbbaef3480d12a86668992454b31d0e6ecae2a0774c03
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -55,10 +55,10 @@ entries:
     path: crates/vds-proof/src/ledger_staleness.rs
     test_name: ledger_staleness_fails_on_a_stale_screens_ledger
     seeds: a screen edited after the ledger was generated
-  pinned_at: 2026-07-30T13:57:10Z
+  pinned_at: 2026-07-30T16:31:59Z
   pinned_by: jellytot
-  supersedes_digest: sha256:a72abd79274246e9b3b35f66d05eac15495d74bd4cb7c912adda92089e5fcdde
-  relock_rationale: Five gates edited in commits 1260462 and eb9313d shipped without a re-pin; self-filed as BREACH-0003. The edits are the vds-scan JSX generic fix and the retirement/collision proof work, both tested (674 workspace tests green). Re-pinning to the reviewed bytes so the lock binds what is actually in the tree.
+  supersedes_digest: sha256:1999023ccc1214d2a10a907b6c2b8b6e64bdcd26c52aa9c41719140c5289bb26
+  relock_rationale: 'The eleventh proof kind, screen_parity, was added by amendment under VDS S-7(6) and needed the frame ledger it reads to have a staleness test. Without an arm of its own that ledger fell into ledger_staleness R2 and was reported as a ledger with no staleness test, which was the correct answer until it had one. R4 settles the same three limbs R3 settles for the figma ledger (self-consistency, agreement with the file the SCREEN register names, and not being older than the records that read it) and states the fourth it cannot reach: whether the captured file has changed, and whether the capture went deep enough.'
 - path: crates/vds-proof/src/no_stored_values.rs
   digest: sha256:09d3675cb7df56e57e39fce8f1f76b7becdc4280c56725fe350bba6924574d85
   kind: proof_script
@@ -175,6 +175,26 @@ entries:
     seeds: a deprecated component still rendered by a route
   pinned_at: 2026-07-25T13:58:22Z
   pinned_by: jellytot
+- path: crates/vds-proof/src/screen_parity.rs
+  digest: sha256:2aa81b074e90449f71ece63c466bb83580265bf65e6f1ce40aa01ea85ecb04c0
+  kind: proof_script
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Proofs
+    blocking: true
+  - surface: package_script
+    reference: make gates
+    blocking: true
+  proves:
+  - screen_parity
+  failing_direction_test:
+    path: crates/vds-proof/src/screen_parity.rs
+    test_name: screen_parity_fails_on_a_screen_with_a_column_its_frame_does_not_draw
+    seeds: a screen requiring three content columns whose authoritative frame draws two, with every component on it registered
+  pinned_at: 2026-07-30T16:38:22Z
+  pinned_by: jellytot
+  supersedes_digest: sha256:9edc31840d63b2bbb25e4ee44b717c4e0df90d3ccccbe2575cec90f3da814c58
+  relock_rationale: 'Pinned before the lint pass. The only change to the gate since is Coverage::line''s percentage, which computed scored*100/total behind a manual zero check and now uses checked_div. The behaviour is identical, including the deliberate choice that a run over zero screens reports 0% rather than 100%: nothing was there to score is not everything was scored.'
 - path: crates/vds-proof/src/states.rs
   digest: sha256:ea03399e412866c99fa577ddc7dea8238ec393697bcf109e92cde079621fcb22
   kind: proof_script

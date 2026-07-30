@@ -80,6 +80,21 @@ vds register amend <id> --kind non_breaking --what "..."
 vds register deprecate <id> --superseded-by <id> | --withdraw
 vds register retire <id> --drain-proof PROOF-...
 
+# The SCREEN register (VDS S-5A). A separate series from the component register,
+# because a screen record holds no props, no states and no contrast floor.
+# `--columns` is a COUNT of content panes and never a width: a width is a
+# realisation and has no field to live in (VDS S-2(4)). A screen with no split
+# requires 1, not 0; 0 is a requirement nothing can fail and the proof refuses it.
+vds screen add --route /settings --columns 2 --regions rail,body \
+    --file-key <key> --node-id 100:2
+vds screen list
+
+# The FRAME ledger, read by screen_parity. Derived out of band from a SAVED
+# `GET /v1/files/:key/nodes` capture, because VDS S-7(2)(1) forbids a network
+# call inside a proof. Capture it yourself, batched, with your own token: there
+# is deliberately no API transport here.
+vds figma frames --file-key <key> --from capture-1.json capture-2.json
+
 # The declared surface and the proofs
 vds ledger screens
 vds proof --list                      # the closed registry, and why three are unbuilt

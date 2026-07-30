@@ -1,9 +1,16 @@
 //! Proof kinds and proof results.
 //!
-//! VDS S-7(5) fixes ten proof kinds as a CLOSED registry, and VDS S-7(6) makes
-//! adding one an amendment to the specification and the invariant registry
+//! VDS S-7(5) fixes eleven proof kinds as a CLOSED registry, and VDS S-7(6)
+//! makes adding one an amendment to the specification and the invariant registry
 //! rather than a script anyone may drop in. [`ProofKind`] is therefore an enum:
 //! a kind outside the registry does not fail validation, it fails to compile.
+//!
+//! The eleventh, `screen_parity`, was added by amendment on 2026-07-30. The
+//! first ten all read a COMPONENT, and the two that say "screen" read a screen's
+//! REFERENCES rather than its arrangement, so a page could render every
+//! registered component in an arrangement its frame does not draw and every kind
+//! stayed green. S-7(6) is what makes that an amendment here rather than a
+//! script somebody dropped in.
 //!
 //! VDS S-7(2)(5) requires a proof record to be written by the checker as a side
 //! effect of running, and fixes `capture_mode` to the single value `automatic`.
@@ -45,10 +52,13 @@ pub enum ProofKind {
     LedgerStaleness,
     /// `.vds/**` holds no realisation.
     NoStoredValues,
+    /// Each registered screen's required arrangement is the arrangement its
+    /// authoritative frame draws. The only kind whose subject is a SCREEN.
+    ScreenParity,
 }
 
 impl ProofKind {
-    pub const ALL: [ProofKind; 10] = [
+    pub const ALL: [ProofKind; 11] = [
         ProofKind::RegisterCompleteness,
         ProofKind::Reconciliation,
         ProofKind::Composition,
@@ -59,6 +69,7 @@ impl ProofKind {
         ProofKind::RetirementDrain,
         ProofKind::LedgerStaleness,
         ProofKind::NoStoredValues,
+        ProofKind::ScreenParity,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -73,6 +84,7 @@ impl ProofKind {
             ProofKind::RetirementDrain => "retirement_drain",
             ProofKind::LedgerStaleness => "ledger_staleness",
             ProofKind::NoStoredValues => "no_stored_values",
+            ProofKind::ScreenParity => "screen_parity",
         }
     }
 
@@ -105,11 +117,15 @@ impl ProofKind {
             }
             ProofKind::LedgerStaleness => "each generated ledger is current with its source",
             ProofKind::NoStoredValues => "`.vds/**` holds no realisation",
+            ProofKind::ScreenParity => {
+                "each registered screen's required arrangement is the one its authoritative \
+                 frame draws"
+            }
         }
     }
 
     /// Why this kind is not implemented, or `None` where it is. Currently `None`
-    /// for all ten.
+    /// for all eleven.
     ///
     /// KEPT after the last kind was built rather than deleted, and the emptiness
     /// is the point. The reason a kind is unbuilt has to be stated PER KIND
@@ -382,8 +398,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_registry_is_closed_at_ten() {
-        assert_eq!(ProofKind::ALL.len(), 10);
+    fn the_registry_is_closed_at_eleven() {
+        assert_eq!(ProofKind::ALL.len(), 11);
         assert!(serde_json::from_str::<ProofKind>("\"vibes\"").is_err());
     }
 
@@ -416,10 +432,10 @@ mod tests {
             unimplemented.is_empty(),
             "these kinds report themselves unimplemented: {unimplemented:?}. That is lawful, \
              but VDS.md S-14A(3), crates/vds-proof/src/lib.rs and docs/ADOPTING.md all say all \
-             ten are built, and one of the four is now wrong."
+             eleven are built, and one of the four is now wrong."
         );
         assert_eq!(ProofKind::implemented().len(), ProofKind::ALL.len());
-        assert_eq!(ProofKind::ALL.len(), 10, "the registry is closed at ten");
+        assert_eq!(ProofKind::ALL.len(), 11, "the registry is closed at eleven");
 
         // The honest form, held in place for whenever a kind has to be
         // withdrawn: a reason is a sentence, not a shrug.

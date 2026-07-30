@@ -27,6 +27,8 @@ pub struct Config {
     #[serde(default)]
     pub surface: SurfaceConfig,
     #[serde(default)]
+    pub screens: ScreensConfig,
+    #[serde(default)]
     pub governance: Governance,
 }
 
@@ -35,6 +37,14 @@ pub struct Config {
 #[serde(deny_unknown_fields)]
 pub struct Paths {
     pub register: PathBuf,
+    /// The screen register: one record per governed screen (VDS S-5A).
+    ///
+    /// `#[serde(default)]` and not a required field, because every config
+    /// written before the screen record existed omits it and refusing those
+    /// would make an amendment that adds an artefact kind a flag day for every
+    /// adopting project.
+    #[serde(default = "default_screens_dir")]
+    pub screens: PathBuf,
     pub warrants: PathBuf,
     pub proofs: PathBuf,
     pub pins: PathBuf,
@@ -44,10 +54,15 @@ pub struct Paths {
     pub permits: PathBuf,
 }
 
+fn default_screens_dir() -> PathBuf {
+    PathBuf::from(".vds/screens")
+}
+
 impl Default for Paths {
     fn default() -> Self {
         Self {
             register: ".vds/register".into(),
+            screens: default_screens_dir(),
             warrants: ".vds/warrants".into(),
             proofs: ".vds/proofs".into(),
             pins: ".vds/pins".into(),
@@ -118,6 +133,86 @@ impl Default for SurfaceConfig {
     }
 }
 
+/// THE SCREEN SEAM. Everything about a screen frame that is the SUBJECT's
+/// vocabulary rather than VDS's.
+///
+/// A screen frame is not one drawing. It carries several and says in a layer
+/// NAME which one governs, and the words it uses to say so belong to the project
+/// that drew it. Hard-coding them here would make VDS an authority on what a
+/// design file may call its own layers, which is the fourth authority
+/// [2026] VJS-CC-OPBOX 3 forbids. So they are configured, and the defaults are
+/// the ones actually observed in the subject this capability was derived from
+/// rather than words invented for a specification.
+///
+/// What is NOT here, and deliberately: the geometry thresholds the column
+/// derivation uses. Those are lengths, and a length under `.vds/**` is the
+/// storing form VDS S-2(2) prohibits and `no_stored_values` R3 would fail on
+/// forever. They live as constants in the generator
+/// (`crates/vds-figma/src/frames.rs`), which is code and not a record.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ScreensConfig {
+    /// A layer whose name carries one of these GOVERNS its frame, in this order
+    /// of precedence: a frame carrying both a current-source layer and a legacy
+    /// underlay must resolve to the former.
+    ///
+    /// Matched ANYWHERE in the name and case-insensitively. That asymmetry with
+    /// `quarantine_markers` is not a compromise, it is what a real file says:
+    /// one authoritative layer in the subject is named
+    /// `/dashboards - current source matter master-detail`, with its marker
+    /// mid-name and in lower case, and anchoring the match to the start
+    /// resolved the very route the whole workstream began from to the wrong
+    /// layer.
+    pub authority_markers: Vec<String>,
+    /// A layer whose name LEADS with one of these is never a build base.
+    ///
+    /// Matched against the LEADING SEGMENT only (see `name_separator`), and this
+    /// is the subtle half. Matching anywhere produced nine false exclusions in
+    /// the subject, because a hybrid name like
+    /// `Screen - /matters/[id] - Profile - source contract + target recovery`
+    /// is a CURRENT screen that merely mentions a target, and excluding it took
+    /// two of the busiest surfaces in the product out of the contract on a word
+    /// in a sentence.
+    pub quarantine_markers: Vec<String>,
+    /// What separates the segments of a layer name, for the leading-segment
+    /// test above. A single character in every file seen; configured because
+    /// the middot is a convention and not a law.
+    pub name_separator: String,
+    /// The shell regions the generator looks for by name, in the subject's own
+    /// vocabulary.
+    ///
+    /// A screen record's `arrangement.regions` is checked against what the
+    /// generator found, so the two halves must read ONE list, and this is it.
+    pub region_names: Vec<String>,
+    /// Where the frame ledger is written.
+    pub frames_ledger: PathBuf,
+}
+
+impl Default for ScreensConfig {
+    fn default() -> Self {
+        Self {
+            authority_markers: vec![
+                "CURRENT SOURCE".into(),
+                "SOURCE AUTHORITY".into(),
+                "CURRENT CODE".into(),
+            ],
+            quarantine_markers: vec![
+                "LEGACY UNDERLAY".into(),
+                "REFERENCE".into(),
+                "TARGET".into(),
+            ],
+            name_separator: "·".into(),
+            region_names: vec![
+                "rail".into(),
+                "cmdbar".into(),
+                "body".into(),
+                "statusbar".into(),
+            ],
+            frames_ledger: ".vds/ledgers/frames.yaml".into(),
+        }
+    }
+}
+
 /// VDS S-3(8): the enforcement machinery must not be editable without a permit,
 /// or the gate can be removed by the same hand it constrains.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -152,6 +247,7 @@ impl Default for Governance {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PathRole {
     Register,
+    Screens,
     Warrants,
     Proofs,
     Pins,
@@ -165,6 +261,7 @@ impl PathRole {
     pub fn as_str(self) -> &'static str {
         match self {
             PathRole::Register => "register",
+            PathRole::Screens => "screens",
             PathRole::Warrants => "warrants",
             PathRole::Proofs => "proofs",
             PathRole::Pins => "pins",
@@ -180,6 +277,7 @@ impl Config {
     pub fn role(&self, role: PathRole) -> &Path {
         match role {
             PathRole::Register => &self.paths.register,
+            PathRole::Screens => &self.paths.screens,
             PathRole::Warrants => &self.paths.warrants,
             PathRole::Proofs => &self.paths.proofs,
             PathRole::Pins => &self.paths.pins,
@@ -220,6 +318,7 @@ impl Config {
         }
         for role in [
             PathRole::Register,
+            PathRole::Screens,
             PathRole::Warrants,
             PathRole::Proofs,
             PathRole::Pins,
@@ -267,6 +366,10 @@ designpack = "none@0"
 
 [paths]
 register = ".vds/register"
+# The screen register (VDS S-5A): one record per governed screen, holding the
+# ARRANGEMENT it requires. A count of content panes and a list of region names;
+# never a width, because a width is a realisation (VDS S-2(4)).
+screens = ".vds/screens"
 warrants = ".vds/warrants"
 proofs = ".vds/proofs"
 pins = ".vds/pins"
@@ -293,6 +396,25 @@ component_extensions = ["tsx", "jsx"]
 # change it only if your project genuinely ships its tokens elsewhere, and know
 # that nothing else is measured.
 stylesheet = "app/globals.css"
+
+[screens]
+# THE SCREEN SEAM: everything about a screen frame that is THIS PROJECT's
+# vocabulary rather than VDS's. A screen frame carries several drawings and says
+# in a layer NAME which one governs.
+#
+# An authority marker is matched ANYWHERE in the name and case-insensitively; a
+# quarantine marker is matched against the LEADING SEGMENT only. That asymmetry
+# is load-bearing and is not a compromise: an authoritative layer in the subject
+# this was derived from carries its marker mid-name and lower case, while a
+# hybrid name that merely MENTIONS a target is a current screen, and matching
+# quarantine anywhere excluded nine of them.
+authority_markers = ["CURRENT SOURCE", "SOURCE AUTHORITY", "CURRENT CODE"]
+quarantine_markers = ["LEGACY UNDERLAY", "REFERENCE", "TARGET"]
+name_separator = "\u00b7"
+# The shell regions the generator looks for by name. A screen record's required
+# regions are checked against what it found, so both halves read THIS list.
+region_names = ["rail", "cmdbar", "body", "statusbar"]
+frames_ledger = ".vds/ledgers/frames.yaml"
 
 [governance]
 # VDS S-3(8): the enforcement machinery must not be editable without a permit.
@@ -324,7 +446,57 @@ mod tests {
         assert_eq!(config.repo_code, "DEMO");
         assert_eq!(config.paths, Paths::default());
         assert_eq!(config.surface, SurfaceConfig::default());
+        assert_eq!(config.screens, ScreensConfig::default());
         assert_eq!(config.governance, Governance::default());
+    }
+
+    /// An amendment that adds an artefact kind must not be a flag day for every
+    /// project already using VDS. A config written before the screen record
+    /// existed carries neither `[paths] screens` nor a `[screens]` section, and
+    /// it has to keep loading with the defaults rather than being refused.
+    #[test]
+    fn a_config_written_before_screens_existed_still_loads() {
+        let text = r#"
+version = 1
+jurisdiction_id = "demo"
+repo_code = "DEMO"
+designpack = "none@0"
+
+[paths]
+register = ".vds/register"
+warrants = ".vds/warrants"
+proofs = ".vds/proofs"
+pins = ".vds/pins"
+ledgers = ".vds/ledgers"
+submissions = ".vds/submissions"
+logs = ".vds/logs"
+permits = ".vds/permits"
+"#;
+        let config = Config::parse(text, "old.toml").expect("an older config still loads");
+        assert_eq!(config.paths.screens, default_screens_dir());
+        assert_eq!(config.screens, ScreensConfig::default());
+    }
+
+    /// The middot is a convention rather than a law, so it is configured. This
+    /// test is here because the template writes it as a TOML unicode escape,
+    /// and an escape that silently produced the two characters `\u` would make
+    /// every leading-segment test match nothing.
+    #[test]
+    fn the_template_writes_a_real_separator_and_not_its_escape() {
+        let config = Config::parse(&default_config("demo", "DEMO"), "<template>").unwrap();
+        assert_eq!(config.screens.name_separator, "·");
+        assert_eq!(config.screens.name_separator.chars().count(), 1);
+    }
+
+    #[test]
+    fn a_screens_path_escaping_the_root_is_refused_at_load() {
+        let text = default_config("demo", "DEMO")
+            .replace(r#"screens = ".vds/screens""#, r#"screens = "/etc""#);
+        let err = Config::parse(&text, "c.toml").unwrap_err();
+        assert!(
+            err.to_string().contains("escapes the project root"),
+            "{err}"
+        );
     }
 
     #[test]

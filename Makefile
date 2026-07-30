@@ -19,7 +19,7 @@ help:
 	@echo 'make build     the release binary at $(VDS)'
 	@echo 'make schemas   regenerate schema/*.schema.json from the Rust types'
 	@echo 'make gates     the VDS gates alone, against this repository'
-	@echo 'make gates-example  all ten kinds over examples/storefront, no exemption'
+	@echo 'make gates-example  all eleven kinds over examples/storefront, no exemption'
 	@echo 'make prune     bound the proof working set (deletes, logs what it removed)'
 	@echo 'make doctor    measure this project against the ten done criteria'
 
@@ -77,8 +77,9 @@ gates: build
 # A vacuous pass is not evidence (VDS S-7(2)(4)), so on its own the repository
 # could not demonstrate that its own gates catch anything.
 #
-# `examples/storefront` is a real subject: three screens, six components, two
-# themes and one deprecated record draining to zero. Every kind runs over real
+# `examples/storefront` is a real subject: three screens, six components, four
+# registered screen arrangements, two themes and one deprecated record draining
+# to zero. Every kind runs over real
 # rows and NO EXEMPTION IS PASSED, so a vacuity here is a red build. This is the
 # target that makes `vds doctor` D1, D2 and D3 answerable.
 .PHONY: gates-example
@@ -90,10 +91,16 @@ gates-example: build
 	@# checks it is self-consistent and not older than the records that read it.
 	$(VDS) figma pull --root examples/storefront \
 	    --from examples/storefront/figma/file-SFDEMO.json
+	@# The FRAME ledger, the other half of the Figma seam and the one the eleventh
+	@# kind reads. `figma pull` records the file's COMPONENT sets; this records what
+	@# its SCREEN frames draw. Both are derived from a response committed outside
+	@# `.vds/`, because VDS S-7(2)(1) forbids a network call inside a proof.
+	$(VDS) figma frames --root examples/storefront --file-key SFDEMO \
+	    --from examples/storefront/figma/frames-SFDEMO.json
 	@# Every kind, so each is exercised and recorded. --allow-vacuous is needed for
 	@# exactly one of them and the next line is why the flag buys nothing here.
 	$(VDS) proof --all --root examples/storefront --invoked-by package_script --allow-vacuous
-	@# All ten kinds, run with NO exemption, so a vacuity in any of them is a red
+	@# All eleven kinds, run with NO exemption, so a vacuity in any of them is a red
 	@# build. `token_pin` comes last because it needs a pin GENERATED first, and
 	@# that generation is out of band by design: one of the two records it compares
 	@# is behind a network call VDS S-7(2)(1) forbids inside a proof.
@@ -106,6 +113,13 @@ gates-example: build
 	$(VDS) proof retirement_drain      --root examples/storefront --invoked-by package_script
 	$(VDS) proof ledger_staleness      --root examples/storefront --invoked-by package_script
 	$(VDS) proof no_stored_values      --root examples/storefront --invoked-by package_script
+	@# The eleventh kind, and the only one whose subject is a SCREEN. Four screens
+	@# are registered here: three are SCORED against the arrangement their
+	@# authoritative frame draws, and one is EXCLUDED because its frame disclaims
+	@# itself. The coverage line says which, because a screen gate that measures
+	@# what it happens to understand and prints a clean pass is the exact failure
+	@# this kind was added to prevent (VDS S-5A(7)).
+	$(VDS) proof screen_parity         --root examples/storefront --invoked-by package_script
 	@# The tenth kind, and the one that was vacuous everywhere until a generator
 	@# existed. The pin is REGENERATED from a response committed outside `.vds/`
 	@# and then CHECKED, which is two different acts: generating it proves the
