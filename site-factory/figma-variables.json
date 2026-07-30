@@ -1,0 +1,28 @@
+{
+  "_what": "A measured read of the `VDS Tokens` variable collection in the Figma file named by FIGMA_FILE_KEY. It is EVIDENCE, not intent: it records what the collection actually holds so a test can pair it against what build.js emits. Never hand-edit a value to make a test pass - that turns the one artefact that can detect drift into a restatement of the code.",
+  "_how": "Re-derive with the Figma MCP: read getLocalVariableCollectionsAsync(), find the collection by name, then for each variable in it record valuesByMode keyed by MODE NAME (not modeId, which is file-local and changes on duplicate). Colours are written as lowercase #rrggbb; FLOATs as numbers.",
+  "_history": "The first measurement (2026-07-30) found the collection carrying 13 variables against the packs' 17, and 9 mode values disagreeing with the pack that defines them - the Base palette measurement had landed in tokens/*.json and never reached Figma. The four ink variables were created and the nine values corrected in the same pass; these values are the post-fix read-back, not the request.",
+  "measured_at": "2026-07-30",
+  "file_key": "4pPUFvaPdqYzPquBusSfWl",
+  "collection": "VDS Tokens",
+  "modes": ["Placeholder", "Geist"],
+  "variables": {
+    "color/bg": { "Placeholder": "#ffffff", "Geist": "#ffffff" },
+    "color/surface": { "Placeholder": "#f7f7f7", "Geist": "#fafafa" },
+    "color/ink": { "Placeholder": "#171717", "Geist": "#171717" },
+    "color/muted": { "Placeholder": "#6b6b6b", "Geist": "#8f8f8f" },
+    "color/border": { "Placeholder": "#e5e5e5", "Geist": "#eaeaea" },
+    "color/accent": { "Placeholder": "#2970ed", "Geist": "#0070f3" },
+    "color/accentInk": { "Placeholder": "#ffffff", "Geist": "#ffffff" },
+    "color/danger": { "Placeholder": "#de1135", "Geist": "#de1135" },
+    "color/dangerInk": { "Placeholder": "#ffffff", "Geist": "#ffffff" },
+    "color/warning": { "Placeholder": "#f6bc2f", "Geist": "#f6bc2f" },
+    "color/warningInk": { "Placeholder": "#171717", "Geist": "#171717" },
+    "color/success": { "Placeholder": "#0e8345", "Geist": "#0e8345" },
+    "color/successInk": { "Placeholder": "#ffffff", "Geist": "#ffffff" },
+    "color/info": { "Placeholder": "#276ef1", "Geist": "#276ef1" },
+    "color/infoInk": { "Placeholder": "#ffffff", "Geist": "#ffffff" },
+    "radius/sm": { "Placeholder": 6, "Geist": 6 },
+    "radius/lg": { "Placeholder": 12, "Geist": 12 }
+  }
+}

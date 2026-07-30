@@ -60,9 +60,9 @@ which is the closest thing to a declared importance.
 |---|---|---|---|
 | Pagination | 423 | a table without pagination is a table that lies about its length | the single biggest set in Base |
 | Page controls | 162 | the mobile/compact twin of the above | |
-| Banner | 72 | page-level state that is not an error | |
-| System banner | 64 | the same at app level, above the shell | four tones measured: warning, negative, accent, positive |
-| Message card | 60 | in-flow messaging, not an overlay | |
+| Banner | 72 | page-level state that is not an error | **redrawn**, four tones |
+| System banner | 64 | the same at app level, above the shell | **redrawn**, four tones: warning, negative, accent, positive |
+| Message card | 60 | in-flow messaging, not an overlay | **redrawn**, with and without artwork |
 | Menu item | 57 | 18 control variants measured (checkbox, switch, drag, group x 3 sizes) | |
 | Typography | 36 | ALREADY TAKEN as structure, not as components - see `docs/GOAL.md` S3 and the type ramp |
 | Notification badge | 16 | dot, count, overflow | **redrawn** |
@@ -76,7 +76,17 @@ which is the closest thing to a declared importance.
 | Divider | 3 | full and cell-inset | **redrawn** |
 | Progress steps | 3 | multi-step forms, which `formfield` has no answer for | |
 
-Six are redrawn already, on the `Base (redrawn)` page, from measured geometry.
+Nine are redrawn already, on the `Base (redrawn)` page, from measured geometry.
+
+The messaging three cost more than the drawing. Redrawing them needed an ink per tone, and
+the Figma variable collection carried one ink where the style packs carry five. Reading the
+collection back also showed nine mode values disagreeing with the pack that defines them:
+the Base palette landed in `tokens/*.json` and never reached Figma, so every component
+already on this page had been drawn in the wrong red. Both faults are closed and paired by
+test now (`figma-variables.json` plus three tests in `tests/skills.test.js`), and the whole
+episode is on the record as BREACH-0007. The lesson worth carrying: the component-set
+pairing had existed for months and covered one of the two dimensions in which a code base
+and a Figma file can disagree.
 
 ## Tier 2: later (10 sets, 111 variants)
 

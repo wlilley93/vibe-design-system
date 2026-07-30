@@ -170,6 +170,125 @@ test('no Figma node id is claimed for a block type that does not exist', () => {
   }
 });
 
+// Shared by the three variable-pairing tests below. Reads the MEASURED collection and
+// the packs it claims to mirror; asserts nothing on its own.
+function figmaVariablePairing() {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const { cssVars } = require('../build.js');
+  const {
+    FIGMA_VARIABLE_MODES, FIGMA_UNBOUND_PACKS, FIGMA_VARIABLE_PREFIXES, FIGMA_FILE_KEY,
+  } = require('../vds-bridge.js');
+
+  const root = path.join(__dirname, '..');
+  const measured = JSON.parse(fs.readFileSync(path.join(root, 'figma-variables.json'), 'utf8'));
+
+  // A Figma variable is `color/accentInk`; the emitted property is `--color-accentInk`.
+  // One naming convention per side, converted in exactly one place.
+  const toProperty = (varName) => `--${varName.replace('/', '-')}`;
+
+  const packProperties = (pack) => {
+    const tokens = JSON.parse(fs.readFileSync(path.join(root, 'tokens', `${pack}.json`), 'utf8'));
+    tokens.scale = { density: 'comfortable', type: 'comfortable' };
+    const out = {};
+    for (const line of cssVars(tokens).split('\n')) {
+      const m = line.match(/^\s*(--[a-zA-Z-]+):\s*([^;]+);/);
+      if (!m) continue;
+      if (!FIGMA_VARIABLE_PREFIXES.some((p) => m[1].startsWith(p))) continue;
+      out[m[1]] = m[2].trim();
+    }
+    return out;
+  };
+
+  return {
+    measured, toProperty, packProperties, FIGMA_FILE_KEY,
+    FIGMA_VARIABLE_MODES, FIGMA_UNBOUND_PACKS, FIGMA_VARIABLE_PREFIXES,
+  };
+}
+
+test('the measured Figma collection describes the file the bridge names, and every mode is a real pack', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const p = figmaVariablePairing();
+
+  assert.equal(p.measured.file_key, p.FIGMA_FILE_KEY,
+    'the measurement was taken from a different file than the one the bridge writes register records against');
+  assert.deepEqual(
+    p.measured.modes.slice().sort(), Object.keys(p.FIGMA_VARIABLE_MODES).sort(),
+    'the collection\'s modes and the declared mode->pack map disagree'
+  );
+
+  for (const [mode, pack] of Object.entries(p.FIGMA_VARIABLE_MODES)) {
+    assert.ok(fs.existsSync(path.join(__dirname, '..', 'tokens', `${pack}.json`)),
+      `mode ${mode} claims to mirror tokens/${pack}.json, which does not exist`);
+  }
+
+  // Every pack is either bound to a mode or declared unbound with a reason. A pack in
+  // neither list is a pack nothing checks, and it would sit there indefinitely.
+  const packs = fs.readdirSync(path.join(__dirname, '..', 'tokens'))
+    .filter((f) => f.endsWith('.json')).map((f) => f.replace(/\.json$/, ''));
+  const bound = new Set(Object.values(p.FIGMA_VARIABLE_MODES));
+  const unaccounted = packs.filter((k) => !bound.has(k) && !p.FIGMA_UNBOUND_PACKS[k]);
+  assert.deepEqual(unaccounted, [],
+    `these style packs are neither bound to a Figma mode nor declared unbound: ${unaccounted.join(', ')}`);
+  for (const [pack, why] of Object.entries(p.FIGMA_UNBOUND_PACKS)) {
+    assert.ok(packs.includes(pack), `FIGMA_UNBOUND_PACKS names a pack that does not exist: ${pack}`);
+    assert.ok(why && why.length > 10, `${pack} is declared unbound with no usable reason`);
+  }
+});
+
+test('every colour and radius the build emits has a Figma variable, and every variable is emitted', () => {
+  // This is the direction that was missing, and its absence was not theoretical: four
+  // ink variables (dangerInk, warningInk, successInk, infoInk) existed in every style
+  // pack and in no Figma mode. A builder script that filtered tones to those whose
+  // variables resolved therefore drew one tone of four and returned success.
+  const p = figmaVariablePairing();
+  const inFigma = new Set(Object.keys(p.measured.variables).map(p.toProperty));
+
+  for (const [mode, pack] of Object.entries(p.FIGMA_VARIABLE_MODES)) {
+    const emitted = Object.keys(p.packProperties(pack));
+    const absent = emitted.filter((prop) => !inFigma.has(prop));
+    assert.deepEqual(absent, [],
+      `tokens/${pack}.json (Figma mode ${mode}) emits these with no Figma variable: ${absent.join(', ')}. ` +
+      'A drawing cannot bind what the collection does not carry.');
+  }
+
+  // The reverse: a variable naming a property no pack emits is one a drawing can bind
+  // to and the CSS will never define, which reads as a working binding.
+  const anyPack = p.packProperties(Object.values(p.FIGMA_VARIABLE_MODES)[0]);
+  const orphans = [...inFigma].filter((prop) => !(prop in anyPack));
+  assert.deepEqual(orphans, [],
+    `these Figma variables name custom properties the build does not emit: ${orphans.join(', ')}`);
+});
+
+test('every Figma mode value equals the style pack that defines it', () => {
+  // The drift this catches is silent by construction. The Base palette measurement
+  // landed in tokens/*.json and never reached Figma, so the Geist mode's danger was
+  // #fc0035 while the shipped CSS said #de1135 - components drawn in Figma were a
+  // different red from the ones the factory builds, and both looked deliberate.
+  const p = figmaVariablePairing();
+
+  // A Figma FLOAT radius is 6; the emitted property is `6px`. Compare in one unit.
+  const normalise = (value) => (typeof value === 'number' ? `${value}px` : String(value).toLowerCase());
+
+  const drifted = [];
+  for (const [mode, pack] of Object.entries(p.FIGMA_VARIABLE_MODES)) {
+    const emitted = p.packProperties(pack);
+    for (const [varName, byMode] of Object.entries(p.measured.variables)) {
+      const prop = p.toProperty(varName);
+      if (!(prop in emitted)) continue; // absence is the previous test's finding, not this one's
+      const figma = normalise(byMode[mode]);
+      const code = normalise(emitted[prop]);
+      if (figma !== code) drifted.push(`${mode}/${varName}: figma=${figma} code=${code}`);
+    }
+  }
+
+  assert.deepEqual(drifted, [],
+    `${drifted.length} Figma variable values disagree with the pack that defines them:\n  ` +
+    `${drifted.join('\n  ')}\n` +
+    'The pack is the source of truth. Fix Figma, then re-measure figma-variables.json.');
+});
+
 test('the route is inferred from the brief, and marketing wins over app words', () => {
   // `category` used to default to marketing-site with nothing in the brief able to move
   // it, so `factory.js new --brief "a matter-management app"` built a hero and a pricing

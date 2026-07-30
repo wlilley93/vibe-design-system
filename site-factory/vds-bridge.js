@@ -101,6 +101,48 @@ const FIGMA_NODES = {
   card: '39:178',
 };
 
+/*
+ * The other half of the code<->Figma pairing, and the half that was missing.
+ *
+ * FIGMA_NODES pairs block types to component sets, so a block that ships without a
+ * drawing fails a test. Nothing paired the TOKENS. The Figma file carries a
+ * `VDS Tokens` variable collection whose modes are meant to BE the style packs in
+ * `tokens/`, and it had silently diverged in two independent ways at once:
+ *
+ *   - four variables the code emits had no variable at all (`dangerInk`,
+ *     `warningInk`, `successInk`, `infoInk`), so a drawing that wanted an ink per
+ *     tone could not ask for one. MEASURED by a builder script that filtered tones
+ *     to those whose variables resolved: it silently drew ONE tone of four and
+ *     reported success, which is the failure mode this file exists to prevent.
+ *   - nine mode values had drifted from the pack that defines them. The Base
+ *     palette measurement (`vendor/uber-base-keys.json`) landed in `tokens/*.json`
+ *     and never reached Figma, so `color/danger` in the Geist mode was `#fc0035`
+ *     while the shipped CSS said `#de1135`. Every component drawn against it was
+ *     the wrong red, and no gate could tell.
+ *
+ * MODES maps a Figma mode name onto the pack file that DEFINES it: the code is the
+ * source of truth and Figma follows, same direction as FIGMA_NODES. A pack with no
+ * mode is declared unbound WITH ITS REASON rather than omitted, because a manifest
+ * that lists only what it checks cannot be audited for what it skips.
+ */
+const FIGMA_VARIABLE_MODES = {
+  Placeholder: 'placeholder',
+  Geist: 'geist',
+};
+
+// Packs with no Figma mode. Figma caps a collection's modes by plan tier, and this
+// file's collection already carries the two that the drawing work uses. These two are
+// exercised through `build.js` and the contrast floor, not through the Figma file.
+const FIGMA_UNBOUND_PACKS = {
+  balmoral: 'a client brand, not a factory default; nothing is drawn in it',
+  jellytot: 'a client brand, not a factory default; nothing is drawn in it',
+};
+
+// Custom properties the collection deliberately does not carry. Figma variables are
+// used by the DRAWINGS, and a drawing binds fills and corner radii; it has no use for
+// a shadow recipe or a font stack. Anything outside this prefix set is out of scope.
+const FIGMA_VARIABLE_PREFIXES = ['--color-', '--radius-'];
+
 // The surface a site-factory project actually has. Every value here is a path that
 // exists in a scaffolded project, which is the whole point of the file.
 const { SITE_CSS } = require('./build.js');
@@ -438,4 +480,5 @@ module.exports = {
   deriveStates,
   bridge, writeConfig, writeRegister, measureDemand, advanceToBuilt, refreshLedger,
   resolveVdsBin, SURFACE, FIGMA_NODES, FIGMA_FILE_KEY,
+  FIGMA_VARIABLE_MODES, FIGMA_UNBOUND_PACKS, FIGMA_VARIABLE_PREFIXES,
 };
