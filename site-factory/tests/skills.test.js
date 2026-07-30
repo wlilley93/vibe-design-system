@@ -170,6 +170,59 @@ test('no Figma node id is claimed for a block type that does not exist', () => {
   }
 });
 
+test('every paired Figma node exists, and every drawn set is paired or declared unpaired', () => {
+  // The two tests above check that a block type HAS an id and that the id LOOKS like an
+  // id. Neither opens the file, so a deleted component set failed nothing. That is not
+  // hypothetical here: on 2026-07-30 seven pages of this same file were found empty having
+  // been recorded as built, and the only reason no pairing broke is that what was lost was
+  // frames rather than component sets. The id-shape check would not have told us either way.
+  //
+  // So the pairing is now against a MEASURED read of the file. It is a snapshot, and a
+  // snapshot cannot see a deletion that happens after it is taken - the honest limit, and
+  // the same one figma-variables.json has. What it does catch is a pairing that never
+  // resolved and a set drawn with nothing pointing at it.
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const { FIGMA_NODES, FIGMA_FILE_KEY } = require('../vds-bridge.js');
+  const measured = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'figma-nodes.json'), 'utf8'));
+
+  assert.equal(measured.file_key, FIGMA_FILE_KEY,
+    'the node measurement was taken from a different file than the bridge writes records against');
+
+  // Direction one: every id a block type points at must be a set that was actually there.
+  const dangling = Object.entries(FIGMA_NODES)
+    .filter(([, id]) => !measured.sets[id])
+    .map(([type, id]) => `${type} -> ${id}`);
+  assert.deepEqual(dangling, [],
+    `these block types point at a Figma node that does not exist in the measured file: ${dangling.join(', ')}. ` +
+    'Either the set was deleted or the id was never right.');
+
+  // Direction two: every set drawn in the file is either paired to a block type or listed
+  // as deliberately unpaired WITH A REASON. A drawing nothing points at is either work in
+  // progress or work forgotten, and the difference has to be written down by someone.
+  const paired = new Set(Object.values(FIGMA_NODES));
+  const orphaned = Object.keys(measured.sets)
+    .filter((id) => !paired.has(id) && !measured.unpaired[id])
+    .map((id) => `${id} (${measured.sets[id].name} on ${measured.sets[id].page})`);
+  assert.deepEqual(orphaned, [],
+    `these component sets are drawn and nothing points at them, and they are not declared ` +
+    `unpaired: ${orphaned.join(', ')}`);
+
+  for (const [id, why] of Object.entries(measured.unpaired)) {
+    assert.ok(measured.sets[id], `unpaired declares ${id}, which is not a set in the file`);
+    assert.ok(!paired.has(id), `${id} is declared unpaired and is also paired to a block type`);
+    assert.ok(why && why.length > 20, `${id} is declared unpaired with no usable reason`);
+  }
+
+  // A set with one variant is a set that lost its siblings. Every set in this file was
+  // built with at least two, so this catches a partial wipe rather than a total one -
+  // which is the failure mode a whole-page check would miss.
+  const thin = Object.entries(measured.sets)
+    .filter(([, s]) => s.variants < 2)
+    .map(([id, s]) => `${id} ${s.name} (${s.variants})`);
+  assert.deepEqual(thin, [], `these component sets have fewer than two variants: ${thin.join(', ')}`);
+});
+
 // Shared by the three variable-pairing tests below. Reads the MEASURED collection and
 // the packs it claims to mirror; asserts nothing on its own.
 function figmaVariablePairing() {
