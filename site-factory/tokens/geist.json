@@ -1,0 +1,24 @@
+{
+  "name": "geist",
+  "_source": "Real values extracted from vercel.com/geist CSS custom properties (--ds-*, --geist-*), gathered for the VDS Site Builder Examples page.",
+  "colors": {
+    "bg": "#ffffff",
+    "surface": "#fafafa",
+    "ink": "#171717",
+    "muted": "#8f8f8f",
+    "border": "#eaeaea",
+    "accent": "#0070f3",
+    "accentInk": "#ffffff"
+  },
+  "font": {
+    "family": "'GeistSans', 'GeistSans Fallback', ui-sans-serif, system-ui, sans-serif",
+    "mono": "'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace"
+  },
+  "radius": {
+    "sm": "6px",
+    "lg": "12px"
+  },
+  "space": {
+    "unit": 4
+  }
+}

@@ -1,0 +1,5 @@
+# Generated throwaway projects. Every one of these is reproducible in seconds from
+# `node wizard.js` / `node scaffold.js`, and leaving them tracked meant an unrelated
+# catch-all commit swept 61 files of test output (including a mid-experiment probe
+# register) into the history under a vds-scan commit message.
+scaffolds/

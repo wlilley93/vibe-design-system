@@ -1,0 +1,27 @@
+{
+  "title": "Manifest A, reskinned — same hero-1 + footer-a, geist style",
+  "stylePack": "geist",
+  "page": [
+    {
+      "block": "hero", "variant": "hero-1",
+      "content": {
+        "h1": "Ship a site from a block list, not a blank canvas.",
+        "sub": "Pick the blocks, pick the skin, get a real page. No design decisions hidden inside an agent's head.",
+        "ctaLabel": "See how it works",
+        "ctaHref": "#"
+      }
+    },
+    {
+      "block": "footer", "variant": "footer-a",
+      "content": {
+        "wordmark": "Site Factory",
+        "copyright": "© 2026 Site Factory",
+        "links": [
+          { "label": "Blocks", "href": "#" },
+          { "label": "Styles", "href": "#" },
+          { "label": "Docs", "href": "#" }
+        ]
+      }
+    }
+  ]
+}

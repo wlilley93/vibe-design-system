@@ -1,0 +1,101 @@
+{
+  "title": "Kitchen sink — all 12 block types, one page",
+  "stylePack": "geist",
+  "page": [
+    {
+      "block": "nav", "variant": "nav-1",
+      "content": {
+        "wordmark": "Site Factory",
+        "links": [{ "label": "Blocks", "href": "#" }, { "label": "Styles", "href": "#" }, { "label": "Docs", "href": "#" }],
+        "ctaLabel": "Get started", "ctaHref": "#"
+      }
+    },
+    {
+      "block": "hero", "variant": "hero-1",
+      "content": {
+        "h1": "Every block, one page, one skin.",
+        "sub": "Twelve block types, each with two structural variants, all reading the same token set.",
+        "ctaLabel": "See how it works", "ctaHref": "#"
+      }
+    },
+    {
+      "block": "features", "variant": "features-1",
+      "content": {
+        "heading": "What's in the library",
+        "items": [
+          { "title": "Real tokens", "body": "Colors and fonts extracted from real design systems, not guessed." },
+          { "title": "Two variants each", "body": "Every block ships a second structural take, not just a second color." },
+          { "title": "Zero hardcoded hex", "body": "grep the CSS — every color traces back to a token file." }
+        ]
+      }
+    },
+    {
+      "block": "pricing", "variant": "pricing-1",
+      "content": {
+        "heading": "Pricing",
+        "plans": [
+          { "name": "Free", "price": "$0", "features": ["1 site", "Placeholder style pack"], "ctaLabel": "Start free", "ctaHref": "#" },
+          { "name": "Pro", "price": "$20/mo", "highlight": true, "features": ["Unlimited sites", "All style packs", "Custom tokens"], "ctaLabel": "Go Pro", "ctaHref": "#" },
+          { "name": "Team", "price": "$60/mo", "features": ["Everything in Pro", "Shared token library", "5 seats"], "ctaLabel": "Contact us", "ctaHref": "#" }
+        ]
+      }
+    },
+    {
+      "block": "testimonials", "variant": "testimonials-2",
+      "content": {
+        "featured": { "quote": "The same block, wearing a different system — that's the whole pitch, and it actually holds up.", "name": "Someone", "role": "Design lead" }
+      }
+    },
+    {
+      "block": "team", "variant": "team-1",
+      "content": {
+        "heading": "Built by",
+        "people": [
+          { "name": "Ada", "role": "Design systems" },
+          { "name": "Grace", "role": "Frontend" },
+          { "name": "Alan", "role": "Tokens" },
+          { "name": "Margaret", "role": "Content" }
+        ]
+      }
+    },
+    {
+      "block": "faq", "variant": "faq-1",
+      "content": {
+        "heading": "FAQ",
+        "items": [
+          { "question": "Does this replace Figma?", "answer": "No — the Figma components and the code blocks read the same tokens, on purpose." },
+          { "question": "Can I add a new block?", "answer": "Drop a file in blocks/, export named variant functions, build.js finds it automatically." }
+        ]
+      }
+    },
+    {
+      "block": "cta", "variant": "cta-1",
+      "content": {
+        "heading": "Ready to assemble a page?",
+        "sub": "Pick a manifest, pick a style pack, run the build.",
+        "ctaLabel": "Read the docs", "ctaHref": "#"
+      }
+    },
+    {
+      "block": "contact", "variant": "contact-1",
+      "content": {
+        "heading": "Get in touch",
+        "formAction": "#",
+        "ctaLabel": "Send"
+      }
+    },
+    {
+      "block": "footer", "variant": "footer-b",
+      "content": {
+        "wordmark": "Site Factory",
+        "tagline": "Blocks in, tokens in, a site out.",
+        "copyright": "© 2026 Site Factory",
+        "columns": [
+          { "title": "Product", "links": [{ "label": "Blocks", "href": "#" }, { "label": "Styles", "href": "#" }] },
+          { "title": "Company", "links": [{ "label": "About", "href": "#" }, { "label": "Careers", "href": "#" }] },
+          { "title": "Resources", "links": [{ "label": "Docs", "href": "#" }, { "label": "Changelog", "href": "#" }] }
+        ]
+      }
+    }
+  ]
+}

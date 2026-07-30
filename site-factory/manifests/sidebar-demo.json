@@ -1,0 +1,15 @@
+{
+  "title": "Sidebar demo — app context",
+  "stylePack": "placeholder",
+  "page": [
+    {
+      "block": "sidebar", "variant": "sidebar-2",
+      "content": {
+        "groups": [
+          { "title": "Workspace", "links": [{ "label": "Overview", "href": "#", "active": true }, { "label": "Blocks", "href": "#" }] },
+          { "title": "Settings", "links": [{ "label": "Tokens", "href": "#" }, { "label": "Team", "href": "#" }] }
+        ]
+      }
+    }
+  ]
+}

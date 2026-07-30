@@ -1,0 +1,23 @@
+{
+  "name": "placeholder",
+  "colors": {
+    "bg": "#ffffff",
+    "surface": "#f7f7f7",
+    "ink": "#171717",
+    "muted": "#6b6b6b",
+    "border": "#e5e5e5",
+    "accent": "#3b82f6",
+    "accentInk": "#ffffff"
+  },
+  "font": {
+    "family": "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    "mono": "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+  },
+  "radius": {
+    "sm": "6px",
+    "lg": "12px"
+  },
+  "space": {
+    "unit": 4
+  }
+}

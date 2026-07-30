@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kitchen sink — all 12 block types, one page</title>
+<link rel="stylesheet" href="kitchen-sink.css">
+</head>
+<body>
+<header class="nav nav--simple">
+  <span class="nav__mark">Site Factory</span>
+  <nav class="nav__links" aria-label="Main">
+    <a class="nav__link" href="#">Blocks</a>
+    <a class="nav__link" href="#">Styles</a>
+    <a class="nav__link" href="#">Docs</a>
+  </nav>
+  <a class="nav__cta" href="#">Get started</a>
+</header>
+<section class="hero hero--centered">
+  <div class="hero__inner">
+    <h1 class="hero__h1">Every block, one page, one skin.</h1>
+    <p class="hero__sub">Twelve block types, each with two structural variants, all reading the same token set.</p>
+    <a class="hero__cta" href="#">See how it works</a>
+  </div>
+</section>
+<section class="features features--grid">
+  <h2 class="features__heading">What&#39;s in the library</h2>
+  <div class="features__gridInner">
+    <div class="features__item">
+      <h3>Real tokens</h3>
+      <p>Colors and fonts extracted from real design systems, not guessed.</p>
+    </div>
+    <div class="features__item">
+      <h3>Two variants each</h3>
+      <p>Every block ships a second structural take, not just a second color.</p>
+    </div>
+    <div class="features__item">
+      <h3>Zero hardcoded hex</h3>
+      <p>grep the CSS — every color traces back to a token file.</p>
+    </div>
+  </div>
+</section>
+<section class="pricing pricing--cards">
+  <h2 class="pricing__heading">Pricing</h2>
+  <div class="pricing__grid">
+    <div class="pricing__card">
+      <h3 class="pricing__planName">Free</h3>
+      <p class="pricing__price">$0</p>
+      <ul class="pricing__features">
+        <li>1 site</li>
+        <li>Placeholder style pack</li>
+      </ul>
+      <a class="pricing__cta" href="#">Start free</a>
+    </div>
+    <div class="pricing__card pricing__card--highlight">
+      <h3 class="pricing__planName">Pro</h3>
+      <p class="pricing__price">$20/mo</p>
+      <ul class="pricing__features">
+        <li>Unlimited sites</li>
+        <li>All style packs</li>
+        <li>Custom tokens</li>
+      </ul>
+      <a class="pricing__cta" href="#">Go Pro</a>
+    </div>
+    <div class="pricing__card">
+      <h3 class="pricing__planName">Team</h3>
+      <p class="pricing__price">$60/mo</p>
+      <ul class="pricing__features">
+        <li>Everything in Pro</li>
+        <li>Shared token library</li>
+        <li>5 seats</li>
+      </ul>
+      <a class="pricing__cta" href="#">Contact us</a>
+    </div>
+  </div>
+</section>
+<section class="testimonials testimonials--featured">
+  <blockquote class="testimonials__big">The same block, wearing a different system — that&#39;s the whole pitch, and it actually holds up.</blockquote>
+  <p class="testimonials__attribution">Someone, <span>Design lead</span></p>
+</section>
+<section class="team team--grid">
+  <h2 class="team__heading">Built by</h2>
+  <div class="team__gridInner">
+    <div class="team__card">
+      <div class="team__photo" role="img" aria-label="Ada"></div>
+      <h3>Ada</h3>
+      <p>Design systems</p>
+    </div>
+    <div class="team__card">
+      <div class="team__photo" role="img" aria-label="Grace"></div>
+      <h3>Grace</h3>
+      <p>Frontend</p>
+    </div>
+    <div class="team__card">
+      <div class="team__photo" role="img" aria-label="Alan"></div>
+      <h3>Alan</h3>
+      <p>Tokens</p>
+    </div>
+    <div class="team__card">
+      <div class="team__photo" role="img" aria-label="Margaret"></div>
+      <h3>Margaret</h3>
+      <p>Content</p>
+    </div>
+  </div>
+</section>
+<section class="faq faq--accordion">
+  <h2 class="faq__heading">FAQ</h2>
+  <div class="faq__list">
+    <details class="faq__item">
+      <summary>Does this replace Figma?</summary>
+      <p>No — the Figma components and the code blocks read the same tokens, on purpose.</p>
+    </details>
+    <details class="faq__item">
+      <summary>Can I add a new block?</summary>
+      <p>Drop a file in blocks/, export named variant functions, build.js finds it automatically.</p>
+    </details>
+  </div>
+</section>
+<section class="cta cta--banner">
+  <h2>Ready to assemble a page?</h2>
+  <p>Pick a manifest, pick a style pack, run the build.</p>
+  <a class="cta__button" href="#">Read the docs</a>
+</section>
+<section class="contact contact--form">
+  <h2>Get in touch</h2>
+  <form class="contact__form" action="#" method="post">
+    <input class="contact__input" type="text" name="name" placeholder="Name" aria-label="Name">
+    <input class="contact__input" type="email" name="email" placeholder="Email" aria-label="Email">
+    <textarea class="contact__textarea" name="message" placeholder="Message" aria-label="Message" rows="4"></textarea>
+    <button class="contact__button" type="submit">Send</button>
+  </form>
+</section>
+<footer class="footer footer--columns">
+  <div class="footer__grid">
+    <div class="footer__brand">
+      <span class="footer__mark">Site Factory</span>
+      <p class="footer__tagline">Blocks in, tokens in, a site out.</p>
+    </div>
+    <div class="footer__col">
+      <h3 class="footer__colTitle">Product</h3>
+      <nav class="footer__colLinks" aria-label="Product">
+        <a class="footer__link" href="#">Blocks</a>
+        <a class="footer__link" href="#">Styles</a>
+      </nav>
+    </div>
+    <div class="footer__col">
+      <h3 class="footer__colTitle">Company</h3>
+      <nav class="footer__colLinks" aria-label="Company">
+        <a class="footer__link" href="#">About</a>
+        <a class="footer__link" href="#">Careers</a>
+      </nav>
+    </div>
+    <div class="footer__col">
+      <h3 class="footer__colTitle">Resources</h3>
+      <nav class="footer__colLinks" aria-label="Resources">
+        <a class="footer__link" href="#">Docs</a>
+        <a class="footer__link" href="#">Changelog</a>
+      </nav>
+    </div>
+  </div>
+  <div class="footer__bottom">
+    <span class="footer__copyright">© 2026 Site Factory</span>
+  </div>
+</footer>
+</body>
+</html>

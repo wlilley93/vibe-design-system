@@ -1,0 +1,18 @@
+{
+  "title": "404 demo",
+  "stylePack": "geist",
+  "page": [
+    {
+      "block": "notfound", "variant": "notfound-2",
+      "content": {
+        "code": "404",
+        "heading": "This page doesn't exist.",
+        "sub": "The block you're looking for may have been renamed or removed.",
+        "searchAction": "#",
+        "searchPlaceholder": "Search the docs",
+        "homeHref": "#",
+        "homeLabel": "Back to home"
+      }
+    }
+  ]
+}
