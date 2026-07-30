@@ -22,21 +22,16 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { execFileSync } = require('child_process');
 
 const { LAYERS, ROUTES } = require('./config-schema.js');
 const { suggest } = require('./suggest.js');
 const { configToTokens, configToManifest, listStylePacks, listBlockVariants } = require('./compose.js');
 const { renderPage } = require('./build.js');
-const { scaffold } = require('./scaffold.js');
-const { bridge, resolveVdsBin } = require('./vds-bridge.js');
+const { resolveVdsBin } = require('./vds-bridge.js');
+const { createProject } = require('./project.js');
 
 const ROOT = __dirname;
 const PORT = Number(process.env.PORT) || 4321;
-
-function slug(s) {
-  return String(s).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'my-project';
-}
 
 function readBody(req) {
   return new Promise((resolve, reject) => {
@@ -60,55 +55,14 @@ function json(res, code, payload) {
 }
 
 function commitProject(config) {
-  const name = slug(config.identity.name);
-  const outDir = path.join(ROOT, 'scaffolds', name);
-  if (fs.existsSync(outDir)) {
-    throw new Error(`scaffolds/${name} already exists — rename the project or remove that directory`);
-  }
-
-  const isSaas = config.identity.category === 'saas-app';
-  const manifest = configToManifest(config);
-  const blocks = manifest.page.map((e) => e.variant);
-
-  const result = scaffold({ name, blocks: blocks.join(','), style: config.palette.basePack });
-
-  // Overwrite the scaffold's starter token file and manifest with the composed ones,
-  // so the committed project is exactly what the preview showed.
-  fs.writeFileSync(
-    path.join(result.outDir, 'tokens', 'default.json'),
-    JSON.stringify(configToTokens(config), null, 2)
-  );
-  fs.writeFileSync(
-    path.join(result.outDir, 'manifests', 'home.json'),
-    JSON.stringify({ ...manifest, stylePack: 'default' }, null, 2)
-  );
-  fs.writeFileSync(path.join(result.outDir, 'config.json'), JSON.stringify(config, null, 2));
-
-  execFileSync(process.execPath, ['build.js', 'manifests/home.json'], { cwd: result.outDir, stdio: 'pipe' });
-
-  const out = { outDir: path.relative(ROOT, result.outDir), blocks, governed: false, vds: null };
-
-  if (config.governance && config.governance.vds) {
-    const bin = resolveVdsBin();
-    if (!bin) {
-      out.vds = 'no vds binary found (set VDS_BIN or put vds on PATH)';
-    } else {
-      execFileSync(bin, ['init', '--jurisdiction', name, '--repo-code', name.slice(0, 12)], { cwd: result.outDir, stdio: 'pipe' });
-      const b = bridge(result.outDir, result.typesUsed);
-      out.governed = true;
-      out.vds = {
-        surface: b.config.changed,
-        records: b.records.length,
-        advanced: b.lifecycle.advanced.length,
-        ledger: b.ledger,
-      };
-    }
-  }
-
-  if (isSaas) {
-    out.note = 'SaaS route: only the app shell (nav + sidebar) has real code renderers; the rest of the component decisions are recorded in config.json, not built.';
-  }
-  return out;
+  const r = createProject(config);
+  return {
+    outDir: r.relDir,
+    blocks: r.blocks,
+    governed: r.governed,
+    vds: r.vds && r.vds.error ? r.vds.error : r.vds,
+    note: r.note,
+  };
 }
 
 const server = http.createServer(async (req, res) => {

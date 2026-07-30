@@ -16,19 +16,13 @@
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline/promises');
-const { execFileSync } = require('child_process');
 
 const { LAYERS, ROUTES } = require('./config-schema.js');
 const { suggest } = require('./suggest.js');
-const { scaffold } = require('./scaffold.js');
 
-const { bridge, resolveVdsBin } = require('./vds-bridge.js');
+const { createProject, slug } = require('./project.js');
 
 const ROOT = __dirname;
-
-function slug(s) {
-  return s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'my-project';
-}
 
 // Node's readline auto-closes its interface the moment a piped (non-TTY) stdin hits
 // EOF, which can land between two `question()` calls and leave the later one hanging
@@ -134,125 +128,13 @@ async function runWizard() {
   return config;
 }
 
-function radiusPx(choice) {
-  const table = { 'sharp-0': ['0px', '0px'], 'soft-6': ['6px', '12px'], 'round-16': ['16px', '24px'], 'pill': ['999px', '999px'] };
-  return table[choice] || table['soft-6'];
-}
-
-// SaaS route: only nav/sidebar have real code block renderers today (109 SaaS
-// component types are cataloged, only 2 — Gated Action Button, StatusBadge — exist
-// as Figma specimens, and none as code). Compiling a full app shell here would be a
-// silent overclaim, so the SaaS route builds only what's real and records the rest
-// as a spec, not a build.
-function saasShellBlocks(config) {
-  const nav = (config.strategy.sitemap || []).find((b) => b.startsWith('nav'));
-  const sidebar = (config.strategy.sitemap || []).find((b) => b.startsWith('sidebar'));
-  return [nav || 'nav-1', sidebar || 'sidebar-2'];
-}
-
 /*
- * Establish VDS governance in the scaffolded project. OPTIONAL by design: without
- * `--vds` the project has no `.vds/` and builds identically, and VDS itself is
- * usable with no knowledge of site-factory. See vds-bridge.js for why `vds init`
- * alone is not enough (it writes a Next.js-shaped surface that leaves every gate
- * blind in a project with no app/ directory).
+ * Everything from here to the project on disk is project.js's job. The wizard's
+ * only remaining responsibility is collecting the config.
  */
-function runVds(outDir, jurisdiction, blockTypes) {
-  const bin = resolveVdsBin();
-  if (!bin) {
-    console.log('  (skipped: no vds binary. Set VDS_BIN, put vds on PATH, or run "cargo build --release -p vds-cli")');
-    return false;
-  }
-  try {
-    execFileSync(bin, ['init', '--jurisdiction', jurisdiction, '--repo-code', jurisdiction.slice(0, 12)], { cwd: outDir, stdio: 'inherit' });
-  } catch (err) {
-    console.log(`  (vds init failed, continuing without .vds/: ${err.message})`);
-    return false;
-  }
-  const result = bridge(outDir, blockTypes);
-  console.log(`  surface repointed at this project: ${result.config.changed.join(', ')}`);
-  console.log(`  register: ${result.records.length} records written, advanced to built: ${result.lifecycle.advanced.length}`);
-  if (result.lifecycle.failedAt) console.log(`  lifecycle stopped at ${result.lifecycle.failedAt}`);
-  console.log(`  screens ledger: ${result.ledger ? 'generated' : 'NOT generated'}`);
-  return true;
-}
-
 function compile(config) {
-  const isSaas = config.identity.category === 'saas-app';
-  const blocks = isSaas ? saasShellBlocks(config) : config.strategy.sitemap;
-  if (!blocks.length) throw new Error('sitemap is empty — need at least one block to compile a page');
-
-  const result = scaffold({ name: slug(config.identity.name), blocks: blocks.join(','), style: config.palette.basePack });
-
-  const tokPath = path.join(result.outDir, 'tokens', 'default.json');
-  const tok = JSON.parse(fs.readFileSync(tokPath, 'utf8'));
-  tok.colors.bg = config.palette.groundColor;
-  tok.colors.surface = config.palette.surfaceColor;
-  tok.colors.ink = config.palette.inkColor;
-  tok.colors.accent = config.palette.accentColor;
-  tok.colors.accentInk = config.palette.accentInkColor;
-  tok.colors.border = config.palette.borderColor;
-  tok.font.family = config.typography.displayFont;
-  tok.font.mono = config.typography.monoFont;
-  const [rsm, rlg] = radiusPx(config.spacing.cornerRadius);
-  tok.radius.sm = rsm;
-  tok.radius.lg = rlg;
-  tok.space.unit = config.spacing.spaceUnit;
-  fs.writeFileSync(tokPath, JSON.stringify(tok, null, 2));
-
-  const manPath = path.join(result.outDir, 'manifests', 'home.json');
-  const man = JSON.parse(fs.readFileSync(manPath, 'utf8'));
-  man.title = config.identity.name;
-  for (const entry of man.page) {
-    if (entry.block === 'hero') {
-      if (config.identity.tagline) entry.content.h1 = config.identity.tagline;
-      if (config.identity.description) entry.content.sub = config.identity.description;
-    }
-    if (entry.block === 'nav' || entry.block === 'footer') {
-      entry.content.wordmark = config.identity.name;
-      if (entry.content.copyright) entry.content.copyright = `© 2026 ${config.identity.name}`;
-    }
-  }
-  fs.writeFileSync(manPath, JSON.stringify(man, null, 2));
-
-  fs.writeFileSync(path.join(result.outDir, 'config.json'), JSON.stringify(config, null, 2));
-
-  execFileSync(process.execPath, ['build.js', 'manifests/home.json'], { cwd: result.outDir, stdio: 'inherit' });
-
-  // Governance is opt-in. Without --vds this project is a plain static-site build
-  // with no .vds/ anywhere in it, which is the "site-factory without VDS" half of
-  // the requirement.
-  if (config.governance && config.governance.vds) {
-    console.log('\n=== vds (governed) ===');
-    runVds(result.outDir, slug(config.identity.name), result.typesUsed);
-  } else {
-    console.log('\n(ungoverned build — pass --vds to establish .vds/ for this project)');
-  }
-
-  if (isSaas) {
-    fs.writeFileSync(path.join(result.outDir, 'SAAS-COMPONENTS.md'), `# ${config.identity.name} — component spec
-
-This route only compiled a real app shell (nav + sidebar — dist/home.html), because
-those are the only SaaS-adjacent blocks with actual code renderers today. Everything
-else below is a DECISION, recorded in config.json, not a build.
-
-## componentStyle layer (config.json)
-${Object.entries(config.componentStyle).map(([k, v]) => `- ${k}: ${v}`).join('\n')}
-
-## Built so far (Figma specimens, VDS Site Builder file 4pPUFvaPdqYzPquBusSfWl)
-- Gated Action Button (node 20:12) — Style=Enabled / Style=Blocked
-- StatusBadge (node 20:35) — Style=Pill / Style=Dot, matches statusBadgeStyle above
-
-## Cataloged but not yet built (107 of 109 SaaS component types)
-See the "SaaS Components" page in the same Figma file (roots 19:3, 19:206, 19:348) for
-the full taxonomy across Actions, Forms & Inputs, Feedback & Status, Overlays &
-Dialogs, Navigation, Data Display, Timelines & History, Object & Page Assemblies,
-Communication & Collaboration, Domain & Commerce, Canvas/Graph & Shell. Priority build
-order per Opbox's COMPONENT_INVENTORY.md: FacetStrip -> ObjectTable -> Object View ->
-Inspector -> Master-Detail Assembly.
-`);
-  }
-
+  const result = createProject(config, { log: (m) => console.log(`  ${m}`) });
+  if (result.note) console.log(`  note: ${result.note}`);
   return result.outDir;
 }
 

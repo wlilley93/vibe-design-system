@@ -38,7 +38,7 @@ function parseArgs(argv) {
   return out;
 }
 
-function scaffold({ name, blocks, style }) {
+function scaffold({ name, blocks, style, outDir: outDirOverride }) {
   if (!name) throw new Error('--name is required');
   if (!blocks) throw new Error('--blocks is required, e.g. --blocks nav-1,hero-2,footer-a');
   if (!style) throw new Error('--style is required, e.g. --style geist');
@@ -48,8 +48,9 @@ function scaffold({ name, blocks, style }) {
     return { type, variant };
   });
 
-  const outDir = path.join(ROOT, 'scaffolds', name);
-  if (fs.existsSync(outDir)) throw new Error(`scaffolds/${name} already exists — pick a new name or remove it first`);
+  // Callers may place the project anywhere; scaffolds/<name> is only the default.
+  const outDir = outDirOverride || path.join(ROOT, 'scaffolds', name);
+  if (fs.existsSync(outDir)) throw new Error(`${path.relative(ROOT, outDir)} already exists — pick a new name or remove it first`);
   fs.mkdirSync(path.join(outDir, 'blocks'), { recursive: true });
   fs.mkdirSync(path.join(outDir, 'tokens'), { recursive: true });
   fs.mkdirSync(path.join(outDir, 'manifests'), { recursive: true });

@@ -7,183 +7,175 @@
 <style>
   * { box-sizing: border-box; }
   :root {
-    --ui-bg: #0e0e11;
-    --ui-panel: #17171c;
-    --ui-panel-2: #1e1e25;
-    --ui-line: #2c2c35;
-    --ui-ink: #ececf1;
-    --ui-muted: #8b8b99;
-    --ui-accent: #6c8cff;
-    --ui-good: #4ec9a0;
-    --ui-warn: #e0a44a;
+    --bg: #0d0d10; --panel: #15151a; --raised: #1c1c23; --line: #2a2a33;
+    --ink: #eceef2; --muted: #8b8b99; --dim: #5f5f6d;
+    --accent: #6c8cff; --good: #4ec9a0; --bad: #ff7a7a;
+    --r: 7px;
   }
+  html, body { height: 100%; }
   body {
-    margin: 0; height: 100vh; display: flex; flex-direction: column;
-    background: var(--ui-bg); color: var(--ui-ink);
-    font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, sans-serif;
+    margin: 0; display: flex; flex-direction: column;
+    background: var(--bg); color: var(--ink);
+    font: 13.5px/1.5 ui-sans-serif, system-ui, -apple-system, sans-serif;
+    overflow: hidden;
   }
+  button { font: inherit; cursor: pointer; }
 
+  /* ── top bar ───────────────────────────────────────────────── */
   header {
-    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-    padding: 10px 16px; border-bottom: 1px solid var(--ui-line); background: var(--ui-panel);
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 14px; border-bottom: 1px solid var(--line); background: var(--panel);
+    flex-shrink: 0;
   }
-  header h1 { font-size: 14px; margin: 0; font-weight: 650; letter-spacing: .2px; }
-  header .sep { flex: 1; }
-  .pill {
-    font-size: 11px; padding: 3px 8px; border-radius: 999px;
-    background: var(--ui-panel-2); color: var(--ui-muted); border: 1px solid var(--ui-line);
-  }
-  .pill.on { color: var(--ui-good); border-color: var(--ui-good); }
+  .brand { font-size: 13px; font-weight: 650; letter-spacing: .2px; }
+  .brand em { color: var(--muted); font-style: normal; font-weight: 400; }
+  .tag { font-size: 11px; padding: 3px 8px; border-radius: 999px; background: var(--raised); color: var(--muted); border: 1px solid var(--line); white-space: nowrap; }
+  .tag.on { color: var(--good); border-color: rgba(78,201,160,.5); }
+  .strip { display: flex; gap: 0; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+  .strip i { width: 20px; height: 20px; display: block; }
+  .grow { flex: 1; }
 
   main { flex: 1; display: flex; min-height: 0; }
 
-  /* ---- left: the character sheet ---- */
-  .sheet {
-    width: 420px; flex-shrink: 0; display: flex; flex-direction: column;
-    border-right: 1px solid var(--ui-line); background: var(--ui-panel); min-height: 0;
-  }
-  .brief { padding: 14px 16px; border-bottom: 1px solid var(--ui-line); }
-  .brief label { display: block; font-size: 11px; color: var(--ui-muted); margin: 8px 0 3px; text-transform: uppercase; letter-spacing: .06em; }
+  /* ── left: the sheet ──────────────────────────────────────── */
+  .sheet { width: 430px; flex-shrink: 0; display: flex; flex-direction: column; background: var(--panel); border-right: 1px solid var(--line); min-height: 0; }
+
+  .brief { padding: 12px 14px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+  .brief .lbl { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: .07em; margin: 7px 0 3px; }
+  .brief .lbl:first-child { margin-top: 0; }
   .brief input, .brief textarea, .brief select {
-    width: 100%; background: var(--ui-bg); color: var(--ui-ink);
-    border: 1px solid var(--ui-line); border-radius: 6px; padding: 7px 9px; font: inherit; font-size: 13px;
+    width: 100%; background: var(--bg); color: var(--ink); border: 1px solid var(--line);
+    border-radius: var(--r); padding: 6px 8px; font: inherit; font-size: 12.5px;
   }
-  .brief textarea { resize: vertical; min-height: 52px; }
-  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .brief textarea { resize: vertical; min-height: 44px; }
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .actions { display: flex; gap: 6px; margin-top: 9px; }
+  .btn { padding: 5px 10px; border-radius: var(--r); background: var(--raised); color: var(--ink); border: 1px solid var(--line); font-size: 12px; }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.solid { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .btn.solid:hover { color: #fff; filter: brightness(1.08); }
 
-  .tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 10px 12px; border-bottom: 1px solid var(--ui-line); }
-  .tab {
-    font-size: 11.5px; padding: 4px 9px; border-radius: 6px; cursor: pointer;
-    background: transparent; color: var(--ui-muted); border: 1px solid transparent;
+  /* layer stepper */
+  .stepper { display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+  .stepper .title { flex: 1; font-size: 12.5px; font-weight: 600; }
+  .stepper .count { font-size: 11px; color: var(--dim); }
+  .dots { display: flex; gap: 3px; padding: 0 14px 9px; flex-wrap: wrap; flex-shrink: 0; }
+  .dot { height: 3px; flex: 1; min-width: 12px; border-radius: 2px; background: var(--line); cursor: pointer; }
+  .dot.on { background: var(--accent); }
+  .dot.done { background: var(--dim); }
+
+  .fields { flex: 1; overflow-y: auto; min-height: 0; padding-bottom: 20px; }
+  .src { padding: 8px 14px 2px; font-size: 10.5px; color: var(--dim); font-style: italic; line-height: 1.4; }
+
+  .f { padding: 8px 14px; border-left: 2px solid transparent; }
+  .f.sel { background: rgba(108,140,255,.06); border-left-color: var(--accent); }
+  .f .k { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 4px; }
+  .car { display: flex; align-items: center; gap: 6px; }
+  .ar {
+    width: 24px; height: 24px; flex-shrink: 0; border-radius: 5px; padding: 0;
+    background: var(--raised); color: var(--ink); border: 1px solid var(--line);
+    font-size: 11px; line-height: 1; display: grid; place-items: center;
   }
-  .tab:hover { color: var(--ui-ink); }
-  .tab.active { background: var(--ui-panel-2); color: var(--ui-ink); border-color: var(--ui-line); }
-
-  .layer { flex: 1; overflow-y: auto; padding: 6px 0 16px; min-height: 0; }
-  .layer-src { padding: 8px 16px 4px; font-size: 11px; color: var(--ui-muted); font-style: italic; }
-
-  /* the carousel row: this is the "hair / eyes / nose" control */
-  .field { padding: 9px 16px; border-bottom: 1px solid rgba(255,255,255,.035); }
-  .field-name { font-size: 11px; color: var(--ui-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 5px; }
-  .carousel { display: flex; align-items: center; gap: 8px; }
-  .arrow {
-    width: 26px; height: 26px; flex-shrink: 0; border-radius: 6px; cursor: pointer;
-    background: var(--ui-panel-2); color: var(--ui-ink); border: 1px solid var(--ui-line);
-    font-size: 13px; line-height: 1; display: grid; place-items: center; padding: 0;
-  }
-  .arrow:hover { border-color: var(--ui-accent); color: var(--ui-accent); }
-  .arrow:disabled { opacity: .3; cursor: default; }
-  .value {
-    flex: 1; text-align: center; font-size: 13px; padding: 4px 6px;
-    background: var(--ui-bg); border: 1px solid var(--ui-line); border-radius: 6px;
+  .ar:hover { border-color: var(--accent); color: var(--accent); }
+  .v {
+    flex: 1; text-align: center; font-size: 12.5px; padding: 4px 6px; min-width: 0;
+    background: var(--bg); border: 1px solid var(--line); border-radius: 5px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .idx { font-size: 10.5px; color: var(--ui-muted); min-width: 30px; text-align: right; flex-shrink: 0; }
-  .field input[type=text], .field input[type=number] {
-    width: 100%; background: var(--ui-bg); color: var(--ui-ink);
-    border: 1px solid var(--ui-line); border-radius: 6px; padding: 6px 8px; font: inherit; font-size: 13px;
+  .n { font-size: 10px; color: var(--dim); min-width: 28px; text-align: right; flex-shrink: 0; }
+  .f input[type=text], .f input[type=number] {
+    width: 100%; background: var(--bg); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 5px; padding: 5px 7px; font: inherit; font-size: 12.5px;
   }
-  .field input[type=color] {
-    width: 100%; height: 30px; background: var(--ui-bg);
-    border: 1px solid var(--ui-line); border-radius: 6px; padding: 2px; cursor: pointer;
-  }
-  .swatchline { display: flex; align-items: center; gap: 8px; }
-  .swatchline input[type=color] { width: 44px; flex-shrink: 0; }
-  .swatchline input[type=text] { flex: 1; font-family: ui-monospace, monospace; font-size: 12px; }
-  .help { font-size: 11px; color: var(--ui-muted); margin-top: 5px; line-height: 1.45; }
-  .multi { display: flex; flex-wrap: wrap; gap: 4px; }
-  .chip {
-    font-size: 11px; padding: 3px 7px; border-radius: 5px; cursor: pointer;
-    background: var(--ui-bg); border: 1px solid var(--ui-line); color: var(--ui-muted);
-  }
-  .chip.on { background: var(--ui-accent); border-color: var(--ui-accent); color: #fff; }
+  .swatch { display: flex; align-items: center; gap: 7px; }
+  .swatch input[type=color] { width: 40px; height: 26px; flex-shrink: 0; background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 2px; }
+  .swatch input[type=text] { flex: 1; font-family: ui-monospace, monospace; font-size: 11.5px; }
+  .hint { font-size: 10.5px; color: var(--dim); margin-top: 4px; line-height: 1.45; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .chip { font-size: 11px; padding: 3px 7px; border-radius: 5px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); cursor: pointer; }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .chip.ord { background: var(--raised); border-color: var(--accent); color: var(--accent); }
 
-  /* ---- right: live preview ---- */
-  .stage { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--ui-bg); }
-  .stagebar {
-    display: flex; align-items: center; gap: 10px; padding: 8px 14px;
-    border-bottom: 1px solid var(--ui-line); font-size: 12px; color: var(--ui-muted);
-  }
-  .stagebar button {
-    font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 6px; cursor: pointer;
-    background: var(--ui-panel-2); color: var(--ui-ink); border: 1px solid var(--ui-line);
-  }
-  .stagebar button:hover { border-color: var(--ui-accent); }
-  .stagebar button.primary { background: var(--ui-accent); border-color: var(--ui-accent); color: #fff; font-weight: 600; }
-  .stagebar .sep { flex: 1; }
-  .frame-wrap { flex: 1; padding: 14px; overflow: auto; min-height: 0; }
-  iframe {
-    width: 100%; height: 100%; min-height: 640px; border: 1px solid var(--ui-line);
-    border-radius: 8px; background: #fff; display: block;
-  }
-  iframe.w-narrow { max-width: 420px; margin: 0 auto; }
-  .err {
-    margin: 14px; padding: 10px 12px; border-radius: 6px; font-size: 12.5px;
-    background: rgba(224,68,68,.12); border: 1px solid rgba(224,68,68,.45); color: #ffb4b4;
-    white-space: pre-wrap; font-family: ui-monospace, monospace;
-  }
-  .ok {
-    margin: 14px; padding: 10px 12px; border-radius: 6px; font-size: 12.5px;
-    background: rgba(78,201,160,.1); border: 1px solid rgba(78,201,160,.4); color: #9ff0d2;
-    white-space: pre-wrap; font-family: ui-monospace, monospace;
-  }
+  /* ── right: stage ─────────────────────────────────────────── */
+  .stage { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+  .bar .st { font-size: 11.5px; color: var(--muted); font-family: ui-monospace, monospace; }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+  .seg button { background: transparent; border: 0; color: var(--muted); padding: 4px 10px; font-size: 12px; }
+  .seg button.on { background: var(--raised); color: var(--ink); }
+  .wrap { flex: 1; padding: 12px; overflow: auto; min-height: 0; }
+  iframe { width: 100%; height: 100%; min-height: 600px; border: 1px solid var(--line); border-radius: 8px; background: #fff; display: block; }
+  iframe.narrow { max-width: 400px; margin: 0 auto; }
+  .note { margin: 12px; padding: 9px 11px; border-radius: 6px; font-size: 12px; white-space: pre-wrap; font-family: ui-monospace, monospace; line-height: 1.5; }
+  .note.err { background: rgba(255,122,122,.1); border: 1px solid rgba(255,122,122,.4); color: var(--bad); }
+  .note.ok { background: rgba(78,201,160,.08); border: 1px solid rgba(78,201,160,.35); color: var(--good); }
+  kbd { font-family: ui-monospace, monospace; font-size: 10px; background: var(--raised); border: 1px solid var(--line); border-radius: 3px; padding: 1px 4px; color: var(--muted); }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>site-factory <span style="color:var(--ui-muted);font-weight:400">studio</span></h1>
-  <span class="pill" id="pill-route">marketing-site</span>
-  <span class="pill" id="pill-fields">0 fields</span>
-  <span class="pill" id="pill-vds">vds</span>
-  <span class="sep"></span>
-  <span class="pill">preview renders through the real build engine</span>
+  <span class="brand">site-factory <em>studio</em></span>
+  <span class="strip" id="strip" title="live palette"></span>
+  <span class="tag" id="t-route">—</span>
+  <span class="tag" id="t-vds">vds</span>
+  <span class="grow"></span>
+  <span class="tag"><kbd>←</kbd> <kbd>→</kbd> rotate · <kbd>↑</kbd> <kbd>↓</kbd> field · <kbd>tab</kbd> layer</span>
 </header>
 
 <main>
   <section class="sheet">
     <div class="brief">
-      <label for="f-name">Project name</label>
-      <input id="f-name" type="text" value="Northgate Trust" />
-      <label for="f-tag">Tagline</label>
-      <input id="f-tag" type="text" value="I draw the structure first." />
-      <div class="row2">
+      <div class="lbl">Project name</div>
+      <input id="f-name" type="text" value="Northgate Trust">
+      <div class="lbl">Tagline</div>
+      <input id="f-tag" type="text" value="I draw the structure first.">
+      <div class="g2">
         <div>
-          <label for="f-cat">Route</label>
+          <div class="lbl">Route</div>
           <select id="f-cat">
             <option value="marketing-site">marketing-site</option>
             <option value="saas-app">saas-app</option>
           </select>
         </div>
         <div>
-          <label for="f-vds">Governance</label>
+          <div class="lbl">Governance</div>
           <select id="f-vds">
             <option value="">ungoverned</option>
             <option value="1">establish .vds/</option>
           </select>
         </div>
       </div>
-      <label for="f-desc">Brief (drives every suggestion)</label>
+      <div class="lbl">Brief</div>
       <textarea id="f-desc">A private trust and estate structuring advisory for legal ownership.</textarea>
-      <div style="margin-top:10px">
-        <button id="btn-suggest" class="arrow" style="width:auto;padding:5px 12px;height:auto">Suggest all layers</button>
+      <div class="actions">
+        <button class="btn solid" id="b-suggest">Suggest all</button>
+        <button class="btn" id="b-reroll">Reroll design</button>
       </div>
     </div>
 
-    <div class="tabs" id="tabs"></div>
-    <div class="layer" id="layer"></div>
+    <div class="stepper">
+      <button class="ar" id="b-prev" title="previous layer">◀</button>
+      <span class="title" id="l-title">—</span>
+      <span class="count" id="l-count">—</span>
+      <button class="ar" id="b-next" title="next layer">▶</button>
+    </div>
+    <div class="dots" id="dots"></div>
+    <div class="fields" id="fields"></div>
   </section>
 
   <section class="stage">
-    <div class="stagebar">
-      <button id="btn-wide" class="primary">Desktop</button>
-      <button id="btn-narrow">Mobile</button>
-      <span id="status">—</span>
-      <span class="sep"></span>
-      <button id="btn-commit" class="primary">Create project</button>
+    <div class="bar">
+      <span class="seg">
+        <button id="b-wide" class="on">Desktop</button>
+        <button id="b-narrow">Mobile</button>
+      </span>
+      <span class="st" id="status">—</span>
+      <span class="grow"></span>
+      <button class="btn solid" id="b-commit">Create project</button>
     </div>
     <div id="msg"></div>
-    <div class="frame-wrap"><iframe id="preview" title="live preview"></iframe></div>
+    <div class="wrap"><iframe id="prev" title="live preview"></iframe></div>
   </section>
 </main>
 
@@ -192,264 +184,247 @@
 
 let SCHEMA = null;
 let config = null;
-let activeLayer = null;
+let layerIdx = 0;
+let fieldIdx = 0;
 
 const $ = (id) => document.getElementById(id);
 
-function setStatus(text, cls) {
-  const el = $('status');
-  el.textContent = text;
-  el.style.color = cls === 'err' ? '#ffb4b4' : cls === 'ok' ? '#9ff0d2' : 'var(--ui-muted)';
-}
+/* ── model helpers ──────────────────────────────────────────── */
 
-function showMsg(kind, text) {
-  $('msg').innerHTML = '';
-  if (!text) return;
-  const d = document.createElement('div');
-  d.className = kind;
-  d.textContent = text;
-  $('msg').appendChild(d);
-}
-
-// Which layers this route uses. Two routes, not one flow with a toggle.
-function routeLayers() {
+// Two routes, not one flow with a toggle: the route decides which layers exist.
+function layers() {
   const keys = SCHEMA.routes[config.identity.category] || SCHEMA.routes['marketing-site'];
   return SCHEMA.layers.filter((l) => l.key !== 'identity' && keys.includes(l.key));
 }
+function layer() { return layers()[layerIdx]; }
 
-// Options for a field. Style packs and block variants come from disk, not a
-// hardcoded list, so adding a token file or a block shows up here with no edit.
-function optionsFor(layerKey, field) {
+// Style packs come from disk (GET /schema), so dropping a token file into tokens/
+// adds an option here with no change to this file.
+function options(layerKey, field) {
   if (layerKey === 'palette' && field.key === 'basePack') return SCHEMA.stylePacks;
   return field.options || [];
 }
+function rotatable(layerKey, field) {
+  return field.type === 'enum' || (layerKey === 'palette' && field.key === 'basePack');
+}
 
-function rotate(layerKey, field, dir) {
-  const opts = optionsFor(layerKey, field);
+async function rotate(dir) {
+  const l = layer();
+  const f = l.fields[fieldIdx];
+  if (!f || !rotatable(l.key, f)) return;
+  const opts = options(l.key, f);
   if (!opts.length) return;
-  const cur = config[layerKey][field.key];
-  let i = opts.indexOf(cur);
+  let i = opts.indexOf(config[l.key][f.key]);
   if (i === -1) i = 0;
   const next = opts[(i + dir + opts.length) % opts.length];
-  config[layerKey][field.key] = next;
-
-  // Rotating the base pack re-seeds the six palette colours and both fonts to that
-  // pack's real values — otherwise you would switch pack and see nothing move,
-  // because the explicit colour fields still hold the old pack's hexes.
-  if (layerKey === 'palette' && field.key === 'basePack') {
-    reseedFromPack(next);
-    return;
-  }
-  renderLayer();
-  refresh();
+  config[l.key][f.key] = next;
+  if (l.key === 'palette' && f.key === 'basePack') await applyPack(next);
+  drawFields(); schedule();
 }
 
-async function reseedFromPack(pack) {
-  const r = await fetch('/suggest', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(briefFromForm()),
-  });
-  const fresh = await r.json();
-  // Keep every decision the user has made; take only this pack's palette + fonts.
-  const packCfg = await packDefaults(pack, fresh);
-  Object.assign(config.palette, packCfg.palette);
-  Object.assign(config.typography, packCfg.typography);
-  config.palette.basePack = pack;
-  renderLayer();
-  refresh();
-}
-
-// Ask the server to render with each pack so we can read that pack's real token
-// values, rather than duplicating the four token files in browser JS.
+// Rotating the base pack must re-seed the six explicit colour fields and both fonts
+// to that pack's REAL values. Without this you switch pack and nothing moves,
+// because the colour fields still hold the previous pack's hexes.
 const packCache = {};
-async function packDefaults(pack, fallback) {
-  if (packCache[pack]) return packCache[pack];
-  const probe = JSON.parse(JSON.stringify(config));
-  probe.palette.basePack = pack;
-  const r = await fetch('/pack/' + encodeURIComponent(pack));
-  if (r.ok) {
-    const tok = await r.json();
-    const out = {
-      palette: {
-        groundColor: tok.colors.bg, surfaceColor: tok.colors.surface, inkColor: tok.colors.ink,
-        accentColor: tok.colors.accent, accentInkColor: tok.colors.accentInk, borderColor: tok.colors.border,
-      },
-      typography: { displayFont: tok.font.family, monoFont: tok.font.mono },
-    };
-    packCache[pack] = out;
-    return out;
+async function applyPack(pack) {
+  if (!packCache[pack]) {
+    const r = await fetch('/pack/' + encodeURIComponent(pack));
+    if (!r.ok) return;
+    packCache[pack] = await r.json();
   }
-  return { palette: fallback.palette, typography: fallback.typography };
+  const t = packCache[pack];
+  Object.assign(config.palette, {
+    basePack: pack,
+    groundColor: t.colors.bg, surfaceColor: t.colors.surface, inkColor: t.colors.ink,
+    accentColor: t.colors.accent, accentInkColor: t.colors.accentInk, borderColor: t.colors.border,
+  });
+  config.typography.displayFont = t.font.family;
+  config.typography.monoFont = t.font.mono;
+  config.spacing.spaceUnit = t.space.unit;
 }
 
-function fieldControl(layerKey, field) {
-  const wrap = document.createElement('div');
-  wrap.className = 'field';
+// Reroll the DESIGN layers only. Identity, voice and strategy are decisions about
+// the business, not dice — rerolling them would throw away what was typed.
+const DESIGN = { palette: ['basePack'], typography: ['pairingStyle', 'typeScale'], spacing: ['density','cornerRadius','borderWeight','elevation'], imagery: ['imageTreatment','iconStyle'], motion: ['motionIntensity','transitionStyle'] };
+async function reroll() {
+  for (const [lk, keys] of Object.entries(DESIGN)) {
+    const L = SCHEMA.layers.find((x) => x.key === lk);
+    if (!L || !config[lk]) continue;
+    for (const key of keys) {
+      const f = L.fields.find((x) => x.key === key);
+      if (!f) continue;
+      const opts = options(lk, f);
+      if (!opts.length) continue;
+      const pick = opts[Math.floor(Math.random() * opts.length)];
+      config[lk][key] = pick;
+      if (lk === 'palette' && key === 'basePack') await applyPack(pick);
+    }
+  }
+  drawFields(); drawChrome(); schedule();
+}
 
-  const name = document.createElement('div');
-  name.className = 'field-name';
-  name.textContent = field.label || field.key;
-  wrap.appendChild(name);
+/* ── rendering the sheet ────────────────────────────────────── */
 
-  const val = config[layerKey][field.key];
+function fieldEl(l, f, i) {
+  const box = document.createElement('div');
+  box.className = 'f' + (i === fieldIdx ? ' sel' : '');
+  box.onclick = () => { fieldIdx = i; drawFields(); };
 
-  if (field.type === 'color') {
-    const line = document.createElement('div');
-    line.className = 'swatchline';
-    const picker = document.createElement('input');
-    picker.type = 'color';
-    picker.value = /^#[0-9a-fA-F]{6}$/.test(val) ? val : '#000000';
-    const hex = document.createElement('input');
-    hex.type = 'text';
-    hex.value = val;
-    const commit = (v) => { config[layerKey][field.key] = v; hex.value = v; picker.value = /^#[0-9a-fA-F]{6}$/.test(v) ? v : picker.value; refresh(); };
-    picker.oninput = () => commit(picker.value);
-    hex.onchange = () => commit(hex.value.trim());
-    line.appendChild(picker); line.appendChild(hex);
-    wrap.appendChild(line);
-  } else if (field.type === 'enum' || (layerKey === 'palette' && field.key === 'basePack')) {
-    const opts = optionsFor(layerKey, field);
-    const car = document.createElement('div');
-    car.className = 'carousel';
-    const prev = document.createElement('button');
-    prev.className = 'arrow'; prev.textContent = '◀';
-    prev.onclick = () => rotate(layerKey, field, -1);
-    const shown = document.createElement('div');
-    shown.className = 'value'; shown.textContent = val;
-    const next = document.createElement('button');
-    next.className = 'arrow'; next.textContent = '▶';
-    next.onclick = () => rotate(layerKey, field, +1);
-    const idx = document.createElement('span');
-    idx.className = 'idx';
-    const i = opts.indexOf(val);
-    idx.textContent = (i === -1 ? '?' : i + 1) + '/' + opts.length;
-    car.appendChild(prev); car.appendChild(shown); car.appendChild(next); car.appendChild(idx);
-    wrap.appendChild(car);
-  } else if (field.type === 'multi-enum') {
-    const box = document.createElement('div');
-    box.className = 'multi';
-    for (const opt of field.options) {
+  const k = document.createElement('div');
+  k.className = 'k';
+  k.textContent = f.label || f.key;
+  box.appendChild(k);
+
+  const val = config[l.key][f.key];
+
+  if (f.type === 'color') {
+    const row = document.createElement('div'); row.className = 'swatch';
+    const pick = document.createElement('input'); pick.type = 'color';
+    pick.value = /^#[0-9a-fA-F]{6}$/.test(val) ? val : '#000000';
+    const hex = document.createElement('input'); hex.type = 'text'; hex.value = val;
+    const set = (v) => { config[l.key][f.key] = v; hex.value = v; if (/^#[0-9a-fA-F]{6}$/.test(v)) pick.value = v; drawChrome(); schedule(); };
+    pick.oninput = () => set(pick.value);
+    hex.onchange = () => set(hex.value.trim());
+    row.appendChild(pick); row.appendChild(hex); box.appendChild(row);
+  } else if (rotatable(l.key, f)) {
+    const opts = options(l.key, f);
+    const car = document.createElement('div'); car.className = 'car';
+    const a = document.createElement('button'); a.className = 'ar'; a.textContent = '◀';
+    a.onclick = (e) => { e.stopPropagation(); fieldIdx = i; rotate(-1); };
+    const v = document.createElement('div'); v.className = 'v'; v.textContent = val; v.title = String(val);
+    const b = document.createElement('button'); b.className = 'ar'; b.textContent = '▶';
+    b.onclick = (e) => { e.stopPropagation(); fieldIdx = i; rotate(+1); };
+    const n = document.createElement('span'); n.className = 'n';
+    const at = opts.indexOf(val);
+    n.textContent = (at === -1 ? '?' : at + 1) + '/' + opts.length;
+    car.append(a, v, b, n); box.appendChild(car);
+  } else if (f.type === 'multi-enum' || f.type === 'block-list') {
+    const wrap = document.createElement('div'); wrap.className = 'chips';
+    const pool = f.type === 'block-list' ? Object.values(SCHEMA.blockVariants).flat() : f.options;
+    for (const opt of pool) {
       const c = document.createElement('span');
-      c.className = 'chip' + (val.includes(opt) ? ' on' : '');
-      c.textContent = opt;
-      c.onclick = () => {
-        const arr = config[layerKey][field.key];
+      const on = val.includes(opt);
+      c.className = 'chip' + (on ? (f.type === 'block-list' ? ' ord' : ' on') : '');
+      c.textContent = f.type === 'block-list' && on ? `${val.indexOf(opt) + 1} ${opt}` : opt;
+      c.onclick = (e) => {
+        e.stopPropagation();
+        const arr = config[l.key][f.key];
         const at = arr.indexOf(opt);
         if (at === -1) arr.push(opt); else arr.splice(at, 1);
-        renderLayer();
+        drawFields(); if (f.type === 'block-list') schedule();
       };
-      box.appendChild(c);
+      wrap.appendChild(c);
     }
-    wrap.appendChild(box);
-  } else if (field.type === 'block-list') {
-    const box = document.createElement('div');
-    box.className = 'multi';
-    const all = [];
-    for (const [type, variants] of Object.entries(SCHEMA.blockVariants)) {
-      for (const v of variants) all.push(v);
+    box.appendChild(wrap);
+    if (f.type === 'block-list') {
+      const h = document.createElement('div'); h.className = 'hint';
+      h.textContent = 'Click order is page order: ' + (val.join(' → ') || '(empty)');
+      box.appendChild(h);
     }
-    for (const v of all) {
-      const c = document.createElement('span');
-      c.className = 'chip' + (val.includes(v) ? ' on' : '');
-      c.textContent = v;
-      c.onclick = () => {
-        const arr = config[layerKey][field.key];
-        const at = arr.indexOf(v);
-        if (at === -1) arr.push(v); else arr.splice(at, 1);
-        renderLayer(); refresh();
-      };
-      box.appendChild(c);
-    }
-    wrap.appendChild(box);
-    const hint = document.createElement('div');
-    hint.className = 'help';
-    hint.textContent = 'Order is the order clicked. Current page: ' + (val.join(' → ') || '(empty)');
-    wrap.appendChild(hint);
-  } else if (field.type === 'number') {
-    const inp = document.createElement('input');
-    inp.type = 'number'; inp.value = val; inp.min = '1'; inp.max = '16';
-    inp.onchange = () => { config[layerKey][field.key] = Number(inp.value); refresh(); };
-    wrap.appendChild(inp);
+  } else if (f.type === 'number') {
+    const inp = document.createElement('input'); inp.type = 'number'; inp.min = '1'; inp.max = '16'; inp.value = val;
+    inp.onchange = () => { config[l.key][f.key] = Number(inp.value); schedule(); };
+    box.appendChild(inp);
   } else {
-    const inp = document.createElement('input');
-    inp.type = 'text'; inp.value = val == null ? '' : val;
-    inp.onchange = () => { config[layerKey][field.key] = inp.value; refresh(); };
-    wrap.appendChild(inp);
+    const inp = document.createElement('input'); inp.type = 'text'; inp.value = val == null ? '' : val;
+    inp.onchange = () => { config[l.key][f.key] = inp.value; schedule(); };
+    box.appendChild(inp);
   }
 
-  if (field.help) {
-    const h = document.createElement('div');
-    h.className = 'help';
-    h.textContent = field.help;
-    wrap.appendChild(h);
+  if (f.help) {
+    const h = document.createElement('div'); h.className = 'hint'; h.textContent = f.help;
+    box.appendChild(h);
   }
-  return wrap;
+  return box;
 }
 
-function renderTabs() {
-  const tabs = $('tabs');
-  tabs.innerHTML = '';
-  const layers = routeLayers();
-  if (!layers.find((l) => l.key === activeLayer)) activeLayer = layers[0].key;
-  for (const l of layers) {
-    const t = document.createElement('span');
-    t.className = 'tab' + (l.key === activeLayer ? ' active' : '');
-    t.textContent = l.title;
-    t.onclick = () => { activeLayer = l.key; renderTabs(); renderLayer(); };
-    tabs.appendChild(t);
+function drawFields() {
+  const host = $('fields'); host.innerHTML = '';
+  const l = layer(); if (!l) return;
+  if (fieldIdx >= l.fields.length) fieldIdx = 0;
+  if (l.source) {
+    const s = document.createElement('div'); s.className = 'src';
+    s.textContent = 'source: ' + l.source; host.appendChild(s);
   }
+  l.fields.forEach((f, i) => host.appendChild(fieldEl(l, f, i)));
+  $('l-title').textContent = l.title;
+  $('l-count').textContent = (layerIdx + 1) + '/' + layers().length;
 }
 
-function renderLayer() {
-  const host = $('layer');
-  host.innerHTML = '';
-  const layer = SCHEMA.layers.find((l) => l.key === activeLayer);
-  if (!layer) return;
-  if (layer.source) {
-    const s = document.createElement('div');
-    s.className = 'layer-src';
-    s.textContent = 'source: ' + layer.source;
-    host.appendChild(s);
+function drawChrome() {
+  const ls = layers();
+  const dots = $('dots'); dots.innerHTML = '';
+  ls.forEach((l, i) => {
+    const d = document.createElement('span');
+    d.className = 'dot' + (i === layerIdx ? ' on' : i < layerIdx ? ' done' : '');
+    d.title = l.title;
+    d.onclick = () => { layerIdx = i; fieldIdx = 0; drawFields(); drawChrome(); };
+    dots.appendChild(d);
+  });
+  const strip = $('strip'); strip.innerHTML = '';
+  for (const k of ['groundColor','surfaceColor','inkColor','accentColor','borderColor']) {
+    const i = document.createElement('i');
+    i.style.background = config.palette[k];
+    i.title = k + ' ' + config.palette[k];
+    strip.appendChild(i);
   }
-  for (const f of layer.fields) host.appendChild(fieldControl(layer.key, f));
-
-  const n = routeLayers().reduce((a, l) => a + l.fields.length, 0) + 4;
-  $('pill-fields').textContent = n + ' fields';
-  $('pill-route').textContent = config.identity.category;
+  $('t-route').textContent = config.identity.category;
 }
 
-let inflight = null;
-async function refresh() {
-  setStatus('rendering…');
-  const body = JSON.stringify(config);
+function step(dir) {
+  const n = layers().length;
+  layerIdx = (layerIdx + dir + n) % n;
+  fieldIdx = 0;
+  drawFields(); drawChrome();
+}
+
+/* ── preview ────────────────────────────────────────────────── */
+
+let timer = null, inflight = null;
+// Debounced: dragging a colour picker fires a stream of input events, and one
+// request per event would queue renders the user has already moved past.
+function schedule() {
+  clearTimeout(timer);
+  timer = setTimeout(render, 90);
+}
+
+async function render() {
+  const el = $('status');
+  el.textContent = 'rendering…'; el.style.color = 'var(--muted)';
   if (inflight) inflight.abort();
-  const ctl = new AbortController();
-  inflight = ctl;
+  const ctl = new AbortController(); inflight = ctl;
   try {
     const r = await fetch('/render', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body, signal: ctl.signal,
+      body: JSON.stringify(config), signal: ctl.signal,
     });
     if (!r.ok) {
       const e = await r.json().catch(() => ({ error: 'render failed' }));
-      setStatus('render error', 'err');
-      showMsg('err', e.error || 'render failed');
-      return;
+      el.textContent = 'error'; el.style.color = 'var(--bad)';
+      return msg('err', e.error || 'render failed');
     }
     const html = await r.text();
-    $('preview').srcdoc = html;
-    setStatus(Math.round(html.length / 1024) + ' KB · ' + config.strategy.sitemap.length + ' blocks', 'ok');
-    showMsg(null, null);
+    $('prev').srcdoc = html;
+    el.textContent = Math.round(html.length / 1024) + ' KB · ' + config.strategy.sitemap.length + ' blocks · ' + config.palette.basePack;
+    el.style.color = 'var(--good)';
+    msg(null);
   } catch (err) {
     if (err.name === 'AbortError') return;
-    setStatus('render error', 'err');
-    showMsg('err', String(err));
-  } finally {
-    if (inflight === ctl) inflight = null;
-  }
+    el.textContent = 'error'; el.style.color = 'var(--bad)';
+    msg('err', String(err));
+  } finally { if (inflight === ctl) inflight = null; }
 }
 
-function briefFromForm() {
+function msg(kind, text) {
+  const host = $('msg'); host.innerHTML = '';
+  if (!kind) return;
+  const d = document.createElement('div'); d.className = 'note ' + kind; d.textContent = text;
+  host.appendChild(d);
+}
+
+/* ── actions ────────────────────────────────────────────────── */
+
+function brief() {
   return {
     name: $('f-name').value, tagline: $('f-tag').value,
     category: $('f-cat').value, description: $('f-desc').value,
@@ -457,53 +432,67 @@ function briefFromForm() {
   };
 }
 
-async function doSuggest() {
-  setStatus('suggesting…');
+async function suggestAll() {
   const r = await fetch('/suggest', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(briefFromForm()),
+    body: JSON.stringify(brief()),
   });
   config = await r.json();
-  renderTabs(); renderLayer(); refresh();
+  layerIdx = 0; fieldIdx = 0;
+  drawFields(); drawChrome(); render();
 }
 
-async function doCommit() {
-  if (!confirm('Create a real project on disk at scaffolds/' + config.identity.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '?')) return;
-  setStatus('committing…');
+async function commit() {
+  const name = config.identity.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  if (!confirm('Create a real project on disk at scaffolds/' + name + '?')) return;
+  const el = $('status'); el.textContent = 'committing…';
   const r = await fetch('/commit', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(config),
   });
   const out = await r.json();
-  if (!r.ok) { setStatus('commit failed', 'err'); return showMsg('err', out.error); }
-  let text = 'Created ' + out.outDir + '\n  blocks: ' + out.blocks.join(', ');
-  if (out.governed) {
-    text += '\n  .vds/: ' + out.vds.records + ' records, ' + out.vds.advanced + ' advanced to built'
-         +  '\n  surface: ' + out.vds.surface.join(', ');
-  } else if (out.vds) {
-    text += '\n  vds: ' + out.vds;
-  }
-  if (out.note) text += '\n  note: ' + out.note;
-  setStatus('created', 'ok');
-  showMsg('ok', text);
+  if (!r.ok) { el.textContent = 'failed'; el.style.color = 'var(--bad)'; return msg('err', out.error); }
+  let t = 'Created ' + out.outDir + '\n  blocks: ' + out.blocks.join(', ');
+  if (out.governed) t += '\n  .vds/: ' + out.vds.records + ' records, ' + out.vds.advanced + ' advanced to built\n  surface: ' + out.vds.surface.join(', ');
+  else if (out.vds) t += '\n  vds: ' + out.vds;
+  if (out.note) t += '\n  note: ' + out.note;
+  el.textContent = 'created'; el.style.color = 'var(--good)';
+  msg('ok', t);
 }
+
+/* ── keyboard: the reason this feels like a character sheet ─── */
+document.addEventListener('keydown', (e) => {
+  const t = e.target.tagName;
+  if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return;
+  const l = layer(); if (!l) return;
+  if (e.key === 'ArrowLeft') { e.preventDefault(); rotate(-1); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); rotate(+1); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); fieldIdx = (fieldIdx - 1 + l.fields.length) % l.fields.length; drawFields(); }
+  else if (e.key === 'ArrowDown') { e.preventDefault(); fieldIdx = (fieldIdx + 1) % l.fields.length; drawFields(); }
+  else if (e.key === 'Tab') { e.preventDefault(); step(e.shiftKey ? -1 : +1); }
+  else if (e.key === 'r' && !e.metaKey && !e.ctrlKey) { e.preventDefault(); reroll(); }
+});
 
 async function boot() {
   SCHEMA = await (await fetch('/schema')).json();
-  $('pill-vds').textContent = SCHEMA.vdsAvailable ? 'vds available' : 'vds not found';
-  if (SCHEMA.vdsAvailable) $('pill-vds').classList.add('on');
-  $('btn-suggest').onclick = doSuggest;
-  $('btn-commit').onclick = doCommit;
-  $('f-cat').onchange = () => { config.identity.category = $('f-cat').value; renderTabs(); renderLayer(); refresh(); };
-  $('f-vds').onchange = () => { config.governance.vds = Boolean($('f-vds').value); };
-  $('f-name').onchange = () => { config.identity.name = $('f-name').value; refresh(); };
-  $('f-tag').onchange = () => { config.identity.tagline = $('f-tag').value; refresh(); };
-  $('f-desc').onchange = () => { config.identity.description = $('f-desc').value; refresh(); };
-  $('btn-wide').onclick = () => { $('preview').classList.remove('w-narrow'); $('btn-wide').classList.add('primary'); $('btn-narrow').classList.remove('primary'); };
-  $('btn-narrow').onclick = () => { $('preview').classList.add('w-narrow'); $('btn-narrow').classList.add('primary'); $('btn-wide').classList.remove('primary'); };
-  await doSuggest();
-}
+  $('t-vds').textContent = SCHEMA.vdsAvailable ? 'vds available' : 'vds not found';
+  if (SCHEMA.vdsAvailable) $('t-vds').classList.add('on');
 
+  $('b-suggest').onclick = suggestAll;
+  $('b-reroll').onclick = reroll;
+  $('b-commit').onclick = commit;
+  $('b-prev').onclick = () => step(-1);
+  $('b-next').onclick = () => step(+1);
+  $('f-cat').onchange = () => { config.identity.category = $('f-cat').value; layerIdx = 0; fieldIdx = 0; drawFields(); drawChrome(); schedule(); };
+  $('f-vds').onchange = () => { config.governance.vds = Boolean($('f-vds').value); };
+  for (const [id, key] of [['f-name','name'],['f-tag','tagline'],['f-desc','description']]) {
+    $(id).oninput = () => { config.identity[key] = $(id).value; schedule(); };
+  }
+  $('b-wide').onclick = () => { $('prev').classList.remove('narrow'); $('b-wide').classList.add('on'); $('b-narrow').classList.remove('on'); };
+  $('b-narrow').onclick = () => { $('prev').classList.add('narrow'); $('b-narrow').classList.add('on'); $('b-wide').classList.remove('on'); };
+
+  await suggestAll();
+}
 boot();
 </script>
 </body>
