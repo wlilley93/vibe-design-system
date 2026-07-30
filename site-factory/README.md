@@ -90,6 +90,11 @@ chosen one. Values are computed from the build (`tests/spec.test.js` pins them a
 `cssVars()`), because a sheet showing a value the CSS does not use looks authoritative
 and is wrong. Motion is REFUSED rather than faked — a still frame cannot show easing.
 
+**Check the red seed landed before reading the result.** A negative control whose `sed`
+pattern silently matches nothing exits 0, which is indistinguishable from a gate that
+cannot fire. Three seeds here "proved" the Figma-pairing test was dead; the pattern was
+missing one space. Assert the seed is in the file, then run.
+
 **Figma frames default to opaque white.** Containers need their fill cleared or they
 hide the ground. But some frames' fill IS the specimen — a button with no fill is a
 label. Name those `spec:*` at creation and skip them.

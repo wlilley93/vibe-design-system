@@ -138,3 +138,34 @@ test('a block with copy is still offered its skill, for improvement not gap-fill
   // ...but headline-lab generates and scores alternatives, which is worth running anyway.
   assert.ok(improvable.some((s) => s.skill.includes('headline-lab')), 'headline-lab was never offered');
 });
+
+test('every block type is paired with a Figma component set', () => {
+  // The bank is code AND Figma. Adding a block type without its component set divides
+  // it silently: the VDS register record gets `figma: null`, no gate complains, and the
+  // divergence is only found by someone eyeballing the file. I did exactly that when
+  // the four demand-measured blocks landed code-only, so it is a test now.
+  const { FIGMA_NODES } = require('../vds-bridge.js');
+  const { listBlockVariants } = require('../compose.js');
+
+  const missing = Object.keys(listBlockVariants()).filter((t) => !FIGMA_NODES[t]);
+  assert.deepEqual(
+    missing, [],
+    `these block types ship in code with no Figma component set: ${missing.join(', ')}. ` +
+    'Build the set, then add its node id to FIGMA_NODES.'
+  );
+});
+
+test('no Figma node id is claimed for a block type that does not exist', () => {
+  // The other direction: a node id left behind after a block is renamed or removed
+  // points a register record at a component nobody can find.
+  const { FIGMA_NODES } = require('../vds-bridge.js');
+  const { listBlockVariants } = require('../compose.js');
+  const types = new Set(Object.keys(listBlockVariants()));
+
+  const orphans = Object.keys(FIGMA_NODES).filter((t) => !types.has(t));
+  assert.deepEqual(orphans, [], `FIGMA_NODES names block types that no longer exist: ${orphans.join(', ')}`);
+
+  for (const [type, id] of Object.entries(FIGMA_NODES)) {
+    assert.match(id, /^\d+:\d+$/, `${type} has a malformed Figma node id: ${id}`);
+  }
+});

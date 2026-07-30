@@ -84,6 +84,13 @@ const FIGMA_NODES = {
   objectview: '29:50',
   inspector: '29:79',
   masterdetail: '31:138',
+  // Chosen by measured demand across 217 Opbox routes, built in code and Figma in the
+  // same pass. Adding a block type without its component set silently divides the bank
+  // — the register record gets `figma: null` and nobody notices.
+  formfield: '36:189',
+  emptystate: '36:204',
+  pagestate: '37:143',
+  confirmdialog: '37:165',
 };
 
 // The surface a site-factory project actually has. Every value here is a path that
