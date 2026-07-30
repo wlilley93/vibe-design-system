@@ -197,4 +197,7 @@ See [`docs/ADOPTING.md`](docs/ADOPTING.md) for the full order of operations, and
 | [`docs/FIGMA-ROUND-TRIP.md`](docs/FIGMA-ROUND-TRIP.md) | prompt to Figma, Figma to code |
 | [`docs/RELATIONSHIP-TO-VJS.md`](docs/RELATIONSHIP-TO-VJS.md) | the division of labour, and the routing rule |
 | [`docs/GOAL.md`](docs/GOAL.md) | ten measurable done criteria, and the current measured position |
+| [`docs/PROGRAMME-GOAL.md`](docs/PROGRAMME-GOAL.md) | what VDS and site-factory are for TOGETHER, and what failure looks like |
+| [`site-factory/`](site-factory/) | the website factory that produces surfaces worth governing. Opt-in in both directions: VDS needs no knowledge of it, and it writes no `.vds/` without `--vds` |
+| [`site-factory/docs/GOAL.md`](site-factory/docs/GOAL.md) | seven measurable done criteria for the factory |
 | [`schema/`](schema/) | seven JSON Schemas, GENERATED from the Rust types. Do not hand-edit: `vds schema check` diffs them. |
