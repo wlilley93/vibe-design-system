@@ -199,7 +199,13 @@ function placeholderContent(type) {
     },
     team: {
       heading: 'Team',
-      people: [{ name: 'Replace me', role: 'Replace this role' }, { name: 'Replace me', role: 'Replace this role' }],
+      // `bio` is read by team-2 only. It was missing here, so team-2 rendered the
+      // literal string "undefined" into every row — caught by tests/render.test.js
+      // on its first run, which is the whole argument for the union rule above.
+      people: [
+        { name: 'Replace me', role: 'Replace this role', bio: 'Replace this one-line bio.' },
+        { name: 'Replace me', role: 'Replace this role', bio: 'Replace this one-line bio.' },
+      ],
     },
     contact: {
       heading: 'Get in touch', sub: 'Replace this subhead.', email: 'hello@example.com',

@@ -35,6 +35,13 @@ lint:
 test:
 	$(CARGO) test --workspace
 
+# site-factory is JavaScript and has no cargo target, so `make test` never touched
+# it and it shipped ungated. Run through tests/gate.js rather than `node --test`
+# directly: a bare glob EXITS 0 WHEN IT MATCHES NOTHING, so a rename would turn the
+# gate off and still report success. The gate asserts a floor on what actually ran.
+test-factory:
+	node site-factory/tests/gate.js
+
 # The Python tooling under tools/ has its own failing-direction suite, and it is
 # kept separate from `make test` because it needs no toolchain at all: python3
 # and nothing else. VDS S-7(2)(2) is why it exists. Pass T=<module> for one file,
@@ -124,6 +131,7 @@ check:
 	$(CARGO) fmt --all --check
 	$(MAKE) lint
 	$(MAKE) test
+	$(MAKE) test-factory
 	$(MAKE) gates
 	$(MAKE) gates-example
 	$(MAKE) doctor
