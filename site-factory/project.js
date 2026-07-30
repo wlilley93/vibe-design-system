@@ -33,7 +33,7 @@ function slug(s) {
 }
 
 const SAAS_NOTE = 'SaaS route: the app-surface blocks are built (nav, sidebar, facetstrip, objecttable, ' +
-  'objectview, inspector, masterdetail). The 102 other cataloged component types are recorded in ' +
+  'objectview, inspector, masterdetail, formfield, emptystate, pagestate, confirmdialog). The 98 other cataloged component types are recorded in ' +
   'SAAS-COMPONENTS.md as decisions, not built.';
 
 function saasComponentSpec(config) {
@@ -58,7 +58,7 @@ ${Object.entries(cs).map(([k, v]) => `- ${k}: ${v}`).join('\n')}
 - Gated Action Button (node 20:12) — Style=Enabled / Style=Blocked
 - StatusBadge (node 20:35) — Style=Pill / Style=Dot, matches statusBadgeStyle above
 
-## Cataloged, not built (102 of 109 types)
+## Cataloged, not built (98 of 109 types)
 See the "SaaS Components" page in the same file (roots 19:3, 19:206, 19:348). Priority
 order per Opbox's COMPONENT_INVENTORY.md is complete; what remains is the long tail
 across Forms & Inputs, Overlays & Dialogs, Communication and Domain & Commerce.

@@ -92,7 +92,13 @@ function configToTokens(config) {
 // narrowing is now to what genuinely exists in code, not to nav+sidebar alone.
 // Opbox's COMPONENT_INVENTORY.md priority order (FacetStrip -> ObjectTable ->
 // Object View -> Inspector -> Master-Detail Assembly) is all built.
-const SAAS_BLOCKS = new Set(['nav', 'sidebar', 'facetstrip', 'objecttable', 'objectview', 'inspector', 'masterdetail']);
+// Extended by MEASURED demand, not by guess: counted across 217 real Opbox routes.
+// input 54, label 46, textarea 23, native-select 22 (formfield, 145 combined);
+// empty-state 49; page-loading 45 + page-error 38 (pagestate, 83);
+// destructive-action-dialog 16. Each is also a Modular Play the Playbook already
+// names — Empty States, Loading Feedback, Fail Safe — so the measurement and the
+// strategy layer agree rather than one being invented to justify the other.
+const SAAS_BLOCKS = new Set(['nav', 'sidebar', 'facetstrip', 'objecttable', 'objectview', 'inspector', 'masterdetail', 'formfield', 'emptystate', 'pagestate', 'confirmdialog']);
 // masterdetail-2 renders its own facet strip from content.facets, so a standalone
 // facetstrip in the same page draws it twice. Verified: the first Atlas Ops build
 // showed two identical strips stacked.

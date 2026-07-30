@@ -155,3 +155,52 @@ test('keyword stems match inflected words, not just the bare stem', () => {
   const saas = s({ name: 'X', category: 'marketing-site', description: 'An analytics platform for developer teams' });
   assert.equal(saas.palette.basePack, 'geist');
 });
+
+test('the four demand-measured blocks render on the saas route', () => {
+  // Chosen by counting imports across 217 real Opbox routes, not by guess. If the
+  // route ever stops accepting them the measurement was wasted.
+  const c = cfg({ category: 'saas-app' });
+  c.strategy.sitemap = ['nav-1', 'formfield-1', 'emptystate-1', 'pagestate-2', 'confirmdialog-2'];
+  const blocks = configToManifest(c).page.map((p) => p.block);
+  for (const b of ['formfield', 'emptystate', 'pagestate', 'confirmdialog']) {
+    assert.ok(blocks.includes(b), `${b} was filtered out of the saas route`);
+  }
+  assert.doesNotThrow(() => render(c));
+});
+
+test('an empty state always offers a next step', () => {
+  // "Empty States" is a Playbook play whose Don't is explicit: "Leave the screen
+  // cryptic — 'No items found.' is not enough." A blank with no action is the defect.
+  const { BLOCKS } = require('../build.js');
+  const { placeholderContent } = require('../scaffold.js');
+  for (const variant of Object.keys(BLOCKS.emptystate)) {
+    const html = BLOCKS.emptystate[variant](placeholderContent('emptystate'));
+    assert.match(html, /class="empty__cta/, `${variant} renders no action`);
+  }
+});
+
+test('a destructive confirm names the consequence, not just "are you sure"', () => {
+  // "Fail Safe": add friction to risky actions. Friction that carries no information
+  // is a click, not a safeguard.
+  const { BLOCKS } = require('../build.js');
+  const { placeholderContent } = require('../scaffold.js');
+  for (const variant of Object.keys(BLOCKS.confirmdialog)) {
+    const html = BLOCKS.confirmdialog[variant](placeholderContent('confirmdialog'));
+    assert.match(html, /cdialog__consequence/, `${variant} states no consequence`);
+    assert.match(html, /role="alertdialog"/, `${variant} is not announced as a dialog`);
+  }
+});
+
+test('form fields keep their label bound to their control', () => {
+  // A label that does not point at its input is a label the screen reader drops.
+  const { BLOCKS } = require('../build.js');
+  const { placeholderContent } = require('../scaffold.js');
+  for (const variant of Object.keys(BLOCKS.formfield)) {
+    const html = BLOCKS.formfield[variant](placeholderContent('formfield'));
+    const forAttrs = [...html.matchAll(/<label[^>]*for="([^"]+)"/g)].map((m) => m[1]);
+    assert.ok(forAttrs.length >= 4, `${variant} rendered too few labels`);
+    for (const id of forAttrs) {
+      assert.ok(new RegExp(`id="${id}"`).test(html), `${variant}: label points at "${id}" which no control carries`);
+    }
+  }
+});
