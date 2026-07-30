@@ -1,0 +1,36 @@
+id: SUBMISSION-VDS-007
+status: filed
+question: "Under what authority may `vds prune` DELETE committed proof records, and what is the statutory basis for the retention log it writes in exchange?"
+trigger: discovered_breach
+why_first_impression: "S-4(1) states VDS holds EXACTLY NINE artefact kinds and its table has no retention row. S-3(3) enumerates every directory `.vds/` holds and does not list `logs/retention/`. `grep -in 'prune|retention' VDS.md` returns zero hits. Yet `crates/vds-cli/src/prune.rs:328` unlinks files under `.vds/proofs/`, and 18 RETENTION-*.yaml records exist in this repo with 13 more under examples/storefront. The largest un-statuted power in the build is a delete, and the record it writes to justify itself cites S-2(5) - the four-limb test for whether an artefact STORES design values, which is not a licence to unlink anything. A power that removes governance records cannot rest on a clause it chose for itself."
+citator_checked:
+  - citation: "VDS S-3(9)"
+    why_not_on_all_fours: "It says 'The record is committed, not scratch' and 'a governance record that is gitignored is not a record'. That cuts AGAINST an unlegislated delete rather than authorising one, and it does not say whether a bounded working set is a lawful exception."
+  - citation: "VDS S-7(7)"
+    why_not_on_all_fours: "'The proof surface is the one that rots' is the strongest argument FOR a prune power - an unbounded proof directory is the rot it names. It establishes the need and confers no authority."
+  - citation: "VDS S-2(5)"
+    why_not_on_all_fours: "Cited by the retention records themselves as their 'deletion limb' and 'regeneration limb' basis. Those limbs test whether an artefact holds realisation that could be regenerated; they say nothing about who may delete a record that is evidence."
+  - citation: "[2026] VJS-CC-OPBOX 3"
+    why_not_on_all_fours: "Fixes the storing/deriving line and names the systems of record. It does not reach the retention question."
+options:
+  - option: "Legislate it: a clause under S-4 naming the retention log as a tenth kind, stating the keep-rules, and recording that git is the append-only store behind the working set. Add `logs/retention/` to the S-3(3) enumeration and generate a schema so it is validated like the other seven."
+    consequence: "The power becomes lawful and the record checkable. Costs an artefact kind and makes S-4(1)'s 'exactly nine' a number that has to move, which is the honest consequence of the kind existing."
+  - option: "Withdraw `vds prune`. The proof directory grows and git is the only store."
+    consequence: "No un-statuted power. 86 proof records here after one day of work, so the surface a reader has to scan grows without bound, which S-7(7) already names as the thing that rots."
+  - option: "Keep the command and reclassify its output as scratch, gitignored, outside `.vds/`."
+    consequence: "Removes the un-enumerated artefact kind but not the delete power, and S-3(9) says a gitignored governance record is not a record - so the justification for the delete would itself be unrecorded."
+evidence:
+  - "crates/vds-cli/src/prune.rs:265, which writes `.vds/logs/retention/`, and :328, which unlinks under `.vds/proofs/`"
+  - "VDS.md S-4(1), 'VDS holds exactly nine artefact kinds', whose table has no retention row"
+  - "VDS.md S-3(3), the enumeration of what `.vds/` holds, which omits `logs/retention/`"
+  - ".vds/logs/retention/RETENTION-0001.yaml, whose `basis` cites S-2(5) limbs for an act S-2(5) does not address"
+  - "crates/vds-cli/src/schema.rs, which asserts exactly 7 schemas, so a hand-edited retention log is undetectable"
+  - ".vds/logs/breaches/BREACH-0004.yaml, filed the same day, for the sibling defect: a criterion that reads a self-declaration instead of the thing declared"
+case_file_digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+reserved_clause: "S-4(1)"
+fail_closed_interim: "`vds prune` is NOT part of `make check` - the Makefile already says why, at its own target: 'a delete that runs as a side effect of a test command is a delete nobody chose'. Until this is answered it stays out of every automated path and is run only by a human who typed it, and the 31 retention records already on disk stay committed rather than being tidied away by the command whose authority is in question."
+filed_to: vjs
+vjs_submission_id: null
+created_at: 2026-07-30T17:50:00Z
+filed_at: 2026-07-30T17:50:00Z
+answer: null

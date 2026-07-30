@@ -126,7 +126,7 @@ jobs:
       #
       # `examples/storefront` is three screens, six components, two themes and
       # one deprecated record draining to zero. The `--all` line exercises every
-      # kind; the loop then re-runs the NINE that are real here with NO exemption,
+      # kind; the loop then re-runs the TEN that are real here with NO exemption,
       # so a vacuity in any of them is a red build rather than a footnote. This is
       # the step that makes `vds doctor` D1, D2 and D3 answerable at all.
       #
@@ -144,9 +144,16 @@ jobs:
           # R3 checks it is self-consistent and not older than its readers.
           ./target/release/vds figma pull --root examples/storefront \
             --from examples/storefront/figma/file-SFDEMO.json
+          # The SCREEN FRAME ledger, which `screen_parity` reads. Without this line CI
+          # trusted a committed frames.yaml it never re-derived, so a stale ledger would
+          # have passed - the generated half that nothing regenerates. The proof enforces
+          # 3 rows here, measured, and was the one kind absent from the loop below.
+          ./target/release/vds figma frames --root examples/storefront \
+            --from examples/storefront/figma/frames-SFDEMO.json
           ./target/release/vds proof --all --root examples/storefront --invoked-by ci_workflow --allow-vacuous
           for kind in register_completeness reconciliation composition contrast states \
-                      parity retirement_drain ledger_staleness no_stored_values; do
+                      parity retirement_drain ledger_staleness no_stored_values \
+                      screen_parity; do
             ./target/release/vds proof "$kind" --root examples/storefront --invoked-by ci_workflow
           done
           # The tenth kind. The pin is regenerated from a response committed
