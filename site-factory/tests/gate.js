@@ -24,7 +24,7 @@ const TESTS_DIR = __dirname;
 // Floors, not exact counts: adding a test must never be a reason to edit this file,
 // but losing one must be caught. Raise them when the suite grows meaningfully.
 const MIN_FILES = 7;
-const MIN_TESTS = 52;
+const MIN_TESTS = 54;
 
 const files = fs.readdirSync(TESTS_DIR)
   .filter((f) => f.endsWith('.test.js'))

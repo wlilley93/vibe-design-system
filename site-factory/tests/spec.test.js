@@ -121,3 +121,41 @@ test('a specimen frame is identified by name, not by what it contains', () => {
   assert.ok(!isSpecimenFrame({ name: 'Palette' }));
   assert.ok(!isSpecimenFrame({}));
 });
+
+test('the README states counts that are actually true', () => {
+  // A README is an artefact like any other, and this one quotes numbers: 17 block
+  // types, 34 variants, 4 packs, 35 fields, 9 layers, 54 tests. Numbers in prose rot
+  // silently — nobody re-counts them — and a map that misdescribes the territory is
+  // worse than no map, because it is trusted. Pinned here so adding a block or a
+  // token pack fails until the README is updated too.
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const { listBlockVariants, listStylePacks } = require('../compose.js');
+  const { LAYERS, fieldCount } = require('../config-schema.js');
+
+  const readme = fs.readFileSync(path.join(__dirname, '..', 'README.md'), 'utf8');
+  const variants = listBlockVariants();
+
+  const claims = [
+    [Object.keys(variants).length, 'block types'],
+    [Object.values(variants).flat().length, 'variants'],
+    [listStylePacks().length, 'style packs'],
+    [fieldCount(), 'fields'],
+    [LAYERS.length, 'layers'],
+  ];
+  for (const [n, what] of claims) {
+    assert.ok(
+      new RegExp(`\\b${n}\\b`).test(readme),
+      `the README never mentions ${n}, the real number of ${what}`
+    );
+  }
+
+  // Every file the README's table names must exist.
+  for (const m of readme.matchAll(/^\| `([a-z-]+\.(?:js|json|html))`/gm)) {
+    const rel = m[1];
+    assert.ok(
+      fs.existsSync(path.join(__dirname, '..', rel)),
+      `the README table names ${rel}, which does not exist`
+    );
+  }
+});
