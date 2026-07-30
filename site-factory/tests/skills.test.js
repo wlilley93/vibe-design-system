@@ -434,3 +434,70 @@ test('a long extracted span is cut at a word, not through one', () => {
   const short = extractFromBrief('Replaces spreadsheets.').main_alternative;
   assert.equal(short, 'spreadsheets');
 });
+
+test('every Uber Base set has exactly one tier, and the tiers reconcile with the harvest', () => {
+  // BASELINE.md states the tier counts in prose. This is the machine-readable half, and it
+  // exists because parsing the prose was tried first and LEAKED: a substring match put
+  // "Message card" in tier 2, since "Message card - Carousel" is in tier 2 and contains it,
+  // and the deferred tier is described by category ("every Date picker and Time picker set")
+  // rather than by set name, so it matched nothing at all. A document written for a reader
+  // is not a data source, and treating it as one produces an assignment that looks derived.
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const vendor = path.join(__dirname, '..', 'vendor');
+  const harvest = JSON.parse(fs.readFileSync(path.join(vendor, 'uber-base-keys.json'), 'utf8'));
+  const tiers = JSON.parse(fs.readFileSync(path.join(vendor, 'uber-base-tiers.json'), 'utf8'));
+
+  // The tier file must describe the harvest, not a subset of it and not a superset.
+  const harvestNames = Object.keys(harvest.sets).sort();
+  const tierNames = Object.keys(tiers.sets).sort();
+  assert.deepEqual(tierNames, harvestNames,
+    'the tier assignment and the harvested set list disagree about which sets exist');
+
+  const TIERS = new Set(['tier1', 'tier2', 'deferred', 'answered']);
+  const bad = [];
+  for (const [name, row] of Object.entries(tiers.sets)) {
+    if (!TIERS.has(row.tier)) bad.push(`${name}: tier "${row.tier}"`);
+    // The variant count and key must come from the harvest, not be restated. A second copy
+    // of a measured number is a second place for it to rot.
+    if (row.variants !== harvest.sets[name].variants) {
+      bad.push(`${name}: variants ${row.variants} against harvested ${harvest.sets[name].variants}`);
+    }
+    if (row.key !== harvest.sets[name].key) bad.push(`${name}: key disagrees with the harvest`);
+    // `answered` is the only tier that names a block, and it MUST name one - otherwise
+    // "already covered" is a claim with nothing behind it.
+    if (row.tier === 'answered' && !row.answeredBy) bad.push(`${name}: answered by nothing`);
+    if (row.tier !== 'answered' && row.answeredBy) bad.push(`${name}: not answered but names a block`);
+  }
+  assert.deepEqual(bad, [], `tier assignment problems:\n  ${bad.join('\n  ')}`);
+
+  // Every block named as answering a Base set must be a block that exists.
+  const { listBlockVariants } = require('../compose.js');
+  const types = new Set(Object.keys(listBlockVariants()));
+  const phantom = [...new Set(Object.values(tiers.sets).map((r) => r.answeredBy).filter(Boolean))]
+    .filter((b) => !types.has(b));
+  assert.deepEqual(phantom, [], `these blocks are named as answering a Base set and do not exist: ${phantom.join(', ')}`);
+
+  // And the totals must be DERIVED, not declared. Recompute both and compare.
+  const counts = {}, sums = {};
+  for (const row of Object.values(tiers.sets)) {
+    counts[row.tier] = (counts[row.tier] || 0) + 1;
+    sums[row.tier] = (sums[row.tier] || 0) + row.variants;
+  }
+  assert.deepEqual(counts, tiers.counts, 'the declared tier counts are not what the rows add up to');
+  assert.deepEqual(sums, tiers.variantSums, 'the declared variant sums are not what the rows add up to');
+  assert.equal(tiers.setCount, Object.keys(tiers.sets).length);
+  assert.equal(tiers.totalVariants, Object.values(tiers.sets).reduce((a, r) => a + r.variants, 0));
+
+  // Tier 1 is settled, so it must be: sixteen drawn plus Typography taken as the ramp.
+  const t1 = Object.keys(tiers.sets).filter((n) => tiers.sets[n].tier === 'tier1');
+  assert.equal(t1.length, 17, `tier 1 should hold 17 sets, holds ${t1.length}`);
+  const drawn = new Set(
+    Object.values(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'figma-nodes.json'), 'utf8')).sets)
+      .filter((s) => s.name.startsWith('Base/'))
+      .map((s) => s.name.replace(/^Base\//, ''))
+  );
+  const notDrawn = t1.filter((n) => !drawn.has(n));
+  assert.deepEqual(notDrawn, ['Typography'],
+    `tier 1 is settled, so every set but Typography must be drawn. Not drawn: ${notDrawn.join(', ')}`);
+});

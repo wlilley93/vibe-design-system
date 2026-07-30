@@ -1,0 +1,579 @@
+{
+  "_what": "The tier every one of Uber Base's 92 component sets was placed in, as DATA. docs/BASELINE.md states the tier counts in prose; this is what a machine reads. Parsing the prose was tried and leaked - a substring match put \"Message card\" in tier 2 because \"Message card - Carousel\" is in tier 2, and the deferred tier is described by category rather than by set name, so it matched nothing.",
+  "_how": "Derived from vendor/uber-base-keys.json (the harvest) plus the four tier lists below. tests/skills.test.js asserts every set has exactly one tier, that no set is unassigned, and that the counts and variant sums are what BASELINE.md claims.",
+  "_tiers": {
+    "tier1": "A SaaS surface needs it and site-factory had no answer. All 17 settled: 16 redrawn on the `Base (redrawn)` page, Typography taken as the ten-step ramp.",
+    "tier2": "Real but not load-bearing for a data surface. Two carry `Beta` in their own name, which is Base telling you not to depend on them yet.",
+    "deferred": "Every Date picker and Time picker set, plus the mobile-only grabber. Deferred, not rejected: a date picker is the highest-effort, highest-risk control in any system and there are good accessible implementations to adopt. Base needs its own because Uber ships in 70 countries.",
+    "answered": "Already covered by a site-factory block, named in the `answeredBy` field. Both systems converged on the same controls because the controls are the part that is not optional."
+  },
+  "measured_at": "2026-07-30",
+  "setCount": 92,
+  "totalVariants": 3211,
+  "counts": {
+    "answered": 43,
+    "tier1": 17,
+    "tier2": 10,
+    "deferred": 22
+  },
+  "variantSums": {
+    "answered": 1976,
+    "tier1": 952,
+    "tier2": 111,
+    "deferred": 172
+  },
+  "sets": {
+    "List item": {
+      "variants": 108,
+      "key": "b4fea80421ccbc4ddfffc2628882e789279ad757",
+      "tier": "answered",
+      "answeredBy": "inspector"
+    },
+    "Typography": {
+      "variants": 36,
+      "key": "8aa601349e7d32f799601b14ae6fa237050cbaa5",
+      "tier": "tier1",
+      "answeredBy": null
+    },
+    "Page controls": {
+      "variants": 162,
+      "key": "08c93685786ba4404361e29a4330b24419ff664d",
+      "tier": "tier1",
+      "answeredBy": null
+    },
+    "Pagination": {
+      "variants": 423,
+      "key": "e4b7d94628640533bab702f4b304cd8c12cd3b09",
+      "tier": "tier1",
+      "answeredBy": null
+    },
+    "Tag": {
+      "variants": 477,
+      "key": "3ec52f38cd367867879f80175f764465a5478d35",
+      "tier": "answered",
+      "answeredBy": "facetstrip"
+    },
+    "Rich text_Beta": {
+      "variants": 3,
+      "key": "fd6e2481dd3c2609f37b0cc17e65fa410fdf27a2",
+      "tier": "tier2",
+      "answeredBy": null
+    },
+    "Card element - Media item": {
+      "variants": 34,
+      "key": "ddbf240277a7fe495b214d93360d58def701fe8a",
+      "tier": "answered",
+      "answeredBy": "card"
+    },
+    "Card element - Button item": {
+      "variants": 6,
+      "key": "edfb5c9ce24a61294374e1569a7124ffb6efa7a5",
+      "tier": "answered",
+      "answeredBy": "card"
+    },
+    "Card element - Line item": {
+      "variants": 10,
+      "key": "0d6ad8288e47f77d0d68626f3d9aea08db39dd5c",
+      "tier": "answered",
+      "answeredBy": "card"
+    },
+    "Message card": {
+      "variants": 60,
+      "key": "14371b4d0b76f83be0734e85dc9e4c43de46c643",
+      "tier": "tier1",
+      "answeredBy": null
+    },
+    "Message card - Carousel": {
+      "variants": 2,
+      "key": "4c0da07403cf5672fd054ca0f4d26e0ed8c5a8f3",
+      "tier": "tier2",
+      "answeredBy": null
+    },
+    "File drop": {
+      "variants": 5,
+      "key": "2db76a9bad5cbba70af3082021cdb6b25f6ef8e2",
+      "tier": "answered",
+      "answeredBy": "formfield"
+    },
+    "Sheet header": {
+      "variants": 36,
+      "key": "7c60fcdaace8c16469245025d8f6c4b08b1d8d26",
+      "tier": "answered",
+      "answeredBy": "objectview"
+    },
+    "Dialog": {
+      "variants": 3,
+      "key": "097dc1b2bc2879507b213df72a9bd7f5720534a8",
+      "tier": "answered",
+      "answeredBy": "confirmdialog"
+    },
+    "Modal full screen": {
+      "variants": 5,
+      "key": "b7a6f56cae2a376ea7c6b0c1e1d866c9ca4a6552",
+      "tier": "answered",
+      "answeredBy": "confirmdialog"
+    },
+    "Modal sheet": {
+      "variants": 3,
+      "key": "9f7a37adca780bf7eeb9e3f3537a292a3705ac03",
+      "tier": "answered",
+      "answeredBy": "confirmdialog"
+    },
+    "Navigation header": {
+      "variants": 15,
+      "key": "a8642c77005c177c9a163c2f1ab849780562fed9",
+      "tier": "answered",
+      "answeredBy": "nav"
+    },
+    "Side navigation item": {
+      "variants": 36,
+      "key": "66400c73d3e9a6ffdb188c19c0ec1540e127e1fb",
+      "tier": "answered",
+      "answeredBy": "sidebar"
+    },
+    "Tabs": {
+      "variants": 11,
+      "key": "70bf3d69c61bb1834bf16fe698cef858366b86a8",
+      "tier": "answered",
+      "answeredBy": "segmentedcontrol"
+    },
+    "Menu item": {
+      "variants": 57,
+      "key": "a1fa854e8586376b8c4cb45f0df6cbed1f8d577c",
+      "tier": "tier1",
+      "answeredBy": null
+    },
+    "Menu": {
+      "variants": 12,
+      "key": "a47fb86e6fc08ef0d16c46a5df4fa56d8effa41b",
+      "tier": "tier1",
+      "answeredBy": null
+    },
+    "Breadcrumbs element - link": {
+      "variants": 2,
+      "key": "fa7455fbbce4688c1b84df247c458c8de1309716",
+      "tier": "answered",
+      "answeredBy": "nav"
+    },
+    "Tab element / Wide / Unselected": {
+      "variants": 2,
+      "key": "a3e45b76cfad7031d399172e2d5023c9a5bc926e",
+      "tier": "answered",
+      "answeredBy": "segmentedcontrol"
+    },
+    "Tab element / Wide / Selected": {
+      "variants": 2,
+      "key": "db0d845e4a2e71794e171e04bf986e6211d2ef56",
+      "tier": "answered",
+      "answeredBy": "segmentedcontrol"
+    },
+    "Tab element / Nerrow / Unselected": {
+      "variants": 2,
+      "key": "7b0654ab4b66889f2556ad920d2a4819a4652f2f",
+      "tier": "answered",
+      "answeredBy": "segmentedcontrol"
+    },
+    "Hint badge": {
+      "variants": 4,
+      "key": "9aee7ee1b0d2dbec377cc6040746c9bc4ea81e91",
+      "tier": "tier2",
+      "answeredBy": null
+    },
+    "Tab element / Nerrow / Selected": {
+      "variants": 2,
+      "key": "a6e907056ca6a20d47816522cabe484f10fb1605",
+      "tier": "answered",
+      "answeredBy": "segmentedcontrol"
+    },
+    "Bottom navigation": {
+      "variants": 10,
+      "key": "d6c5211e667568f31b0cb300d22dcf1df2c45e96",
+      "tier": "answered",
+      "answeredBy": "nav"
+    },
+    "Tile": {
+      "variants": 380,
+      "key": "d99ea5a3b5639b1633cdd7822bcc360fa1959b3c",
+      "tier": "answered",
+      "answeredBy": "card"
+    },
+    "Section heading": {
+      "variants": 12,
+      "key": "a42d43ac0aa8b611c55e0646f682daaaafff487f",
+      "tier": "answered",
+      "answeredBy": "objectview"
+    },
+    "Draggable list": {
+      "variants": 10,
+      "key": "7ebe9e797a12601e5f5b5b443a4f27ffba7a5e27",
+      "tier": "tier1",
+      "answeredBy": null
+    },
+    "Divider": {
+      "variants": 3,
+      "key": "c464e72237ab3bfe5007412a0657c95336de527f",
+      "tier": "tier1",
+      "answeredBy": null
+    },
+    "Accordion": {
+      "variants": 16,
+      "key": "5826dedab9cb8404361cdd6d3b0c59aecd9ae260",
+      "tier": "answered",
+      "answeredBy": "faq"
+    },
+    "Slider - Beta": {
+      "variants": 4,
+      "key": "88ed61582a52394245546d4463043ed3765e0075",
+      "tier": "tier2",
+      "answeredBy": null
+    },
+    "Segmented slider - Beta": {
+      "variants": 22,
+      "key": "61ed8d03fc7d3f73ce823a52298246f9b505feb5",
+      "tier": "tier2",
+      "answeredBy": null
+    },
+    "Switch": {
+      "variants": 8,
+      "key": "bb4524a40f0913c93447f1eb3d804b8c5c8e1046",
+      "tier": "tier1",
+      "answeredBy": null
+    },
+    "Check": {
+      "variants": 8,
+      "key": "2ce7a7a8ca37b7dae7f5f727cbb98385dd18d163",
+      "tier": "tier1",
+      "answeredBy": null
+    },
+    "Radio": {
+      "variants": 4,
+      "key": "93a70a9778f3fa7925d77a0a0e9fed76973c076f",
+      "tier": "tier1",
+      "answeredBy": null
+    },
+    "Grabber - List": {
+      "variants": 2,
+      "key": "e996320c525e616884b79b916da013c2e7cde19b",
+      "tier": "deferred",
+      "answeredBy": null
+    },
+    "Stepper": {
+      "variants": 1,
+      "key": "022c14b78f62bf0628f6a04c9c69105a297904ce",
+      "tier": "answered",
+      "answeredBy": "formfield"
+    },
+    "Text area": {
+      "variants": 84,
+      "key": "9afdc59100dd32e4f6863475f2c744cf96f113fb",
+      "tier": "answered",
+      "answeredBy": "formfield"
+    },
+    "PIN code": {
+      "variants": 27,
+      "key": "196a256df19a543b1c01a5a86b9985655c6635a1",
+      "tier": "answered",
+      "answeredBy": "formfield"
+    },
+    "Password field": {
+      "variants": 72,
+      "key": "f70ee1aff60e8246a10bd6189eed7d3360004e4b",
+      "tier": "answered",
+      "answeredBy": "formfield"
+    },
+    "Country field": {
+      "variants": 3,
+      "key": "de8a1965f7d9c1dbe45f6f3c42a12c1ea6eb020d",
+      "tier": "answered",
+      "answeredBy": "formfield"
+    },
+    "Field group": {
+      "variants": 3,
+      "key": "ed6b0a8b4c67b519b4c382fcca6869582d137c02",
+      "tier": "answered",
+      "answeredBy": "formfield"
+    },
+    "Stepper field": {
+      "variants": 36,
+      "key": "3e5070b0883ef49c84670a669469dc7da7b46668",
+      "tier": "answered",
+      "answeredBy": "formfield"
+    },
+    "Search field": {
+      "variants": 24,
+      "key": "9ce0bb11feaf70e3932cb8a91d986935d2998d82",
+      "tier": "answered",
+      "answeredBy": "formfield"
+    },
+    "Select": {
+      "variants": 33,
+      "key": "fafe2a1f6992d2c50942bed7b5e1f718ec267d04",
+      "tier": "answered",
+      "answeredBy": "formfield"
+    },
+    "Text field": {
+      "variants": 36,
+      "key": "e81d0eec8943b366ff2820bae8f49bdb9e4d0abf",
+      "tier": "answered",
+      "answeredBy": "formfield"
+    },
+    "Banner": {
+      "variants": 72,
+      "key": "ed7cc974227df5161fac0ec62a6b945801107074",
+      "tier": "tier1",
+      "answeredBy": null
+    },
+    "Button dock": {
+      "variants": 16,
+      "key": "345d33babd2d37eb206cbbf3f0c5e333ce2c8547",
+      "tier": "answered",
+      "answeredBy": "cta"
+    },
+    "Button": {
+      "variants": 246,
+      "key": "b29c4a9498d22857b8abf0491654fbef88ce0f9d",
+      "tier": "answered",
+      "answeredBy": "cta"
+    },
+    "Sliding button": {
+      "variants": 5,
+      "key": "e49b8c1a49928c78db1e8c1b99c9829324902b52",
+      "tier": "answered",
+      "answeredBy": "cta"
+    },
+    "Timed button": {
+      "variants": 4,
+      "key": "51484346d4e17bdae3f2b3d3fcbe36f5d2e1b6ec",
+      "tier": "answered",
+      "answeredBy": "cta"
+    },
+    "Progress steps element - vertical": {
+      "variants": 46,
+      "key": "77a1d6758d314783f2c42a280bf0c20756efa0a1",
+      "tier": "tier2",
+      "answeredBy": null
+    },
+    "Progress steps": {
+      "variants": 3,
+      "key": "707fe84a20ad32fe1a0fcec93082017915edb475",
+      "tier": "tier1",
+      "answeredBy": null
+    },
+    "Progress steps element - horizontal": {
+      "variants": 10,
+      "key": "9c75193f29e7f6908724c8ac1157311df8634d01",
+      "tier": "tier2",
+      "answeredBy": null
+    },
+    "Progress bar - Determinate": {
+      "variants": 6,
+      "key": "548ce99e44d07250f4bbdf6feb4ede8e37eb017c",
+      "tier": "tier1",
+      "answeredBy": null
+    },
+    "Progress circle": {
+      "variants": 8,
+      "key": "f0e6d6d93b8fb085faba6cb198498eab240f6d2d",
+      "tier": "answered",
+      "answeredBy": "pagestate"
+    },
+    "Progress bar - Stepped": {
+      "variants": 4,
+      "key": "b1a5f1530ff709abe0d8f949b9e025c2619046ff",
+      "tier": "tier2",
+      "answeredBy": null
+    },
+    "Progress bar - Indeterminate": {
+      "variants": 6,
+      "key": "2c791a7f4827bf493f5d73f1ef921017b3c62718",
+      "tier": "answered",
+      "answeredBy": "pagestate"
+    },
+    "Progress pill - Determinate": {
+      "variants": 3,
+      "key": "37dc24b3b6201d0667695da2d16a015fcd7c017c",
+      "tier": "tier2",
+      "answeredBy": null
+    },
+    "Notification badge": {
+      "variants": 16,
+      "key": "ea205d082310aa6c22859ba51aef1f9407c1297c",
+      "tier": "tier1",
+      "answeredBy": null
+    },
+    "Star rating": {
+      "variants": 18,
+      "key": "72a5912cc410fc0b872852fb067755fa9fa4813b",
+      "tier": "answered",
+      "answeredBy": "testimonials"
+    },
+    "Empty state": {
+      "variants": 5,
+      "key": "3b27a780a93b5777c8ea75957004b434917fbf93",
+      "tier": "answered",
+      "answeredBy": "emptystate"
+    },
+    "Avatar": {
+      "variants": 162,
+      "key": "fbd527b07cebcd87353764270df8c6bcf27d53f8",
+      "tier": "answered",
+      "answeredBy": "team"
+    },
+    "Spacer": {
+      "variants": 13,
+      "key": "f546e8c0276078d709e7b7a380c7b8b57501977e",
+      "tier": "tier2",
+      "answeredBy": null
+    },
+    "Date picker element - Calendar modules / Web / Medium": {
+      "variants": 2,
+      "key": "ec60e4145d5d7311b80d2c5e35753161bdf2dda5",
+      "tier": "deferred",
+      "answeredBy": null
+    },
+    "Date picker element - Calendar modules / Web / Small": {
+      "variants": 2,
+      "key": "f2002cec1a577a456f3f329a9568ec7ee62b0719",
+      "tier": "deferred",
+      "answeredBy": null
+    },
+    "Date picker element - Calendar modules / Mobile / Medium": {
+      "variants": 4,
+      "key": "5d08b0330031c2529bbc48c83a3d30a697905449",
+      "tier": "deferred",
+      "answeredBy": null
+    },
+    "Date picker element - Calendar modules / Mobile / Small": {
+      "variants": 4,
+      "key": "3c71ab3dde3bc92b5f57f947db4594afe73663cc",
+      "tier": "deferred",
+      "answeredBy": null
+    },
+    "Date picker element - Calendar Date": {
+      "variants": 40,
+      "key": "36adcec6e839014e9724d18557b37ae99f79517c",
+      "tier": "deferred",
+      "answeredBy": null
+    },
+    "Date picker element - Calendar Date label": {
+      "variants": 2,
+      "key": "f98ddb940779c0e9aacd2be51944ec0d9dbdb3d1",
+      "tier": "deferred",
+      "answeredBy": null
+    },
+    "Date picker element - Month Year selector / Medium": {
+      "variants": 2,
+      "key": "ae2358dc7ffacd51104a96c4939a0c124513e6a0",
+      "tier": "deferred",
+      "answeredBy": null
+    },
+    "Date picker element - Month Year selector / Small": {
+      "variants": 2,
+      "key": "7d972e420c4948b764164572e8d7776d59c50c5e",
+      "tier": "deferred",
+      "answeredBy": null
+    },
+    "Tooltip": {
+      "variants": 8,
+      "key": "f5d9ddb5adb5e081caf0294f81a8f04719130c9d",
+      "tier": "tier1",
+      "answeredBy": null
+    },
+    "Time picker element - Pinwheel / Overlay": {
+      "variants": 2,
+      "key": "99a21274dd98d87757c6d3254f63bf5ffab3c4c4",
+      "tier": "deferred",
+      "answeredBy": null
+    },
+    "Time picker element - Pinwheel / Scroller": {
+      "variants": 8,
+      "key": "99e7441d7e9168fd2d84ab220458d54bb51d4572",
+      "tier": "deferred",
+      "answeredBy": null
+    },
+    "Time picker element - Pinwheel / Unit": {
+      "variants": 2,
+      "key": "061b0b9e592bc02ade31cf979a0316ca69758a4a",
+      "tier": "deferred",
+      "answeredBy": null
+    },
+    "Time picker element - Select / Option": {
+      "variants": 8,
+      "key": "1a1f33882ba62b41a445a3cc47ddc7c4ca07d52d",
+      "tier": "deferred",
+      "answeredBy": null
+    },
+    "Time picker element - Select / Spacer": {
+      "variants": 2,
+      "key": "b233c43e40d0dd3820c8fe23d965525ecca0ddd4",
+      "tier": "deferred",
+      "answeredBy": null
+    },
+    "Time picker element - Select / Delimiter": {
+      "variants": 16,
+      "key": "08b35544c372fc05d1fb19bffeb08372ab92dea7",
+      "tier": "deferred",
+      "answeredBy": null
+    },
+    "Time picker element - Select / Period": {
+      "variants": 16,
+      "key": "174628dccaddb88a9a1357fd31f3b805e0ab66b8",
+      "tier": "deferred",
+      "answeredBy": null
+    },
+    "Time picker element - Select / Input": {
+      "variants": 8,
+      "key": "5c60d9803f5e9ea2d50abdedfa4e0817ad06db72",
+      "tier": "deferred",
+      "answeredBy": null
+    },
+    "Time picker / Web / Select": {
+      "variants": 20,
+      "key": "9af109f29c004e1f40646f34f4c8b0afeb8231fc",
+      "tier": "deferred",
+      "answeredBy": null
+    },
+    "Time picker / Mobile / Stepper": {
+      "variants": 2,
+      "key": "07d1daf725eed147e456fb9ae9ea4ecba7846100",
+      "tier": "deferred",
+      "answeredBy": null
+    },
+    "Time picker / Mobile / Pinwheel": {
+      "variants": 4,
+      "key": "f267013f8b3881fc8f61ae1a313ad7ab63531281",
+      "tier": "deferred",
+      "answeredBy": null
+    },
+    "Date picker / Web": {
+      "variants": 20,
+      "key": "be4511a5c603a1246b29c60074012ae28951c962",
+      "tier": "deferred",
+      "answeredBy": null
+    },
+    "Date picker / Mobile": {
+      "variants": 4,
+      "key": "2e49da2005080fccc135c6f0acda304014953402",
+      "tier": "deferred",
+      "answeredBy": null
+    },
+    "System banner": {
+      "variants": 64,
+      "key": "d3dd5cb3d754e4b8d0eebf970c920df6b97ab491",
+      "tier": "tier1",
+      "answeredBy": null
+    },
+    "Snackbar": {
+      "variants": 6,
+      "key": "2636ede481d4bd9f86058d1f3b274adcdd3c76aa",
+      "tier": "answered",
+      "answeredBy": "toast"
+    },
+    "Button group": {
+      "variants": 4,
+      "key": "bfd0ce5ce4069814565c4c95feb11aed16d510ed",
+      "tier": "answered",
+      "answeredBy": "cta"
+    }
+  }
+}
