@@ -51,32 +51,70 @@ Each existing block, and the Base names it covers:
 That coverage is not a coincidence: both systems converged on the same controls because the
 controls are the part that is not optional.
 
-## Tier 1: build now (17 sets, 952 variants)
+## Tier 1: DONE (17 sets, 952 variants in Base; 16 drawn here, 46 variants)
 
 The gaps that a SaaS surface actually needs. Ordered by the variant count Base gives them,
 which is the closest thing to a declared importance.
 
-| Base set | variants | why it matters here | notes |
+| Base set | variants | why it matters here | drawn as |
 |---|---|---|---|
-| Pagination | 423 | a table without pagination is a table that lies about its length | the single biggest set in Base |
-| Page controls | 162 | the mobile/compact twin of the above | |
-| Banner | 72 | page-level state that is not an error | **redrawn**, four tones |
-| System banner | 64 | the same at app level, above the shell | **redrawn**, four tones: warning, negative, accent, positive |
-| Message card | 60 | in-flow messaging, not an overlay | **redrawn**, with and without artwork |
-| Menu item | 57 | 18 control variants measured (checkbox, switch, drag, group x 3 sizes) | |
-| Typography | 36 | ALREADY TAKEN as structure, not as components - see `docs/GOAL.md` S3 and the type ramp |
-| Notification badge | 16 | dot, count, overflow | **redrawn** |
-| Menu | 12 | the container the items sit in | |
-| Draggable list | 10 | reorderable rows, which a table needs and no marketing page does | |
-| Switch | 8 | | **redrawn** |
-| Check | 8 | unchecked / checked / indeterminate | **redrawn** |
-| Tooltip | 8 | | **redrawn** |
-| Progress bar - Determinate | 6 | | |
-| Radio | 4 | | **redrawn** |
-| Divider | 3 | full and cell-inset | **redrawn** |
-| Progress steps | 3 | multi-step forms, which `formfield` has no answer for | |
+| Pagination | 423 | a table without pagination is a table that lies about its length | 4: Layout Compact/Full x State Enabled/Disabled |
+| Page controls | 162 | the mobile/compact twin of the above | 2: Enabled/Disabled |
+| Banner | 72 | page-level state that is not an error | 4 tones |
+| System banner | 64 | the same at app level, above the shell | 4 tones: warning, negative, accent, positive |
+| Message card | 60 | in-flow messaging, not an overlay | 2: with and without artwork |
+| Menu item | 57 | 18 control variants measured (checkbox, switch, drag, group x 3 sizes) | 6: Size x Enabled/Hover/Disabled |
+| Typography | 36 | taken as STRUCTURE, not as components - `docs/GOAL.md` S3 and the type ramp | the ten-step ramp |
+| Notification badge | 16 | dot, count, overflow | 3 |
+| Menu | 12 | the container the items sit in | 2: Small 207, Medium 242 |
+| Draggable list | 10 | reorderable rows, which a table needs and no marketing page does | 2: with and without artwork |
+| Switch | 8 | | 2 |
+| Check | 8 | unchecked / checked / indeterminate | 3 |
+| Tooltip | 8 | | 2 |
+| Progress bar - Determinate | 6 | | 4: Size x Label/None |
+| Radio | 4 | | 2 |
+| Divider | 3 | full and cell-inset | 2 |
+| Progress steps | 3 | multi-step forms, which `formfield` has no answer for | 2: horizontal and vertical |
 
-Nine are redrawn already, on the `Base (redrawn)` page, from measured geometry.
+All 17 are settled: 16 drawn as component sets on the `Base (redrawn)` page, 46 variants in
+total, and Typography taken as the type ramp rather than as components. Re-derive the count
+from the file rather than trusting this line: list `COMPONENT_SET` children of that page.
+
+### What the redraws taught, beyond the components
+
+Four things, each found by measuring rather than by looking, and each cheaper to write down
+than to rediscover.
+
+- **Base's leading is a function of role, not size.** Already taken; see below.
+- **`resize()` and `layoutMode` each reset both sizing modes to AUTO.** A 36 square chip set
+  to auto-layout after being resized came out roughly 36x20, which reads as a deliberate
+  pill. Nothing errored. Order is: `layoutMode`, then `resize`, then `FIXED`. Two sets were
+  rebuilt for this and the fix is now asserted by reading the geometry back: 26 pagination
+  chips and 6 step dots confirmed 36 square.
+- **A gap in the parent's padding is not a gap the child can grow into.** The vertical
+  progress connector was told to grow into the row's remaining height; the row's 20 bottom
+  padding had already taken it, so the connector got 1px and read as absent. The row gap
+  belongs inside the rail, as the connector's own length.
+- **A blanket `findAll` by name crosses variants.** An assertion on connector height matched
+  the horizontal variant's connectors, which are legitimately 2px TALL, and refused a build
+  that was correct. Scope an assertion to the subtree it is about.
+
+### The open half
+
+Sixteen component sets now exist in Figma with **no code counterpart**, which is the exact
+reverse of the divergence BREACH-0007 closed. `FIGMA_NODES` pairs site-factory block types to
+component sets and both directions are tested, so nothing is currently claiming these are
+paired. Building the code side is the next piece of work, not a gap in the record.
+
+The messaging three cost more than the drawing. Redrawing them needed an ink per tone, and
+the Figma variable collection carried one ink where the style packs carry five. Reading the
+collection back also showed nine mode values disagreeing with the pack that defines them:
+the Base palette landed in `tokens/*.json` and never reached Figma, so every component
+already on this page had been drawn in the wrong red. Both faults are closed and paired by
+test now (`figma-variables.json` plus three tests in `tests/skills.test.js`), and the whole
+episode is on the record as BREACH-0007. The lesson worth carrying: the component-set
+pairing had existed for months and covered one of the two dimensions in which a code base
+and a Figma file can disagree.
 
 The messaging three cost more than the drawing. Redrawing them needed an ink per tone, and
 the Figma variable collection carried one ink where the style packs carry five. Reading the
