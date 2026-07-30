@@ -40,7 +40,7 @@ use vds_core::{Digest, PathRole, Project, ProofKind, Result, VdsError, Violation
 use vds_scan::{GENERATOR_COMMAND, LEDGER_SCHEMA_VERSION, ScreensLedger};
 
 use crate::ProofContext;
-use crate::run::{Outcome, Verdict};
+use crate::run::{Outcome, ProofRun, Verdict};
 
 pub const GATE: &str = "crates/vds-proof/src/ledger_staleness.rs";
 
@@ -48,6 +48,25 @@ const RULE_STALE: &str =
     "VDS S-7(5) ledger_staleness R1 / S-4(2): each generated ledger is current with its source";
 const RULE_NO_STALENESS_TEST: &str = "VDS S-4(2) ledger_staleness R2: every ledger has a staleness test, and a ledger without \
      one decays with nothing to say so";
+const RULE_FIGMA_LEDGER: &str = "VDS S-4(2) ledger_staleness R3: the figma ledger is self-consistent, agrees with the file \
+     the register names, and is not older than the records that read it";
+
+/// What the figma ledger's staleness test can and cannot establish.
+///
+/// It has no LOCAL source, which is the whole reason it exists: its source is a
+/// Figma file behind a network call. So the three things a local test can settle
+/// are settled, and the fourth is named rather than glossed. Three proofs now
+/// read this ledger, and a reader of any of them has to know which of the four
+/// they are getting.
+pub const FIGMA_LEDGER_NOTE: &str = "[figma-ledger] the figma ledger's staleness test settles three things and cannot settle \
+     the fourth. It settles that the ledger is SELF-CONSISTENT (its content digest matches its \
+     contents, so it was not hand-edited), that it agrees with the decided-target file the \
+     register names (two files is two opinions about what is decided), and that it is not \
+     OLDER than the register records that read it (a record pointed at a node after the pull \
+     is a record the ledger has never seen). It cannot settle whether the decided-target file \
+     has changed since the pull, because that is a network read VDS S-7(2)(1) forbids inside a \
+     proof. Its `generated_at` is reported so a reader can weigh how old the reading is, and a \
+     warrant citing anything downstream of it is bounded by that instant.";
 
 /// Why R1 is worth running rather than being a digest comparison.
 pub const REGENERATION_NOTE: &str = "the screens ledger's staleness test REGENERATES the ledger from its sources and compares \
@@ -155,8 +174,20 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
         ));
     }
 
+    let figma_rel = project.rel(&vds_figma::pull::ledger_path(&ctx.store()));
+
     for rel in &ledgers {
         run.row(Verdict::Enforced);
+
+        // R3. The figma ledger has a staleness test now, and it needs one badly:
+        // `states` measures `states.drawn` against it and `reconciliation`
+        // resolves limb (c) against it, so a stale one is three proofs reporting
+        // the decided-target file as it was at some unknown past moment.
+        if rel == &figma_rel {
+            run.note(FIGMA_LEDGER_NOTE);
+            report_figma_ledger(&mut run, ctx, rel)?;
+            continue;
+        }
 
         if rel != &screens_rel {
             run.fail(Violation::fatal(
@@ -269,6 +300,64 @@ fn one_line(text: &str) -> String {
         .filter(|line| !line.is_empty())
         .collect::<Vec<&str>>()
         .join(" | ")
+}
+
+/// R3: everything about the figma ledger a local check can settle.
+fn report_figma_ledger(run: &mut ProofRun, ctx: &ProofContext, rel: &str) -> Result<()> {
+    let store = ctx.store();
+    let Some(ledger) = vds_figma::pull::read(&store)? else {
+        // Listed in the directory and unreadable as a ledger: R2's territory
+        // rather than R3's, and reported there.
+        return Ok(());
+    };
+
+    // The register's own view of which file is decided. Two files is two
+    // opinions, and a ledger pulled from the wrong one answers every question
+    // about the wrong document.
+    let declared = vds_figma::pull::declared_file_key(&store)?;
+    if let Err(why) = vds_figma::ledger::check_fresh(&ledger, declared.as_deref()) {
+        run.fail(Violation::fatal(
+            rel.to_owned(),
+            RULE_FIGMA_LEDGER,
+            "a figma ledger whose content digest matches its own contents and whose file key              is the one the register names",
+            format!("{why}"),
+        ));
+        return Ok(());
+    }
+
+    // A record pointed at a node AFTER the pull is a record this ledger has
+    // never seen, so every proof reading it is reading an inventory of a
+    // different register. The same shape as the demand check at VDS S-5(7).
+    let mut newer: Vec<String> = Vec::new();
+    for located in store.read_register()? {
+        if let Some(figma) = &located.value.figma
+            && figma.captured_at.as_str() > ledger.generated_at.as_str()
+        {
+            newer.push(format!("{} at {}", located.value.id, figma.captured_at));
+        }
+    }
+    if !newer.is_empty() {
+        run.fail(Violation::fatal(
+            rel.to_owned(),
+            RULE_FIGMA_LEDGER,
+            format!(
+                "a figma ledger generated no earlier than every register record that reads it,                  so every record has a row in it. This one was generated at {}",
+                ledger.generated_at
+            ),
+            format!(
+                "{} record(s) name a node captured after the pull: {}. The ledger has never                  seen them, so `states` cannot measure their drawn states and `reconciliation`                  cannot resolve their nodes. Regenerate with: vds figma pull",
+                newer.len(),
+                newer.join(", ")
+            ),
+        ));
+        return Ok(());
+    }
+
+    run.note(format!(
+        "[figma-ledger-age] this ledger was generated at {}, from file {} version {}. Nothing          offline can establish whether that file has changed since.",
+        ledger.generated_at, ledger.file_key, ledger.file_version
+    ));
+    Ok(())
 }
 
 #[cfg(test)]
@@ -586,5 +675,126 @@ mod tests {
             "{:?}",
             record.notes
         );
+    }
+
+    /// R3, and the reason it matters now rather than when the ledger was
+    /// written: `states` measures `states.drawn` against this file and
+    /// `reconciliation` resolves limb (c) against it, so a stale one is three
+    /// proofs reporting the decided-target file as it was at some unknown past
+    /// moment and calling it a measurement.
+    #[test]
+    fn ledger_staleness_fails_on_a_figma_ledger_a_record_is_newer_than() {
+        let h = seeded();
+        write_figma_ledger(&h, "2026-07-25T11:00:00Z");
+
+        let (before, text) = run_kind(&h, ProofKind::LedgerStaleness);
+        assert_eq!(
+            before.exit_code, EXIT_PASSED,
+            "a figma ledger with no record newer than it is current: {text}"
+        );
+
+        // A record pointed at a node AFTER the pull. The ledger has never seen
+        // it, so the proofs downstream are reading an inventory of a different
+        // register.
+        let id = h.register("Late", Status::Registered);
+        h.amend(&id, |record| {
+            record.figma = Some(vds_core::FigmaNode {
+                file_key: "KEY".into(),
+                node_id: "99:99".into(),
+                captured_at: vds_core::Timestamp::fixed(2026, 7, 25, 14, 0, 0),
+            });
+        });
+
+        let (after, text) = run_kind(&h, ProofKind::LedgerStaleness);
+        assert_eq!(after.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("R3"), "{text}");
+        // The printed finding wraps, so the assertion is on a fragment that
+        // survives wrapping. Matching a whole sentence here would fail on a
+        // change to the terminal width rather than on a change to the rule.
+        assert!(
+            text.contains("name a node captured after the pull"),
+            "{text}"
+        );
+        assert!(text.contains("vds figma pull"), "{text}");
+    }
+
+    /// A hand-edited figma ledger is refused, which is what S-4(2) means by a
+    /// generated inventory.
+    #[test]
+    fn a_hand_edited_figma_ledger_is_refused() {
+        let h = seeded();
+        write_figma_ledger(&h, "2026-07-25T11:00:00Z");
+        let path = h.root().join(".vds/ledgers/figma.yaml");
+        let text = std::fs::read_to_string(&path).unwrap();
+        std::fs::write(
+            &path,
+            text.replace("file_name: decided", "file_name: something else"),
+        )
+        .unwrap();
+
+        let (outcome, text) = run_kind(&h, ProofKind::LedgerStaleness);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("edited after it was generated"), "{text}");
+    }
+
+    /// The note has to name what a local test CANNOT settle, because three
+    /// proofs read this ledger and a reader of any of them needs to know.
+    #[test]
+    fn the_figma_ledger_note_names_the_limb_no_offline_test_can_reach() {
+        let h = seeded();
+        write_figma_ledger(&h, "2026-07-25T11:00:00Z");
+        run_kind(&h, ProofKind::LedgerStaleness);
+        let record = h.last_proof(ProofKind::LedgerStaleness);
+        let note = record
+            .notes
+            .iter()
+            .find(|note| note.starts_with("[figma-ledger]"))
+            .unwrap_or_else(|| panic!("{:?}", record.notes));
+        assert!(note.contains("cannot settle the fourth"), "{note}");
+        assert!(note.contains("network read"), "{note}");
+        assert!(
+            record
+                .notes
+                .iter()
+                .any(|n| n.starts_with("[figma-ledger-age]")),
+            "the age has to be on the record so a reader can weigh it: {:?}",
+            record.notes
+        );
+    }
+
+    fn write_figma_ledger(h: &Harness, at: &str) {
+        use vds_figma::ledger::{FigmaLedger, LEDGER_SCHEMA_VERSION};
+
+        let parts: Vec<u32> = at
+            .trim_end_matches('Z')
+            .split(['-', 'T', ':'])
+            .map(|p| p.parse().unwrap())
+            .collect();
+        let ledger = FigmaLedger {
+            schema_version: LEDGER_SCHEMA_VERSION,
+            generated_at: vds_core::Timestamp::fixed(
+                parts[0] as i32,
+                parts[1],
+                parts[2],
+                parts[3],
+                parts[4],
+                parts[5],
+            ),
+            generated_by: "vds figma pull".into(),
+            file_key: "KEY".into(),
+            file_version: "1".into(),
+            file_name: "decided".into(),
+            nodes: vec![],
+            unclaimed: vec![],
+            notes: vec![],
+            content_digest: vds_core::Digest::of_text("placeholder"),
+        };
+        let ledger = FigmaLedger {
+            content_digest: ledger.compute_content_digest().unwrap(),
+            ..ledger
+        };
+        let path = h.root().join(".vds/ledgers/figma.yaml");
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, serde_yaml::to_string(&ledger).unwrap()).unwrap();
     }
 }

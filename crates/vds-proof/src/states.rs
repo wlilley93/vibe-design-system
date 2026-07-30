@@ -57,10 +57,38 @@ const SKIP_PROPOSED: &str = "proposed_nothing_drawn_by_construction";
 const SKIP_RETIRED: &str = "retired_tombstone_vds_s9_6_3";
 const SKIP_NO_REQUIREMENT: &str = "record_declares_no_required_state";
 
-const REACH_NOTE: &str = "[reach] this proof reads the register's own account of what is drawn. `states.drawn` is \
-     the author's claim, and confirming it against the decided-target Figma file is a network \
-     read that VDS S-7(2)(1) forbids inside a proof. A pass establishes that the contract is \
-     complete, never that a frame exists in the file.";
+const RULE_DRAWN_NOT_IN_FILE: &str = "VDS S-5(5) states R2: a state the register claims is drawn is drawn in the \
+     decided-target file";
+
+/// What this run reached, which now depends on whether a ledger was there.
+///
+/// The old note said this proof could only ever read the register's own claim,
+/// because confirming it needs the decided-target file and VDS S-7(2)(1) forbids
+/// a network call inside a proof. The first half of that is still true and the
+/// conclusion no longer follows: `vds figma pull` generates a LEDGER out of
+/// band, exactly as the pin is generated out of band, and a ledger on disk is
+/// something this proof may read offline.
+///
+/// So there are three modes and the record says which one it ran in. A reader
+/// who cannot tell a measured `states.drawn` from a claimed one has been handed
+/// a pass that means two different things.
+const REACH_MEASURED: &str = "[reach] `states.drawn` was MEASURED against the figma ledger, not taken on the register's \
+     word. A record claiming a state the decided-target file does not draw is a finding here \
+     (R2), which is the claim VDS S-5(5) says a hand-maintained register decays into. What \
+     this still does not establish is that a drawn frame is GOOD: taste is reserved to the \
+     Principal (VDS S-1(6)).";
+
+const REACH_NO_LEDGER: &str = "[reach] no figma ledger is present, so `states.drawn` is the register's own claim and this \
+     run did not check it. A pass establishes that the contract is complete, never that a \
+     frame exists in the decided-target file. Generate a ledger with `vds figma pull` and \
+     re-run to have the claim measured instead: it is a network read, which is why it happens \
+     out of band and not inside this proof (VDS S-7(2)(1)).";
+
+const REACH_STALE_LEDGER: &str = "[reach] a figma ledger is present and this run did NOT rely on it, because it could not be \
+     established as current. `states.drawn` is therefore the register's own claim here, exactly \
+     as if no ledger existed. Relying on a ledger that cannot be shown current would report \
+     the decided-target file as it was at some unknown past moment and call that a \
+     measurement.";
 
 const TASTE_NOTE: &str = "[taste] whether a drawn state looks right is reserved to the Principal (VDS S-1(6)). This \
      proof checks that a required state is drawn, never that it is good.";
@@ -88,7 +116,28 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
         run.input_file(&record.path)?;
     }
 
-    run.note(REACH_NOTE);
+    // The ledger, where there is one that can be relied on. An absent ledger is
+    // a NARROWING and never an error: a project with no Figma access still gets
+    // the register-internal check, and the note says which of the two it got.
+    let ledger = match vds_figma::pull::read(&ctx.store())? {
+        None => {
+            run.note(REACH_NO_LEDGER);
+            None
+        }
+        Some(ledger) => match vds_figma::ledger::check_fresh(&ledger, None) {
+            Ok(()) => {
+                run.note(REACH_MEASURED);
+                run.input_named("<figma ledger content>", ledger.compute_content_digest()?);
+                Some(ledger)
+            }
+            Err(why) => {
+                run.note(format!(
+                    "{REACH_STALE_LEDGER} The reason it was not relied on: {why}"
+                ));
+                None
+            }
+        },
+    };
     run.note(TASTE_NOTE);
     run.note(PARITY_NOTE);
     if index.is_empty() {
@@ -154,6 +203,56 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
                     named(&not_drawn)
                 ),
             ));
+        }
+
+        // R2. The register's claim, measured against the file that decides it.
+        //
+        // This is the direction VDS S-5(5) says a hand-maintained register
+        // decays in: `states.drawn` is edited by hand, nothing read the Figma
+        // file, and over months the record describes frames that were never
+        // drawn or were drawn and removed. `required_not_drawn` above catches a
+        // record that admits the gap; this catches one that does not.
+        if let Some(ledger) = &ledger {
+            match ledger.row(&record.id) {
+                Some(row) if row.resolved => {
+                    let claimed_not_in_file: Vec<vds_core::State> = record
+                        .states
+                        .drawn
+                        .iter()
+                        .filter(|state| !row.states_drawn.contains(state))
+                        .copied()
+                        .collect();
+                    if !claimed_not_in_file.is_empty() {
+                        run.fail(Violation::fatal(
+                            location.clone(),
+                            RULE_DRAWN_NOT_IN_FILE,
+                            format!(
+                                "every state {} claims as drawn is drawn on its node in the \
+                                 decided-target file, measured from that node's variants",
+                                record.id
+                            ),
+                            format!(
+                                "{} claims {} as drawn and the node draws {}. A register that \
+                                 says a state exists in the file when it does not is the decay \
+                                 VDS S-5(5) describes, and every gate downstream of \
+                                 `states.drawn` has been reading it.",
+                                record.id,
+                                named(&in_specification_order(&claimed_not_in_file)),
+                                if row.states_drawn.is_empty() {
+                                    "none".to_owned()
+                                } else {
+                                    named(&in_specification_order(&row.states_drawn))
+                                }
+                            ),
+                        ));
+                    }
+                }
+                // A record with no node, or a node the ledger could not resolve,
+                // is `reconciliation` limb (c)'s to report and not this proof's.
+                // Reporting it here as well would put one defect on two records
+                // and make a reader think there were two.
+                _ => {}
+            }
         }
 
         // Only at `built` or `verified`. Before those a record claims nothing
@@ -551,9 +650,146 @@ mod tests {
             record
                 .notes
                 .iter()
-                .any(|note| note.contains("never that a frame exists in the file")),
+                .any(|note| note.contains("never that a frame exists in the decided-target file")),
             "{:?}",
             record.notes
         );
+    }
+
+    /// R2, and the direction VDS S-5(5) says a hand-maintained register decays
+    /// in: `states.drawn` is edited by hand, nothing read the Figma file, and
+    /// over months the record describes frames that were never drawn.
+    ///
+    /// Until a ledger existed this proof could only read the register's own
+    /// claim, and it said so on every record it captured. It can now measure it.
+    #[test]
+    fn a_state_the_register_claims_as_drawn_and_the_file_does_not_draw_is_a_finding() {
+        let h = Harness::new();
+        let id = h.register("Button", Status::Registered);
+        h.amend(&id, |record| {
+            record.states.required = vec![State::Default, State::Hover];
+            record.states.drawn = vec![State::Default, State::Hover];
+            record.figma = Some(vds_core::FigmaNode {
+                file_key: "KEY".into(),
+                node_id: "12:34".into(),
+                captured_at: vds_core::Timestamp::fixed(2026, 7, 25, 10, 0, 0),
+            });
+        });
+
+        // Without a ledger the claim stands unchecked, which is the old
+        // behaviour and is still correct where there is nothing to check it
+        // against.
+        let (before, text) = run_kind(&h, ProofKind::States);
+        assert_eq!(before.exit_code, EXIT_PASSED, "{text}");
+
+        // With one that draws only `default`, the claim about `hover` is a
+        // finding.
+        write_ledger(&h, &id, &[State::Default]);
+        let (after, text) = run_kind(&h, ProofKind::States);
+        assert_eq!(
+            after.exit_code, EXIT_VIOLATION,
+            "a register claiming a state the file does not draw passed: {text}"
+        );
+        assert!(text.contains("R2"), "{text}");
+        assert!(text.contains("hover"), "{text}");
+        assert!(text.contains("decay"), "{text}");
+    }
+
+    /// And the agreeing direction, so the measurement is not simply a way of
+    /// failing everything.
+    #[test]
+    fn a_claim_the_file_supports_passes() {
+        let h = Harness::new();
+        let id = h.register("Button", Status::Registered);
+        h.amend(&id, |record| {
+            record.states.required = vec![State::Default, State::Hover];
+            record.states.drawn = vec![State::Default, State::Hover];
+            record.figma = Some(vds_core::FigmaNode {
+                file_key: "KEY".into(),
+                node_id: "12:34".into(),
+                captured_at: vds_core::Timestamp::fixed(2026, 7, 25, 10, 0, 0),
+            });
+        });
+        write_ledger(&h, &id, &[State::Default, State::Hover, State::Focus]);
+
+        let (outcome, text) = run_kind(&h, ProofKind::States);
+        assert_eq!(outcome.exit_code, EXIT_PASSED, "{text}");
+        let record = h.last_proof(ProofKind::States);
+        assert!(
+            record
+                .notes
+                .iter()
+                .any(|note| note.contains("was MEASURED against the figma ledger")),
+            "the record has to say which mode the run was in, or a pass means two different \
+             things: {:?}",
+            record.notes
+        );
+    }
+
+    /// A ledger that cannot be shown current is not relied on at all.
+    ///
+    /// Trusting one would resolve the register's claims against the file as it
+    /// was at some unknown past moment and report that as a measurement.
+    #[test]
+    fn a_ledger_that_cannot_be_shown_current_is_not_relied_on() {
+        let h = Harness::new();
+        let id = h.register("Button", Status::Registered);
+        h.amend(&id, |record| {
+            record.states.required = vec![State::Default, State::Hover];
+            record.states.drawn = vec![State::Default, State::Hover];
+        });
+        write_ledger(&h, &id, &[State::Default]);
+
+        // Hand-edit the ledger, which is the thing a generated inventory is
+        // never supposed to have done to it (VDS S-4(2)).
+        let path = h.root().join(".vds/ledgers/figma.yaml");
+        let text = std::fs::read_to_string(&path).unwrap();
+        std::fs::write(&path, text.replace("resolved: true", "resolved: false")).unwrap();
+
+        let (outcome, text) = run_kind(&h, ProofKind::States);
+        assert_eq!(outcome.exit_code, EXIT_PASSED, "{text}");
+        let record = h.last_proof(ProofKind::States);
+        assert!(
+            record
+                .notes
+                .iter()
+                .any(|note| note.contains("did NOT rely on it")),
+            "{:?}",
+            record.notes
+        );
+    }
+
+    /// A figma ledger naming one component, drawing the states given.
+    fn write_ledger(h: &Harness, id: &vds_core::ComponentId, drawn: &[State]) {
+        use vds_figma::ledger::{FigmaLedger, FigmaNodeRow, LEDGER_SCHEMA_VERSION};
+
+        let ledger = FigmaLedger {
+            schema_version: LEDGER_SCHEMA_VERSION,
+            generated_at: vds_core::Timestamp::fixed(2026, 7, 25, 11, 0, 0),
+            generated_by: "vds figma pull".into(),
+            file_key: "KEY".into(),
+            file_version: "1".into(),
+            file_name: "decided".into(),
+            nodes: vec![FigmaNodeRow {
+                component_id: id.clone(),
+                node_id: "12:34".into(),
+                resolved: true,
+                figma_name: Some("Button".into()),
+                is_component_set: true,
+                variant_properties: Default::default(),
+                states_drawn: drawn.to_vec(),
+                unresolved_because: None,
+            }],
+            unclaimed: vec![],
+            notes: vec![],
+            content_digest: vds_core::Digest::of_text("placeholder"),
+        };
+        let ledger = FigmaLedger {
+            content_digest: ledger.compute_content_digest().unwrap(),
+            ..ledger
+        };
+        let path = h.root().join(".vds/ledgers/figma.yaml");
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, serde_yaml::to_string(&ledger).unwrap()).unwrap();
     }
 }

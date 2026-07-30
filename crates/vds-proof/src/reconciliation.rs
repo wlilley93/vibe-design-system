@@ -67,13 +67,34 @@ const RULE_NO_REGISTER_ENTRY: &str = "VDS S-5(6)(b) reconciliation: a component 
 const RULE_STALE_DEMAND: &str =
     "VDS S-5(7): a demand figure older than its ledger's generation is stale";
 
-/// Limb (c) is out of reach from inside a proof, and the reason is statutory
-/// rather than a matter of effort.
+/// Limb (c), where no ledger is on disk.
+///
+/// The reason was always statutory rather than a matter of effort, and the
+/// conclusion no longer follows from it. Resolving a node id IS a network call
+/// and VDS S-7(2)(1) does forbid one inside a proof, but `vds figma pull`
+/// generates a LEDGER out of band, and a ledger on disk is something this proof
+/// may read offline. So limb (c) is reached where a ledger exists and is
+/// current, and this note is what a run without one says.
 pub const NOT_REACHED_FIGMA: &str = "[reach] limb (c) of VDS S-5(6), whether each register entry's Figma node id resolves in \
-     the pinned file, is NOT checked by this run. Resolving a node id requires a call to the \
-     Figma API and VDS S-7(2)(1) forbids a network call inside a proof, so every record was \
-     counted and skipped rather than passed. A register entry naming a node that was deleted \
-     from the decided-target file passes this run.";
+     the pinned file, is NOT checked by this run, because no figma ledger is present. \
+     Resolving a node id is a network call and VDS S-7(2)(1) forbids one inside a proof, so \
+     the resolution happens out of band: run `vds figma pull` and re-run this proof to have \
+     limb (c) reached. Until then a register entry naming a node that was deleted from the \
+     decided-target file passes this run, and every record was counted and skipped rather \
+     than passed.";
+
+pub const REACHED_FIGMA: &str = "[reach] limb (c) of VDS S-5(6) IS reached by this run: every register entry's Figma node \
+     id was resolved against the figma ledger, which `vds figma pull` generated out of band \
+     because the resolution is a network call VDS S-7(2)(1) forbids inside a proof. A record \
+     naming a node that is not in the decided-target file is a finding here (R7). What this \
+     does NOT establish is that the ledger is current with the file as it stands NOW: it is \
+     current with the file as it was when it was pulled, and its own content digest is \
+     recorded on this run so a reader can tell which pull it was.";
+
+pub const STALE_FIGMA: &str = "[reach] a figma ledger is present and this run did NOT rely on it, so limb (c) of \
+     VDS S-5(6) is unreached exactly as if none existed. Relying on a ledger that cannot be \
+     established as current would resolve node ids against the decided-target file as it was \
+     at some unknown past moment and report that as a check.";
 
 /// Limb (d) is out of reach because this build has no TypeScript analysis, which
 /// is a capability gap and is recorded as one.
@@ -85,9 +106,15 @@ pub const NOT_REACHED_CONTRACTS: &str = "[reach] limb (d) of VDS S-5(6), whether
 
 /// The two limbs a warrant may actually rely on, stated in the run so the
 /// warrant cannot be written wider than the evidence.
-pub const REACH_SUMMARY: &str = "[reach] this run establishes limbs (a) and (b) of VDS S-5(6) over the declared surface, \
+pub const REACH_SUMMARY_TWO: &str = "[reach] this run establishes limbs (a) and (b) of VDS S-5(6) over the declared surface, \
      and neither (c) nor (d). docs/GOAL.md D1 lists all four, and a warrant citing this proof \
      must not be described as covering the two it did not reach.";
+
+pub const REACH_SUMMARY_THREE: &str = "[reach] this run establishes limbs (a), (b) and (c) of VDS S-5(6) over the declared \
+     surface, and not (d). Limb (c) is reached because a figma ledger was present and current; \
+     limb (d), whether prop and state contracts agree between the record and the code, is the \
+     `parity` proof's and is not attempted here. A warrant citing this proof must not be \
+     described as covering the limb it did not reach.";
 
 pub const CARVE_OUT_NOTE: &str = "[carve-out] a library file named index.*, *.test.*, *.spec.* or *.stories.* is counted \
      and NOT enforced against the register under limb (b): a barrel re-exports components \
@@ -99,6 +126,8 @@ pub const CARVE_OUT_NOTE: &str = "[carve-out] a library file named index.*, *.te
 // `rows_skipped_reasons`, and a per-row sentence would make every count one.
 const SKIP_UNBUILT: &str = "record_below_built_declares_no_code_counterpart";
 const SKIP_FIGMA: &str = "figma_node_resolution_needs_network_vds_s7_2_1";
+const RULE_FIGMA_NODE_GONE: &str = "VDS S-5(6)(c) reconciliation R7: a register entry's Figma node id resolves in the \
+     decided-target file";
 const SKIP_NO_FIGMA_NODE: &str = "record_declares_no_figma_node_to_resolve";
 const SKIP_CONTRACTS: &str = "prop_and_state_parity_needs_typescript_analysis";
 const SKIP_NO_CODE_TO_COMPARE: &str = "no_code_counterpart_to_compare_contracts_against";
@@ -140,9 +169,34 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
     // citing this run look spent for a reason the run never read.
     run.input_named("<governed library file set>", Digest::of_value(&names)?);
 
-    run.note(NOT_REACHED_FIGMA);
+    // The ledger, where one is on disk and can be relied on. Absent is a
+    // NARROWING and never an error: a project with no Figma access still gets
+    // limbs (a) and (b), and the note says which it got.
+    let figma_ledger = match vds_figma::pull::read(&ctx.store())? {
+        None => {
+            run.note(NOT_REACHED_FIGMA);
+            None
+        }
+        Some(found) => match vds_figma::ledger::check_fresh(&found, None) {
+            Ok(()) => {
+                run.note(REACHED_FIGMA);
+                run.input_named("<figma ledger content>", found.compute_content_digest()?);
+                Some(found)
+            }
+            Err(why) => {
+                run.note(format!(
+                    "{STALE_FIGMA} The reason it was not relied on: {why}"
+                ));
+                None
+            }
+        },
+    };
     run.note(NOT_REACHED_CONTRACTS);
-    run.note(REACH_SUMMARY);
+    run.note(if figma_ledger.is_some() {
+        REACH_SUMMARY_THREE
+    } else {
+        REACH_SUMMARY_TWO
+    });
     run.note(CARVE_OUT_NOTE);
     if project.config.surface.library_dirs.is_empty() {
         run.note(
@@ -164,7 +218,13 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
         let record = &located.value;
         let record_at = project.rel(&located.path);
         code_counterpart_row(&mut run, project, record, &record_at);
-        figma_row(&mut run, record);
+        figma_row(
+            &mut run,
+            record,
+            figma_ledger.as_ref(),
+            &located.path,
+            project,
+        );
         contract_row(&mut run, record);
         demand_row(&mut run, record, &ledger.generated_at, &record_at);
     }
@@ -308,7 +368,56 @@ fn code_counterpart_row(
 
 /// Limb (c). Counted, never enforced, and the reason is named per row so the
 /// count is diagnosable rather than a single undifferentiated skip.
-fn figma_row(run: &mut ProofRun<'_>, record: &ComponentRecord) {
+fn figma_row(
+    run: &mut ProofRun<'_>,
+    record: &ComponentRecord,
+    ledger: Option<&vds_figma::ledger::FigmaLedger>,
+    path: &std::path::Path,
+    project: &Project,
+) {
+    // R7, where a ledger can carry it. This is limb (c), and it is the direction
+    // nobody could check until the ledger existed: a record naming a node a
+    // designer deleted months ago passed every run, because the only thing that
+    // could disagree was the file itself and no proof may reach it.
+    if let (Some(ledger), Some(figma)) = (ledger, record.figma.as_ref()) {
+        run.row(Verdict::Enforced);
+        match ledger.row(&record.id) {
+            Some(row) if row.resolved => {}
+            Some(row) => {
+                run.fail(Violation::fatal(
+                    format!("{} <{} {}>", project.rel(path), record.id, record.name),
+                    RULE_FIGMA_NODE_GONE,
+                    format!(
+                        "node {} resolves in the decided-target file, so the record points at \
+                         something that is actually there",
+                        figma.node_id
+                    ),
+                    format!(
+                        "it does not: {}. The register points at a node the decided-target \
+                         file does not have, so every claim this record makes about what is \
+                         decided rests on nothing.",
+                        row.unresolved_because
+                            .as_deref()
+                            .unwrap_or("the ledger records no reason")
+                    ),
+                ));
+            }
+            None => {
+                run.fail(Violation::fatal(
+                    format!("{} <{} {}>", project.rel(path), record.id, record.name),
+                    RULE_FIGMA_NODE_GONE,
+                    "a row in the figma ledger, so this record's node id was actually looked up",
+                    format!(
+                        "the ledger holds no row for {}, so it was generated before this record \
+                         existed. Regenerate it with `vds figma pull`: a ledger older than the \
+                         register reports on a register that is not this one.",
+                        record.id
+                    ),
+                ));
+            }
+        }
+        return;
+    }
     match record.figma {
         Some(_) => run.row(Verdict::Skipped(SKIP_FIGMA)),
         None => run.row(Verdict::Skipped(SKIP_NO_FIGMA_NODE)),
@@ -900,5 +1009,148 @@ mod tests {
             "the finding set moved, so the recorded inputs must move with it, or the record \
              claims two different answers over one set of inputs"
         );
+    }
+
+    /// Limb (c), which this proof declared unreachable on every record it
+    /// captured until the ledger existed.
+    ///
+    /// A record naming a node a designer deleted months ago passed every run,
+    /// because the only thing that could disagree was the decided-target file
+    /// and no proof may reach it. `vds figma pull` puts a reading of that file on
+    /// disk, and reading a file on disk is not a network call.
+    #[test]
+    fn reconciliation_fails_on_a_register_entry_whose_figma_node_is_gone() {
+        let h = Harness::new();
+        h.component_file("Button");
+        let id = h.register("Button", Status::Registered);
+        h.amend(&id, |record| {
+            record.figma = Some(FigmaNode {
+                file_key: "KEY".into(),
+                node_id: "12:34".into(),
+                captured_at: Timestamp::fixed(2026, 7, 25, 10, 0, 0),
+            });
+        });
+        h.ledger();
+
+        // No ledger: the old behaviour, and still right where there is nothing
+        // to check against.
+        let (before, text) = run_kind(&h, ProofKind::Reconciliation);
+        assert_eq!(before.exit_code, EXIT_PASSED, "{text}");
+        assert!(text.contains("no figma ledger is present"), "{text}");
+
+        write_figma_ledger(&h, &id, false);
+        let (after, text) = run_kind(&h, ProofKind::Reconciliation);
+        assert_eq!(
+            after.exit_code, EXIT_VIOLATION,
+            "a record pointing at a node the file does not have passed: {text}"
+        );
+        assert!(text.contains("R7"), "{text}");
+        assert!(text.contains("rests on nothing"), "{text}");
+    }
+
+    /// The resolving direction, and the summary note that has to move with it.
+    #[test]
+    fn a_resolving_node_passes_and_the_run_says_it_reached_three_limbs() {
+        let h = Harness::new();
+        h.component_file("Button");
+        let id = h.register("Button", Status::Registered);
+        h.amend(&id, |record| {
+            record.figma = Some(FigmaNode {
+                file_key: "KEY".into(),
+                node_id: "12:34".into(),
+                captured_at: Timestamp::fixed(2026, 7, 25, 10, 0, 0),
+            });
+        });
+        h.ledger();
+        write_figma_ledger(&h, &id, true);
+
+        let (outcome, text) = run_kind(&h, ProofKind::Reconciliation);
+        assert_eq!(outcome.exit_code, EXIT_PASSED, "{text}");
+        let record = h.last_proof(ProofKind::Reconciliation);
+        assert!(
+            record
+                .notes
+                .iter()
+                .any(|note| note.contains("limbs (a), (b) and (c)")),
+            "the summary has to say which limbs THIS run reached, or a warrant is written \
+             against the wrong one: {:?}",
+            record.notes
+        );
+        assert!(
+            !record
+                .notes
+                .iter()
+                .any(|note| note.contains("neither (c) nor (d)")),
+            "the run claimed limb (c) and also claimed not to have reached it: {:?}",
+            record.notes
+        );
+    }
+
+    /// A ledger generated before a record existed reports on a register that is
+    /// not this one, and saying nothing about that record would be the silent
+    /// narrowing this proof exists to catch.
+    #[test]
+    fn a_record_the_ledger_has_no_row_for_is_a_finding_and_not_a_silence() {
+        let h = Harness::new();
+        h.component_file("Button");
+        h.component_file("Badge");
+        let first = h.register("Button", Status::Registered);
+        h.amend(&first, |record| {
+            record.figma = Some(FigmaNode {
+                file_key: "KEY".into(),
+                node_id: "12:34".into(),
+                captured_at: Timestamp::fixed(2026, 7, 25, 10, 0, 0),
+            });
+        });
+        h.ledger();
+        write_figma_ledger(&h, &first, true);
+
+        // A second record, registered after the ledger was pulled.
+        let second = h.register("Badge", Status::Registered);
+        h.amend(&second, |record| {
+            record.figma = Some(FigmaNode {
+                file_key: "KEY".into(),
+                node_id: "56:78".into(),
+                captured_at: Timestamp::fixed(2026, 7, 25, 12, 0, 0),
+            });
+        });
+
+        let (outcome, text) = run_kind(&h, ProofKind::Reconciliation);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("older than the register"), "{text}");
+    }
+
+    fn write_figma_ledger(h: &Harness, id: &vds_core::ComponentId, resolved: bool) {
+        use vds_figma::ledger::{FigmaLedger, FigmaNodeRow, LEDGER_SCHEMA_VERSION};
+
+        let ledger = FigmaLedger {
+            schema_version: LEDGER_SCHEMA_VERSION,
+            generated_at: Timestamp::fixed(2026, 7, 25, 11, 0, 0),
+            generated_by: "vds figma pull".into(),
+            file_key: "KEY".into(),
+            file_version: "1".into(),
+            file_name: "decided".into(),
+            nodes: vec![FigmaNodeRow {
+                component_id: id.clone(),
+                node_id: "12:34".into(),
+                resolved,
+                figma_name: resolved.then(|| "Button".to_owned()),
+                is_component_set: true,
+                variant_properties: Default::default(),
+                states_drawn: vec![],
+                unresolved_because: (!resolved)
+                    .then(|| "the file holds no node with that id".to_owned()),
+            }],
+            unclaimed: vec![],
+            notes: vec![],
+            content_digest: vds_core::Digest::of_text("placeholder"),
+        };
+        let ledger = FigmaLedger {
+            content_digest: ledger.compute_content_digest().unwrap(),
+            ..ledger
+        };
+        let path = h.root().join(".vds/ledgers/figma.yaml");
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, serde_yaml::to_string(&ledger).unwrap()).unwrap();
     }
 }

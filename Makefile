@@ -77,6 +77,12 @@ gates: build
 .PHONY: gates-example
 gates-example: build
 	$(VDS) ledger screens --root examples/storefront
+	@# The figma ledger, regenerated from a response committed outside `.vds/`.
+	@# Three proofs read it: `states` measures states.drawn against it,
+	@# `reconciliation` resolves limb (c) against it, and `ledger_staleness` R3
+	@# checks it is self-consistent and not older than the records that read it.
+	$(VDS) figma pull --root examples/storefront \
+	    --from examples/storefront/figma/file-SFDEMO.json
 	@# Every kind, so each is exercised and recorded. --allow-vacuous is needed for
 	@# exactly one of them and the next line is why the flag buys nothing here.
 	$(VDS) proof --all --root examples/storefront --invoked-by package_script --allow-vacuous

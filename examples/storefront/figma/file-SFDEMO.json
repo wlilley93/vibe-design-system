@@ -1,0 +1,31 @@
+{
+  "name": "Storefront",
+  "version": "3841029571",
+  "document": {
+    "id": "0:0", "name": "Document", "type": "DOCUMENT",
+    "children": [{
+      "id": "0:1", "name": "Page 1", "type": "CANVAS",
+      "children": [
+        {
+          "id": "12:34", "name": "Button", "type": "COMPONENT_SET",
+          "children": [
+            { "id": "12:35", "name": "State=Default", "type": "COMPONENT" },
+            { "id": "12:36", "name": "State=Hover", "type": "COMPONENT" },
+            { "id": "12:37", "name": "State=Focus", "type": "COMPONENT" },
+            { "id": "12:38", "name": "State=Disabled", "type": "COMPONENT" }
+          ]
+        },
+        {
+          "id": "12:40", "name": "Badge", "type": "COMPONENT_SET",
+          "children": [
+            { "id": "12:41", "name": "State=Default", "type": "COMPONENT" }
+          ]
+        }
+      ]
+    }]
+  },
+  "componentSets": {
+    "12:34": { "key": "abc", "name": "Button", "description": "" },
+    "12:40": { "key": "def", "name": "Badge", "description": "" }
+  }
+}

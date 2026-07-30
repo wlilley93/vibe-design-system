@@ -189,6 +189,28 @@ pub fn blank_non_code(source: &str) -> String {
 /// component reference in it with it. A look-behind at the previous character is
 /// not enough, because the quote is usually several characters into the text.
 /// Content has to be a MODE.
+/// Words that may precede an EXPRESSION, so a `/` after one opens a regex and a `<`
+/// after one opens a JSX tag rather than a generic or a comparison.
+///
+/// ONE register for both heuristics. They ask the same question ("is what follows a
+/// literal or an operator?") and a second copy is a second place to forget `return`.
+const TAG_POSITION_KEYWORDS: &[&str] = &[
+    "return",
+    "case",
+    "typeof",
+    "instanceof",
+    "in",
+    "of",
+    "new",
+    "delete",
+    "void",
+    "throw",
+    "do",
+    "else",
+    "yield",
+    "await",
+];
+
 pub fn blank_non_code_checked(source: &str) -> (String, Option<String>) {
     let chars: Vec<char> = source.chars().collect();
     let mut out: Vec<char> = Vec::with_capacity(chars.len());
@@ -292,22 +314,9 @@ pub fn blank_non_code_checked(source: &str) -> (String, Option<String>) {
                 // made `</p>` open a regex that ate the rest of the line, which broke the two
                 // tests that exist precisely because a scanner must not swallow content.
                 if !in_tag && ch == '/' && next != Some('/') && next != Some('*') {
-                    const REGEX_KEYWORDS: &[&str] = &[
-                        "return",
-                        "case",
-                        "typeof",
-                        "instanceof",
-                        "in",
-                        "of",
-                        "new",
-                        "delete",
-                        "void",
-                        "throw",
-                        "do",
-                        "else",
-                        "yield",
-                        "await",
-                    ];
+                    // TAG_POSITION_KEYWORDS is shared with the `<` test above: both ask
+                    // whether an expression may begin here.
+                    const REGEX_KEYWORDS: &[&str] = TAG_POSITION_KEYWORDS;
                     let divisible = matches!(last_significant, ')' | ']' | '}')
                         || last_significant.is_alphanumeric()
                         || last_significant == '_'
@@ -323,7 +332,35 @@ pub fn blank_non_code_checked(source: &str) -> (String, Option<String>) {
                 }
 
                 // A `<` that begins a tag, a closing tag or a fragment.
-                if ch == '<' && matches!(next, Some(c) if is_ident_start(c) || c == '/' || c == '>')
+                //
+                // ONLY IN EXPRESSION POSITION. A TYPESCRIPT GENERIC LOOKS IDENTICAL to an
+                // opening tag on the first two characters, and treating one as the other
+                // corrupts the rest of the file:
+                //
+                //     const [e, setE] = useState<string | null>(null)
+                //     // holds (`a/page.tsx:1-2`, `loading || error ? null : {`)
+                //
+                // Those two lines were enough. `<s` set in_tag, the `>` moved the region to
+                // JsxText, and in JsxText a `//` is no longer a comment: the `{` inside the
+                // comment's backticks pushed a brace and the next backtick opened a template
+                // that never closed. The scan then reported "a template literal was opened
+                // and never closed" against a file that is valid TypeScript, and REFUSED to
+                // build the screens ledger at all, which took out four proofs that depend on
+                // it. Found by delta-debugging a 544-line page down to the two lines above.
+                //
+                // The test is the same one the regex heuristic below already uses, and for
+                // the same reason: what precedes decides what the character means. After a
+                // value (an identifier, a number, a closing bracket) a `<` is a generic or a
+                // comparison. Only after an operator, a comma, an opening bracket, the start
+                // of the file, or one of the keywords that can precede an expression, is it
+                // a tag. `return <div>` still works because `return` is in REGEX_KEYWORDS.
+                let value_precedes = matches!(last_significant, ')' | ']' | '}')
+                    || last_significant.is_alphanumeric()
+                    || last_significant == '_'
+                    || last_significant == '$';
+                if ch == '<'
+                    && matches!(next, Some(c) if is_ident_start(c) || c == '/' || c == '>')
+                    && (!value_precedes || TAG_POSITION_KEYWORDS.contains(&last_word.as_str()))
                 {
                     in_tag = true;
                 }
@@ -332,6 +369,15 @@ pub fn blank_non_code_checked(source: &str) -> (String, Option<String>) {
                 if ch == '>' && in_tag {
                     in_tag = false;
                     region = Region::JsxText;
+                    // Record the `>` as what precedes. This arm returns early, so without
+                    // it `last_significant` stays on the last letter of the tag NAME (the
+                    // `v` of `<div>`), and the expression-position test above then reads a
+                    // value as preceding the NEXT `<`. Every child tag would be refused:
+                    // `<div><p>x</p></div>` would find `div` and nothing else. Caught by
+                    // an_apostrophe_in_jsx_text_does_not_hide_the_rest_of_the_line, which
+                    // went from 2 references to 0.
+                    last_significant = '>';
+                    last_word.clear();
                     out.push(ch);
                     i += 1;
                     continue;

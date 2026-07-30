@@ -1,8 +1,11 @@
 id: CMP-0003
 name: Button
 status: registered
-contractVersion: 2
-figma: null
+contractVersion: 3
+figma:
+  fileKey: SFDEMO
+  nodeId: 12:34
+  capturedAt: 2026-07-25T17:35:16Z
 code:
   importPath: '@/components/ui/Button'
   sourceFile: src/components/ui/Button.tsx
@@ -61,7 +64,7 @@ a11y:
     scope: text
 demand:
   routes: 3
-  measuredAt: 2026-07-25T16:32:37Z
+  measuredAt: 2026-07-25T17:36:03Z
   measuredBy: vds register measure-demand
 supersedes: []
 supersededBy: null
@@ -71,6 +74,11 @@ amendments:
   kind: non_breaking
   what: 'the Button contract: the four states a control draws and builds, the role, and the two WCAG floors that bind a control'
   contractVersion: 2
+- at: 2026-07-25T17:35:16Z
+  by: jellytot
+  kind: non_breaking
+  what: record the decided-target node for the Button
+  contractVersion: 3
 basis:
 - ACT-VDS-001:s5
 notes: 'Imported by `vds register import` from src/components/ui/Button.tsx:11. A CANDIDATE, not a contract: it carries what the code says and nothing the code cannot say. Its required states, contrast floors, role and keyboard contract are decisions nobody has made yet.'

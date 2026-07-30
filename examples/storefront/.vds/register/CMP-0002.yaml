@@ -1,8 +1,11 @@
 id: CMP-0002
 name: Badge
 status: registered
-contractVersion: 2
-figma: null
+contractVersion: 3
+figma:
+  fileKey: SFDEMO
+  nodeId: 12:40
+  capturedAt: 2026-07-25T17:35:16Z
 code:
   importPath: '@/components/ui/Badge'
   sourceFile: src/components/ui/Badge.tsx
@@ -35,7 +38,7 @@ a11y:
     scope: text
 demand:
   routes: 2
-  measuredAt: 2026-07-25T16:32:37Z
+  measuredAt: 2026-07-25T17:36:03Z
   measuredBy: vds register measure-demand
 supersedes: []
 supersededBy: null
@@ -45,6 +48,11 @@ amendments:
   kind: non_breaking
   what: 'the Badge contract: a badge is not interactive, so it draws default only, and its floor is the text one'
   contractVersion: 2
+- at: 2026-07-25T17:35:16Z
+  by: jellytot
+  kind: non_breaking
+  what: record the decided-target node for the Badge
+  contractVersion: 3
 basis:
 - ACT-VDS-001:s5
 notes: 'Imported by `vds register import` from src/components/ui/Badge.tsx:8. A CANDIDATE, not a contract: it carries what the code says and nothing the code cannot say. Its required states, contrast floors, role and keyboard contract are decisions nobody has made yet.'

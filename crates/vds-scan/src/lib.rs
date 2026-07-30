@@ -932,6 +932,40 @@ export default function Page() {
     }
 
     #[test]
+    fn a_typescript_generic_is_not_read_as_an_opening_tag() {
+        // The two lines below are a delta-debugged minimum from a real 544-line page
+        // that this scanner REFUSED to read, reporting "a template literal was opened
+        // and never closed" against valid TypeScript. It took out four proofs at once,
+        // because all of them depend on a screens ledger the scan would not build.
+        //
+        // The mechanism: `useState<string | null>` looks exactly like an opening tag on
+        // its first two characters, so `<s` set in_tag and the `>` moved the region to
+        // JsxText. In JsxText a `//` is not a comment, so the `{` inside the comment's
+        // backticks pushed a brace and the next backtick opened a template with nothing
+        // left to close it.
+        //
+        // Asserting the ledger BUILDS is the point. A file that cannot be read is not a
+        // file with zero references, and the difference is what the unbalanced check is
+        // for.
+        let f = fixture(&[]);
+        f_write(
+            &f,
+            "app/dash/page.tsx",
+            "import { Button } from \"@/components/ui\";\n\
+             export default function P(){\n\
+             const [e, setE] = useState<string | null>(null);\n\
+             // holds (`a/page.tsx:1-2`, `loading || error ? null : {`).\n\
+             return <div><Button /></div>; }\n",
+        );
+        let ledger = generate(&f.project).expect("a valid TS generic must not refuse the scan");
+        let names: Vec<&str> = ledger
+            .component_references()
+            .map(|(_, r)| r.name.as_str())
+            .collect();
+        assert!(names.contains(&"Button"), "got {names:?}");
+    }
+
+    #[test]
     fn an_apostrophe_in_jsx_text_does_not_hide_the_rest_of_the_line() {
         let f = fixture(&[]);
         f_write(

@@ -1,0 +1,38 @@
+schema_version: 1
+generated_at: 2026-07-25T17:36:12Z
+generated_by: vds figma pull
+file_key: SFDEMO
+file_version: '3841029571'
+file_name: Storefront
+content_digest: sha256:3e210975b7a62ecc2c860d682306589409566d2d26248847bbe83bedabc5a340
+nodes:
+- component_id: CMP-0002
+  node_id: 12:40
+  resolved: true
+  figma_name: Badge
+  is_component_set: true
+  variant_properties:
+    State:
+    - Default
+  states_drawn:
+  - default
+- component_id: CMP-0003
+  node_id: 12:34
+  resolved: true
+  figma_name: Button
+  is_component_set: true
+  variant_properties:
+    State:
+    - Default
+    - Disabled
+    - Focus
+    - Hover
+  states_drawn:
+  - default
+  - hover
+  - focus
+  - disabled
+unclaimed: []
+notes:
+- pulled from a saved API response at examples/storefront/figma/file-SFDEMO.json
+- 'This ledger records names, node ids, variant property names and variant values. It records no colour, length, font, duration or easing curve: those stay in the Figma file, which [2026] VJS-CC-OPBOX 3 D1 makes the system of record for what is decided.'

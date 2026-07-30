@@ -865,6 +865,7 @@ dependencies = [
  "vds-core",
  "vds-css",
  "vds-designpack",
+ "vds-figma",
  "vds-scan",
  "vds-store",
  "vds-testkit",

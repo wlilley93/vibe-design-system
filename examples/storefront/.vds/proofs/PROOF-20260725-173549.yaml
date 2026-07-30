@@ -1,0 +1,32 @@
+id: PROOF-20260725-173549
+kind: states
+status: failed
+warrant_id: null
+command: vds proof states
+script: crates/vds-proof/src/states.rs
+exit_code: 1
+rows_considered: 6
+rows_enforced: 6
+rows_skipped_reasons: {}
+violations:
+- location: .vds/register/CMP-0002.yaml <CMP-0002 Badge>
+  rule: 'VDS S-5(5) states R2: a state the register claims is drawn is drawn in the decided-target file'
+  expected: every state CMP-0002 claims as drawn is drawn on its node in the decided-target file, measured from that node's variants
+  actual: CMP-0002 claims default as drawn and the node draws none. A register that says a state exists in the file when it does not is the decay VDS S-5(5) describes, and every gate downstream of `states.drawn` has been reading it.
+  severity: fatal
+- location: .vds/register/CMP-0003.yaml <CMP-0003 Button>
+  rule: 'VDS S-5(5) states R2: a state the register claims is drawn is drawn in the decided-target file'
+  expected: every state CMP-0003 claims as drawn is drawn on its node in the decided-target file, measured from that node's variants
+  actual: CMP-0003 claims default, hover, focus, disabled as drawn and the node draws none. A register that says a state exists in the file when it does not is the decay VDS S-5(5) describes, and every gate downstream of `states.drawn` has been reading it.
+  severity: fatal
+notes:
+- '[reach] `states.drawn` was MEASURED against the figma ledger, not taken on the register''s word. A record claiming a state the decided-target file does not draw is a finding here (R2), which is the claim VDS S-5(5) says a hand-maintained register decays into. What this still does not establish is that a drawn frame is GOOD: taste is reserved to the Principal (VDS S-1(6)).'
+- '[taste] whether a drawn state looks right is reserved to the Principal (VDS S-1(6)). This proof checks that a required state is drawn, never that it is good.'
+- '[parity] a required state that is drawn and not built is recorded here as an informational finding and never fails this gate; the `parity` proof is the gate for that gap (VDS S-7(5)). Informational findings are captured on the proof record and are not printed, so the record is where they are read.'
+inputs_digest: sha256:216774323c68fa4e3e18bf167851d5605f62dc0bac1e03705c1a3b64061c851c
+digest: sha256:f64d5764b1caadeda6b35190adb6ffcbfff524c1cccaa60ec3d1d53f29086368
+designpack_digest: sha256:f9c369f3175c15169dafde47c01d7efc2f45c64090444f17f5b3f480e710ec5a
+captured_at: 2026-07-25T17:35:48Z
+capture_mode: automatic
+invoked_by: manual
+duration_ms: 0
