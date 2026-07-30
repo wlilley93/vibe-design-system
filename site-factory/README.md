@@ -49,7 +49,7 @@ brief ──▶ suggest.js ──▶ config (36 fields) ──▶ compose.js ─
 | `studio.js` / `studio.html` | The visual editor |
 | `vds-bridge.js` | The OPTIONAL seam to VDS governance |
 | `figma-spec.js` / `figma-push.js` | Figma spec sheet and project record |
-| `tests/` | 79 tests, run by `make test-factory` |
+| `tests/` | 81 tests, run by `make test-factory` |
 
 ---
 
@@ -101,6 +101,20 @@ write on a page that had 17. An undercount reads as a finished audit.
 **A gate that cannot fail is not a gate.** `node --test tests/*.test.js` EXITS 0 WHEN
 THE GLOB MATCHES NOTHING - measured, not assumed. `tests/gate.js` asserts a floor on
 files and tests actually run. Every check here has a test proving it can fire.
+
+**A rule and its check must be the same size.** The stylesheet rule said "no hex, no font
+name, no px literal outside the `--space` multiplier" and offered a grep for HEX as its
+evidence. Sixteen px declarations lived under it for weeks. The same shape as the
+controls-that-lie failure above: a rule stated broadly, a check covering a named subset, and
+nobody comparing the two. When you write a rule, write the check that fails if the rule is
+broken ANYWHERE, not the one that passes on the instance that prompted it.
+
+Those sixteen were five roles with drifted values, not sixteen decisions - a page frame
+(`--container`), long prose (`--measure-wide`), a form column (`--measure-form`), a reading
+measure (`--measure`) and a narrow centred panel written 480, 460 and 420 in three places for
+the same job (`--measure-narrow`). The measures scale with `--type-scale` and not `--space`,
+because a measure is characters per line: bigger type needs a wider column to hold the same
+line length, where folding it into spacing would shrink both and compound the problem.
 
 **Show the specimen, not the string.** `figma-spec.js` draws every option and marks the
 chosen one. Values are computed from the build (`tests/spec.test.js` pins them against

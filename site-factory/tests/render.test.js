@@ -86,3 +86,65 @@ test('rendered markup escapes HTML in content', () => {
   assert.ok(!html.includes('<script>alert(1)</script>'), 'content was interpolated without escaping');
   assert.ok(html.includes('&lt;script&gt;'), 'expected the escaped form in the output');
 });
+
+test('the stylesheet holds no magic number: every value is a token or a documented sentinel', () => {
+  // The README claimed "no hex, no font name, no px literal outside the --space multiplier"
+  // and then offered only a grep for HEX as its evidence. Sixteen distinct px declarations
+  // survived under that claim for weeks. A rule broader than its check is the same defect as
+  // a control the renderer ignores, one level up: both look enforced and are not.
+  //
+  // So this is the check the same size as the claim.
+  const { STRUCTURE_CSS } = require('../build.js');
+
+  // Sentinels, each with a reason. A number that CANNOT be a token belongs here; a number
+  // nobody has got round to naming does not, which is why the list is short and argued.
+  const SENTINELS = [
+    // A pill is "however round it takes", not a length. Any large number does the job and
+    // 999px is the idiom; a --radius-pill token would be the same sentinel with a longer name.
+    '999px',
+  ];
+
+  let scrubbed = STRUCTURE_CSS;
+  for (const s of SENTINELS) scrubbed = scrubbed.split(s).join('<sentinel>');
+
+  const hex = scrubbed.match(/#[0-9a-fA-F]{3,8}\b/g) || [];
+  assert.deepEqual(hex, [], `hex literals in the stylesheet: ${hex.join(', ')}`);
+
+  // Any surviving px is a magic number. Report it WITH its declaration, because "there is a
+  // px somewhere" is not actionable and the selector is what tells you which token it wants.
+  const magic = [...new Set(scrubbed.match(/[a-z-]+: [^;{}]*\b\d+px\b[^;{}]*/g) || [])];
+  assert.deepEqual(
+    magic, [],
+    'magic numbers in the stylesheet. Each is a token that has not been named yet, or a ' +
+    `sentinel that has not been argued for:\n  ${magic.join('\n  ')}`
+  );
+
+  // A font name in the structural sheet would be the same defect in another currency.
+  //
+  // The first attempt wrote `/font-family:\s*(?!var\()/` and flagged all fifteen declarations
+  // INCLUDING the correct ones: `\s*` can match zero characters, so the lookahead was tested
+  // against the space rather than the value. A greedy-optional before a lookahead is a
+  // lookahead that never fires where you meant it to.
+  const fonts = (scrubbed.match(/font-family:[^;}]+/g) || [])
+    .filter((d) => !/font-family:\s+(var\(|inherit\b)/.test(d));
+  assert.deepEqual(fonts, [], `font names outside a token: ${fonts.join(', ')}`);
+});
+
+test('the width tokens are all consumed, and none is a value nothing reads', () => {
+  // The mirror of the rule above: a token nothing uses is the same dead weight as a literal
+  // nothing named. Both directions, so adding a token obliges you to use it and removing a
+  // use obliges you to remove the token.
+  const { cssVars, STRUCTURE_CSS } = require('../build.js');
+  const fs = require('node:fs');
+  const path = require('node:path');
+
+  const tokens = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'tokens', 'geist.json'), 'utf8'));
+  tokens.scale = { density: 'comfortable', type: 'comfortable' };
+  const declared = [...cssVars(tokens).matchAll(/^\s*--([a-z-]+):/gm)].map((m) => m[1]);
+
+  const widthish = declared.filter((n) => /^(container|measure|rail|pane)/.test(n));
+  assert.ok(widthish.length >= 8, `expected the width tokens to be declared, found ${widthish.join(', ')}`);
+
+  const unused = widthish.filter((n) => !STRUCTURE_CSS.includes(`var(--${n})`));
+  assert.deepEqual(unused, [], `width tokens declared and never read: ${unused.join(', ')}`);
+});

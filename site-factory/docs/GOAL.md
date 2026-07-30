@@ -63,19 +63,52 @@ the rule had named instead of the class the rule described.
 ### S3 Every value in the stylesheet traces to a token
 
 - Zero hex literals in `STRUCTURE_CSS`.
-- Zero px literals outside a `--space` multiplier or a documented sentinel.
+- Zero font names outside a token.
+- Zero px literals outside a `--space` multiplier or a sentinel argued for by name.
 
-**Settled by:** a grep over `STRUCTURE_CSS`.
-**Position: HALF MET, and the README overstates it.** Hex literals: 0. But **16 distinct px
-declarations remain** - `max-width` on seven containers (640, 1100, 800, 720, 980, 480, 460,
-420), an avatar at 64px, a rail at 240px, grid columns at 320/300/260px, a 2px border-width
-and a 2px inset shadow. `999px` for a pill is a legitimate sentinel; the rest are not.
+**Settled by:** `tests/render.test.js`, which scrubs the sentinel list and then fails on any
+surviving hex, font name or px - reporting each WITH its declaration, because "there is a px
+somewhere" is not actionable and the selector is what tells you which token it wants.
+**Position: MET.** Hex 0, font names 0, px declarations outside the sentinel list 0. One
+sentinel: `999px` for a pill, because a pill is "however round it takes" and a
+`--radius-pill` token would be the same sentinel with a longer name.
 
-The README claims "no hex, no font name, no px literal outside the `--space` multiplier" and
-then offers only a grep for hex as its check - a claim broader than its evidence, the same
-shape as S2's failure. **To close this:** a `--measure` token for line-length caps, a
-`--rail` token for the sidebar and grid columns, and `--border-weight` for the 2px cases;
-then a test asserting the grep finds zero, so the claim and its check are the same size.
+This criterion was HALF MET when this file was written, and the gap was instructive twice
+over. First, the rule was broader than its check: it claimed "no px literal outside the
+`--space` multiplier" and offered only a grep for HEX as evidence, so 16 px declarations lived
+under it. Second, they were not 16 decisions - they were **five roles with drifted values**,
+including a narrow centred panel written 480, 460 and 420 in three places for the same job.
+Three values within 60px of each other for one role is exactly the arbitrariness a token
+exists to remove, so they collapsed to one.
+
+| token | value | role |
+|---|---|---|
+| `--container` | 1100px | the page frame, in ten places |
+| `--measure-wide` | 800px | long-form prose |
+| `--measure-form` | 720px | a single form column |
+| `--measure` | 640px | the reading measure |
+| `--measure-narrow` | 460px | a centred single-purpose panel |
+| `--rail` | 240px | the navigation rail |
+| `--pane-list` | 320px | a master list pane |
+| `--pane-inspector` | 260px | an inspector pane |
+
+Two decisions inside that are worth keeping:
+
+**The measures scale with `--type-scale`, not `--space`.** A reading measure is a count of
+characters per line, so when the type grows the column has to grow to hold the same line
+length. Compact type gives a 576px measure and spacious 736px. Folding measures into `--space`
+would have made a compact page have both smaller text AND a narrower column, compounding
+rather than compensating. The container and the rails do not scale at all: a navigation rail is
+sized by its longest label, and it does not get easier to read because the body copy grew.
+
+**Four values were derived rather than named.** A split form is `calc(var(--measure-form) *
+1.35)`, the three-pane list is `calc(var(--pane-list) - var(--space) * 5)`, an avatar is
+`calc(var(--space) * 16)`, and an emphasis border is `calc(var(--border-weight) * 2)` - two
+hairlines, not the number two. A token per call site would have been the same magic numbers
+with longer names.
+
+A second test asserts the reverse: every width token declared must be READ somewhere. A token
+nothing uses is the same dead weight as a literal nothing named.
 
 ### S4 What cannot be honestly written is counted and assigned, never invented
 
@@ -146,7 +179,7 @@ misses reads exactly like a dead gate.
 
 **Settled by:** `tests/gate.js`, which asserts a floor on files and tests actually run,
 because `node --test tests/*.test.js` **exits 0 on an empty glob** - measured, not assumed.
-**Position: MET.** 79 tests across 7 files.
+**Position: MET.** 81 tests across 7 files.
 
 ## Current position, stated plainly
 
@@ -158,9 +191,9 @@ because `node --test tests/*.test.js` **exits 0 on an empty glob** - measured, n
 | config fields | 36 in 9 layers | `config-schema.js` `fieldCount()` |
 | enum fields wired | 17 of 19, 2 exempt with reasons | `tests/compose.test.js` |
 | style packs | 4 | `node factory.js ls` |
-| tests | 79 across 7 files | `node tests/gate.js` |
-| hex literals in the stylesheet | 0 | grep over `STRUCTURE_CSS` |
-| px literals outside `--space` | **16 distinct - see S3** | grep over `STRUCTURE_CSS` |
+| tests | 81 across 7 files | `node tests/gate.js` |
+| hex literals in the stylesheet | 0 | `tests/render.test.js` |
+| px literals outside `--space` | 0, plus 1 argued sentinel | `tests/render.test.js` |
 | SaaS component types built | 14 of 109 cataloged | `SAAS_BLOCKS` / `SAAS_CATALOG_TOTAL` |
 | proof kinds enforcing on a generated project | 5 of 11 | `vds proof <kind>` |
 
@@ -187,7 +220,8 @@ code:
 **A claim is only as good as the check that is the same size as it.** S2 and S3 both failed
 the same way: a rule stated broadly, a check covering a named subset, and nobody comparing
 the two. When writing a rule, write the check that would fail if the rule were violated
-anywhere - not the check that passes on the instance that prompted it.
+anywhere - not the check that passes on the instance that prompted it. Both are closed now,
+and both were closed by widening the CHECK first and then finding what it caught.
 
 **Read `rows_enforced`, never the status.** A proof that considers every row and enforces
 none reports a pass. The `states` kind was vacuous on every generated project for exactly
