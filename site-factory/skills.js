@@ -65,6 +65,37 @@ const TONE_WORDS = {
 const BLANK = '';
 
 /*
+ * What the brief LITERALLY says, pulled out verbatim.
+ *
+ * The blanks below are the right default, but they were over-applied: a brief reading
+ * "A matter-management app for boutique law firms. Replaces spreadsheets and email
+ * chains." already answers `audience` and `main_alternative`, and packConfig threw
+ * both away. The setup interview then asked the user for something they had just
+ * typed, which is the fastest way to make a tool feel like it is not listening.
+ *
+ * The rule is the same one copy.js follows: extract, never infer. Each pattern below
+ * captures a span the author actually wrote. Nothing is synthesised from a category, a
+ * palette match or a keyword — if the sentence does not contain the answer, the field
+ * stays blank and the interview asks for it.
+ */
+const EXTRACT = {
+  // "for boutique law firms", "aimed at in-house counsel"
+  audience: /\b(?:for|aimed at|built for|serving)\s+([a-z][^.;]{2,60})/i,
+  // "replaces spreadsheets and email chains", "instead of a shared inbox"
+  main_alternative: /\b(?:replaces?|replacing|instead of|rather than|to replace)\s+([^.;]{2,80})/i,
+};
+
+function extractFromBrief(text) {
+  const out = {};
+  if (!text) return out;
+  for (const [field, re] of Object.entries(EXTRACT)) {
+    const m = text.match(re);
+    if (m) out[field] = m[1].trim().replace(/[,\s]+$/, '');
+  }
+  return out;
+}
+
+/*
  * site-factory config -> the sales-page pack's config.json.
  *
  * Deliberately leaves blanks. site-factory's 35 fields describe a SITE — its route,
@@ -75,16 +106,25 @@ const BLANK = '';
  *
  * A blank is a prompt for the setup interview. An invented value is a lie the whole
  * pack then builds on.
+ *
+ * Extracted values are the third case, and they are neither. They came from the
+ * author's own sentence, so they are not invented — but a "for X" span is almost
+ * always the BUYER, and `brand.audience` means the READER. So they carry a `CONFIRM:`
+ * tail: the skill sees what was said and the question that is still open, instead of
+ * treating a lucky regex match as settled fact.
  */
 function packConfig(config) {
   const id = config.identity || {};
   const voice = config.voice || {};
+  const found = extractFromBrief(`${id.tagline || ''} ${id.description || ''}`);
   return {
     brand: {
       brand_name: id.name || BLANK,
       website: BLANK,
       niche: BLANK,
-      audience: BLANK,
+      audience: found.audience
+        ? `${found.audience} (CONFIRM: taken from the brief — is this who READS the page, or who buys?)`
+        : BLANK,
       offer: id.description || BLANK,
       transformation: id.tagline || BLANK,
       price_point: BLANK,
@@ -99,7 +139,13 @@ function packConfig(config) {
       we_never_say: BANNED.join(', '),
       reading_level: voice.readingLevel === 'technical' ? 'technical' : 'simple',
     },
-    market: { awareness_level: BLANK, biggest_objection: BLANK, main_alternative: BLANK },
+    market: {
+      awareness_level: BLANK,
+      biggest_objection: BLANK,
+      main_alternative: found.main_alternative
+        ? `${found.main_alternative} (CONFIRM: taken from the brief)`
+        : BLANK,
+    },
     proof: { has_testimonials: false, key_results: BLANK, credentials: BLANK },
     tools: { design: 'Figma', ai_media: BLANK, planner: BLANK, email: BLANK },
     preferences: {
@@ -111,16 +157,46 @@ function packConfig(config) {
   };
 }
 
+/*
+ * Every field the interview still has to settle.
+ *
+ * A CONFIRM-marked field COUNTS. It has a value, so a plain emptiness test walks past
+ * it, and the brief would report fewer open fields than there are — the same undercount
+ * auditCopy already had when it counted one marker convention and not the other. A
+ * value that is still asking a question is not a settled field.
+ *
+ * `state` distinguishes the two for the reader: nothing was said, versus something was
+ * said and needs confirming. They are different jobs in the interview.
+ */
+const UNSETTLED_RE = /\bCONFIRM:/i;
+
 function blankFields(pc) {
   const out = [];
   for (const [group, fields] of Object.entries(pc)) {
     if (!fields || typeof fields !== 'object') continue;
     for (const [k, v] of Object.entries(fields)) {
       const empty = v === '' || (Array.isArray(v) && v.length === 0);
-      if (empty) out.push(`${group}.${k}`);
+      const asking = typeof v === 'string' && UNSETTLED_RE.test(v);
+      if (empty || asking) out.push(`${group}.${k}`);
     }
   }
   return out;
+}
+
+// The same set, split by why each one is open. briefMarkdown uses this so the two
+// kinds do not read as one undifferentiated list of nothing-known.
+function unsettledFields(pc) {
+  const blank = [];
+  const toConfirm = [];
+  for (const [group, fields] of Object.entries(pc)) {
+    if (!fields || typeof fields !== 'object') continue;
+    for (const [k, v] of Object.entries(fields)) {
+      const path = `${group}.${k}`;
+      if (v === '' || (Array.isArray(v) && v.length === 0)) blank.push({ path, value: '' });
+      else if (typeof v === 'string' && UNSETTLED_RE.test(v)) toConfirm.push({ path, value: v });
+    }
+  }
+  return { blank, toConfirm };
 }
 
 /*
@@ -193,11 +269,23 @@ function briefMarkdown(config, manifest, gaps) {
   lines.push('incomplete: site-factory knows the site, not the market.');
   lines.push('');
   if (blanks.length) {
-    lines.push(`**${blanks.length} fields are blank and every skill downstream depends on them:**`);
+    const { blank, toConfirm } = unsettledFields(pc);
+    lines.push(`**${blanks.length} fields are unsettled and every skill downstream depends on them.**`);
     lines.push('');
-    for (const b of blanks) lines.push(`- \`${b}\``);
-    lines.push('');
-    lines.push('Run `revenue/skills/sales-page-setup` to fill these by interview. Guessing them');
+    if (toConfirm.length) {
+      lines.push(`${toConfirm.length} came out of the brief and need CONFIRMING, not asking from scratch —`);
+      lines.push('the author already said this much, so do not make them type it twice:');
+      lines.push('');
+      for (const f of toConfirm) lines.push(`- \`${f.path}\` — ${f.value}`);
+      lines.push('');
+    }
+    if (blank.length) {
+      lines.push(`${blank.length} are genuinely blank — nothing in the brief speaks to them:`);
+      lines.push('');
+      for (const f of blank) lines.push(`- \`${f.path}\``);
+      lines.push('');
+    }
+    lines.push('Run `revenue/skills/sales-page-setup` to settle these by interview. Guessing them');
     lines.push('would be worse than leaving them: each skill treats this file as settled fact and');
     lines.push('will not re-ask.');
     lines.push('');
@@ -251,4 +339,4 @@ function briefMarkdown(config, manifest, gaps) {
   return lines.join('\n');
 }
 
-module.exports = { packConfig, blankFields, assignments, briefMarkdown, BLOCK_SKILLS, RUN_ORDER, SKILL_ROOT };
+module.exports = { packConfig, blankFields, unsettledFields, extractFromBrief, assignments, briefMarkdown, BLOCK_SKILLS, RUN_ORDER, SKILL_ROOT };

@@ -53,9 +53,37 @@ function pickPack(text) {
   return { pack: 'geist', register: 'A-institutional-authority', radius: 'soft-6' };
 }
 
+/*
+ * Which of the two routes the brief is describing.
+ *
+ * Without this, `category` defaulted to marketing-site and NOTHING in the brief could
+ * move it: `factory.js new --brief "a matter-management app for law firms"` built a
+ * hero, a pricing table and testimonials. The saas route existed but was unreachable
+ * from the one-shot path unless the caller already knew to pass --route.
+ *
+ * MARKETING SIGNALS WIN. "a marketing site for our analytics dashboard" contains both
+ * vocabularies, and it is a marketing site — the app words are describing the product
+ * being sold, not the surface being built. Getting that precedence backwards is worse
+ * than not inferring at all, because the sitemap silently loses the hero.
+ *
+ * Note "platform", "tool" and "saas" are deliberately NOT app signals here even though
+ * KEYWORD_PACKS uses them: those pick a PALETTE, and "a landing page for our SaaS" is
+ * still a landing page. An app signal has to name a surface you log into.
+ */
+const MARKETING_SIGNALS = /\b(marketing site|landing page|website|web site|brochure|homepage|home page|sales page|microsite)\b/i;
+const APP_SIGNALS = /\b(app|dashboard|console|admin|back ?office|workspace|portal|crm|internal tool|logged[- ]in|sign[- ]?in|log[- ]?in)\b/i;
+
+function inferRoute(text) {
+  if (MARKETING_SIGNALS.test(text)) return 'marketing-site';
+  if (APP_SIGNALS.test(text)) return 'saas-app';
+  return null;
+}
+
 function suggest(brief) {
-  const { name = 'Your Project', tagline = '', category = 'marketing-site', description = '' } = brief;
+  const { name = 'Your Project', tagline = '', description = '' } = brief;
   const text = `${name} ${tagline} ${description}`;
+  // An explicitly-passed category always wins; inference only fills a silence.
+  const category = brief.category || inferRoute(text) || 'marketing-site';
   const matched = pickPack(text);
   const tokens = PACKS[matched.pack];
   const isSaas = category === 'saas-app' || category === 'hybrid';
@@ -121,4 +149,4 @@ function suggest(brief) {
   return out;
 }
 
-module.exports = { suggest, STRATEGY_PLAYS };
+module.exports = { suggest, inferRoute, STRATEGY_PLAYS };

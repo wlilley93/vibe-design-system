@@ -62,18 +62,17 @@ function newProject(args) {
   const { createProject } = require('./project.js');
 
   if (!args.name) throw new Error('--name is required, e.g. --name "Northgate Trust"');
-  const config = suggest({
+  // `category` is passed ONLY when --route was given. Passing a default here would be
+  // an explicit value, and suggest() lets an explicit category win over what the brief
+  // says — so a hard-coded 'marketing-site' would defeat route inference entirely and
+  // every app brief would quietly build a hero and a pricing table.
+  const seed = {
     name: args.name,
     tagline: args.tagline || '',
-    category: args.route || 'marketing-site',
-    description: args.brief || '',
-  });
-  config.identity = {
-    name: args.name,
-    tagline: args.tagline || '',
-    category: args.route || 'marketing-site',
     description: args.brief || '',
   };
+  if (args.route) seed.category = args.route;
+  const config = suggest(seed);
   config.governance = { vds: Boolean(args.vds) };
   if (args.pack) config.palette.basePack = args.pack;
   if (args.radius) config.spacing.cornerRadius = args.radius;

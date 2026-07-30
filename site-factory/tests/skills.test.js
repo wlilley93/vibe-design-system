@@ -169,3 +169,77 @@ test('no Figma node id is claimed for a block type that does not exist', () => {
     assert.match(id, /^\d+:\d+$/, `${type} has a malformed Figma node id: ${id}`);
   }
 });
+
+test('the route is inferred from the brief, and marketing wins over app words', () => {
+  // `category` used to default to marketing-site with nothing in the brief able to move
+  // it, so `factory.js new --brief "a matter-management app"` built a hero and a pricing
+  // table. The saas route was unreachable from the one-shot path.
+  const { inferRoute } = require('../suggest.js');
+
+  assert.equal(inferRoute('A matter-management app for boutique law firms'), 'saas-app');
+  assert.equal(inferRoute('An internal dashboard for the ops team'), 'saas-app');
+  assert.equal(inferRoute('A marketing site for our analytics dashboard'), 'marketing-site',
+    'both vocabularies present — it is a marketing site, the app words describe the product being sold');
+  assert.equal(inferRoute('A landing page for our SaaS platform'), 'marketing-site');
+  assert.equal(inferRoute('Northgate Trust, an advisory firm'), null,
+    'nothing said either way must return null so the caller keeps its own default');
+});
+
+test('an explicit route beats inference', () => {
+  const { suggest } = require('../suggest.js');
+  const brief = { name: 'X', description: 'A dashboard for ops teams' };
+  assert.equal(suggest(brief).identity.category, 'saas-app');
+  assert.equal(suggest({ ...brief, category: 'marketing-site' }).identity.category, 'marketing-site');
+});
+
+test('the copy brief carries what the brief literally said, and invents nothing', () => {
+  const { extractFromBrief } = require('../skills.js');
+
+  const got = extractFromBrief('A matter-management app for boutique law firms. Replaces spreadsheets and email chains.');
+  assert.equal(got.audience, 'boutique law firms');
+  assert.equal(got.main_alternative, 'spreadsheets and email chains');
+
+  // The negative control, and the one that matters: a brief that states neither must
+  // yield neither. An extractor that produces a plausible value from silence is worse
+  // than no extractor, because the interview then never asks.
+  const silent = extractFromBrief('Northgate Trust. Established 1974.');
+  assert.deepEqual(silent, {}, `invented a value from a brief that said nothing: ${JSON.stringify(silent)}`);
+  assert.deepEqual(extractFromBrief(''), {});
+});
+
+test('a CONFIRM-marked field still counts as unsettled', () => {
+  // The undercount auditCopy already had once: a field with a value passes a plain
+  // emptiness test, so the brief would report fewer open fields than there are.
+  const { suggest } = require('../suggest.js');
+  const { packConfig, blankFields, unsettledFields } = require('../skills.js');
+
+  const cfg = suggest({ name: 'Atlas Ops', description: 'A matter-management app for boutique law firms. Replaces spreadsheets and email chains.' });
+  const pc = packConfig(cfg);
+
+  assert.match(pc.brand.audience, /CONFIRM:/);
+  assert.match(pc.market.main_alternative, /CONFIRM:/);
+
+  const open = blankFields(pc);
+  assert.ok(open.includes('brand.audience'), 'a CONFIRM-marked audience must still be reported as open');
+  assert.ok(open.includes('market.main_alternative'));
+
+  const { blank, toConfirm } = unsettledFields(pc);
+  assert.equal(blank.length + toConfirm.length, open.length, 'the split must account for every open field');
+  assert.equal(toConfirm.length, 2);
+  assert.ok(blank.every((f) => !/CONFIRM:/.test(f.value)));
+});
+
+test('the writing brief shows confirm-these and ask-these separately', () => {
+  const { suggest } = require('../suggest.js');
+  const { briefMarkdown } = require('../skills.js');
+  const { configToManifest } = require('../compose.js');
+  const { auditCopy } = require('../copy.js');
+
+  const cfg = suggest({ name: 'Atlas Ops', category: 'marketing-site', description: 'A matter-management app for boutique law firms. Replaces spreadsheets and email chains.' });
+  const manifest = configToManifest(cfg);
+  const md = briefMarkdown(cfg, manifest, auditCopy(manifest));
+
+  assert.match(md, /need CONFIRMING, not asking from scratch/);
+  assert.match(md, /boutique law firms/, 'the brief must quote back what the author already said');
+  assert.match(md, /genuinely blank/);
+});
