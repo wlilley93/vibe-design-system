@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>site-factory studio</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --ui-bg: #0e0e11;
+    --ui-panel: #17171c;
+    --ui-panel-2: #1e1e25;
+    --ui-line: #2c2c35;
+    --ui-ink: #ececf1;
+    --ui-muted: #8b8b99;
+    --ui-accent: #6c8cff;
+    --ui-good: #4ec9a0;
+    --ui-warn: #e0a44a;
+  }
+  body {
+    margin: 0; height: 100vh; display: flex; flex-direction: column;
+    background: var(--ui-bg); color: var(--ui-ink);
+    font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+
+  header {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 10px 16px; border-bottom: 1px solid var(--ui-line); background: var(--ui-panel);
+  }
+  header h1 { font-size: 14px; margin: 0; font-weight: 650; letter-spacing: .2px; }
+  header .sep { flex: 1; }
+  .pill {
+    font-size: 11px; padding: 3px 8px; border-radius: 999px;
+    background: var(--ui-panel-2); color: var(--ui-muted); border: 1px solid var(--ui-line);
+  }
+  .pill.on { color: var(--ui-good); border-color: var(--ui-good); }
+
+  main { flex: 1; display: flex; min-height: 0; }
+
+  /* ---- left: the character sheet ---- */
+  .sheet {
+    width: 420px; flex-shrink: 0; display: flex; flex-direction: column;
+    border-right: 1px solid var(--ui-line); background: var(--ui-panel); min-height: 0;
+  }
+  .brief { padding: 14px 16px; border-bottom: 1px solid var(--ui-line); }
+  .brief label { display: block; font-size: 11px; color: var(--ui-muted); margin: 8px 0 3px; text-transform: uppercase; letter-spacing: .06em; }
+  .brief input, .brief textarea, .brief select {
+    width: 100%; background: var(--ui-bg); color: var(--ui-ink);
+    border: 1px solid var(--ui-line); border-radius: 6px; padding: 7px 9px; font: inherit; font-size: 13px;
+  }
+  .brief textarea { resize: vertical; min-height: 52px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 10px 12px; border-bottom: 1px solid var(--ui-line); }
+  .tab {
+    font-size: 11.5px; padding: 4px 9px; border-radius: 6px; cursor: pointer;
+    background: transparent; color: var(--ui-muted); border: 1px solid transparent;
+  }
+  .tab:hover { color: var(--ui-ink); }
+  .tab.active { background: var(--ui-panel-2); color: var(--ui-ink); border-color: var(--ui-line); }
+
+  .layer { flex: 1; overflow-y: auto; padding: 6px 0 16px; min-height: 0; }
+  .layer-src { padding: 8px 16px 4px; font-size: 11px; color: var(--ui-muted); font-style: italic; }
+
+  /* the carousel row: this is the "hair / eyes / nose" control */
+  .field { padding: 9px 16px; border-bottom: 1px solid rgba(255,255,255,.035); }
+  .field-name { font-size: 11px; color: var(--ui-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 5px; }
+  .carousel { display: flex; align-items: center; gap: 8px; }
+  .arrow {
+    width: 26px; height: 26px; flex-shrink: 0; border-radius: 6px; cursor: pointer;
+    background: var(--ui-panel-2); color: var(--ui-ink); border: 1px solid var(--ui-line);
+    font-size: 13px; line-height: 1; display: grid; place-items: center; padding: 0;
+  }
+  .arrow:hover { border-color: var(--ui-accent); color: var(--ui-accent); }
+  .arrow:disabled { opacity: .3; cursor: default; }
+  .value {
+    flex: 1; text-align: center; font-size: 13px; padding: 4px 6px;
+    background: var(--ui-bg); border: 1px solid var(--ui-line); border-radius: 6px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .idx { font-size: 10.5px; color: var(--ui-muted); min-width: 30px; text-align: right; flex-shrink: 0; }
+  .field input[type=text], .field input[type=number] {
+    width: 100%; background: var(--ui-bg); color: var(--ui-ink);
+    border: 1px solid var(--ui-line); border-radius: 6px; padding: 6px 8px; font: inherit; font-size: 13px;
+  }
+  .field input[type=color] {
+    width: 100%; height: 30px; background: var(--ui-bg);
+    border: 1px solid var(--ui-line); border-radius: 6px; padding: 2px; cursor: pointer;
+  }
+  .swatchline { display: flex; align-items: center; gap: 8px; }
+  .swatchline input[type=color] { width: 44px; flex-shrink: 0; }
+  .swatchline input[type=text] { flex: 1; font-family: ui-monospace, monospace; font-size: 12px; }
+  .help { font-size: 11px; color: var(--ui-muted); margin-top: 5px; line-height: 1.45; }
+  .multi { display: flex; flex-wrap: wrap; gap: 4px; }
+  .chip {
+    font-size: 11px; padding: 3px 7px; border-radius: 5px; cursor: pointer;
+    background: var(--ui-bg); border: 1px solid var(--ui-line); color: var(--ui-muted);
+  }
+  .chip.on { background: var(--ui-accent); border-color: var(--ui-accent); color: #fff; }
+
+  /* ---- right: live preview ---- */
+  .stage { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--ui-bg); }
+  .stagebar {
+    display: flex; align-items: center; gap: 10px; padding: 8px 14px;
+    border-bottom: 1px solid var(--ui-line); font-size: 12px; color: var(--ui-muted);
+  }
+  .stagebar button {
+    font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 6px; cursor: pointer;
+    background: var(--ui-panel-2); color: var(--ui-ink); border: 1px solid var(--ui-line);
+  }
+  .stagebar button:hover { border-color: var(--ui-accent); }
+  .stagebar button.primary { background: var(--ui-accent); border-color: var(--ui-accent); color: #fff; font-weight: 600; }
+  .stagebar .sep { flex: 1; }
+  .frame-wrap { flex: 1; padding: 14px; overflow: auto; min-height: 0; }
+  iframe {
+    width: 100%; height: 100%; min-height: 640px; border: 1px solid var(--ui-line);
+    border-radius: 8px; background: #fff; display: block;
+  }
+  iframe.w-narrow { max-width: 420px; margin: 0 auto; }
+  .err {
+    margin: 14px; padding: 10px 12px; border-radius: 6px; font-size: 12.5px;
+    background: rgba(224,68,68,.12); border: 1px solid rgba(224,68,68,.45); color: #ffb4b4;
+    white-space: pre-wrap; font-family: ui-monospace, monospace;
+  }
+  .ok {
+    margin: 14px; padding: 10px 12px; border-radius: 6px; font-size: 12.5px;
+    background: rgba(78,201,160,.1); border: 1px solid rgba(78,201,160,.4); color: #9ff0d2;
+    white-space: pre-wrap; font-family: ui-monospace, monospace;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>site-factory <span style="color:var(--ui-muted);font-weight:400">studio</span></h1>
+  <span class="pill" id="pill-route">marketing-site</span>
+  <span class="pill" id="pill-fields">0 fields</span>
+  <span class="pill" id="pill-vds">vds</span>
+  <span class="sep"></span>
+  <span class="pill">preview renders through the real build engine</span>
+</header>
+
+<main>
+  <section class="sheet">
+    <div class="brief">
+      <label for="f-name">Project name</label>
+      <input id="f-name" type="text" value="Northgate Trust" />
+      <label for="f-tag">Tagline</label>
+      <input id="f-tag" type="text" value="I draw the structure first." />
+      <div class="row2">
+        <div>
+          <label for="f-cat">Route</label>
+          <select id="f-cat">
+            <option value="marketing-site">marketing-site</option>
+            <option value="saas-app">saas-app</option>
+          </select>
+        </div>
+        <div>
+          <label for="f-vds">Governance</label>
+          <select id="f-vds">
+            <option value="">ungoverned</option>
+            <option value="1">establish .vds/</option>
+          </select>
+        </div>
+      </div>
+      <label for="f-desc">Brief (drives every suggestion)</label>
+      <textarea id="f-desc">A private trust and estate structuring advisory for legal ownership.</textarea>
+      <div style="margin-top:10px">
+        <button id="btn-suggest" class="arrow" style="width:auto;padding:5px 12px;height:auto">Suggest all layers</button>
+      </div>
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+    <div class="layer" id="layer"></div>
+  </section>
+
+  <section class="stage">
+    <div class="stagebar">
+      <button id="btn-wide" class="primary">Desktop</button>
+      <button id="btn-narrow">Mobile</button>
+      <span id="status">—</span>
+      <span class="sep"></span>
+      <button id="btn-commit" class="primary">Create project</button>
+    </div>
+    <div id="msg"></div>
+    <div class="frame-wrap"><iframe id="preview" title="live preview"></iframe></div>
+  </section>
+</main>
+
+<script>
+'use strict';
+
+let SCHEMA = null;
+let config = null;
+let activeLayer = null;
+
+const $ = (id) => document.getElementById(id);
+
+function setStatus(text, cls) {
+  const el = $('status');
+  el.textContent = text;
+  el.style.color = cls === 'err' ? '#ffb4b4' : cls === 'ok' ? '#9ff0d2' : 'var(--ui-muted)';
+}
+
+function showMsg(kind, text) {
+  $('msg').innerHTML = '';
+  if (!text) return;
+  const d = document.createElement('div');
+  d.className = kind;
+  d.textContent = text;
+  $('msg').appendChild(d);
+}
+
+// Which layers this route uses. Two routes, not one flow with a toggle.
+function routeLayers() {
+  const keys = SCHEMA.routes[config.identity.category] || SCHEMA.routes['marketing-site'];
+  return SCHEMA.layers.filter((l) => l.key !== 'identity' && keys.includes(l.key));
+}
+
+// Options for a field. Style packs and block variants come from disk, not a
+// hardcoded list, so adding a token file or a block shows up here with no edit.
+function optionsFor(layerKey, field) {
+  if (layerKey === 'palette' && field.key === 'basePack') return SCHEMA.stylePacks;
+  return field.options || [];
+}
+
+function rotate(layerKey, field, dir) {
+  const opts = optionsFor(layerKey, field);
+  if (!opts.length) return;
+  const cur = config[layerKey][field.key];
+  let i = opts.indexOf(cur);
+  if (i === -1) i = 0;
+  const next = opts[(i + dir + opts.length) % opts.length];
+  config[layerKey][field.key] = next;
+
+  // Rotating the base pack re-seeds the six palette colours and both fonts to that
+  // pack's real values — otherwise you would switch pack and see nothing move,
+  // because the explicit colour fields still hold the old pack's hexes.
+  if (layerKey === 'palette' && field.key === 'basePack') {
+    reseedFromPack(next);
+    return;
+  }
+  renderLayer();
+  refresh();
+}
+
+async function reseedFromPack(pack) {
+  const r = await fetch('/suggest', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(briefFromForm()),
+  });
+  const fresh = await r.json();
+  // Keep every decision the user has made; take only this pack's palette + fonts.
+  const packCfg = await packDefaults(pack, fresh);
+  Object.assign(config.palette, packCfg.palette);
+  Object.assign(config.typography, packCfg.typography);
+  config.palette.basePack = pack;
+  renderLayer();
+  refresh();
+}
+
+// Ask the server to render with each pack so we can read that pack's real token
+// values, rather than duplicating the four token files in browser JS.
+const packCache = {};
+async function packDefaults(pack, fallback) {
+  if (packCache[pack]) return packCache[pack];
+  const probe = JSON.parse(JSON.stringify(config));
+  probe.palette.basePack = pack;
+  const r = await fetch('/pack/' + encodeURIComponent(pack));
+  if (r.ok) {
+    const tok = await r.json();
+    const out = {
+      palette: {
+        groundColor: tok.colors.bg, surfaceColor: tok.colors.surface, inkColor: tok.colors.ink,
+        accentColor: tok.colors.accent, accentInkColor: tok.colors.accentInk, borderColor: tok.colors.border,
+      },
+      typography: { displayFont: tok.font.family, monoFont: tok.font.mono },
+    };
+    packCache[pack] = out;
+    return out;
+  }
+  return { palette: fallback.palette, typography: fallback.typography };
+}
+
+function fieldControl(layerKey, field) {
+  const wrap = document.createElement('div');
+  wrap.className = 'field';
+
+  const name = document.createElement('div');
+  name.className = 'field-name';
+  name.textContent = field.label || field.key;
+  wrap.appendChild(name);
+
+  const val = config[layerKey][field.key];
+
+  if (field.type === 'color') {
+    const line = document.createElement('div');
+    line.className = 'swatchline';
+    const picker = document.createElement('input');
+    picker.type = 'color';
+    picker.value = /^#[0-9a-fA-F]{6}$/.test(val) ? val : '#000000';
+    const hex = document.createElement('input');
+    hex.type = 'text';
+    hex.value = val;
+    const commit = (v) => { config[layerKey][field.key] = v; hex.value = v; picker.value = /^#[0-9a-fA-F]{6}$/.test(v) ? v : picker.value; refresh(); };
+    picker.oninput = () => commit(picker.value);
+    hex.onchange = () => commit(hex.value.trim());
+    line.appendChild(picker); line.appendChild(hex);
+    wrap.appendChild(line);
+  } else if (field.type === 'enum' || (layerKey === 'palette' && field.key === 'basePack')) {
+    const opts = optionsFor(layerKey, field);
+    const car = document.createElement('div');
+    car.className = 'carousel';
+    const prev = document.createElement('button');
+    prev.className = 'arrow'; prev.textContent = '◀';
+    prev.onclick = () => rotate(layerKey, field, -1);
+    const shown = document.createElement('div');
+    shown.className = 'value'; shown.textContent = val;
+    const next = document.createElement('button');
+    next.className = 'arrow'; next.textContent = '▶';
+    next.onclick = () => rotate(layerKey, field, +1);
+    const idx = document.createElement('span');
+    idx.className = 'idx';
+    const i = opts.indexOf(val);
+    idx.textContent = (i === -1 ? '?' : i + 1) + '/' + opts.length;
+    car.appendChild(prev); car.appendChild(shown); car.appendChild(next); car.appendChild(idx);
+    wrap.appendChild(car);
+  } else if (field.type === 'multi-enum') {
+    const box = document.createElement('div');
+    box.className = 'multi';
+    for (const opt of field.options) {
+      const c = document.createElement('span');
+      c.className = 'chip' + (val.includes(opt) ? ' on' : '');
+      c.textContent = opt;
+      c.onclick = () => {
+        const arr = config[layerKey][field.key];
+        const at = arr.indexOf(opt);
+        if (at === -1) arr.push(opt); else arr.splice(at, 1);
+        renderLayer();
+      };
+      box.appendChild(c);
+    }
+    wrap.appendChild(box);
+  } else if (field.type === 'block-list') {
+    const box = document.createElement('div');
+    box.className = 'multi';
+    const all = [];
+    for (const [type, variants] of Object.entries(SCHEMA.blockVariants)) {
+      for (const v of variants) all.push(v);
+    }
+    for (const v of all) {
+      const c = document.createElement('span');
+      c.className = 'chip' + (val.includes(v) ? ' on' : '');
+      c.textContent = v;
+      c.onclick = () => {
+        const arr = config[layerKey][field.key];
+        const at = arr.indexOf(v);
+        if (at === -1) arr.push(v); else arr.splice(at, 1);
+        renderLayer(); refresh();
+      };
+      box.appendChild(c);
+    }
+    wrap.appendChild(box);
+    const hint = document.createElement('div');
+    hint.className = 'help';
+    hint.textContent = 'Order is the order clicked. Current page: ' + (val.join(' → ') || '(empty)');
+    wrap.appendChild(hint);
+  } else if (field.type === 'number') {
+    const inp = document.createElement('input');
+    inp.type = 'number'; inp.value = val; inp.min = '1'; inp.max = '16';
+    inp.onchange = () => { config[layerKey][field.key] = Number(inp.value); refresh(); };
+    wrap.appendChild(inp);
+  } else {
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.value = val == null ? '' : val;
+    inp.onchange = () => { config[layerKey][field.key] = inp.value; refresh(); };
+    wrap.appendChild(inp);
+  }
+
+  if (field.help) {
+    const h = document.createElement('div');
+    h.className = 'help';
+    h.textContent = field.help;
+    wrap.appendChild(h);
+  }
+  return wrap;
+}
+
+function renderTabs() {
+  const tabs = $('tabs');
+  tabs.innerHTML = '';
+  const layers = routeLayers();
+  if (!layers.find((l) => l.key === activeLayer)) activeLayer = layers[0].key;
+  for (const l of layers) {
+    const t = document.createElement('span');
+    t.className = 'tab' + (l.key === activeLayer ? ' active' : '');
+    t.textContent = l.title;
+    t.onclick = () => { activeLayer = l.key; renderTabs(); renderLayer(); };
+    tabs.appendChild(t);
+  }
+}
+
+function renderLayer() {
+  const host = $('layer');
+  host.innerHTML = '';
+  const layer = SCHEMA.layers.find((l) => l.key === activeLayer);
+  if (!layer) return;
+  if (layer.source) {
+    const s = document.createElement('div');
+    s.className = 'layer-src';
+    s.textContent = 'source: ' + layer.source;
+    host.appendChild(s);
+  }
+  for (const f of layer.fields) host.appendChild(fieldControl(layer.key, f));
+
+  const n = routeLayers().reduce((a, l) => a + l.fields.length, 0) + 4;
+  $('pill-fields').textContent = n + ' fields';
+  $('pill-route').textContent = config.identity.category;
+}
+
+let inflight = null;
+async function refresh() {
+  setStatus('rendering…');
+  const body = JSON.stringify(config);
+  if (inflight) inflight.abort();
+  const ctl = new AbortController();
+  inflight = ctl;
+  try {
+    const r = await fetch('/render', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body, signal: ctl.signal,
+    });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({ error: 'render failed' }));
+      setStatus('render error', 'err');
+      showMsg('err', e.error || 'render failed');
+      return;
+    }
+    const html = await r.text();
+    $('preview').srcdoc = html;
+    setStatus(Math.round(html.length / 1024) + ' KB · ' + config.strategy.sitemap.length + ' blocks', 'ok');
+    showMsg(null, null);
+  } catch (err) {
+    if (err.name === 'AbortError') return;
+    setStatus('render error', 'err');
+    showMsg('err', String(err));
+  } finally {
+    if (inflight === ctl) inflight = null;
+  }
+}
+
+function briefFromForm() {
+  return {
+    name: $('f-name').value, tagline: $('f-tag').value,
+    category: $('f-cat').value, description: $('f-desc').value,
+    vds: $('f-vds').value ? 1 : 0,
+  };
+}
+
+async function doSuggest() {
+  setStatus('suggesting…');
+  const r = await fetch('/suggest', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(briefFromForm()),
+  });
+  config = await r.json();
+  renderTabs(); renderLayer(); refresh();
+}
+
+async function doCommit() {
+  if (!confirm('Create a real project on disk at scaffolds/' + config.identity.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '?')) return;
+  setStatus('committing…');
+  const r = await fetch('/commit', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(config),
+  });
+  const out = await r.json();
+  if (!r.ok) { setStatus('commit failed', 'err'); return showMsg('err', out.error); }
+  let text = 'Created ' + out.outDir + '\n  blocks: ' + out.blocks.join(', ');
+  if (out.governed) {
+    text += '\n  .vds/: ' + out.vds.records + ' records, ' + out.vds.advanced + ' advanced to built'
+         +  '\n  surface: ' + out.vds.surface.join(', ');
+  } else if (out.vds) {
+    text += '\n  vds: ' + out.vds;
+  }
+  if (out.note) text += '\n  note: ' + out.note;
+  setStatus('created', 'ok');
+  showMsg('ok', text);
+}
+
+async function boot() {
+  SCHEMA = await (await fetch('/schema')).json();
+  $('pill-vds').textContent = SCHEMA.vdsAvailable ? 'vds available' : 'vds not found';
+  if (SCHEMA.vdsAvailable) $('pill-vds').classList.add('on');
+  $('btn-suggest').onclick = doSuggest;
+  $('btn-commit').onclick = doCommit;
+  $('f-cat').onchange = () => { config.identity.category = $('f-cat').value; renderTabs(); renderLayer(); refresh(); };
+  $('f-vds').onchange = () => { config.governance.vds = Boolean($('f-vds').value); };
+  $('f-name').onchange = () => { config.identity.name = $('f-name').value; refresh(); };
+  $('f-tag').onchange = () => { config.identity.tagline = $('f-tag').value; refresh(); };
+  $('f-desc').onchange = () => { config.identity.description = $('f-desc').value; refresh(); };
+  $('btn-wide').onclick = () => { $('preview').classList.remove('w-narrow'); $('btn-wide').classList.add('primary'); $('btn-narrow').classList.remove('primary'); };
+  $('btn-narrow').onclick = () => { $('preview').classList.add('w-narrow'); $('btn-narrow').classList.add('primary'); $('btn-wide').classList.remove('primary'); };
+  await doSuggest();
+}
+
+boot();
+</script>
+</body>
+</html>
