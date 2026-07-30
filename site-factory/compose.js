@@ -84,6 +84,37 @@ function configToTokens(config) {
   tok.border = { weight: config.spacing.borderWeight };
   tok.elevation = config.spacing.elevation;
 
+  /*
+   * The layers that reach the stylesheet as variables rather than as block content.
+   *
+   * These were the last controls that lied: buttonShape, tableDensity, motionIntensity and
+   * transitionStyle were all rotatable in the studio and changed nothing, because nothing
+   * carried them from the config into cssVars(). The values themselves live in build.js
+   * (BUTTON_RADIUS, TABLE_DENSITY, MOTION_*), so this is a hand-off, not a second opinion.
+   */
+  tok.componentStyle = {
+    buttonShape: (config.componentStyle || {}).buttonShape,
+    tableDensity: (config.componentStyle || {}).tableDensity,
+  };
+  tok.motion = {
+    intensity: (config.motion || {}).motionIntensity,
+    transition: (config.motion || {}).transitionStyle,
+  };
+
+  /*
+   * pairingStyle, made real.
+   *
+   * `single-family` sets one family for headings and body, which is what every pack on
+   * disk does today. `display-plus-body-pair` keeps the pack's display face for headings
+   * and drops body text to the system stack - the actual reason to pair, which is that a
+   * display face set at 16px over three paragraphs is harder to read than Helvetica.
+   *
+   * A second variable rather than a second token file: the packs stay valid unchanged.
+   */
+  tok.font.body = config.typography.pairingStyle === 'display-plus-body-pair'
+    ? 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif'
+    : config.typography.displayFont;
+
   return tok;
 }
 
@@ -250,7 +281,30 @@ function configToManifest(config, pageSlug = 'home') {
     stylePack: config.palette.basePack,
     page,
   };
-  if (isSaas) manifest.layout = 'app';
+  /*
+   * navigationPattern, made real.
+   *
+   * The app route hard-coded `layout: 'app'` and built a nav + rail shell whatever this
+   * field said, so all three options produced identical output - the last of the six
+   * controls that lied. The field now decides the SHELL, which is the only thing a
+   * navigation pattern can mean once the blocks are chosen:
+   *
+   *   sidebar   a rail and no top bar. The nav block is dropped, not hidden: rendering a
+   *             top nav into a layout that has no slot for it puts it above the shell,
+   *             which is the stacked-sidebar bug this file already fixed once.
+   *   both      rail plus top bar, which is what the route used to force.
+   *   top-nav   no rail. Blocks stack full width, so a sidebar on the page would be a
+   *             column with nothing to sit beside; it is dropped for the same reason.
+   */
+  if (isSaas) {
+    const pattern = (config.componentStyle || {}).navigationPattern || 'both';
+    if (pattern === 'top-nav') {
+      manifest.page = manifest.page.filter((e) => e.block !== 'sidebar');
+    } else {
+      manifest.layout = 'app';
+      if (pattern === 'sidebar') manifest.page = manifest.page.filter((e) => e.block !== 'nav');
+    }
+  }
   return manifest;
 }
 

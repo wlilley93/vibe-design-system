@@ -49,7 +49,7 @@ brief ──▶ suggest.js ──▶ config (36 fields) ──▶ compose.js ─
 | `studio.js` / `studio.html` | The visual editor |
 | `vds-bridge.js` | The OPTIONAL seam to VDS governance |
 | `figma-spec.js` / `figma-push.js` | Figma spec sheet and project record |
-| `tests/` | 78 tests, run by `make test-factory` |
+| `tests/` | 79 tests, run by `make test-factory` |
 
 ---
 
@@ -59,9 +59,26 @@ Each of these was learned by breaking it. They are worth reading before changing
 anything, because most of them look like fussiness until you have hit them.
 
 **A control the renderer ignores is a control that lies.** `density`, `typeScale`,
-`borderWeight`, `elevation` and the whole voice layer all sat in the schema, rotatable
-in the studio, changing nothing. `tests/compose.test.js` now fails if any enum option
-stops moving the output.
+`borderWeight`, `elevation` and the whole voice layer all sat in the schema, rotatable in
+the studio, changing nothing.
+
+That was fixed for those four and the rule was declared closed. It was not: an audit
+rendered every option of every enum field and found **nineteen fields, eleven reachable**.
+Eight more could be rotated and changed nothing - `pairingStyle`, both motion fields,
+`buttonShape`, `tableDensity`, `navigationPattern`, `imageTreatment`, `iconStyle`. The
+claim was false for nearly half the schema, because the test checked the four fields the
+rule had named instead of the class the rule described.
+
+Six are now wired: button radius separate from panel radius (a pill button beside a sharp
+panel is a real language), row padding as a multiplier on `--space`, real CSS transitions
+with `prefers-reduced-motion` winning over an expressive setting, a paired body face, and
+`navigationPattern` choosing the shell rather than the route forcing it. Two are exempt and
+SAY SO IN THE TEST with a reason: nothing renders an image or an icon yet.
+
+`tests/compose.test.js` now walks every enum field on both routes and fails on any whose
+options all produce the same bytes - and fails the other way too, if a field listed as
+exempt starts working. An exemption you can read is a decision; an uncovered field is a gap
+nobody knows about.
 
 **The preview must not lie.** The studio renders through the same `renderPage()` that
 `build.js` calls. `tests/project.test.js` asserts the preview's body and CSS are

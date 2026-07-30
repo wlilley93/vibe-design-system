@@ -50,11 +50,22 @@ const ELEVATION = {
   'hard-offset': '4px 4px 0 var(--color-ink)',
 };
 
+// Named here beside DENSITY and TYPE_SCALE, so every scale this stylesheet understands is
+// in one place and `tests/spec.test.js` can pin the spec sheet against the real values.
+const BUTTON_RADIUS = { rounded: 'var(--radius-sm)', square: '0px', pill: '999px' };
+const TABLE_DENSITY = { compact: 2, comfortable: 3.5 };
+const MOTION_DURATION = { none: '0s', subtle: '160ms', expressive: '320ms' };
+const MOTION_EASE = { fade: 'ease', slide: 'cubic-bezier(0.2, 0, 0, 1)', scale: 'cubic-bezier(0.34, 1.56, 0.64, 1)' };
+const MOTION_DISTANCE = { fade: '0px', slide: 'calc(var(--space) * 2)', scale: '0px' };
+
 function cssVars(tokens) {
   const lines = [':root {'];
   for (const [k, v] of Object.entries(tokens.colors)) lines.push(`  --color-${k}: ${v};`);
   lines.push(`  --font-family: ${tokens.font.family};`);
   lines.push(`  --font-mono: ${tokens.font.mono};`);
+  // The body face, which pairingStyle chooses. Defaults to the display family so the four
+  // token files on disk (and every scaffold's copy) stay valid with no `body` key.
+  lines.push(`  --font-body: ${tokens.font.body || tokens.font.family};`);
   for (const [k, v] of Object.entries(tokens.radius)) lines.push(`  --radius-${k}: ${v};`);
 
   // Density folds straight into --space, so every `calc(var(--space) * N)` in the
@@ -67,6 +78,42 @@ function cssVars(tokens) {
   lines.push(`  --type-scale: ${TYPE_SCALE[scale.type] ?? 1};`);
   lines.push(`  --border-weight: ${BORDER_WEIGHT[(tokens.border || {}).weight] || '1px'};`);
   lines.push(`  --shadow: ${ELEVATION[tokens.elevation] || 'none'};`);
+
+  /*
+   * The six controls that used to change nothing.
+   *
+   * The README's first rule is "a control the renderer ignores is a control that lies",
+   * and it named four fields as the ones that had been caught. Eight more were never read
+   * at all: an audit rendered every option of every enum field and found nineteen fields,
+   * eleven reachable. That claim was false for nearly half the schema.
+   *
+   * Each of these folds into a variable rather than a per-rule branch, for the same reason
+   * density does: one place to set it, and every rule that mentions it responds.
+   */
+
+  // Button shape. This is deliberately NOT --radius-sm: a pill button next to a sharp
+  // panel is a real design language (Stripe does it), so the two have to be separable.
+  lines.push(`  --button-radius: ${BUTTON_RADIUS[(tokens.componentStyle || {}).buttonShape] ?? 'var(--radius-sm)'};`);
+
+  // Table row padding, as a multiplier on --space so it tracks density too.
+  lines.push(`  --row-pad: ${TABLE_DENSITY[(tokens.componentStyle || {}).tableDensity] ?? 2.5};`);
+
+  /*
+   * Motion, in a static stylesheet.
+   *
+   * `figma-spec.js` REFUSES to draw motion, because a still frame cannot show easing -
+   * that refusal is right and stands. But CSS transitions are not a still frame, and the
+   * built page had no transition at all, so both motion fields were decorative.
+   *
+   * `none` emits 0s rather than omitting the property: a reader who chose "none" has made
+   * a decision, and a missing declaration is indistinguishable from a field nobody wired.
+   */
+  const motion = tokens.motion || {};
+  lines.push(`  --motion-duration: ${MOTION_DURATION[motion.intensity] ?? '160ms'};`);
+  lines.push(`  --motion-ease: ${MOTION_EASE[motion.transition] ?? 'ease'};`);
+  lines.push(`  --motion-distance: ${MOTION_DISTANCE[motion.transition] ?? '0px'};`);
+  lines.push(`  --motion-scale: ${motion.transition === 'scale' ? '0.98' : '1'};`);
+
   lines.push('}');
   return lines.join('\n');
 }
@@ -76,8 +123,28 @@ function cssVars(tokens) {
 // point of the prototype, and it is what a `grep -E "#[0-9a-f]{3,6}"` on this block
 // should find zero of.
 const STRUCTURE_CSS = `
+/* Motion. The page had none at all, so both motion fields were decorative controls.
+   Intensity "none" resolves to 0s rather than omitting the property, because a reader who
+   chose none made a decision and a missing declaration is indistinguishable from a field
+   nobody wired. prefers-reduced-motion WINS over an expressive setting: a design choice
+   does not get to override an accessibility preference stated at the OS level. */
+a, button, .card, .seg__item, .facet__chip, .otable__item {
+  transition: background-color var(--motion-duration) var(--motion-ease),
+              color var(--motion-duration) var(--motion-ease),
+              transform var(--motion-duration) var(--motion-ease),
+              opacity var(--motion-duration) var(--motion-ease);
+}
+a:hover, button:hover, .card:hover {
+  transform: translateY(calc(var(--motion-distance) * -1)) scale(var(--motion-scale));
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition-duration: 0s !important; }
+  a:hover, button:hover, .card:hover { transform: none; }
+}
+
 * { box-sizing: border-box; }
 body {
+  font-family: var(--font-body);
   margin: 0;
   background: var(--color-bg);
   color: var(--color-ink);
@@ -105,7 +172,7 @@ a { color: var(--color-accent); }
   color: var(--color-accentInk);
   text-decoration: none;
   padding: calc(var(--space) * 3) calc(var(--space) * 6);
-  border-radius: var(--radius-sm);
+  border-radius: var(--button-radius);
   font-weight: 600;
 }
 .hero__media {
@@ -153,7 +220,7 @@ a { color: var(--color-accent); }
 .nav__links, .nav__side { display: flex; gap: calc(var(--space) * 6); align-items: center; }
 .nav__link { color: var(--color-ink); text-decoration: none; font-size: calc(0.875rem * var(--type-scale)); }
 .nav__link:hover { color: var(--color-accent); }
-.nav__cta { background: var(--color-accent); color: var(--color-accentInk); text-decoration: none; padding: calc(var(--space) * 2) calc(var(--space) * 4); border-radius: var(--radius-sm); font-size: calc(0.875rem * var(--type-scale)); font-weight: 600; }
+.nav__cta { background: var(--color-accent); color: var(--color-accentInk); text-decoration: none; padding: calc(var(--space) * 2) calc(var(--space) * 4); border-radius: var(--button-radius); font-size: calc(0.875rem * var(--type-scale)); font-weight: 600; }
 .nav--centered { justify-content: space-between; }
 .nav--centered .nav__mark { position: absolute; left: 50%; transform: translateX(-50%); }
 .nav--centered { position: relative; }
@@ -167,7 +234,7 @@ a { color: var(--color-accent); }
 .pricing__price { font-size: calc(1.75rem * var(--type-scale)); font-weight: 700; margin: 0 0 calc(var(--space) * 4); }
 .pricing__features { list-style: none; padding: 0; margin: 0 0 calc(var(--space) * 6); color: var(--color-muted); font-size: calc(0.875rem * var(--type-scale)); }
 .pricing__features li { padding: calc(var(--space) * 1) 0; }
-.pricing__cta { display: block; text-align: center; background: var(--color-accent); color: var(--color-accentInk); text-decoration: none; padding: calc(var(--space) * 3); border-radius: var(--radius-sm); font-weight: 600; }
+.pricing__cta { display: block; text-align: center; background: var(--color-accent); color: var(--color-accentInk); text-decoration: none; padding: calc(var(--space) * 3); border-radius: var(--button-radius); font-weight: 600; }
 .pricing__matrix { width: 100%; border-collapse: collapse; }
 .pricing__matrix th, .pricing__matrix td { border-bottom: var(--border-weight) solid var(--color-border); padding: calc(var(--space) * 3); text-align: left; }
 
@@ -202,7 +269,7 @@ a { color: var(--color-accent); }
 .cta { padding: calc(var(--space) * 16) calc(var(--space) * 8); text-align: center; background: var(--color-surface); }
 .cta h2 { font-size: calc(1.75rem * var(--type-scale)); margin: 0 0 calc(var(--space) * 3); }
 .cta p { color: var(--color-muted); margin: 0 0 calc(var(--space) * 6); }
-.cta__button { display: inline-block; background: var(--color-accent); color: var(--color-accentInk); text-decoration: none; padding: calc(var(--space) * 3) calc(var(--space) * 6); border-radius: var(--radius-sm); font-weight: 600; border: none; font-size: calc(1rem * var(--type-scale)); cursor: pointer; }
+.cta__button { display: inline-block; background: var(--color-accent); color: var(--color-accentInk); text-decoration: none; padding: calc(var(--space) * 3) calc(var(--space) * 6); border-radius: var(--button-radius); font-weight: 600; border: none; font-size: calc(1rem * var(--type-scale)); cursor: pointer; }
 .cta--signup { display: flex; align-items: center; justify-content: space-between; text-align: left; max-width: 1100px; margin: calc(var(--space) * 16) auto; }
 .cta--signup .cta__form { display: flex; gap: calc(var(--space) * 3); }
 .cta__input { padding: calc(var(--space) * 3); border: var(--border-weight) solid var(--color-border); border-radius: var(--radius-sm); font-size: calc(0.875rem * var(--type-scale)); }
@@ -266,7 +333,7 @@ a { color: var(--color-accent); }
 .otable__act a { font-size: calc(0.75rem * var(--type-scale)); }
 .otable--list { padding: calc(var(--space) * 4); }
 .otable__items { display: flex; flex-direction: column; }
-.otable__item { display: flex; flex-direction: column; gap: calc(var(--space) * 1); padding: calc(var(--space) * 3); border-bottom: var(--border-weight) solid var(--color-border); text-decoration: none; border-radius: var(--radius-sm); }
+.otable__item { display: flex; flex-direction: column; gap: calc(var(--space) * 1); padding: calc(var(--space) * var(--row-pad)); border-bottom: var(--border-weight) solid var(--color-border); text-decoration: none; border-radius: var(--radius-sm); }
 .otable__item--on { background: var(--color-surface); }
 .otable__itemKey { font-size: calc(0.8125rem * var(--type-scale)); font-weight: 600; color: var(--color-ink); }
 .otable__itemSub { font-size: calc(0.6875rem * var(--type-scale)); color: var(--color-muted); }
@@ -329,7 +396,7 @@ a { color: var(--color-accent); }
 .empty__title { font-size: calc(1.125rem * var(--type-scale)); margin: calc(var(--space) * 2) 0 0; }
 .empty__body { font-size: calc(0.8125rem * var(--type-scale)); color: var(--color-muted); margin: 0; }
 .empty__query { font-family: var(--font-mono); font-size: calc(0.75rem * var(--type-scale)); color: var(--color-muted); background: var(--color-surface); padding: calc(var(--space) * 2) calc(var(--space) * 3); border-radius: var(--radius-sm); margin: 0; }
-.empty__cta { display: inline-block; background: var(--color-accent); color: var(--color-accentInk); text-decoration: none; padding: calc(var(--space) * 2.5) calc(var(--space) * 5); border-radius: var(--radius-sm); font-size: calc(0.8125rem * var(--type-scale)); font-weight: 600; margin-top: calc(var(--space) * 2); }
+.empty__cta { display: inline-block; background: var(--color-accent); color: var(--color-accentInk); text-decoration: none; padding: calc(var(--space) * 2.5) calc(var(--space) * 5); border-radius: var(--button-radius); font-size: calc(0.8125rem * var(--type-scale)); font-weight: 600; margin-top: calc(var(--space) * 2); }
 .empty__cta--quiet { background: transparent; color: var(--color-accent); border: var(--border-weight) solid var(--color-border); }
 .empty__secondary { font-size: calc(0.75rem * var(--type-scale)); color: var(--color-muted); text-decoration: none; }
 
@@ -342,7 +409,7 @@ a { color: var(--color-accent); }
 .pstate__title { font-size: calc(1.125rem * var(--type-scale)); margin: calc(var(--space) * 2) 0 0; }
 .pstate__body { font-size: calc(0.8125rem * var(--type-scale)); color: var(--color-muted); margin: calc(var(--space) * 2) 0 0; }
 .pstate__actions { display: flex; gap: calc(var(--space) * 4); align-items: center; margin-top: calc(var(--space) * 5); }
-.pstate__retry { background: var(--color-accent); color: var(--color-accentInk); text-decoration: none; padding: calc(var(--space) * 2.5) calc(var(--space) * 5); border-radius: var(--radius-sm); font-size: calc(0.8125rem * var(--type-scale)); font-weight: 600; }
+.pstate__retry { background: var(--color-accent); color: var(--color-accentInk); text-decoration: none; padding: calc(var(--space) * 2.5) calc(var(--space) * 5); border-radius: var(--button-radius); font-size: calc(0.8125rem * var(--type-scale)); font-weight: 600; }
 .pstate__help { font-size: calc(0.8125rem * var(--type-scale)); color: var(--color-muted); text-decoration: none; }
 .pstate__ref { font-family: var(--font-mono); font-size: calc(0.625rem * var(--type-scale)); color: var(--color-muted); margin-top: calc(var(--space) * 4); }
 
@@ -380,7 +447,7 @@ a { color: var(--color-accent); }
 .cdialog__input { padding: calc(var(--space) * 2.5) calc(var(--space) * 3); border: var(--border-weight) solid var(--color-border); border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: calc(0.8125rem * var(--type-scale)); background: var(--color-bg); color: var(--color-ink); }
 .cdialog__actions { display: flex; justify-content: flex-end; gap: calc(var(--space) * 4); align-items: center; margin-top: calc(var(--space) * 5); }
 .cdialog__cancel { font-size: calc(0.8125rem * var(--type-scale)); color: var(--color-muted); text-decoration: none; }
-.cdialog__confirm { background: var(--color-accent); color: var(--color-accentInk); border: none; text-decoration: none; padding: calc(var(--space) * 2.5) calc(var(--space) * 5); border-radius: var(--radius-sm); font: inherit; font-size: calc(0.8125rem * var(--type-scale)); font-weight: 600; cursor: pointer; }
+.cdialog__confirm { background: var(--color-accent); color: var(--color-accentInk); border: none; text-decoration: none; padding: calc(var(--space) * 2.5) calc(var(--space) * 5); border-radius: var(--button-radius); font: inherit; font-size: calc(0.8125rem * var(--type-scale)); font-weight: 600; cursor: pointer; }
 
 /* The app shell: sidebar as a rail beside the content, not a band above it. */
 .shell { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; min-height: 0; }
@@ -495,7 +562,10 @@ function build(manifestPath) {
   console.log(`${name}: ${summary} style=${manifest.stylePack} -> dist/${name}.html`);
 }
 
-module.exports = { renderPage, build, cssVars, BLOCKS, STRUCTURE_CSS, SITE_CSS };
+module.exports = {
+  renderPage, build, cssVars, BLOCKS, STRUCTURE_CSS, SITE_CSS,
+  BUTTON_RADIUS, TABLE_DENSITY, MOTION_DURATION, MOTION_EASE, MOTION_DISTANCE,
+};
 
 if (require.main === module) {
   const arg = process.argv[2];

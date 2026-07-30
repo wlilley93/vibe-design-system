@@ -204,3 +204,69 @@ test('form fields keep their label bound to their control', () => {
     }
   }
 });
+
+/*
+ * The rule the README opens with is "a control the renderer ignores is a control that
+ * lies", and it named four fields as the ones that had been caught. The test written for
+ * it checked those four. Eleven of the nineteen enum fields were reachable; EIGHT could be
+ * rotated in the studio and change nothing, so the claim that the class was closed was
+ * false for nearly half of it.
+ *
+ * This covers every enum field, and the exemptions are LISTED WITH REASONS rather than
+ * simply absent. An exemption you can read is a decision; an uncovered field is a gap
+ * nobody knows about.
+ */
+const NO_SURFACE = {
+  imageTreatment: 'no block renders an image yet, so there is no treatment to apply. Wiring this needs an image slot first.',
+  iconStyle: 'no block renders an icon yet. The icon system exists in Figma (381 normalised Lucide glyphs) and has no code counterpart here.',
+};
+
+test('every enum field moves the output, or is exempt with a stated reason', () => {
+  const { LAYERS } = require('../config-schema.js');
+  const { configToTokens, configToManifest } = require('../compose.js');
+  const { renderPage } = require('../build.js');
+  const { suggest } = require('../suggest.js');
+
+  // BOTH routes. componentStyle applies to the app surface, so probing only the marketing
+  // route reported statusBadgeStyle as dead when it is wired and simply has no table to
+  // reach on a marketing page. A field counts as live if it moves the output on ANY route
+  // where its layer applies - and a test that got that wrong would send someone to "fix"
+  // a control that already works.
+  const bases = ['marketing-site', 'saas-app'].map((route) => {
+    const cfg = suggest({ name: 'Probe', category: route, description: 'A matter tool for law firms.' });
+    if (route === 'saas-app') {
+      // Reach every app block, so a field wired to one of them is not reported dead for
+      // want of a host on the page.
+      cfg.strategy.sitemap = ['nav-1', 'sidebar-2', 'objecttable-1', 'card-1', 'segmentedcontrol-2', 'formfield-1'];
+    }
+    return cfg;
+  });
+
+  const renderWith = (base, layerKey, key, value) => {
+    const cfg = JSON.parse(JSON.stringify(base));
+    cfg[layerKey][key] = value;
+    const r = renderPage(configToManifest(cfg), configToTokens(cfg), null);
+    return r.html + r.css;
+  };
+
+  const dead = [];
+  for (const layer of LAYERS) {
+    for (const field of layer.fields || []) {
+      if (field.type !== 'enum' || !field.options || field.options.length < 2) continue;
+      const movesOn = bases.filter((base) =>
+        new Set(field.options.map((o) => renderWith(base, layer.key, field.key, o))).size > 1);
+      const outputs = new Set(movesOn.length ? ['moved'] : ['same']);
+      if (outputs.size === 1 && !movesOn.length) {
+        if (NO_SURFACE[field.key]) continue;      // declared, with a reason, above
+        dead.push(`${layer.key}.${field.key} (${field.options.length} options, one output)`);
+      } else if (movesOn.length && NO_SURFACE[field.key]) {
+        // The other direction: an exemption that is no longer true is stale documentation
+        // claiming a limitation that has been fixed.
+        dead.push(`${layer.key}.${field.key} is listed in NO_SURFACE but DOES move the output - remove the exemption`);
+      }
+    }
+  }
+
+  assert.deepEqual(dead, [],
+    'controls the renderer ignores. Wire them, or add them to NO_SURFACE with the reason:\n  ' + dead.join('\n  '));
+});
