@@ -151,6 +151,21 @@ test('the README states counts that are actually true', () => {
     [LAYERS.length, 'layers'],
     [MIN_TESTS, 'tests'],
   ];
+  // Filenames rot the same way counts do, and nothing pinned them: the README still said
+  // `manifests/home.json` and `dist/home.html + home.css` after the build started writing
+  // index.json, index.html and site.css. A quick-start command that does not run is worse
+  // than no quick start, because the reader blames themselves.
+  const { SITE_CSS } = require('../build.js');
+  const gone = [
+    ['manifests/home.json', 'the home manifest is manifests/index.json'],
+    ['dist/home.html', 'the home page builds as dist/index.html'],
+    ['home.css', `the site shares one ${SITE_CSS}`],
+  ];
+  for (const [dead, why] of gone) {
+    assert.ok(!readme.includes(dead), `the README still names "${dead}" - ${why}`);
+  }
+  assert.ok(readme.includes(SITE_CSS), `the README never mentions ${SITE_CSS}, the stylesheet the build writes`);
+
   for (const [n, what] of claims) {
     assert.ok(
       new RegExp(`\\b${n}\\b`).test(readme),

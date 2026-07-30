@@ -8,7 +8,7 @@ node factory.js ls        what this factory can make, measured from disk
 node factory.js studio    the visual editor, http://localhost:4321
 node factory.js wizard    the paged CLI
 node factory.js new --name "X" --brief "..." [--vds]    one shot, no prompts
-node factory.js build manifests/home.json               render a manifest
+node factory.js build manifests/index.json              render one page
 ```
 
 Zero dependencies. Node's built-in `http` and `node:test`, nothing installed.
@@ -30,7 +30,7 @@ brief ──▶ suggest.js ──▶ config (36 fields) ──▶ compose.js ─
                                                                     │
                                                        build.js ◀───┘
                                                           │
-                                              dist/home.html + home.css
+                                 dist/index.html + about/contact/404 + site.css
 ```
 
 | File | Does |
