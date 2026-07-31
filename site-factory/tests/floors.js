@@ -68,7 +68,7 @@ function lockFindings(gates, lockText, digestOf) {
 
 module.exports = {
   MIN_FILES: 7,
-  MIN_TESTS: 113,
+  MIN_TESTS: 114,
   GATES,
   lockFindings,
 };

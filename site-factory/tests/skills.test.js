@@ -1766,3 +1766,57 @@ test('the prompt fingerprints still match the source skills', () => {
   assert.ok(v.prompts_verified._what_it_does_not_establish,
     'a clean result with no stated limits is the most flattering kind');
 });
+
+// ---------------------------------------------------------------------------
+// The ds-contracts harvest. SUBMISSION-VDS-008 rests on this repository and,
+// until it was measured, every claim about it lived in prose - including three
+// of mine that were wrong. This guard holds the numbers to each other and keeps
+// the corrections visible.
+test('the ds-contracts harvest is internally consistent', () => {
+  const h = JSON.parse(fs.readFileSync(
+    path.join(__dirname, '..', 'vendor', 'ds-contracts-harvest.json'), 'utf8'));
+
+  // THE FINDING, re-derived from the numbers beside it. 264 of 264 token values
+  // are references and none is a literal - the property that makes the format
+  // compatible with VDS S-2(4). If a literal ever appears, that compatibility
+  // is gone and the finding must be rewritten, not softened.
+  assert.equal(h.anatomy.literalValues, 0,
+    `${h.anatomy.literalValues} token values are now LITERALS. The finding that every value ` +
+    'is a reference - and with it the S-2(4) compatibility argument - no longer holds.');
+  assert.equal(h.anatomy.tokenReferences + h.anatomy.literalValues, h.anatomy.tokenValues,
+    'the token value buckets do not add up to the total');
+  assert.ok(h.anatomy.tokenReferences > 200, 'the token reading looks empty');
+
+  // Both binding sides must be accounted for against the prop count. A harvest
+  // reporting more bindings than props has double-counted something.
+  assert.equal(h.bindings.withFigma, h.contracts.props,
+    'not every prop carries a Figma binding, which is the harvest\'s central claim');
+  assert.equal(h.bindings.withCode, h.contracts.props, 'not every prop carries a code binding');
+  const kinds = Object.values(h.bindings.kinds).reduce((a, b) => a + b, 0);
+  assert.equal(kinds, h.bindings.withFigma,
+    'the binding-kind tally disagrees with the number of Figma bindings');
+
+  // The anatomy is ONE part per contract, which is the correction. If it ever
+  // nests, the "tree is one node" claim is stale and so is my correction of it.
+  assert.deepEqual(h.anatomy.distinctPartNames, ['root'],
+    `the anatomy now has parts other than root (${h.anatomy.distinctPartNames.join(', ')}), ` +
+    'so the corpus has grown a real tree and the correction recorded here is out of date');
+  assert.equal(h.anatomy.parts, h.contracts.count, 'parts and contracts should be one to one');
+
+  // The conformance suite's dispositions must account for every case.
+  const cases = Object.values(h.conformance.expect).reduce((a, b) => a + b, 0);
+  assert.equal(cases, h.conformance.cases,
+    'the conformance dispositions do not account for every case');
+
+  // MY OWN CORRECTIONS STAY ON THE RECORD. They are the most useful thing here:
+  // each is a number I asserted from prose and got wrong, and a reader deciding
+  // how much to trust the rest needs to know which parts were checked.
+  assert.ok(h.three_of_my_own_claims_corrected.length >= 3,
+    'the record of the three corrected claims has been trimmed');
+  assert.equal(h.extraction.namedAdapters.length, 3,
+    'the named-adapter count changed; the "six adapters" correction may be stale');
+
+  // And the subject is pinned, because the clone it was taken from is disposable.
+  assert.match(h.source.commit, /^[0-9a-f]{40}$/,
+    'the harvest does not pin the commit it was measured at, so it describes no fixed subject');
+});

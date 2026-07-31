@@ -1,0 +1,100 @@
+{
+  "_what": "southleft/ds-contracts-poc, MEASURED. Until now this repository had read it and argued from it - SUBMISSION-VDS-008 rests on it - and never harvested it. There was no artefact in vendor/ at all, so every claim about it lived in prose and could not be checked.",
+  "_why_it_matters": "It is the only other system in this programme attempting the same thing: one contract feeding both Figma and code. The submission asking whether the register stays canonical cites it as the subject, and a case file whose subject is described only in prose is one the bench cannot inspect.",
+  "_and_it_fixes_fragile_evidence": "SUBMISSION-VDS-008 names /var/tmp/claude/refs/ds-contracts-poc as evidence - a clone in a DISPOSABLE directory that can vanish between filing and ruling. This artefact is the durable form: the numbers, committed, with the commit they were taken at.",
+  "source": {
+    "repo": "github.com/southleft/ds-contracts-poc",
+    "licence": "MIT",
+    "commit": "f3b9bbf3aed6a0d09a8af98b6c2c9c06f2c25dd8",
+    "schemaPackage": "@ds-contracts/schema 15.0.0"
+  },
+  "measured_at": "2026-07-31T15:18:41Z",
+  "the_finding": {
+    "claim": "EVERY ONE OF ITS 264 TOKEN VALUES IS A REFERENCE. NOT ONE IS A LITERAL.",
+    "detail": "Across 51 contracts every anatomy.root.tokens value has the form {color.action.{variant}.background} - a path into a token layer, sometimes with the variant interpolated. Zero hex, zero px, zero font names.",
+    "why_it_matters": "This is the property that makes the format compatible with VDS S-2(4), which admits a requirement and refuses a realisation, and it is now MEASURED rather than asserted. It is also the strongest thing in this file: they arrived independently at the rule this programme enforces, and their corpus obeys it without exception."
+  },
+  "three_of_my_own_claims_corrected": [
+    "I described \"an anatomy part TREE whose leaves are token references\". The tree is one node. All 51 contracts have exactly ONE part, named root, and none nests. The schema may permit depth; the shipped corpus has none.",
+    "I described \"six extraction adapters\". extract/adapters/ holds THREE (cem, css-module, react-tsx). Six was a count of route DIRECTORIES under extract/ - there are nine - which is a different thing, named wrongly.",
+    "I described \"51 hand-authored conformance cases\". The manifest has 53. The 51 is the CONTRACT count and I had carried it across."
+  ],
+  "contracts": {
+    "count": 51,
+    "props": 113,
+    "status": "all 51 are draft. Not one has advanced past it."
+  },
+  "bindings": {
+    "_what": "Every prop carries BOTH a Figma binding and a code binding. 113 of 113, both sides.",
+    "withFigma": 113,
+    "withCode": 113,
+    "kinds": {
+      "VARIANT": 40,
+      "TEXT": 63,
+      "BOOLEAN": 10
+    },
+    "withPerValueMap": 40,
+    "_note": "The schema declares VARIANT, BOOLEAN, TEXT, INSTANCE_SWAP and NONE. The corpus uses THREE: TEXT 63, VARIANT 40, BOOLEAN 10. INSTANCE_SWAP and NONE are declared and unused, worth knowing before treating the vocabulary as proven."
+  },
+  "anatomy": {
+    "parts": 51,
+    "distinctPartNames": [
+      "root"
+    ],
+    "tokenValues": 264,
+    "tokenReferences": 264,
+    "literalValues": 0,
+    "partsWithStates": 6
+  },
+  "states": {
+    "_what": "Declared states across the whole corpus, and they are sparse.",
+    "counts": {
+      "hover": 6,
+      "focus-visible": 2,
+      "disabled": 1
+    },
+    "_note": "Six of 51 parts carry a states block at all. VDS fixes nine states by S-5(3) and requires the required/drawn/built triple; this corpus declares hover six times, focus-visible twice, disabled once. The two systems are not measuring the same thing here."
+  },
+  "conformance": {
+    "cases": 53,
+    "expect": {
+      "UNSUPPORTED": 18,
+      "CARRIED": 22,
+      "LOWERED": 2,
+      "REFUSED": 11
+    },
+    "_what": "Cases whose expected disposition is declared BEFORE the extractor runs, banned from importing the engine own predicates. Their words: an instrument built that way cannot be surprised.",
+    "_reading": "22 CARRIED, 18 UNSUPPORTED, 11 REFUSED, 2 LOWERED. More than half are expected NOT to carry, which is an unusually honest suite."
+  },
+  "emitters": {
+    "emit-figma-script.ts": 4672,
+    "emit-html.ts": 1017,
+    "emit-react-inline.ts": 877,
+    "emit-react.ts": 2571
+  },
+  "extraction": {
+    "namedAdapters": [
+      "cem.ts",
+      "css-module.ts",
+      "react-tsx.ts"
+    ],
+    "routeDirectories": [
+      "adapters",
+      "computed",
+      "computed-spike",
+      "depth-spike",
+      "fidelity-matrix",
+      "figma",
+      "fixtures",
+      "out",
+      "pilots"
+    ],
+    "figmaSyncScripts": 55
+  },
+  "their_own_ceiling": "docs/22-generality.md: no library in the repo is captured past 11.9%, and they say so - \"Nobody has run a component set large enough to hit\". Any claim that this is a working general extractor is wider than their own evidence.",
+  "_what_this_is_not": [
+    "A code review. Nothing here judges the implementation; it counts what is in the corpus.",
+    "A verdict on the fork. SUBMISSION-VDS-008 is with the bench; this is evidence for it, not an argument.",
+    "Complete. 9137 lines of emitter, the parity differ and the dashboard were not read, only measured by size."
+  ]
+}
