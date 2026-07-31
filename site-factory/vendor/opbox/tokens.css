@@ -1,0 +1,151 @@
+/* ============================================================================
+   Opbox Design System — tokens.css (reconciled)
+   Drop into your Next.js app's globals.css (replace your :root block).
+
+   Provides TWO conventions so both consumers work:
+     1. Direct hex vars  --accent, --surface, --fg, --muted …
+        → used by opbox.css (component classes) and plain CSS.
+     2. shadcn HSL vars  --primary, --accent-foreground, --ring …
+        → rethemes every shadcn/ui component automatically.
+   The two palettes are the SAME colors; change once, both update.
+   ========================================================================== */
+
+@layer base {
+  :root {
+    /* ==== 1. Opbox structure — direct hex (for opbox.css & plain CSS) ===== */
+    --bg: #ffffff;
+    --surface: #f7f8fa;
+    --fg: #111418;
+    --muted: #5f6b7c;              /* secondary text */
+    --border: #d9dee7;
+    --border-strong: #c3cbd8;
+    --accent: #1677ff;             /* the one accent */
+    --accent-deep: #0958d9;
+    --accent-soft: rgba(22,119,255,.08);
+    --ring: #1677ff;
+
+    /* intents (hex + text tone + soft tint) */
+    --success: #10b981; --success-fg: #0a7a54; --success-soft: rgba(16,185,129,.08);
+    --warning: #f59e0b; --warning-fg: #92600a; --warning-soft: rgba(245,158,11,.08);
+    --danger:  #ef4444; --danger-fg:  #b42323; --danger-soft:  rgba(239,68,68,.07);
+    --info:    #1677ff; --info-fg:    #0958d9; --info-soft:    rgba(22,119,255,.08);
+
+    /* chart categorical palette (distinct from --accent; see design-system data-viz.html) */
+    --chart-1: #1677ff; --chart-2: #7c4dff; --chart-3: #00b8a9;
+    --chart-4: #f59e0b; --chart-5: #ec4899; --chart-6: #6b7280;
+
+    /* ==== 2. shadcn/ui HSL channels (for free retheming) ================== */
+    --background: 0 0% 100%;
+    --foreground: 220 25% 8%;          /* #111418 */
+    --card: 0 0% 100%;
+    --card-foreground: 220 25% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 25% 8%;
+    --primary: 217 100% 55%;           /* = --accent */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 25% 8%;
+    --sh-muted: 220 14% 97%;           /* (prefixed to avoid clashing with hex --muted) */
+    --muted-foreground: 216 13% 43%;   /* #5f6b7c */
+    --sh-accent: 217 100% 96%;
+    --accent-foreground: 216 100% 41%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --input: 219 24% 90%;
+    --radius: 0.5rem;
+
+    /* NOTE: shadcn's `--muted`, `--accent`, `--border`, `--ring` names collide
+       with the hex convenience vars above. We deliberately keep the HEX versions
+       for those names (opbox.css depends on them) and expose shadcn equivalents
+       under prefixed names. Tailwind config (tailwind.config.ts) maps shadcn
+       classes to the prefixed vars; opbox.css uses the hex vars. */
+
+    /* ==== Elevation (Blueprint scale) ===================================== */
+    --el0: 0 0 0 1px rgba(17,20,24,.15);
+    --el1: 0 0 0 1px rgba(17,20,24,.1), 0 1px 1px rgba(17,20,24,.2);
+    --el2: 0 0 0 1px rgba(17,20,24,.1), 0 1px 1px rgba(17,20,24,.2), 0 2px 6px rgba(17,20,24,.2);
+    --el3: 0 0 0 1px rgba(17,20,24,.1), 0 2px 4px rgba(17,20,24,.2), 0 8px 24px rgba(17,20,24,.2);
+    --el4: 0 0 0 1px rgba(17,20,24,.1), 0 4px 8px rgba(17,20,24,.2), 0 18px 46px 6px rgba(17,20,24,.2);
+
+    /* ==== Typography ====================================================== */
+    --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: 'SFMono-Regular', 'JetBrains Mono', Consolas, 'Liberation Mono', Menlo, monospace;
+    --fs-display: 26px; --fs-heading: 20px; --fs-title: 15px;
+    --fs-body: 13px;    --fs-mono: 12px;    --fs-kicker: 10px;
+
+    /* ==== Spacing (4px base) ============================================== */
+    --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+    --sp-6: 24px; --sp-8: 32px; --sp-12: 48px;
+
+    /* ==== Entity hues ====================================================== */
+    --hue-entity: #1677ff;  --hue-stakeholder: #7c9bff; --hue-matter: #e065b0;
+    --hue-share-class: #f97316; --hue-holding: #f59e0b;  --hue-convertible: #0e9f6e;
+    --hue-vesting: #8b5cf6; --hue-submission: #64748b;   --hue-portal: #1677ff;
+    --hue-invoice: #0e9f6e; --hue-ubo: #0e9f6e;          --hue-document: #64748b;
+    --hue-agent: #1677ff;   --hue-workflow: #0e9f6e;
+  }
+
+  /* ==== Dark theme (opt-in via .dark on <html>) =========================== */
+  .dark {
+    --bg: #0b0f16;
+    --surface: #10151f;
+    --surface-raised: #171d2a;   /* dark elevation: lighter surface, not a heavier shadow — see dark-mode.html */
+    --fg: #e6ecf5;
+    --muted: #8a94a6;
+    --border: #1e2735;
+    --border-strong: #2a3648;
+    --accent: #3d8bff;
+    --accent-deep: #1677ff;
+    --accent-soft: rgba(61,139,255,.12);
+    --ring: #3d8bff;
+
+    /* intents re-derived for dark contrast, not mechanically inverted */
+    --success: #34d399; --success-fg: #34d399; --success-soft: rgba(52,211,153,.14);
+    --warning: #fbbf24; --warning-fg: #fbbf24; --warning-soft: rgba(251,191,36,.14);
+    --danger:  #f87171; --danger-fg:  #f87171; --danger-soft:  rgba(248,113,113,.14);
+    --info:    #3d8bff; --info-fg:    #3d8bff; --info-soft:    rgba(61,139,255,.14);
+
+    /* chart categorical palette — same hues, lightened for dark backgrounds */
+    --chart-1: #3d8bff; --chart-2: #9573ff; --chart-3: #2dd4c4;
+    --chart-4: #fbbf24; --chart-5: #f472b6; --chart-6: #8b96a5;
+
+    --background: 220 30% 5%;
+    --foreground: 210 20% 92%;
+    --card: 220 26% 7%;
+    --card-foreground: 210 20% 92%;
+    --popover: 220 28% 6%;
+    --popover-foreground: 210 20% 92%;
+    --primary: 217 100% 62%;
+    --primary-foreground: 220 40% 6%;
+    --muted-foreground: 215 12% 55%;
+    --sh-accent: 220 22% 15%;
+    --accent-foreground: 217 100% 70%;
+    --input: 220 18% 17%;
+  }
+}
+
+/* ==== Base ================================================================ */
+@layer base {
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+  }
+  .font-mono, code, kbd { font-family: var(--font-mono); }
+  ::selection { background: rgba(22,119,255,.15); }
+}
+
+/* ==== Utilities (work under Tailwind or plain CSS) ======================== */
+@layer utilities {
+  .dot-bg  { background-image: radial-gradient(rgba(17,20,24,.09) 1px, transparent 1px); background-size: 22px 22px; }
+  .grid-bg { background-image: linear-gradient(rgba(17,20,24,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(17,20,24,.045) 1px, transparent 1px); background-size: 28px 28px; }
+  .fade-in { animation: fadeIn .3s ease both; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in { animation: none !important; }
+  * { transition-duration: 0.01ms !important; }
+}

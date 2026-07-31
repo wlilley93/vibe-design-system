@@ -1,0 +1,176 @@
+/* ==========================================================================
+   Opbox Design System — opbox.css
+   Component classes built on tokens.css. Framework-agnostic: use with plain
+   HTML, or let the React components apply these same classes.
+   ========================================================================== */
+
+/* ── Surfaces ─────────────────────────────────────────────────────────── */
+.surface {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.surface-raised { background: var(--bg); border-radius: var(--radius); box-shadow: var(--el0); }
+.panel { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.panel-interactive { transition: box-shadow .15s, border-color .15s; }
+.panel-interactive:hover { box-shadow: var(--el1); border-color: var(--accent); cursor: pointer; }
+.panel-selected { box-shadow: 0 0 0 1px var(--ring); border-color: var(--accent); }
+
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 36px; padding: 0 var(--sp-3);
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--muted);
+}
+
+/* ── Typography helpers ────────────────────────────────────────────────── */
+.kicker {
+  font-family: var(--mono); font-size: var(--fs-kicker); letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--accent);
+}
+.rid { font-size: 10px; color: var(--muted); }
+.text-meta { font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+
+/* ── Badges (status) ───────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 9px; border-radius: 999px; border: 1px solid;
+  font-family: var(--mono); font-size: 9.5px; font-weight: 600;
+  letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap;
+}
+.badge .dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+.badge-success { color: var(--success-fg); border-color: rgba(16,185,129,.4); background: var(--success-soft); }
+.badge-info    { color: var(--info-fg);    border-color: rgba(22,119,255,.4);  background: var(--info-soft); }
+.badge-warning { color: var(--warning-fg); border-color: rgba(245,158,11,.4);  background: var(--warning-soft); }
+.badge-danger  { color: var(--danger-fg);  border-color: rgba(239,68,68,.4);   background: var(--danger-soft); }
+.badge-neutral { color: var(--muted);      border-color: var(--border);        background: var(--surface); }
+.badge .pulse { animation: badgePulse 1.6s cubic-bezier(.4,0,.6,1) infinite; }
+@keyframes badgePulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+
+/* ── Tags (metadata, not status) ───────────────────────────────────────── */
+.tag {
+  display: inline-block; padding: 2px 8px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--surface);
+  font-family: var(--mono); font-size: 10px; color: var(--fg); white-space: nowrap;
+}
+.tag-flag { color: var(--warning-fg); border-color: rgba(245,158,11,.4); background: var(--warning-soft); }
+
+/* ── Buttons ───────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 32px; padding: 0 14px; border-radius: var(--radius);
+  font-family: var(--sans); font-size: 12.5px; font-weight: 500;
+  cursor: pointer; border: none; background: none; transition: background .12s, opacity .12s;
+}
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn-lg { height: 36px; }
+.btn-primary     { background: var(--accent); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: var(--accent-deep); }
+.btn-success     { background: var(--success); color: #fff; }
+.btn-success:hover:not(:disabled) { filter: brightness(.94); }
+.btn-secondary   { background: var(--bg); color: var(--fg); border: 1px solid var(--border); }
+.btn-secondary:hover:not(:disabled) { background: var(--surface); }
+.btn-ghost       { background: transparent; color: var(--muted); }
+.btn-ghost:hover:not(:disabled) { color: var(--fg); background: var(--surface); }
+.btn-destructive { background: var(--bg); color: var(--danger-fg); border: 1px solid rgba(239,68,68,.4); }
+.btn-destructive:hover:not(:disabled) { background: var(--danger-soft); }
+.btn-blocked-note { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-left: 8px; }
+
+/* Icon button */
+.icon-btn {
+  width: 32px; height: 32px; display: inline-grid; place-items: center;
+  border-radius: var(--radius-sm); color: var(--muted); cursor: pointer;
+  border: none; background: none; transition: background .1s;
+}
+.icon-btn:hover { background: var(--surface); color: var(--fg); }
+
+/* ── Inputs ────────────────────────────────────────────────────────────── */
+.label { display: block; font-family: var(--mono); font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+.label .req { color: var(--danger); }
+.input {
+  height: 32px; width: 100%; padding: 0 10px;
+  border: 1px solid var(--input); border-radius: 6px; background: var(--bg);
+  font-family: var(--sans); font-size: 12px; color: var(--fg);
+  transition: border-color .12s, box-shadow .12s;
+}
+.input::placeholder { color: var(--muted); opacity: .7; }
+.input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 1px rgba(22,119,255,.4); }
+.input.mono { font-family: var(--mono); }
+.input.error { border-color: var(--danger); }
+.input:disabled { background: var(--surface); color: var(--muted); cursor: not-allowed; }
+.input-error-msg { font-family: var(--mono); font-size: 9.5px; color: var(--danger-fg); margin-top: 3px; }
+
+/* ── Table ─────────────────────────────────────────────────────────────── */
+.table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.table th {
+  padding: 8px 12px; text-align: left; background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono); font-size: 9px; font-weight: 500;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+}
+.table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.table tr:last-child td { border-bottom: none; }
+.table tr:hover td { background: var(--accent-soft); }
+.table .num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.table .id  { font-family: var(--mono); color: var(--muted); font-size: 10px; }
+.table-compact td { padding: 6px 12px; font-size: 11px; }
+
+/* ── Tabs ──────────────────────────────────────────────────────────────── */
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+.tab {
+  padding: 8px 12px; font-size: 11.5px; color: var(--muted); white-space: nowrap;
+  border: none; background: none; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.tab:hover { color: var(--fg); }
+.tab.active { color: var(--fg); font-weight: 600; border-bottom-color: var(--accent); }
+.tab .count { font-family: var(--mono); font-size: 9px; padding: 1px 5px; border-radius: 5px; background: var(--accent-soft); color: var(--info-fg); }
+
+/* ── Callout ───────────────────────────────────────────────────────────── */
+.callout {
+  border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  border-radius: 6px; padding: 11px 15px; background: var(--surface); font-size: 13px;
+}
+.callout .callout-title { display: block; font-family: var(--mono); font-size: 11px; letter-spacing: .08em; margin-bottom: 3px; color: var(--fg); }
+.callout-success { border-left-color: var(--success); background: var(--success-soft); }
+.callout-warning { border-left-color: var(--warning); background: var(--warning-soft); }
+.callout-danger  { border-left-color: var(--danger);  background: var(--danger-soft); }
+
+/* ── Toast ─────────────────────────────────────────────────────────────── */
+.toast {
+  display: flex; align-items: center; gap: 10px; max-width: 340px;
+  background: var(--bg); border: 1px solid var(--border); border-left: 3px solid var(--success);
+  border-radius: var(--radius); box-shadow: var(--el2); padding: 11px 14px;
+}
+.toast .toast-title { font-family: var(--mono); font-size: 11px; font-weight: 600; }
+.toast .toast-msg { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+
+/* ── Progress ──────────────────────────────────────────────────────────── */
+.progress { height: 4px; border-radius: 999px; background: var(--surface); overflow: hidden; border: 1px solid var(--border); }
+.progress > i { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+.progress.blocked > i { background: var(--danger); }
+
+/* ── Row (object list) ─────────────────────────────────────────────────── */
+.row-hover { transition: background-color .12s ease; }
+.row-hover:hover { background: rgba(22, 119, 255, 0.05); }
+
+/* ── Skeleton ──────────────────────────────────────────────────────────── */
+.skeleton {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--surface) 25%, #eef1f6 50%, var(--surface) 75%);
+  background-size: 200% 100%; animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* ── Canvas backdrops ──────────────────────────────────────────────────── */
+.dot-bg {
+  background-image: radial-gradient(rgba(17, 20, 24, 0.06) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(17, 20, 24, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 20, 24, 0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+}

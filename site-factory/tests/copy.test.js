@@ -188,13 +188,38 @@ test('no source file uses an em dash as prose punctuation', () => {
   const SKIP = new Set(['node_modules', 'scaffolds', 'dist', '.vds', '.git']);
   const offenders = [];
 
+  // THE SECOND CARVE-OUT, and the reason it is a digest and not a path. The rule is
+  // about prose this repository AUTHORS. `vendor/opbox/` holds four files copied
+  // verbatim out of somebody else's repository as EVIDENCE, and their whole value is
+  // being unmodified - sweeping the em dashes out of them would destroy the thing they
+  // are kept for and break the digest the audit records.
+  //
+  // A path skip-list would be exactly the escape hatch the note above rejects: drop a
+  // file in vendor/ and the rule stops applying to it. So the exemption is keyed on the
+  // DIGEST recorded in an audit's `vendored.files`. Editing an exempt file changes its
+  // digest, no audit vouches for it any more, and it falls straight back under the rule.
+  // Adding a new one means recording it as evidence, which is the point.
+  const vouched = new Set();
+  const vendorDir = path.join(ROOT, 'vendor');
+  if (fs.existsSync(vendorDir)) {
+    for (const e of fs.readdirSync(vendorDir)) {
+      if (!e.endsWith('.json')) continue;
+      let doc;
+      try { doc = JSON.parse(fs.readFileSync(path.join(vendorDir, e), 'utf8')); } catch { continue; }
+      for (const d of Object.values(doc?.vendored?.files || {})) vouched.add(d);
+    }
+  }
+  const digest = (buf) => require('node:crypto').createHash('sha256').update(buf).digest('hex');
+
   (function walk(dir) {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
       if (SKIP.has(e.name)) continue;
       const full = path.join(dir, e.name);
       if (e.isDirectory()) { walk(full); continue; }
       if (!/\.(js|md|html|json)$/.test(e.name)) continue;
-      const text = fs.readFileSync(full, 'utf8');
+      const bytes = fs.readFileSync(full);
+      if (vouched.has(digest(bytes))) continue;
+      const text = bytes.toString('utf8');
       text.split('\n').forEach((line, i) => {
         // Strip the glyph use, then any surviving em dash is prose.
         if (line.replace(GLYPH, '').includes(EM)) {

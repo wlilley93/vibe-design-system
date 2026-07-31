@@ -1,0 +1,93 @@
+{
+  "_what": "A read of the Opbox design deliverables (Kimi's read-only pass, 2026-07-24) against the SEVEN RULES its own README states, plus the component contracts the kit exports.",
+  "_why": "The README ends with a section headed \"The rules the pixels encode (don't lose these when componentizing)\". Seven rules, in prose, with nothing checking them - which is the exact shape of BREACH-0001, where a control-boundary token was declared aligned in prose and shipped at 1.15:1 across five themes.",
+  "_how": "Read `opbox-deliverables.zip` and `opbox-figma-kit.zip` from ~/Projects/Opbox/design-deliverables/2026-07-24/. Every finding below cites a file and a line. Nothing was written into the Opbox repo.",
+  "measured_at": "2026-07-31T12:01:54Z",
+  "source": "~/Projects/Opbox/design-deliverables/2026-07-24/ (84 files: a 6-SVG Figma kit, a Tokens Studio token set, 25 documentation pages, and a React kit of 5 files)",
+  "rules_checked": [
+    {
+      "rule": "\"Ink acts, blue selects - primary buttons are #171717; #006bff is selection/focus/links only.\"",
+      "source": "vendor/opbox/README.figma-kit.md, and restated as \"Ruling 1\" in vendor/opbox/tokens.geist.css:8",
+      "verdict": "BROKEN IN THE SHIPPED CSS",
+      "evidence": "vendor/opbox/tokens.geist.css:30 defines `--action: #171717` and comments it \"solid primary-button fill (ink)\". vendor/opbox/tokens.geist.css:32 defines `--accent: #006bff` for \"interactive/selected/link/focus\". vendor/opbox/opbox.css:68 then writes `.btn-primary { background: var(--accent); }` - the BLUE. A grep for `var(--action)` across opbox.css, the five React components and every HTML page returns ZERO hits.",
+      "why_it_matters": "The token that exists precisely to carry this ruling is defined once and consumed nowhere, so every primary button in the system is the colour the ruling reserves for selection. The rule is not merely unenforced; the mechanism built to honour it was never wired up."
+    },
+    {
+      "rule": "\"blocked != disabled - a gated button that can't fire shows why, adjacent, IN DANGER TEXT.\"",
+      "source": "vendor/opbox/README.figma-kit.md",
+      "verdict": "BROKEN IN THE SHIPPED CSS",
+      "evidence": "vendor/opbox/opbox.css:78 - `.btn-blocked-note { font-family: var(--mono); font-size: 10px; color: var(--muted); }`. `--muted` is secondary grey (#4d4d4d in geist, #5f6b7c otherwise). The rule says danger text; the code says muted.",
+      "why_it_matters": "The React contract honours the rule and the stylesheet does not. `ButtonProps.blockedReason?: string` exists in components/ui.tsx:57 with the comment \"criteria-blocked state: disabled + reason\", and the component renders it. So a blocked reason IS shown, adjacent, and reads as an incidental grey note rather than a refusal."
+    },
+    {
+      "rule": "\"32px dense tier is the app default; 40px only for portal/auth.\"",
+      "source": "vendor/opbox/README.figma-kit.md",
+      "verdict": "HELD, and derivable",
+      "evidence": "tokens.figma.json global.size.control = 32 and controlMd = 40; vendor/opbox/opbox.css:67 `.btn-lg { height: 36px; }`.",
+      "why_it_matters": "The token set agrees with the rule. The 36px `.btn-lg` is a THIRD height that is neither, and it is the one `size: \"large\"` selects in components/ui.tsx:54 - so the code's large button is 36 and the token set's two tiers are 32 and 40. Recorded as a discrepancy rather than a violation: nothing says 36 is wrong, only that no rule or token names it."
+    }
+  ],
+  "second_finding": {
+    "claim": "THE DOCUMENTATION SITE MOSTLY RENDERS THE PRE-GEIST PALETTE.",
+    "evidence": "Of the HTML pages that link a token file, ELEVEN link tokens.css and THREE link tokens.geist.css. tokens.css:22 sets `--accent: #1677ff` and defines no `--action` at all; tokens.geist.css sets `--accent: #006bff` and `--action: #171717`.",
+    "why_it_matters": "The README is titled \"Geist Edition v1.2\" and states the Geist ruling, while most of the pages that demonstrate it are drawn in the palette it replaced. Neither blue is wrong on its own; what is wrong is that a reader cannot tell which one the system means by looking at it. Two token sets in one deliverable, with no file saying which is authoritative, is the two-sources-of-truth shape."
+  },
+  "component_contracts": {
+    "_note": "The kit exports 22 symbols from components/ui.tsx plus four component files. Recorded because these are the CLOSED UNIONS a register would carry, and they are the Opbox equivalent of the SDS harvest.",
+    "closed_unions": {
+      "Intent": [
+        "success",
+        "info",
+        "warning",
+        "danger",
+        "neutral"
+      ],
+      "ButtonVariant": [
+        "primary",
+        "success",
+        "secondary",
+        "ghost",
+        "destructive"
+      ],
+      "ButtonSize": [
+        "default",
+        "large"
+      ],
+      "ParamType": [
+        "string",
+        "decimal",
+        "integer",
+        "boolean",
+        "date",
+        "enum",
+        "ref",
+        "array"
+      ]
+    },
+    "button_props": [
+      "variant",
+      "size",
+      "icon (ReactNode)",
+      "loading (boolean)",
+      "blockedReason (string)"
+    ],
+    "_comparison_to_sds": "Opbox's Button takes its icon as a PROP (`icon?: React.ReactNode`), like SDS's NavigationButton and unlike SDS's Button, which takes icons as positional children. Third system, third answer to the same question - which is the F1 finding holding on a system none of the three authors shared."
+  },
+  "_what_this_is_not": [
+    "A register. Nothing was written into the Opbox repo and no ComponentRecord was minted; this is the read that a register would be built from.",
+    "A judgement that the deliverable is poor. It is unusually good - the rules are WRITTEN DOWN, which is what made checking them possible at all. Most systems do not get this far.",
+    "Complete. 25 documentation pages, 197 routes of transformation notes and six SVG specimens were not read; three rules of seven were checked because those three are the ones a file can settle."
+  ],
+  "vendored": {
+    "_why": "The four files every finding below rests on are copied into vendor/opbox/ so the audit is RE-DERIVED by a test rather than quoted by one. Without them the audit is prose about a system this repository cannot see, which is the failure it reports.",
+    "_not": "Not a fork and not a dependency. Read-only bytes, unmodified, for evidence. Nothing here is built, published, or written back to Opbox.",
+    "from": "~/Projects/Opbox/design-deliverables/2026-07-24/{opbox-deliverables,opbox-figma-kit}.zip",
+    "files": {
+      "README.figma-kit.md": "b69c1a8796f1904052fbfe5f66d74e08775e360edbe54232c49892026e547164",
+      "opbox.css": "82e26cf70626bca8d900a4872074e00adad9e32cec306c76040156934e809f42",
+      "tokens.geist.css": "63b8ebc9d2888e93c23f6d0dab5153350d6ac4728bf0bac5c43dec04fab3931b",
+      "tokens.css": "c6c3280e59db412bc16ba0ed10d7cf86fd79a80891a353e77b921260278b5078"
+    },
+    "guard": "site-factory/tests/skills.test.js :: \"the Opbox audit re-derives from the vendored bytes\". Both findings were seeded in the FIXED direction and the guard failed on each; the seeds were restored from a copy and the digest above re-checked."
+  }
+}

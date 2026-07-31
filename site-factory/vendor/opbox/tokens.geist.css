@@ -1,0 +1,178 @@
+/* ============================================================================
+   Opbox Design System — tokens.geist.css (Geist Edition)
+   Drop-in replacement for kit/tokens.css: SAME semantic token names,
+   values re-sourced from Vercel's Geist design system (vercel.com/design.md).
+
+   Doctrine: Palantir is the operating model; Geist is the material.
+   - Keep our names → every existing component/spec keeps working.
+   - Ruling 1: ink acts (--action), blue selects (--accent).
+   - Ruling 2: intents on Geist scales (step recipe: 100 tint / 400 border /
+     700 solid / 900 text).
+   - Dark theme = Geist dark values under .dark (mechanism unchanged).
+
+   Requires the Geist fonts: `npm i geist` then wire GeistSans/GeistMono
+   (first-party Next.js integration) or self-host.
+   ========================================================================== */
+
+@layer base {
+  :root {
+    /* ==== Structure (Geist backgrounds & grays) =========================== */
+    --bg: #ffffff;                    /* background-100 */
+    --surface: #fafafa;               /* background-200 — subtle separation only */
+    --fg: #171717;                    /* gray-1000 — primary text */
+    --muted: #4d4d4d;                 /* gray-900 — secondary text */
+    --disabled: #8f8f8f;              /* gray-700 — disabled text */
+    --border: rgba(0,0,0,.08);        /* gray-alpha-400 — default border */
+    --border-strong: rgba(0,0,0,.21); /* gray-alpha-500 — hover border */
+    --hover: rgba(0,0,0,.05);         /* gray-alpha-100 — row/ghost hover wash */
+
+    /* ==== Ruling 1: ink acts, blue selects ================================ */
+    --action: #171717;                /* solid primary-button fill (ink) */
+    --action-fg: #ffffff;
+    --accent: #006bff;                /* blue-700 — interactive/selected/link/focus */
+    --accent-deep: #0059ec;           /* blue-800 — hover */
+    --accent-soft: #f0f7ff;           /* blue-100 — selection tint */
+    --ring: #006bff;
+
+    /* ==== Ruling 2: intents on Geist scales =============================== */
+    --success: #28a948;  --success-fg: #107d32;  --success-soft: #ecfdec;  --success-border: #b9f5bc;
+    --warning: #ffa600;  --warning-fg: #aa4d00;  --warning-soft: #fff6de;  --warning-border: #ffdc73;
+    --danger:  #fc0035;  --danger-fg:  #d8001b;  --danger-soft:  #ffeeef;  --danger-border: #ffd7d6;
+    --info:    #006bff;  --info-fg:    #0059ec;  --info-soft:    #f0f7ff;  --info-border: #cae7ff;
+
+    /* ==== Chart categorical palette (order fixed; §20 rules unchanged) ==== */
+    --chart-1: #006bff;  /* blue-700   */
+    --chart-2: #a000f8;  /* purple-700 */
+    --chart-3: #00ac96;  /* teal-700   */
+    --chart-4: #ffa600;  /* amber-600  */
+    --chart-5: #f22782;  /* pink-700   */
+    --chart-6: #8f8f8f;  /* gray-700   */
+
+    /* ==== Entity hues (EntityIcon + graph edges ONLY) ===================== */
+    --hue-entity: #006bff;      --hue-stakeholder: #48aeff;  --hue-matter: #f22782;
+    --hue-share-class: #ffa600; --hue-holding: #ff9300;      --hue-convertible: #00ac96;
+    --hue-vesting: #a000f8;     --hue-submission: #8f8f8f;   --hue-portal: #006bff;
+    --hue-invoice: #28a948;     --hue-ubo: #28a948;          --hue-document: #8f8f8f;
+    --hue-agent: #006bff;       --hue-workflow: #00ac96;
+
+    /* ==== Ruling 4: shape & depth (tonal-first) =========================== */
+    --radius: 6px;                    /* controls & cards */
+    --radius-overlay: 12px;           /* menus, modals, sheets */
+    --el0: 0 0 0 1px rgba(0,0,0,.08);                                   /* border only */
+    --el1: 0 2px 2px rgba(0,0,0,.04);                                   /* raised card */
+    --el2: 0 1px 1px rgba(0,0,0,.02), 0 4px 8px -4px rgba(0,0,0,.04),
+           0 16px 24px -8px rgba(0,0,0,.06);                            /* popover/menu */
+    --el3: var(--el2);                                                  /* sheet/inspector (+ scrim) */
+    --el4: 0 1px 1px rgba(0,0,0,.02), 0 8px 16px -4px rgba(0,0,0,.04),
+           0 24px 32px -8px rgba(0,0,0,.06);                            /* modal */
+
+    /* ==== Ruling 5: type ================================================== */
+    --font-sans: 'Geist', 'Geist Sans', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+    --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    /* Geist scale mapping (app defaults per Ruling 3: dense tier) */
+    --fs-display: 24px;   /* heading-24 */
+    --fs-heading: 20px;   /* heading-20 */
+    --fs-title: 16px;     /* heading-16 */
+    --fs-body: 13px;      /* copy-13 / label-13 */
+    --fs-mono: 12px;      /* label-12-mono — RIDs, table meta */
+    --fs-kicker: 11px;    /* custom signature: uppercase mono, .06em tracking */
+
+    /* ==== Sizing (Ruling 3: small is the app default) ===================== */
+    --control-h: 32px;        /* app default (Geist small) */
+    --control-h-md: 40px;     /* portal comfortable tier / auth */
+    --row-h: 32px;            /* table rows, dense tier */
+
+    /* ==== Spacing (4px scale — shared DNA, unchanged) ===================== */
+    --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+    --sp-6: 24px; --sp-8: 32px; --sp-10: 40px; --sp-16: 64px;
+
+    /* ==== Motion (Geist) ================================================== */
+    --ease: cubic-bezier(0.175, 0.885, 0.32, 1.1);
+    --dur-state: 150ms; --dur-popover: 200ms; --dur-overlay: 300ms;
+
+    /* ==== Focus (Geist two-layer ring) ==================================== */
+    --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+
+    /* ==== shadcn-compat HSL channels (kept from v1.1 for legacy shadcn) === */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 9%;             /* #171717 */
+    --primary: 0 0% 9%;                /* ink primary per Ruling 1 */
+    --primary-foreground: 0 0% 100%;
+    --muted-foreground: 0 0% 30%;
+    --destructive: 350 100% 46%;       /* red-800 territory */
+    --input: 0 0% 92%;
+  }
+
+  /* ==== Dark theme — Geist dark values, same names, .dark on <html> ======= */
+  /* Values follow Geist's dark theme (/design.dark.md); mechanism per §03. */
+  .dark {
+    --bg: #0a0a0a;                    /* dark background-100 */
+    --surface: #000000;               /* dark background-200 */
+    --fg: #ededed;                    /* dark gray-1000 */
+    --muted: #a1a1a1;                 /* dark gray-900 */
+    --disabled: #6e6e6e;
+    --border: rgba(255,255,255,.14);  /* dark gray-alpha-400 */
+    --border-strong: rgba(255,255,255,.24);
+    --hover: rgba(255,255,255,.06);
+
+    --action: #ededed;                /* ink flips polarity: light fill, dark label */
+    --action-fg: #0a0a0a;
+    --accent: #52a8ff;
+    --accent-deep: #75b7ff;
+    --accent-soft: rgba(82,168,255,.14);
+    --ring: #52a8ff;
+
+    --success: #3dd25e; --success-fg: #62e77b; --success-soft: rgba(61,210,94,.14); --success-border: rgba(61,210,94,.36);
+    --warning: #ffb224; --warning-fg: #ffcb47; --warning-soft: rgba(255,178,36,.14); --warning-border: rgba(255,178,36,.36);
+    --danger:  #ff5468; --danger-fg:  #ff7a88; --danger-soft:  rgba(255,84,104,.14); --danger-border: rgba(255,84,104,.36);
+    --info:    #52a8ff; --info-fg:    #75b7ff; --info-soft:    rgba(82,168,255,.14); --info-border: rgba(82,168,255,.36);
+
+    --chart-1: #52a8ff; --chart-2: #bf7af0; --chart-3: #2dd4bf;
+    --chart-4: #ffb224; --chart-5: #f75f8f; --chart-6: #a1a1a1;
+
+    /* dark elevation: tonal-first — surfaces lighten, shadows drop blur (§03/§04) */
+    --el0: 0 0 0 1px rgba(255,255,255,.14);
+    --el1: 0 0 0 1px rgba(255,255,255,.14);
+    --el2: 0 0 0 1px rgba(255,255,255,.14), 0 4px 8px -4px rgba(0,0,0,.5);
+    --el3: var(--el2);
+    --el4: 0 0 0 1px rgba(255,255,255,.17), 0 8px 16px -4px rgba(0,0,0,.6);
+
+    --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+
+    --background: 0 0% 4%;
+    --foreground: 0 0% 93%;
+    --primary: 0 0% 93%;
+    --primary-foreground: 0 0% 4%;
+    --muted-foreground: 0 0% 63%;
+    --input: 0 0% 16%;
+  }
+}
+
+/* ==== Base ================================================================ */
+@layer base {
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+  }
+  .font-mono, code, kbd { font-family: var(--font-mono); }
+  ::selection { background: var(--accent-soft); }
+  :focus-visible { outline: none; box-shadow: var(--focus-ring); }
+}
+
+/* ==== Utilities =========================================================== */
+@layer utilities {
+  /* dot/grid backdrops: graph & DAG canvases ONLY (M7) */
+  .dot-bg  { background-image: radial-gradient(var(--border) 1px, transparent 1px); background-size: 22px 22px; }
+  .grid-bg { background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px); background-size: 28px 28px; }
+  .kicker  { font-family: var(--font-mono); font-size: var(--fs-kicker); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .fade-in { animation: fadeIn var(--dur-overlay) var(--ease) both; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in { animation: none !important; }
+  * { transition-duration: 0.01ms !important; }
+}

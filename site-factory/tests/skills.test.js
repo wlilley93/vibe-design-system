@@ -1119,3 +1119,78 @@ test('the Base axis reconciliation states a verdict per block and never flatters
     'no block diverges from Base at all, which would mean the vocabulary was inherited after ' +
     'all - re-measure before believing it');
 });
+
+// ---------------------------------------------------------------------------
+// The Opbox deliverable states seven design rules in prose and ships CSS that
+// breaks two of them. This guard RE-DERIVES both findings from the vendored
+// bytes rather than restating the audit, because an audit that only quotes
+// itself is the thing it is auditing: prose about enforcement, unenforced.
+//
+// The vendored files are a snapshot of somebody else's repository. This test
+// must therefore be able to say THE SUBJECT WAS FIXED, and it does - a finding
+// that stops reproducing fails LOUDLY with an instruction to re-read, not to
+// edit. Silently passing on a fixed subject would let the audit rot into a
+// claim about a system that no longer exists.
+test('the Opbox audit re-derives from the vendored bytes', () => {
+  const dir = path.join(__dirname, '..', 'vendor', 'opbox');
+  const audit = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'vendor',
+    'opbox-rules-audit.json'), 'utf8'));
+  const read = (f) => fs.readFileSync(path.join(dir, f), 'utf8');
+  const readme = read('README.figma-kit.md');
+  const geist = read('tokens.geist.css');
+  const css = read('opbox.css');
+
+  // The RULES must be present in the README, or the audit is measuring against a
+  // rule nobody wrote. This is the half that makes the finding a contradiction
+  // rather than an opinion about colour.
+  assert.match(readme, /Ink acts, blue selects/,
+    'the README no longer states the ink/blue rule; the audit measures against a rule ' +
+    'that has been withdrawn and must be re-read');
+  assert.match(readme, /blocked ≠ disabled/,
+    'the README no longer states the blocked-vs-disabled rule');
+  assert.match(readme, /in danger text/,
+    'the blocked rule no longer requires danger text');
+
+  // FINDING 1. The ink token is defined, and consumed nowhere.
+  assert.match(geist, /--action:\s*#171717/,
+    '--action is no longer #171717 in the Geist token set');
+  assert.match(geist, /--accent:\s*#006bff/,
+    '--accent is no longer #006bff in the Geist token set');
+  const actionUses = (css.match(/var\(--action\b/g) || []).length;
+  const primary = css.match(/\.btn-primary\s*\{[^}]*\}/);
+  assert.ok(primary, 'opbox.css no longer defines .btn-primary at all');
+  assert.match(primary[0], /background:\s*var\(--accent\)/,
+    'FIXED, PROBABLY: .btn-primary no longer fills with var(--accent). If it now uses ' +
+    'var(--action) the finding is CLOSED and this test should record that, not be deleted.');
+  assert.equal(actionUses, 0,
+    `var(--action) is now consumed ${actionUses} times in opbox.css. The ink token was ` +
+    'defined-and-unused when audited; if it is wired up the finding is CLOSED - re-read ' +
+    'the audit rather than relaxing this number.');
+
+  // FINDING 2. The blocked note is muted, where the rule says danger.
+  const note = css.match(/\.btn-blocked-note\s*\{[^}]*\}/);
+  assert.ok(note, 'opbox.css no longer defines .btn-blocked-note');
+  assert.match(note[0], /color:\s*var\(--muted\)/,
+    'FIXED, PROBABLY: .btn-blocked-note no longer uses var(--muted). Check whether it now ' +
+    'uses a danger token, and close the finding if so.');
+  assert.doesNotMatch(note[0], /danger|--negative|--critical/,
+    '.btn-blocked-note now references a danger token, which closes the second finding');
+
+  // FINDING 3. Two token sets ship together and one has no --action at all, so
+  // which blue the system MEANS cannot be read off the artefact.
+  const old = read('tokens.css');
+  assert.doesNotMatch(old, /--action:/,
+    'tokens.css now defines --action, which would close the two-sources finding');
+  assert.match(old, /--accent:\s*#1677ff/,
+    'tokens.css no longer carries the pre-Geist blue');
+
+  // The audit must not have quietly turned into a pass. Every rule it records as
+  // broken has just been re-derived above; a row claiming otherwise is a rewrite.
+  const broken = audit.rules_checked.filter((r) => r.verdict.startsWith('BROKEN'));
+  assert.equal(broken.length, 2,
+    `the audit now records ${broken.length} broken rules and this test re-derives 2`);
+  for (const row of audit.rules_checked) {
+    assert.ok(row.evidence && row.source && row.why_it_matters,
+      `${row.rule.slice(0, 40)}: a row without evidence, source and consequence is an opinion`);
+  }
+});
