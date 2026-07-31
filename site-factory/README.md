@@ -52,12 +52,14 @@ brief ──▶ suggest.js ──▶ config (36 fields) ──▶ compose.js ─
 | `figma-nodes.json` | MEASURED: every page and component set in the master Figma file |
 | `figma-variables.json` | MEASURED: the `VDS Tokens` collection, per mode, paired to the style packs |
 | `figma-prompts.json` | MEASURED: the fingerprint of every prompt written into Figma verbatim |
+| `figma-variants.json` | MEASURED: every set's variant AXIS and values, and whether the code varies the same question |
+| `figma-draw.js` | Redraws the library from the register - deterministic, amends in place, binds variables by name |
 | `vendor/uber-base-*.json` | The Uber Base harvest (92 sets, 3,211 variants) and each set's tier |
 | `docs/FIGMA-MASTER-FILE.md` | What is on each Figma page, and the traps the file has sprung |
 | `docs/REFERENCES.md` | Every external system looked at, what was taken, and the three access blockers |
 | `docs/DESIGN-TWIN.md` | Why the Figma and code components are twins, and which direction automates |
 | `vendor/relume-*.json` | The Relume kit harvest (1,799 sets) and site-factory's coverage against it |
-| `tests/` | 98 tests, run by `make test-factory` |
+| `tests/` | 99 tests, run by `make test-factory` |
 
 ---
 

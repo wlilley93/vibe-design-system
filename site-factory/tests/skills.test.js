@@ -841,3 +841,82 @@ test('every block either binds figmaProperty to a real axis, or says why it cann
     'both outcomes must be present, or this test is only exercising one branch and the ' +
     'other could be broken without anything noticing');
 });
+
+test('the library generator is deterministic, refuses rather than guesses, and holds no value', () => {
+  // BREACH-0010's remedy, and the test that stops it recurring. All 46 component sets in
+  // the master file were drawn by scripts written inside agent turns and never committed:
+  // a grep for `createComponentSet`, `combineAsVariants` and `createComponent(` across the
+  // whole repository returned zero hits, so the file could be PROVEN correct and could not
+  // be REPRODUCED.
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const { buildLibraryScript, specsFor, FIGMA_FILE_KEY } = require('../figma-draw.js');
+  const variants = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'figma-variants.json'), 'utf8'));
+
+  const register = Object.keys(variants.blocks).sort().map((blockType, i) => ({
+    id: `CMP-${String(i + 1).padStart(4, '0')}`,
+    name: blockType[0].toUpperCase() + blockType.slice(1),
+    blockType,
+  }));
+
+  assert.equal(variants.file_key, FIGMA_FILE_KEY,
+    'the generator and the measurement must be about the same file');
+
+  // IT MUST PARSE. This is not paranoia: the first version emitted `'\n'` inside a
+  // template literal, so the template interpolated it into a REAL newline and the emitted
+  // script carried an unterminated string. Every other assertion here passed on that
+  // script, because they all read it as text. Caught only by reading the output before
+  // running it, which is not a check - it is luck.
+  new (require('node:vm').Script)(`(async () => {${buildLibraryScript(register, variants)}})()`);
+
+  // DETERMINISM. Two runs, byte-identical. A generator whose output moves on its own
+  // cannot be diffed, and a diff is the only way a reader sees what a redraw would change
+  // BEFORE it changes it.
+  const a = buildLibraryScript(register, variants);
+  const b = buildLibraryScript(register, variants);
+  assert.equal(a, b, 'two runs over the same inputs produced different bytes');
+
+  // Every registered block is drawn, and the axis is the one the file was MEASURED to
+  // have - not one the generator chose. Minting a new axis would make a redraw a redesign.
+  const specs = specsFor(register, variants);
+  assert.equal(specs.length, register.length, 'every registered block must get a spec');
+  for (const spec of specs) {
+    const measured = variants.blocks[spec.blockType];
+    assert.ok(measured.axes[spec.axis], `${spec.blockType}: axis ${spec.axis} is not measured`);
+    assert.deepEqual(spec.variants.map((v) => v.value), measured.axes[spec.axis],
+      `${spec.blockType}: the generator must draw the variants the file has`);
+    assert.equal(spec.nodeId, measured.nodeId);
+  }
+
+  // NO REALISATION. Every fill and radius is a variable NAME bound at run time, never a
+  // value. VDS S-2(4) forbids a realisation in a governance artefact, and this script is
+  // derived from one. A hex here would also mean a redraw could fight the token collection
+  // and win, which is the wrong-red failure that cost four inks and nine values.
+  const forbidden = [/#[0-9a-fA-F]{3,8}\b/, /\brgba?\(/, /\boklch\(/, /\bhsla?\(/];
+  for (const pattern of forbidden) {
+    const hit = a.match(pattern);
+    assert.equal(hit, null,
+      `the generated script contains ${hit && hit[0]}, which is a realisation. Bind a ` +
+      'variable by name instead.');
+  }
+
+  // The three behaviours that make a redraw safe, asserted against the emitted text
+  // because they are the difference between a remedy and a second way to lose the file.
+  assert.match(a, /await page\.loadAsync\(\)/,
+    "page.children is EMPTY until loadAsync in dynamic-page mode - a survey that skipped " +
+    'it once reported seven of ten pages empty and read as a wipe');
+  assert.match(a, /setSharedPluginData\('vds', 'componentId'/,
+    'without an identity stamp a second run cannot tell its own work from a hand-built ' +
+    'set, and would duplicate or overwrite something it did not make');
+  assert.match(a, /variant names moved/,
+    'a set whose axis moved must be REFUSED by name, not guessed: mapping the wrong old ' +
+    'variant onto the wrong new one silently rewrites a component into a different one');
+  assert.match(a, /refusals\.push/,
+    'a variable that does not resolve must be reported, never silently skipped - a filter ' +
+    'that silently dropped three of four tones once reported success');
+
+  // A throw rolls back the whole script, so refusals must be COLLECTED and returned. A
+  // partial redraw reporting success is the worst outcome available.
+  assert.ok(!/throw new Error/.test(a),
+    'the script must not throw: a throw rolls back every set it had already drawn');
+});
