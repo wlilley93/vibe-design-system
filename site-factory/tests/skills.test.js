@@ -1284,3 +1284,54 @@ test('the Blueprint measurement tallies match its own rows', () => {
     }
   }
 });
+
+// ---------------------------------------------------------------------------
+// The prompt kit measured against the block library. The value here is the
+// AXIS finding, not the coverage number, and this guard exists mostly to stop
+// the number being read as a score - 15 of 43 is not a mark out of 43 when the
+// corpus was never aiming at 43 sections.
+test('the prompt coverage is measured, not scored', () => {
+  const dir = path.join(__dirname, '..', 'vendor', 'grigoletto');
+  const doc = JSON.parse(fs.readFileSync(path.join(dir, 'prompts-vs-blocks.json'), 'utf8'));
+  const prompts = JSON.parse(fs.readFileSync(path.join(dir, 'prompts.json'), 'utf8'));
+  const variants = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'figma-variants.json'), 'utf8'));
+  const blocks = Object.keys(variants.blocks || variants);
+
+  // The denominator is the REAL block list, read from the manifest rather than
+  // written down here. A hand-copied denominator drifts the moment a block is
+  // added, and then the coverage claim is about a library that no longer exists.
+  assert.equal(doc.coverage.of, blocks.length,
+    `the measurement counts ${doc.coverage.of} block types and figma-variants.json has ` +
+    `${blocks.length}`);
+  const named = Object.keys(doc.coverage.hits);
+  assert.equal(named.length, doc.coverage.named_by_at_least_one_site_prompt,
+    'the named count disagrees with the hit table');
+  assert.equal(named.length + doc.coverage.named_by_none.length, blocks.length,
+    'named plus unnamed does not account for every block type');
+  for (const t of [...named, ...doc.coverage.named_by_none]) {
+    assert.ok(blocks.includes(t), `${t} is measured and is not a block type`);
+  }
+
+  // The corpus size must come from the corpus.
+  assert.equal(doc.corpus.total, prompts.length,
+    'the stated prompt count disagrees with the captured prompts');
+  assert.equal(doc.corpus.site, prompts.filter((p) => p.part === 'SITE prompts').length,
+    'the site-prompt count disagrees with the corpus');
+
+  // BOTH MATCHER ERRORS STAY ON THE RECORD. They are the most useful thing in
+  // the file: one keyword matched the word and never the thing, and one missed
+  // the thing for being too specific. A later reader trusting the middle of the
+  // table needs to know the ends were hand-checked and the middle was not.
+  assert.ok(doc.matcher.corrections_made.length >= 2,
+    'the record of the two matcher corrections has been dropped');
+  assert.ok(doc.matcher._limit, 'the matcher must state what it cannot do');
+  // The specific false positive must not creep back: `badge` matches App Store
+  // badges in four prompts and the component in none.
+  assert.ok(!Object.keys(doc.coverage.hits).includes('notificationbadge'),
+    'notificationbadge is named again - check whether a real notification badge ' +
+    'appeared in the corpus, or whether the bare "badge" keyword came back');
+
+  // And the finding must outrank the number.
+  assert.ok(/genre/i.test(doc.the_finding.claim) && /section/i.test(doc.the_finding.claim),
+    'the axis finding - genre versus section - has been lost from the claim');
+});

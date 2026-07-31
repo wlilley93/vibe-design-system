@@ -493,7 +493,7 @@
     }
   ],
   "vendored": {
-    "_why": "blueprint.txt is the Blueprint page copied verbatim out of Notion. Its digest is recorded here so the em-dash gate exempts it: the rule is about prose this repository AUTHORS, and rewriting somebody else's punctuation to satisfy a house style would misquote the source the whole measurement rests on. Edit it and the digest changes and the exemption lapses.",
+    "_why": "blueprint.txt is the Blueprint page copied verbatim out of Notion. The digest is recorded so the source is pinned and any edit to it is visible. NOTE: it is a .txt and the em-dash gate only walks .js/.md/.html/.json, so this entry pins the evidence but does not currently exempt anything - the exemption was assumed and then checked, and the honest word is PINNED, not exempted. It would start exempting the moment the file were renamed to .md.",
     "_how": "Fetched unauthenticated from Notion's own loadPageChunk API, paginated to exhaustion (225 blocks over 3 chunks). The page is public; no credential was used and none is needed.",
     "source": "https://app.notion.com/p/The-Design-System-Blueprint-396b0fd1c010816c8314c86209b3d48d",
     "files": {

@@ -199,16 +199,25 @@ test('no source file uses an em dash as prose punctuation', () => {
   // DIGEST recorded in an audit's `vendored.files`. Editing an exempt file changes its
   // digest, no audit vouches for it any more, and it falls straight back under the rule.
   // Adding a new one means recording it as evidence, which is the point.
+  //
+  // Read from vendor/*.json AND vendor/*/*.json. The first version read only the
+  // top level, so a voucher written beside the evidence it vouches for - which is
+  // where anyone would naturally put it - was silently ignored and the file it
+  // named still failed. A voucher nobody reads is the same defect as a gate
+  // nobody calls.
   const vouched = new Set();
   const vendorDir = path.join(ROOT, 'vendor');
-  if (fs.existsSync(vendorDir)) {
-    for (const e of fs.readdirSync(vendorDir)) {
-      if (!e.endsWith('.json')) continue;
+  const vouchersIn = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) { vouchersIn(full); continue; }
+      if (!e.name.endsWith('.json')) continue;
       let doc;
-      try { doc = JSON.parse(fs.readFileSync(path.join(vendorDir, e), 'utf8')); } catch { continue; }
+      try { doc = JSON.parse(fs.readFileSync(full, 'utf8')); } catch { continue; }
       for (const d of Object.values(doc?.vendored?.files || {})) vouched.add(d);
     }
-  }
+  };
+  if (fs.existsSync(vendorDir)) vouchersIn(vendorDir);
   const digest = (buf) => require('node:crypto').createHash('sha256').update(buf).digest('hex');
 
   (function walk(dir) {

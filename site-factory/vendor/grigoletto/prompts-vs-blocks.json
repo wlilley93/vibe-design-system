@@ -1,0 +1,102 @@
+{
+  "_what": "The GRIGOLETTO prompt kit (82 prompts) measured against site-factory's 43 block types.",
+  "_why": "Task #34 is \"give every block type its own prompt\". An 82-prompt corpus arrived. Before writing 43 prompts it is worth knowing what this one already answers - and the answer turns out to be that it is organised on a DIFFERENT AXIS, which is more useful than a gap list.",
+  "measured_at": "2026-07-31T12:26:49Z",
+  "corpus": {
+    "total": 82,
+    "site": 40,
+    "image": 24,
+    "copy": 17,
+    "genres": [
+      "1. SaaS / Digital Product",
+      "2. Portfolio / Personal Brand",
+      "3. Launch / Product Drop",
+      "4. Agency / Studio",
+      "5. E-commerce / Store",
+      "6. App / Mobile Showcase",
+      "7. Event / Conference",
+      "8. Luxury / Fashion / Jewelry"
+    ]
+  },
+  "the_finding": {
+    "claim": "THE CORPUS VARIES BY SITE GENRE; THE LIBRARY VARIES BY SECTION. They are not the same list at different resolutions - they are two different axes over the same space.",
+    "evidence": "The 40 site prompts are grouped under 8 genre headings (1. SaaS / Digital Product, 2. Portfolio / Personal Brand, 3. Launch / Product Drop, 4. Agency / Studio, ...), each prompt describing a WHOLE PAGE or a whole hero for that genre. site-factory's 43 types are SECTIONS, reusable across every genre. So a prompt is a column and a block is a row, and neither is a finer version of the other.",
+    "consequence": "The 43 prompts task #34 asks for is not this corpus reorganised. What this corpus supplies is the STYLE half - the cinematic DNA, the stack line, the reduced-motion clause, the \"swappable placeholder assets\" instruction - which is genre-independent and belongs in every one of the 43. What it cannot supply is the CONTRACT half: what a pricing block requires, which states it must carry, what its accessible name comes from. That is the register's job and always was."
+  },
+  "coverage": {
+    "named_by_at_least_one_site_prompt": 15,
+    "of": 43,
+    "hits": {
+      "hero": 23,
+      "cta": 19,
+      "footer": 6,
+      "gallery": 6,
+      "card": 5,
+      "features": 4,
+      "nav": 3,
+      "logolist": 2,
+      "pricing": 2,
+      "stats": 2,
+      "testimonials": 2,
+      "contact": 1,
+      "faq": 1,
+      "team": 1,
+      "timeline": 1
+    },
+    "named_by_none": [
+      "banner",
+      "checkbox",
+      "confirmdialog",
+      "divider",
+      "draggablelist",
+      "emptystate",
+      "facetstrip",
+      "formfield",
+      "inspector",
+      "masterdetail",
+      "menu",
+      "messagecard",
+      "notfound",
+      "notificationbadge",
+      "objecttable",
+      "objectview",
+      "pagecontrols",
+      "pagestate",
+      "pagination",
+      "progressbar",
+      "progresssteps",
+      "radio",
+      "segmentedcontrol",
+      "sidebar",
+      "switch",
+      "systembanner",
+      "toast",
+      "tooltip"
+    ],
+    "_the_shape_of_the_gap": "The 27 unnamed types are almost entirely APPLICATION primitives - checkbox, radio, switch, toast, tooltip, pagination, inspector, masterdetail, objectview, formfield, emptystate, facetstrip, segmentedcontrol, progressbar, progresssteps. The corpus is a MARKETING SITE kit and never claims otherwise, so this is not a shortfall in it. It is the same split found three times already in this programme: the marketing half of the library varies by arrangement and the application half varies by STATE, and no marketing-prompt corpus will ever reach the second."
+  },
+  "matcher": {
+    "_what": "A keyword match over each prompt's text and title. Not semantic, and hand-checked in both directions rather than trusted.",
+    "corrections_made": [
+      "notificationbadge was matched on \"badge\" and scored 4. Every one was a MARKETING badge - App Store and Google Play badges, a savings badge, a \"Limited drop\" badge - and not one was the component. The keyword was narrowed to \"notification badge\"/\"unread count\" and the type moved to the unnamed list. A word that matches but never means the thing is a false-positive generator.",
+      "team was matched on \"team member\"/\"team grid\" and scored 0, while prompt 4.2 (Full agency site) asks for a \"team/manifesto\" section. The keyword was widened and the type moved to the named list."
+    ],
+    "_limit": "Both errors were found by reading the hits, not by the instrument. There are 40 prompts and 43 types, so a full hand-check is feasible and was only done for the two suspicious counts. Treat the middle of this table as approximate and the two ends as checked."
+  },
+  "what_to_take": [
+    "The Style block, verbatim as a pattern: a fixed DNA line (dark/near-black, dramatic light, depth and parallax, giant serif, film grain) held constant across all 40 so the genre changes and the look does not. That is the same discipline as a token set, expressed as prose to a generator.",
+    "The reduced-motion clause and \"swappable placeholder assets\", which appear in the full-page prompts and are the two instructions that make generated output maintainable rather than a demo.",
+    "The three levels of tuning and the five-mistakes list from the Formula section, which is the only part of the kit that teaches rather than supplies."
+  ],
+  "_what_this_is_not": [
+    "A judgement of the kit. It does what it says: 82 prompts for cinematic marketing sites, and they are specific and well-built.",
+    "A coverage score. 16 of 43 is not a mark out of 43 - the corpus was never aiming at 43 sections."
+  ],
+  "vendored": {
+    "_why": "prompts.json holds all 82 prompts quoted EXACTLY as written. Its digest is vouched so the em-dash gate exempts it: rewriting somebody else's punctuation to suit a house style would make every prompt in this repository a paraphrase of the one they actually shipped.",
+    "source": "https://app.notion.com/p/Kit-Cinematic-Websites-with-AI-392b0fd1c01081fb8ad6c388b81ce4b3",
+    "files": {
+      "prompts.json": "e53bc6ffca9afa8823f9577be792aad412d90580eababde4d486b94578604b03"
+    }
+  }
+}
