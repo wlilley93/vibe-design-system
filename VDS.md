@@ -786,7 +786,7 @@ unrepresentable rather than invalid. Where a rule can be made structural it is m
 structural, because a rule enforced at runtime is a rule that can be reached with the check
 disabled.
 
-**S-14A(3)** All eleven proof kinds at S-7(5) are implemented. `unimplemented_because` is kept on
+**S-14A(3)** All twelve proof kinds at S-7(5) are implemented. `unimplemented_because` is kept on
 the type rather than deleted: a kind that later has to be withdrawn must record WHY, per kind,
 rather than disappearing from a match arm, and the difference between work and a dependency is
 what tells a reader which it is. What remains unbuilt is a pin GENERATOR: `token_pin` checks a

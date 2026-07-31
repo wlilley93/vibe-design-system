@@ -1268,3 +1268,87 @@ fn doctor_reports_a_defective_log_rather_than_counting_the_file() {
         .says("DEFECTIVE DECISION-0001")
         .says("basis is empty");
 }
+
+/// THE PROSE COUNT MUST AGREE WITH THE ENUM, and this test exists because it has
+/// now failed to twice.
+///
+/// `README.md` records the first instance in its own body: the kind table "said
+/// ten kinds, seven implemented, and named `contrast`, `parity` and `token_pin`
+/// as unbuilt. All three had been built and were being run daily; `screen_parity`
+/// was missing from the table altogether." The remedy applied then was a sentence
+/// telling the reader to run `vds proof --list` instead. That is advice, and
+/// advice does not hold a number.
+///
+/// So the count drifted a second time when `geometry` was enacted at VDS.md
+/// S-7(5) on 2026-07-31: the table listed twelve rows while S-14A(3) one page
+/// below said "All eleven proof kinds at S-7(5) are implemented", and
+/// `ProofKind::ALL` held eleven variants against a statute that named twelve.
+///
+/// The general ratio is settled and is not this test's to restate: prose is not
+/// enforcement. A statement about the code that only a person can check is a
+/// statement that goes stale silently, and the specification's own S-7(2)(2)
+/// makes the same point about proofs. This is the smallest instrument that makes
+/// the two halves impossible to separate: the numeral in the documents is read
+/// from the documents, the number of kinds is read from the enum, and they are
+/// compared.
+///
+/// It deliberately does NOT check the twelve-row table in S-7(5) itself. Counting
+/// rows in a markdown table by regular expression is a second instrument that can
+/// be wrong, and a guard whose own reading is unreliable is worse than none: it
+/// would eventually be silenced rather than fixed.
+#[test]
+fn the_documents_and_the_enum_agree_on_how_many_proof_kinds_there_are() {
+    use vds_core::ProofKind;
+
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let n = ProofKind::ALL.len();
+    let spelled = match n {
+        10 => "ten",
+        11 => "eleven",
+        12 => "twelve",
+        13 => "thirteen",
+        14 => "fourteen",
+        other => panic!(
+            "{other} proof kinds, and this test cannot spell that. Add the word rather than \
+             relaxing the check: the whole point is that a human number and a machine number \
+             are held together, and a check that gives up when it is surprised is a check \
+             that reports nothing at the moment it matters."
+        ),
+    };
+
+    // Each claim is (file, the sentence that carries the count). The sentence is
+    // matched in full rather than the bare numeral, because "twelve" appears in
+    // prose that has nothing to do with the registry and a bare-word search would
+    // pass on the wrong sentence.
+    let claims: [(&str, String); 3] = [
+        (
+            "VDS.md",
+            format!("All {spelled} proof kinds at S-7(5) are implemented"),
+        ),
+        (
+            "README.md",
+            format!("**{} proof kinds are a closed registry**", {
+                let mut c = spelled.chars();
+                c.next()
+                    .map(|f| f.to_uppercase().collect::<String>() + c.as_str())
+                    .unwrap_or_default()
+            }),
+        ),
+        ("README.md", format!("**All {spelled} are implemented**")),
+    ];
+
+    for (file, sentence) in &claims {
+        let path = root.join(file);
+        let text = std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+        assert!(
+            text.contains(sentence.as_str()),
+            "{file} does not carry {sentence:?}.\n  `ProofKind::ALL` holds {n} kinds. If a \
+             kind was just added or withdrawn, the documents have not been told, and the \
+             count in them is now wrong in the direction nobody notices: prose that agrees \
+             with the code is invisible, prose that does not is indistinguishable from prose \
+             that does until somebody counts.\n  This has happened twice. README.md records \
+             the first instance in its own body."
+        );
+    }
+}
