@@ -93,8 +93,91 @@
   },
   "their_own_ceiling": "docs/22-generality.md: no library in the repo is captured past 11.9%, and they say so - \"Nobody has run a component set large enough to hit\". Any claim that this is a working general extractor is wider than their own evidence.",
   "_what_this_is_not": [
-    "A code review. Nothing here judges the implementation; it counts what is in the corpus.",
-    "A verdict on the fork. SUBMISSION-VDS-008 is with the bench; this is evidence for it, not an argument.",
-    "Complete. 9137 lines of emitter, the parity differ and the dashboard were not read, only measured by size."
-  ]
+    "A code review. Nothing here judges the implementation; it reads the schema, the differ, the emitter refusals and the gates, and counts what the corpus uses.",
+    "A verdict on the fork. SUBMISSION-VDS-008 is with the bench; this is evidence for it.",
+    "Exhaustive even now. The dashboard, the 55 figma-sync scripts, the computed-style spike and 9137 lines of emitter BODY are still unread. What is read is the CONTRACT SURFACE: the schema, the four mechanisms above, and every number quoted."
+  ],
+  "_depth_note": "FIRST PASS counted the corpus and said so: \"9137 lines of emitter, the parity differ and the dashboard were not read, only measured by size\". This pass reads them. The distinction that runs through everything below is SCHEMA CAPABILITY versus CORPUS USAGE - the format can express far more than the 51 shipped contracts use, and quoting the schema as if it were the evidence is how this repository gets over-described.",
+  "schema_vs_corpus": {
+    "_what": "The contract schema models much more than the corpus exercises. Both numbers matter and only one is evidence.",
+    "required_fields": [
+      "id",
+      "name",
+      "version",
+      "description",
+      "semantics",
+      "props",
+      "anatomy",
+      "anchors"
+    ],
+    "rows": [
+      {
+        "field": "semantics.element",
+        "schema": "a CLOSED union of 27 HTML elements (button, a, input, hr, kbd, fieldset ...)",
+        "corpus": "used",
+        "vds": "VDS has NO equivalent. SUBMISSION-VDS-005 asks exactly this - where the primitive floor sits for the composition proof - and is pending. They answered it by ENUMERATION, which is a real answer and one the bench should see."
+      },
+      {
+        "field": "semantics.roleByProp / elementByProp",
+        "schema": "the ARIA role and the HTML element may each vary BY PROP, via a prop name and a value map",
+        "corpus": "not exercised in the 51",
+        "vds": "VDS has no way to say \"this is a button when `as` is button and an anchor when it is link\". A genuine capability gap, and the mechanism is small."
+      },
+      {
+        "field": "events[].toggles",
+        "schema": "{prop, between:[a,b], aria: expanded|checked|pressed|selected} - a declarative toggle naming the ARIA attribute it drives",
+        "corpus": "3 of 51 carry events at all",
+        "vds": "VDS records keyboard contract prose. This is the same fact made checkable, and it is the shape that would have caught Opbox's blocked-versus-disabled defect."
+      },
+      {
+        "field": "a11y",
+        "schema": "exactly three optional scalars: focusVisible (bool), minHitArea (number), contrast (AA|AAA)",
+        "corpus": "49 of 51 carry it",
+        "vds": "VDS carries role, accessibleNameSource, keyboard[] and contrastFloors[] with basis and scope. CONFIRMED as filed in SUBMISSION-VDS-008: BREACH-0001 (a control boundary at 1.15:1 across five themes) is invisible to three scalars, because none of them names a PAIR of colours or a scope."
+      },
+      {
+        "field": "anatomy",
+        "schema": "a part tree with slots, nested component instances and repeated collections (docs/16)",
+        "corpus": "ONE flat part named `root`, in all 51",
+        "vds": "the correction recorded in the first pass, now sharper: the tree exists in the SCHEMA and is unused in the CORPUS. My submission cited the tree as evidence; the schema supports the citation and the shipped work does not."
+      }
+    ]
+  },
+  "four_mechanisms_worth_taking": [
+    {
+      "name": "THE SYNC BOUNDARY, stated as a rule",
+      "what": "docs/16: \"The contract carries only canvas-expressible facts ... The contract will never carry hooks, event handlers, business logic, data fetching, side effects. Not not-yet - never, by design. Code is allowed to be arbitrarily richer than the canvas; the sync surface is capped at what a Figma component set can express, because that is the largest surface on which a DETERMINISTIC round trip is possible.\"",
+      "why": "This is the clearest statement of the twin problem anyone in this programme has written, including me. It is also directly load-bearing on SUBMISSION-VDS-011: if the sync surface is capped at what a component set expresses, then a code module of variant exports is OUTSIDE the boundary by construction, and the question of what its coordinate is may dissolve rather than need deciding."
+    },
+    {
+      "name": "FINDINGS CLASSIFIED ahead / behind / mismatch, per SURFACE",
+      "what": "parity/diff.ts: every finding carries {surface: code|figma|figma-tokens, classification: ahead|behind|mismatch, subject, detail, remedy, proposedPatch?}. Always contract-versus-surface, never surface-to-surface.",
+      "why": "VDS parity findings say expected and actual. They do not say WHICH SIDE MOVED. \"The code is ahead of the contract\" and \"the code is behind it\" are different jobs for different people, and one of them is usually an amendment rather than a fix. Cheap to adopt and it costs no design value."
+    },
+    {
+      "name": "GOLDEN BYTES PER EMITTED FILE",
+      "what": "evals/golden.json maps 265 emitted file paths to a sha256 each. Not a whole-run digest: a per-file one.",
+      "why": "figma-draw is gated on two runs being byte-identical, which catches non-determinism and NOT an intended change slipping through unreviewed. A per-file golden turns every emitter change into a reviewable diff. This is strictly stronger than what this repository does."
+    },
+    {
+      "name": "REFUSALS THAT NAME THE COMPOSITION RULE",
+      "what": "emit-react.ts refuses by name: a part whose component ref creates a cycle (\"a contract cannot compose itself\"), structured values fixed in anatomy, and layoutByProp restyling a component instance (\"the child contract owns its layout\").",
+      "why": "Each is a composition rule expressed as a refusal at emit time rather than as prose in a doc. VDS S-7(5) composition checks membership of may_use; it does not check for cycles, and nothing here would catch a block composing itself."
+    }
+  ],
+  "their_own_evidence_re_read": {
+    "parity_report": {
+      "findings": 0,
+      "summary": {
+        "total": 0,
+        "acknowledged": 0,
+        "pending": 0,
+        "bySurface": {}
+      },
+      "_reading": "total 0, and the acknowledgement baseline is an EMPTY array. So the differ, which is the most interesting instrument in the repository, has no findings to show. That is consistent with what they say themselves and it means the classification model above is a design worth taking and NOT a mechanism proven in use."
+    },
+    "baseline_entries": 0,
+    "coverage_ceiling": "no library captured past 11.9%, their own words, docs/22-generality.md",
+    "_fairness": "They state every one of these limits themselves, in committed docs, in numbers. That is rarer than the tooling and it is the reason this repository is worth reading at all."
+  }
 }

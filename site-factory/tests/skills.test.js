@@ -1819,4 +1819,38 @@ test('the ds-contracts harvest is internally consistent', () => {
   // And the subject is pinned, because the clone it was taken from is disposable.
   assert.match(h.source.commit, /^[0-9a-f]{40}$/,
     'the harvest does not pin the commit it was measured at, so it describes no fixed subject');
+
+  // THE DEPTH PASS. The first harvest counted the corpus and SAID it had not
+  // read the schema, the differ or the emitters. The second read them, and the
+  // distinction it turns on must survive: SCHEMA CAPABILITY is not CORPUS
+  // USAGE, and quoting the schema as evidence is how a subject gets
+  // over-described - which is exactly the mistake the first pass made about the
+  // anatomy tree.
+  assert.ok(h.schema_vs_corpus, 'the schema-versus-corpus reading has been dropped');
+  for (const row of h.schema_vs_corpus.rows) {
+    assert.ok(row.schema && row.corpus && row.vds,
+      `${row.field}: a row must say what the SCHEMA models, what the CORPUS uses, and what ` +
+      'VDS has. A row missing one of the three is an assertion about a capability nobody checked.');
+  }
+  // The anatomy row is the one that corrected me, and it must keep both halves.
+  const anatomy = h.schema_vs_corpus.rows.find((r) => r.field === 'anatomy');
+  assert.ok(anatomy && /tree/i.test(anatomy.schema) && /root/.test(anatomy.corpus),
+    'the anatomy row no longer distinguishes the tree the schema models from the one flat ' +
+    'part the corpus ships, which is the distinction that corrected my own submission');
+
+  // The mechanisms must each say WHY, not just what. A list of features is a
+  // brochure; a list of features with a reason is a decision.
+  assert.ok(h.four_mechanisms_worth_taking.length >= 4);
+  for (const m of h.four_mechanisms_worth_taking) {
+    assert.ok(m.what && m.why, `${m.name}: a mechanism recorded without a reason to take it`);
+  }
+
+  // And their parity report must still be reported as EMPTY. It is the evidence
+  // that the most interesting instrument there is a design and not a proven
+  // mechanism, and it is the kind of fact that quietly gets dropped.
+  assert.equal(h.their_own_evidence_re_read.parity_report.findings, 0,
+    'their parity report now has findings, so the differ has been exercised and the ' +
+    '"design worth taking, not a mechanism proven in use" reading needs revisiting');
+  assert.ok(h._what_this_is_not.some((l) => /still unread|Exhaustive/i.test(l)),
+    'the harvest no longer states what it has still not read');
 });
