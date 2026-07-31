@@ -153,7 +153,7 @@ jobs:
           ./target/release/vds proof --all --root examples/storefront --invoked-by ci_workflow --allow-vacuous
           for kind in register_completeness reconciliation composition contrast states \
                       parity retirement_drain ledger_staleness no_stored_values \
-                      screen_parity; do
+                      screen_parity geometry; do
             ./target/release/vds proof "$kind" --root examples/storefront --invoked-by ci_workflow
           done
           # The tenth kind. The pin is regenerated from a response committed

@@ -1,0 +1,33 @@
+id: GEO-0001
+surfaceKind: radius
+status: registered
+declaredWindowDays: 30
+# OLDEST FIRST. The bound in force is the LAST entry and is DERIVED, never stored
+# beside the history: a second copy of a number already written down is a copy
+# that drifts, and nothing would say which of the two governs.
+#
+# THE HISTORY IS ILLUSTRATIVE. THE MEASUREMENT IS NOT. Like every other record in
+# this example, the three entries below are authored to show the shape of a real
+# one. What is NOT authored is the reading they are checked against:
+# `.vds/ledgers/geometry.yaml` is produced by `vds ledger geometry` from
+# `app/globals.css`, and it currently finds 5 radius declarations, all of them
+# taking their shape from `var(--sf-radius)`. So this bound of 0 is met by a
+# number nobody typed, and adding one hardcoded radius to the stylesheet turns
+# this row red without anything else changing. That is the whole demonstration.
+#
+# The first entry is a BASELINE and deliberately does not count as a reduction
+# (VDS S-7A(2)): a project must not be able to satisfy the direction rule by
+# registering a number and then doing nothing.
+history:
+- at: 2026-05-04T09:00:00Z
+  bound: 3
+  because: 'Baseline. Three of the surfaces in this example set a corner radius of their own rather than taking it from the token layer.'
+- at: 2026-06-08T09:00:00Z
+  bound: 1
+  because: 'The card and the notice were given their radius from --sf-radius, which took two hand-rolled containers with them.'
+- at: 2026-07-13T09:00:00Z
+  bound: 0
+  because: 'The last one went when the badge was folded onto the shared surface. A consolidation rather than a radius change, which is the usual way this number falls: work done for another reason takes shape debt with it.'
+basis:
+- ACT-VDS-001:s7a
+notes: 'ONE BOUND PER SURFACE KIND (VDS S-7A(3)). The other three shapes - boundary weight, density, type scale - carry NO bound here, and `vds geometry list` says so on every run rather than leaving a reader to infer coverage from a green result. That is honest rather than tidy: this example demonstrates the kind, and a project declaring four bounds it was not driving would demonstrate the defect the kind exists to catch. Density is MEASURED here (one declaration, compliant) and unbounded, which is exactly the state geometry W1 reports when a measured shape has non-compliant surfaces nobody has undertaken to reduce.'

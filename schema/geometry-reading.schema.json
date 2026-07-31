@@ -4,6 +4,7 @@
   "description": "A generated reading of the shipped artefact's geometry.\n\nA ledger under VDS S-4(2): generated, never hand-edited, and byte-reproducible by the named command. It is an INPUT to the proof and never a record of it.",
   "type": "object",
   "required": [
+    "contentDigest",
     "generatedBy",
     "kinds",
     "readFrom",
@@ -11,6 +12,10 @@
     "takenAt"
   ],
   "properties": {
+    "contentDigest": {
+      "description": "A digest over every OTHER field of this reading.\n\n# Why the proof is worthless without it\n\n`geometry` reads this file as its ONLY measurement. Without a digest, a bound that is being exceeded can be brought back inside it by editing one integer in a YAML file, and the proof flips from failed to passed with no surface having changed and nothing anywhere reporting it. That is the defect VDS exists to catch, and the twelfth kind shipped with it: the first eleven ledgers all carry a digest and this one did not.\n\nIt is not a security control and does not pretend to be one. An author who edits the reading can recompute the digest in the same act, exactly as VDS S-8(5) records for the enforcement lock. What it removes is the SILENT edit: a number changed by hand and left, which is the realistic failure and the one that leaves no trace.\n\n`taken_at` is INSIDE the digest, unlike `generated_at` on the figma ledger. There the timestamp is metadata and excluding it keeps a re-pull of an unchanged file from moving a digest a proof cites. Here it is EVIDENCE: R3 measures the bound's window from it, so moving it changes what the proof concludes, and a digest that did not cover it would leave the one field with the most leverage unwitnessed.",
+      "type": "string"
+    },
     "doesNotCover": {
       "description": "What the reader knows it did not cover, in the reader's own words.\n\nRequired to be stated, because a census that does not publish its own blind spots reads as complete.",
       "default": [],

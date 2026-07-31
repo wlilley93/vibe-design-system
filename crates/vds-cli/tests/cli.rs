@@ -357,6 +357,7 @@ fn proof_list_names_the_whole_closed_registry() {
         "ledger_staleness",
         "no_stored_values",
         "screen_parity",
+        "geometry",
     ] {
         run.says(kind);
     }
@@ -1339,8 +1340,8 @@ fn the_documents_and_the_enum_agree_on_how_many_proof_kinds_there_are() {
 
     for (file, sentence) in &claims {
         let path = root.join(file);
-        let text = std::fs::read_to_string(&path)
-            .unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+        let text =
+            std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
         assert!(
             text.contains(sentence.as_str()),
             "{file} does not carry {sentence:?}.\n  `ProofKind::ALL` holds {n} kinds. If a \

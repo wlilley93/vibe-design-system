@@ -11,6 +11,10 @@ register = ".vds/register"
 # ARRANGEMENT it requires. A count of content panes and a list of region names;
 # never a width, because a width is a realisation (VDS S-2(4)).
 screens = ".vds/screens"
+# The geometry bounds (VDS S-7A): one record per SURFACE KIND, holding how many
+# surfaces of that shape may fail to comply AND the direction that number must
+# travel. A count, never a radius: a radius is a realisation (VDS S-2(4)).
+geometry = ".vds/geometry"
 warrants = ".vds/warrants"
 proofs = ".vds/proofs"
 pins = ".vds/pins"

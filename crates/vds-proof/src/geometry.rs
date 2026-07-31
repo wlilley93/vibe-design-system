@@ -68,6 +68,11 @@
 //!   R9  the reading's buckets do not partition its own population, or the
 //!       bound's history is out of order. An input that does not add up cannot
 //!       be compared against anything.
+//!   R10 the reading does not match its own content digest. Fatal, and NO row is
+//!       enforced against it. This proof reads the reading as its only
+//!       measurement, so without it a bound being exceeded could be brought back
+//!       inside by editing one integer in a YAML file, flipping the proof from
+//!       failed to passed with no surface changed and nothing reporting it.
 //!   W1  the reading measures a surface kind no bound record claims. Shape that
 //!       is being counted and that nobody has undertaken to reduce.
 //!
@@ -97,6 +102,8 @@ const RULE_NO_READING: &str = "VDS S-7A(4) geometry R6: nothing was measured";
 const RULE_UNDECIDED: &str = "VDS S-7A geometry R7: the undecided could cross the bound";
 const RULE_DUPLICATE_KIND: &str = "VDS S-7A(3) geometry R8: two bounds for one surface kind";
 const RULE_INPUT_INCOHERENT: &str = "VDS S-7A geometry R9: an input that does not add up";
+const RULE_READING_EDITED: &str =
+    "VDS S-2(5)(4) geometry R10: the reading witnesses its own content";
 const RULE_UNCLAIMED_KIND: &str = "VDS S-7A(3) geometry W1: a shape nobody has undertaken";
 
 /// Stated on every run, passing or not.
@@ -160,7 +167,26 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
         run.input_file(&path)?;
     }
 
-    // R5 first, and once. A reading taken from a code model is not a weaker
+    // R10 BEFORE R5, because "what did this reading say" has to be answerable
+    // before "was it taken from an admissible source" means anything. An edited
+    // reading's `readFrom` is as untrustworthy as its counts.
+    let mut reading = reading;
+    if let Some(found) = reading.as_ref()
+        && let Some(why) = found.untrustworthy_because()?
+    {
+        run.fail(Violation::fatal(
+            project.rel(&vds_core::reading_path(project)),
+            RULE_READING_EDITED,
+            "a reading whose contentDigest matches its own content",
+            why,
+        ));
+        // Dropped entirely. Continuing with it would compare bounds against
+        // numbers this proof has just said it cannot rely on, and every row
+        // would carry a verdict derived from them.
+        reading = None;
+    }
+
+    // R5 next, and once. A reading taken from a code model is not a weaker
     // reading, it is a different subject, so every row that would be measured
     // against it is unmeasured rather than uncertain. Checking it per row would
     // print the same finding four times and let a reader think four things went
@@ -898,5 +924,78 @@ mod proof_tests {
         compliant(&h);
         let (_, text) = run_kind(&h, ProofKind::Geometry);
         assert!(text.contains("fourth design authority"), "{text}");
+    }
+}
+
+#[cfg(test)]
+mod reading_integrity_tests {
+    use crate::testing::{Harness, run_kind};
+    use vds_core::{EXIT_VIOLATION, ProofKind, ProofStatus, ReadFrom, SurfaceKind};
+
+    /// R10, and it is the rule that makes the other nine worth running.
+    ///
+    /// `geometry` reads the reading as its ONLY measurement. The seed here is
+    /// the realistic attack and it is not an attack at all: somebody opens the
+    /// YAML, sees a count over the bound, and edits the count. No surface
+    /// changes, no gate is touched, and before this rule the proof went from
+    /// failed to passed in silence.
+    #[test]
+    fn geometry_refuses_a_reading_that_was_edited_after_it_was_generated() {
+        let h = Harness::new();
+        h.geometry_bound(
+            SurfaceKind::Radius,
+            30,
+            &[("2026-06-01", 667), ("2026-07-20", 561)],
+        );
+        let path = h.geometry_reading(
+            "2026-07-31",
+            ReadFrom::ShippedStylesheet,
+            // 600 non-compliant against a bound of 561: failing, correctly.
+            &[(SurfaceKind::Radius, 900, 600, 0)],
+        );
+
+        // Confirm it really does fail BEFORE the edit, or the test proves that a
+        // passing thing still passes.
+        let (before, text) = run_kind(&h, ProofKind::Geometry);
+        assert_eq!(before.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("39 over the bound"), "{text}");
+
+        // The edit: 600 becomes 500, comfortably inside the bound.
+        let original = std::fs::read_to_string(&path).unwrap();
+        let edited = original.replace("nonCompliant: 600", "nonCompliant: 500");
+        assert_ne!(edited, original, "the seed did not change the reading");
+        std::fs::write(&path, &edited).unwrap();
+
+        let (after, text) = run_kind(&h, ProofKind::Geometry);
+        assert_eq!(
+            after.exit_code, EXIT_VIOLATION,
+            "an edited reading must not buy a pass: {text}"
+        );
+        assert_eq!(after.status, ProofStatus::Failed);
+        assert!(text.contains("edited after it was generated"), "{text}");
+        // And it must not report the ORIGINAL violation either. The proof no
+        // longer knows what the count is, and saying "39 over the bound" would
+        // be quoting a number it has just declared unreliable.
+        assert!(!text.contains("39 over the bound"), "{text}");
+        // No row enforced: nothing was measured.
+        assert_eq!(after.rows_enforced, 0, "{text}");
+    }
+
+    #[test]
+    fn an_unedited_reading_passes_r10_without_comment() {
+        let h = Harness::new();
+        h.geometry_bound(
+            SurfaceKind::Radius,
+            30,
+            &[("2026-06-01", 667), ("2026-07-20", 561)],
+        );
+        h.geometry_reading(
+            "2026-07-31",
+            ReadFrom::ShippedStylesheet,
+            &[(SurfaceKind::Radius, 900, 540, 0)],
+        );
+        let (outcome, text) = run_kind(&h, ProofKind::Geometry);
+        assert_eq!(outcome.status, ProofStatus::Passed, "{text}");
+        assert!(!text.contains("edited after it was generated"), "{text}");
     }
 }

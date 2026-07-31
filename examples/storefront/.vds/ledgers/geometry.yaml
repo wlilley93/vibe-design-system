@@ -1,0 +1,23 @@
+schemaVersion: 1
+generatedBy: vds ledger geometry
+takenAt: 2026-07-31T10:14:23Z
+readFrom: shipped_source
+sources:
+- app/globals.css
+kinds:
+- surfaceKind: radius
+  considered: 5
+  nonCompliant: 0
+  undecided: 0
+  sample: []
+- surfaceKind: density
+  considered: 1
+  nonCompliant: 0
+  undecided: 0
+  sample: []
+doesNotCover:
+- utility classes. A framework that composes shape from class names (`rounded-lg`, `p-4`) puts it in the markup, and this reader looks only at the stylesheet. On such a project the counts here are a floor and the reading needs its own generator.
+- inline style attributes and any shape set from JavaScript.
+- '`margin`, which positions a surface among its siblings rather than shaping it. Density here is the space a surface keeps inside itself.'
+- whether a referenced token holds a value the design system endorses. This reader establishes that a surface takes its shape FROM the system, never that the system's own value is right, which is not VDS's to say.
+contentDigest: sha256:6efa1d063485e9cbdd1e09ed1aa88660922372c619cb9fd3869e14ff1f160ef5

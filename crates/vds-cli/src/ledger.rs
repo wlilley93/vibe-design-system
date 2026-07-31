@@ -17,6 +17,14 @@ pub struct Args {
 enum Which {
     /// The declared surface: every screen matching `[surface] screen_globs`.
     Screens,
+    /// The SHAPE the shipped stylesheet gives its surfaces (VDS S-7A(4)).
+    ///
+    /// The input `geometry` measures a bound against, and the only thing that
+    /// makes the twelfth kind non-vacuous. It is a generator and not a hand
+    /// edit for the reason VDS S-4(2) gives: the reading is this proof's SOLE
+    /// measurement, so a hand-written one is a number nobody derived, and a
+    /// hand-EDITED one turns a bound being exceeded into a bound being met.
+    Geometry,
     /// Whether the workflow the lock names has ever actually concluded (BREACH-0011).
     ///
     /// D4 asks "is every gate invoked by CI". It read the lock's own declaration, then
@@ -142,6 +150,43 @@ pub fn run(ctx: &Context, args: &Args) -> Result<i32> {
             // Deliberately NOT an exit code. This command records; D4 judges. A generator
             // that also failed the build would make the record something people avoid
             // regenerating, which is how a ledger goes stale.
+            Ok(PASSED)
+        }
+        Which::Geometry => {
+            let reading = vds_scan::geometry::build(&project, vds_core::Timestamp::now())?;
+            let path = vds_core::write_reading(&project, &reading)?;
+            println!("wrote {}", project.rel(&path));
+            println!("  read:      {}", reading.sources.join(", "));
+            println!("  taken at:  {}", reading.taken_at);
+            println!("  from:      {}", reading.read_from);
+            if reading.kinds.is_empty() {
+                println!();
+                println!(
+                    "  NO SHAPE DECLARATION WAS FOUND AT ALL. That is a finding, not an \
+                     empty result: either the stylesheet sets no radius, boundary weight, \
+                     padding or type step anywhere, or this project composes shape from \
+                     utility classes in the markup, which this reader does not see. The \
+                     second is far more likely, and on such a project a bound declared \
+                     against this reading would be a bound over nothing."
+                );
+            }
+            for kind in &reading.kinds {
+                println!(
+                    "  {:16} {:>4} considered, {:>4} non-compliant, {:>4} undecided",
+                    kind.surface_kind.to_string(),
+                    kind.considered,
+                    kind.non_compliant,
+                    kind.undecided
+                );
+                for sample in kind.sample.iter().take(4) {
+                    println!("      {sample}");
+                }
+            }
+            println!();
+            println!("  Does NOT cover:");
+            for line in &reading.does_not_cover {
+                println!("    - {line}");
+            }
             Ok(PASSED)
         }
         Which::Screens => {

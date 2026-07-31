@@ -163,7 +163,7 @@ impl Harness {
         read_from: ReadFrom,
         kinds: &[(SurfaceKind, u32, u32, u32)],
     ) -> PathBuf {
-        let reading = GeometryReading {
+        let mut reading = GeometryReading {
             schema_version: vds_core::READING_SCHEMA_VERSION,
             generated_by: "vds ledger geometry".into(),
             taken_at: Timestamp::parse(format!("{taken}T00:00:00Z")).expect("a fixture date"),
@@ -180,7 +180,12 @@ impl Harness {
                 })
                 .collect(),
             does_not_cover: vec!["inline style attributes".into()],
+            content_digest: vds_core::Digest::of_text("placeholder"),
         };
+        // Computed rather than asserted, so every fixture is a reading the
+        // generator could really have produced. A fixture that carried a wrong
+        // digest would trip R10 in every test and hide whatever each one is about.
+        reading.content_digest = reading.compute_content_digest().expect("a digest");
         let project = self.project();
         vds_core::write_reading(&project, &reading).expect("a written reading")
     }

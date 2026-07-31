@@ -22,6 +22,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use vds_core::{Digest, Project, Result, Timestamp, VdsError, digest_rows, write_text_atomically};
 
+pub mod geometry;
 pub mod glob;
 pub mod jsx;
 pub mod library;

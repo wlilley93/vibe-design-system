@@ -50,6 +50,8 @@ const RULE_NO_STALENESS_TEST: &str = "VDS S-4(2) ledger_staleness R2: every ledg
      one decays with nothing to say so";
 const RULE_FIGMA_LEDGER: &str = "VDS S-4(2) ledger_staleness R3: the figma ledger is self-consistent, agrees with the file \
      the register names, and is not older than the records that read it";
+const RULE_GEOMETRY_READING: &str =
+    "VDS S-4(2) ledger_staleness R5: the geometry reading witnesses its own content";
 const RULE_FRAME_LEDGER: &str = "VDS S-4(2) ledger_staleness R4: the frame ledger is self-consistent, agrees with the file \
      the screen register names, and is not older than the screen records that read it";
 
@@ -96,6 +98,16 @@ pub const FRAME_LEDGER_NOTE: &str = "[frame-ledger] the frame ledger's staleness
      capture went DEEP ENOUGH: the ledger records the depth it derived and marks every reading \
      taken at the boundary, and `screen_parity` refuses to enforce those rows, which is the \
      furthest an offline test can go.";
+
+pub const GEOMETRY_LEDGER_NOTE: &str = "[geometry-reading] the geometry reading's staleness test settles two things and cannot \
+     settle the third. It settles that the reading is SELF-CONSISTENT (its content digest \
+     matches its contents, so it was not hand-edited) and that it is not OLDER than the \
+     geometry bounds measured against it. It cannot settle whether the SHIPPED ARTEFACT has \
+     changed since the reading was taken, because that needs the generator re-run against a \
+     build, and this proof does not build the subject. That last gap is why the reading carries \
+     `takenAt` and why `geometry` measures its window from that field rather than from the \
+     clock: a reading nobody regenerated reports the shape as it WAS, and the proof reading it \
+     should conclude what was true then, not what is true now.";
 
 pub const REACH_NOTE: &str = "what this run does NOT reach: this build holds one REGENERATING staleness test, the screens \
      ledger's. The figma ledger (R3) and the frame ledger (R4) have self-consistency tests \
@@ -197,6 +209,7 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
 
     let figma_rel = project.rel(&vds_figma::pull::ledger_path(&ctx.store()));
     let frame_rel = project.rel(&vds_figma::frames::ledger_path(project));
+    let geometry_rel = project.rel(&vds_core::reading_path(project));
 
     for rel in &ledgers {
         run.row(Verdict::Enforced);
@@ -218,6 +231,19 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
         if rel == &frame_rel {
             run.note(FRAME_LEDGER_NOTE);
             report_frame_ledger(&mut run, ctx, rel)?;
+            continue;
+        }
+
+        // R5. The geometry reading, added with the TWELFTH proof kind, and it
+        // needs an arm here more urgently than either of the two above: it is
+        // the SOLE measurement `geometry` reads, so a reading that went stale or
+        // was edited turns a bound being exceeded into a bound being met, with
+        // no surface changed. Without this arm it lands in R2's territory and
+        // fails as a ledger with no staleness test, which was the right answer
+        // until it had one.
+        if rel == &geometry_rel {
+            run.note(GEOMETRY_LEDGER_NOTE);
+            report_geometry_reading(&mut run, ctx, rel)?;
             continue;
         }
 
@@ -393,6 +419,61 @@ fn report_figma_ledger(run: &mut ProofRun, ctx: &ProofContext, rel: &str) -> Res
 }
 
 /// R4: everything about the frame ledger a local check can settle.
+/// R5: the geometry reading is self-consistent and not older than what reads it.
+fn report_geometry_reading(run: &mut ProofRun, ctx: &ProofContext, rel: &str) -> Result<()> {
+    let project = ctx.project;
+    let Some(reading) = vds_core::read_reading(project)? else {
+        // Listed in the directory and unreadable as a reading: R2's territory
+        // rather than R5's, and reported there.
+        return Ok(());
+    };
+
+    if let Some(why) = reading.untrustworthy_because()? {
+        run.fail(Violation::fatal(
+            rel.to_owned(),
+            RULE_GEOMETRY_READING,
+            "a geometry reading whose content digest matches its own contents",
+            why,
+        ));
+        return Ok(());
+    }
+
+    // A bound whose last entry is NEWER than the reading is a bound the reading
+    // has never seen. `geometry` R3 measures the window from the reading's
+    // moment, so a bound lowered after the reading was taken would be measured
+    // against a moment before it moved, and would read as not having moved.
+    // Reported here rather than there, because "your inputs are out of order" is
+    // a staleness fact and not a conformance one.
+    let mut newer: Vec<String> = Vec::new();
+    for located in ctx.store().read_geometry()? {
+        if let Some(current) = located.value.current()
+            && current.at.as_str() > reading.taken_at.as_str()
+        {
+            newer.push(format!("{} at {}", located.value.id, current.at));
+        }
+    }
+    if !newer.is_empty() {
+        run.fail(Violation::fatal(
+            rel.to_owned(),
+            RULE_GEOMETRY_READING,
+            format!(
+                "a geometry reading taken no earlier than every bound measured against it. This \
+                 one was taken at {}",
+                reading.taken_at
+            ),
+            format!(
+                "{} bound(s) moved after it: {}. `geometry` measures the direction rule from \
+                 the READING's moment, so a bound lowered after this reading was taken is \
+                 measured against a moment before it moved and reads as though it never did. \
+                 Regenerate the reading.",
+                newer.len(),
+                newer.join(", ")
+            ),
+        ));
+    }
+    Ok(())
+}
+
 fn report_frame_ledger(run: &mut ProofRun, ctx: &ProofContext, rel: &str) -> Result<()> {
     let project = ctx.project;
     let store = ctx.store();

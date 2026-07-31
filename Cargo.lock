@@ -882,6 +882,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "vds-core",
+ "vds-css",
  "vds-testkit",
  "walkdir",
 ]

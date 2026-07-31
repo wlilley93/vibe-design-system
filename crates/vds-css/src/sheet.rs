@@ -258,6 +258,14 @@ impl Resolution {
 #[derive(Debug, Clone)]
 pub struct Sheet {
     declarations: Vec<Declaration>,
+    /// Every NON-custom declaration, in source order.
+    ///
+    /// Deliberately not merged into `declarations`. That field and everything
+    /// derived from it (`scopes`, `themes`, `base`) mean "custom property", and
+    /// `contrast` reads all four; putting `border-radius` among them would add a
+    /// non-token to the palette discovery and change what a pinned gate
+    /// measures. `geometry` reads this one.
+    properties: Vec<Declaration>,
     /// Selector to the indices in `declarations` it owns, in source order.
     scopes: BTreeMap<String, Vec<usize>>,
     themes: Vec<Theme>,
@@ -286,6 +294,8 @@ impl Sheet {
         };
 
         let mut declarations: Vec<Declaration> = Vec::new();
+        // Non-custom declarations, kept apart from the palette. See `flush`.
+        let mut properties: Vec<Declaration> = Vec::new();
         let mut stack: Vec<Frame> = Vec::new();
         let mut anonymous_layers = 0usize;
         // Depth of braces that belong to a custom property's VALUE rather than
@@ -316,7 +326,14 @@ impl Sheet {
                         value_braces -= 1;
                         continue;
                     }
-                    flush(&scanned, &stack, buf_start, i, &mut declarations);
+                    flush(
+                        &scanned,
+                        &stack,
+                        buf_start,
+                        i,
+                        &mut declarations,
+                        &mut properties,
+                    );
                     if stack.pop().is_none() && malformed.is_none() {
                         malformed = Some(format!(
                             "a closing brace at line {} has no matching open block, so every rule \
@@ -330,7 +347,14 @@ impl Sheet {
                     if value_braces > 0 {
                         continue;
                     }
-                    flush(&scanned, &stack, buf_start, i, &mut declarations);
+                    flush(
+                        &scanned,
+                        &stack,
+                        buf_start,
+                        i,
+                        &mut declarations,
+                        &mut properties,
+                    );
                     buf_start = i + 1;
                 }
                 _ => {}
@@ -362,6 +386,7 @@ impl Sheet {
 
         Sheet {
             declarations,
+            properties,
             scopes,
             themes,
             base,
@@ -375,6 +400,16 @@ impl Sheet {
     /// read.
     pub fn malformed(&self) -> Option<&str> {
         self.malformed.as_deref()
+    }
+
+    /// Every NON-custom declaration in the sheet, in source order.
+    ///
+    /// `border-radius`, `border-width`, `padding`, `font-size` and the rest: the
+    /// SHAPE half of a stylesheet, as opposed to the palette half above. Read by
+    /// `geometry`, which is the only kind whose subject is what a surface looks
+    /// like rather than which names it references.
+    pub fn properties(&self) -> &[Declaration] {
+        &self.properties
     }
 
     /// Every custom-property declaration in the sheet, in source order.
@@ -847,7 +882,14 @@ struct Scanned<'a> {
 }
 
 /// Record a declaration against every selector of the innermost style block.
-fn flush(scanned: &Scanned, stack: &[Frame], start: usize, end: usize, out: &mut Vec<Declaration>) {
+fn flush(
+    scanned: &Scanned,
+    stack: &[Frame],
+    start: usize,
+    end: usize,
+    out: &mut Vec<Declaration>,
+    properties: &mut Vec<Declaration>,
+) {
     let Some(Frame::Style { selectors }) = stack.last() else {
         return;
     };
@@ -866,16 +908,31 @@ fn flush(scanned: &Scanned, stack: &[Frame], start: usize, end: usize, out: &mut
     };
     let (name_start, name_end) = trim(original, mask, start, colon);
     let name = normalise(original, mask, name_start, name_end);
-    if !is_custom_property_name(&name) {
-        return;
-    }
+    // A non-custom declaration used to be DROPPED here. It is now filed
+    // separately, because `geometry` needs to read `border-radius` and
+    // `border-width` and the alternative was a second CSS reader. Two readers of
+    // one file are two opinions about one sheet, and the one that is not the
+    // gate's own drifts silently.
+    //
+    // Filed apart and not merged: `Sheet::declarations`, `scopes`, `themes` and
+    // `base` are what `contrast` reads, and every one of them means "custom
+    // property". Folding `border-radius` into that set would put a non-token
+    // into the palette discovery and change what `contrast` measures, which is a
+    // pinned gate this change must leave alone.
+    let is_custom = is_custom_property_name(&name);
     let (value, important) = split_important(&normalise(original, mask, colon + 1, end));
 
     let layer = layer_path(stack);
     let conditions = conditions(stack);
     let line = line_of(line_starts, name_start);
     for selector in selectors {
-        out.push(Declaration {
+        // ONE counter across both sinks. `order` documents itself as "position
+        // in source order across the whole sheet" and is what decides a tie
+        // within a scope and layer, so two independent lengths would hand the
+        // same ordinal to a custom property and a plain one and make the tiebreak
+        // meaningless.
+        let order = out.len() + properties.len();
+        let declaration = Declaration {
             property: name.clone(),
             value: value.clone(),
             important,
@@ -883,8 +940,13 @@ fn flush(scanned: &Scanned, stack: &[Frame], start: usize, end: usize, out: &mut
             layer: layer.clone(),
             conditions: conditions.clone(),
             line,
-            order: out.len(),
-        });
+            order,
+        };
+        if is_custom {
+            out.push(declaration);
+        } else {
+            properties.push(declaration);
+        }
     }
 }
 

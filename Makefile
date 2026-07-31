@@ -19,7 +19,7 @@ help:
 	@echo 'make schemas   regenerate schema/*.schema.json from the Rust types'
 	@echo 'make hooks     point core.hooksPath at the committed pre-push hook'
 	@echo 'make gates     the VDS gates alone, against this repository'
-	@echo 'make gates-example  all eleven kinds over examples/storefront, no exemption'
+	@echo 'make gates-example  all twelve kinds over examples/storefront, no exemption'
 	@echo 'make ci-ledger measure whether the CI workflow has EVER concluded (network)'
 	@echo 'make prune     bound the proof working set (deletes, logs what it removed)'
 	@echo 'make doctor    measure this project against the ten done criteria'
@@ -117,7 +117,7 @@ gates-example: build
 	@# Every kind, so each is exercised and recorded. --allow-vacuous is needed for
 	@# exactly one of them and the next line is why the flag buys nothing here.
 	$(VDS) proof --all --root examples/storefront --invoked-by package_script --allow-vacuous
-	@# All eleven kinds, run with NO exemption, so a vacuity in any of them is a red
+	@# All twelve kinds, run with NO exemption, so a vacuity in any of them is a red
 	@# build. `token_pin` comes last because it needs a pin GENERATED first, and
 	@# that generation is out of band by design: one of the two records it compares
 	@# is behind a network call VDS S-7(2)(1) forbids inside a proof.
@@ -137,6 +137,13 @@ gates-example: build
 	@# what it happens to understand and prints a clean pass is the exact failure
 	@# this kind was added to prevent (VDS S-5A(7)).
 	$(VDS) proof screen_parity         --root examples/storefront --invoked-by package_script
+	@# The TWELFTH kind, and the only one that carries a DIRECTION rather than a
+	@# threshold. One bound is registered here, over radius, and the reading it is
+	@# measured against is generated from the example's own stylesheet. It is run
+	@# with no exemption for the same reason as the rest: a kind demonstrated
+	@# nowhere is a kind nobody can tell works, and this one was demonstrated
+	@# nowhere until the bound below existed.
+	$(VDS) proof geometry              --root examples/storefront --invoked-by package_script
 	@# The tenth kind, and the one that was vacuous everywhere until a generator
 	@# existed. The pin is REGENERATED from a response committed outside `.vds/`
 	@# and then CHECKED, which is two different acts: generating it proves the

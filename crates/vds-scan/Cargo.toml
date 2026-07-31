@@ -9,6 +9,7 @@ description = "VDS scan: the generated screens and library ledgers, and their st
 
 [dependencies]
 vds-core.workspace = true
+vds-css.workspace = true
 serde.workspace = true
 serde_yaml.workspace = true
 regex.workspace = true
