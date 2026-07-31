@@ -128,7 +128,9 @@ pub fn verify_lock(store: &Store, gate_paths: &[String]) -> Result<LockVerdict> 
                 let test_file = store.project.root.join(&entry.failing_direction_test.path);
                 let names_the_test = std::fs::read_to_string(&test_file)
                     .ok()
-                    .is_some_and(|text| test_name_resolves(&text, &entry.failing_direction_test.test_name));
+                    .is_some_and(|text| {
+                        test_name_resolves(&text, &entry.failing_direction_test.test_name)
+                    });
                 if !names_the_test {
                     verdict
                         .findings
@@ -461,13 +463,16 @@ mod tests {
             "exits NON-ZERO when a control boundary is regressed below 3:1",
         ));
         // double quotes, test(), and the .only/.skip accessors all count.
+        assert!(test_name_resolves("test(\"red seed\", fn)", "red seed",));
         assert!(test_name_resolves(
-            "test(\"red seed\", fn)",
-            "red seed",
+            "it.skip('skipped but present', () => {})",
+            "skipped but present"
         ));
-        assert!(test_name_resolves("it.skip('skipped but present', () => {})", "skipped but present"));
         // And the Rust form still resolves, so this generalises rather than replaces.
-        assert!(test_name_resolves("fn gate_fails_on_a_seeded_violation() {}", "gate_fails_on_a_seeded_violation"));
+        assert!(test_name_resolves(
+            "fn gate_fails_on_a_seeded_violation() {}",
+            "gate_fails_on_a_seeded_violation"
+        ));
     }
 
     #[test]
@@ -480,7 +485,10 @@ mod tests {
             "exits NON-ZERO when a control boundary is regressed below 3:1",
         ));
         // A description whose substring appears but not as a test argument does not resolve.
-        assert!(!test_name_resolves("it('a different test', () => {})", "red seed"));
+        assert!(!test_name_resolves(
+            "it('a different test', () => {})",
+            "red seed"
+        ));
         assert!(!test_name_resolves("", "anything"));
     }
 

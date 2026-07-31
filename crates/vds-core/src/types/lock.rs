@@ -28,15 +28,27 @@ pub enum LockKind {
     Hook,
     Schema,
     Config,
+    /// A gate that GRADES rather than proves: it reads the proof records and
+    /// reports whether the criteria are met. It has no ProofKind, so `proves` is
+    /// empty for this kind, and that emptiness is correct rather than missing.
+    ///
+    /// It exists because of BREACH-0006. `crates/vds-cli/src/doctor.rs` grades
+    /// every criterion and was on NEITHER enforcement list: D2, D3 and D4 were
+    /// each weakened and then strengthened in one day and no drift finding fired.
+    /// Changing a proof trips the lock; changing the code that grades the proofs
+    /// tripped nothing, which is the one place a weakening is invisible. The
+    /// reporting surface needs the same protection as the thing it reports on.
+    CriteriaGrader,
 }
 
 impl LockKind {
-    pub const ALL: [LockKind; 5] = [
+    pub const ALL: [LockKind; 6] = [
         LockKind::ProofScript,
         LockKind::LedgerGenerator,
         LockKind::Hook,
         LockKind::Schema,
         LockKind::Config,
+        LockKind::CriteriaGrader,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -46,6 +58,7 @@ impl LockKind {
             LockKind::Hook => "hook",
             LockKind::Schema => "schema",
             LockKind::Config => "config",
+            LockKind::CriteriaGrader => "criteria_grader",
         }
     }
 

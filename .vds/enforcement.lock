@@ -1,6 +1,27 @@
 schema_version: 1
-generated_at: 2026-07-30T18:09:22Z
+generated_at: 2026-07-31T07:44:04Z
 entries:
+- path: crates/vds-cli/src/doctor.rs
+  digest: sha256:6d5808e5ffdd1fd00364d81d1283607694144fb324f7913c1be065b2b7ca0a67
+  kind: criteria_grader
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Test
+    blocking: true
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Doctor
+    blocking: false
+  - surface: package_script
+    reference: make doctor
+    blocking: false
+  proves: []
+  failing_direction_test:
+    path: crates/vds-cli/src/doctor.rs
+    test_name: a_pass_over_zero_rows_is_still_a_vacuous_pass
+    seeds: a proof record labelled passed over rows_enforced 0, which D3 once agreed was a pass
+  pinned_at: 2026-07-31T00:00:00Z
+  pinned_by: jellytot
+  relock_rationale: 'BREACH-0006 remedy item 3, closed. The criteria grader was on NEITHER enforcement list while every proof it grades was on both, so D2, D3 and D4 were each weakened and then strengthened on 2026-07-30 with no drift finding. Pinned under a new kind, criteria_grader, because a grader proves no ProofKind, so an empty proves list is correct here rather than missing. The BLOCKING invocation is the Test step and NOT the Doctor step: vds doctor --report-only cannot fail a build, whereas cargo test --workspace runs this file own negative controls and does. That distinction is the entire point of the entry - the grader is protected by its own tests, not by the report it prints.'
 - path: crates/vds-proof/src/composition.rs
   digest: sha256:f0265e72bed6a05c7f524a93e2aad3990739fd48208699032ccb0413d323a078
   kind: proof_script
@@ -285,7 +306,7 @@ entries:
   supersedes_digest: sha256:18218d12c5ec737660fa53a8cb6aa36abf241243191666f7e0951c0da41aa34d
   relock_rationale: Five gates edited in commits 1260462 and eb9313d shipped without a re-pin; self-filed as BREACH-0003. The edits are the vds-scan JSX generic fix and the retirement/collision proof work, both tested (674 workspace tests green). Re-pinning to the reviewed bytes so the lock binds what is actually in the tree.
 - path: crates/vds-store/src/lock.rs
-  digest: sha256:eafb9844de2331cb10a2bcc2ad592b2428f3464899d849e7098f0474a19d1db0
+  digest: sha256:12ef53575e7fd450a69b037506084c600c99c40b88045932eb179b6050d841fe
   kind: config
   invoked_by:
   - surface: ci_workflow
@@ -297,7 +318,7 @@ entries:
     path: crates/vds-store/src/lock.rs
     test_name: editing_a_pinned_gate_trips_a_fatal_drift_finding
     seeds: a pinned gate edited after it was pinned
-  pinned_at: 2026-07-30T18:09:22Z
+  pinned_at: 2026-07-31T07:44:04Z
   pinned_by: jellytot
-  supersedes_digest: sha256:54c7bb983fbfa44c99ea1c517c4bc624004872776e9b3f1c10a3a86529356f69
-  relock_rationale: 'DECISION-0004: the failing-direction-test check could not fail (path identical to the pinned path, inside the arm where its digest was just read) and now resolves the named test inside the file; D4 now resolves every blocking ci_workflow reference against the workflow, per the BREACH-0004 remedy. Both strengthen the gates and remove nothing.'
+  supersedes_digest: sha256:eafb9844de2331cb10a2bcc2ad592b2428f3464899d849e7098f0474a19d1db0
+  relock_rationale: 'Commit 7effdb5 edited crates/vds-store/src/lock.rs at 20:20 on 2026-07-30, two hours and eleven minutes after its 18:09 pin, and shipped without a re-pin. The lock reported it correctly on the next verify, which is the gate doing its job rather than a new defect: the edit itself was a strengthening (the failing-direction resolver matched only Rust `fn <name>(` and so could never pass for a host whose tests are vitest `it(...)` or jest `test(...)`, which is a check that could not pass). Re-pinning to the reviewed bytes so the lock binds what is in the tree. Self-filed as BREACH-0009 together with the pattern: a gate edit and its re-pin are one act, and separating them by even one commit leaves the lock asserting bytes that are not there.'
