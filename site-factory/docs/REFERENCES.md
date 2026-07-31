@@ -74,6 +74,24 @@ that already exists here:
 Each states what it is blind to. That is the bridge, it needs no plan tier, and Code Connect
 would make it nicer rather than make it possible.
 
+## Tooling and agent layers (cloned, queued for combing)
+
+All cloned to `/var/tmp/claude/refs/`. Sizes are the working tree.
+
+| Reference | What it is | Why it matters here |
+|---|---|---|
+| [southleft/ds-contracts-poc](https://github.com/southleft/ds-contracts-poc) (274M, 3,701 files) | The contracts PoC. `contracts/ core/ extract/ figma-sync/ parity/ conformance/ evals/ catalog/ dashboard/ playground/` | The closest published relative to VDS. Being combed |
+| [bennypowers/cem](https://github.com/bennypowers/cem) (35M, Go) | Custom Elements Manifest tooling: generate, list, export, `breaking`, `health`, an LSP | THE component contract as an ADOPTED STANDARD rather than a bespoke schema. It also ships `breaking` (API-break detection) and `health`, which are VDS concerns under different names |
+| [murphytrueman/design-system-ops](https://github.com/murphytrueman/design-system-ops) (5.7M) | A design-system OPS pack of agent skills and slash commands: `drift-check`, `token-audit`, `governance-review`, `component-audit`, `docs-coverage`, `release-check`, `system-health`, `full-diagnostic`, `codemod-generator`, `cicd-integration` | Someone else's answer to the same governance surface, expressed as agent skills rather than a kernel. `drift-check` and `governance-review` are directly comparable to `vds proof` and `vds doctor` |
+| [southleft/story-ui](https://github.com/southleft/story-ui) (3.2M) | Story generation with an `mcp-server/`, `story-generator/`, `cli/` | An MCP server for a design-system task, by the same authors as the contracts PoC |
+| [contains-studio/agents](https://github.com/contains-studio/agents) (708K) | A subagent collection organised by function: `design/ engineering/ marketing/ product/ testing/ studio-operations/` | Comparable to the agents-final skill library this programme already writes briefs against |
+| [Preline Figma](https://preline.co/figma/) | Tailwind component library with a paired Figma kit | Another instance of the same pattern: one vendor owning both twins |
+
+Four of these are queued rather than combed. The first fan-out is combing the contracts PoC,
+Reshaped, Park UI and Relume UI; a second pass takes cem, design-system-ops, story-ui and the
+agents collection. They are queued rather than run in parallel deliberately: this box has 18GB
+and overlapping two many-agent fan-outs is what took the desktop down on 2026-07-29.
+
 ## Prior art on the station itself
 
 | Reference | What it is | Access | Relevance |
