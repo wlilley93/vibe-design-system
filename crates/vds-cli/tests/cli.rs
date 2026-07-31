@@ -530,7 +530,7 @@ fn a_lock_entry_cannot_be_written_without_a_failing_direction_test() {
         "--proves",
         "composition",
         "--invoked-by",
-        "ci_workflow=w.yml",
+        "ci_workflow=.github/workflows/w.yml job:enforce step:Gate",
     ])
     .expect(PRECONDITION)
     .says("VDS S-7(2)(2)");
@@ -542,6 +542,15 @@ fn a_lock_entry_cannot_be_written_without_an_invocation() {
     f.ready();
     f.write("gate.rs", "fn gate() {}\n");
     f.write("gate_test.rs", "fn seeds() {}\n");
+    // The fixture must declare a workflow it actually HAS. `vds lock verify`
+    // now parses every ci_workflow reference and reports one naming a file,
+    // job or step that does not exist - so a fixture pointing at a bare
+    // `w.yml` that was never written is the very defect under test, sitting
+    // in the test corpus. Caught by the check on its first real run.
+    f.write(
+        ".github/workflows/w.yml",
+        "name: w\njobs:\n  enforce:\n    steps:\n      - name: Gate\n        run: bash gate.rs\n",
+    );
     f.vds(&[
         "lock",
         "add",
@@ -564,6 +573,15 @@ fn editing_a_pinned_gate_trips_a_drift_finding_through_the_cli() {
     f.ready();
     f.write("gate.rs", "fn gate() {}\n");
     f.write("gate_test.rs", "fn seeds() {}\n");
+    // The fixture must declare a workflow it actually HAS. `vds lock verify`
+    // now parses every ci_workflow reference and reports one naming a file,
+    // job or step that does not exist - so a fixture pointing at a bare
+    // `w.yml` that was never written is the very defect under test, sitting
+    // in the test corpus. Caught by the check on its first real run.
+    f.write(
+        ".github/workflows/w.yml",
+        "name: w\njobs:\n  enforce:\n    steps:\n      - name: Gate\n        run: bash gate.rs\n",
+    );
     f.vds(&[
         "lock",
         "add",
@@ -571,7 +589,7 @@ fn editing_a_pinned_gate_trips_a_drift_finding_through_the_cli() {
         "--proves",
         "composition",
         "--invoked-by",
-        "ci_workflow=w.yml=blocking",
+        "ci_workflow=.github/workflows/w.yml job:enforce step:Gate=blocking",
         "--test-path",
         "gate_test.rs",
         "--test-name",
@@ -593,6 +611,15 @@ fn repinning_without_a_rationale_is_refused() {
     f.ready();
     f.write("gate.rs", "fn gate() {}\n");
     f.write("gate_test.rs", "fn seeds() {}\n");
+    // The fixture must declare a workflow it actually HAS. `vds lock verify`
+    // now parses every ci_workflow reference and reports one naming a file,
+    // job or step that does not exist - so a fixture pointing at a bare
+    // `w.yml` that was never written is the very defect under test, sitting
+    // in the test corpus. Caught by the check on its first real run.
+    f.write(
+        ".github/workflows/w.yml",
+        "name: w\njobs:\n  enforce:\n    steps:\n      - name: Gate\n        run: bash gate.rs\n",
+    );
     f.vds(&[
         "lock",
         "add",
@@ -600,7 +627,7 @@ fn repinning_without_a_rationale_is_refused() {
         "--proves",
         "composition",
         "--invoked-by",
-        "ci_workflow=w.yml=blocking",
+        "ci_workflow=.github/workflows/w.yml job:enforce step:Gate=blocking",
         "--test-path",
         "gate_test.rs",
         "--test-name",

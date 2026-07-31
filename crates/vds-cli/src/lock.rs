@@ -46,6 +46,184 @@ pub fn run(ctx: &Context, args: &Args) -> Result<i32> {
     }
 }
 
+/// A `ci_workflow` reference, split into the file, job and step it names.
+///
+/// The lock spells these `<file> job:<job> step:<Step Name>`, which is a string
+/// nothing has ever parsed. That is the defect: a reference can name a step that
+/// was renamed, moved to another job, or deleted, and the lock keeps reporting
+/// the gate as CI-invoked because it only ever compared the string to itself.
+/// Same class as BREACH-0004 and the same class as BREACH-0011, where D4 read a
+/// workflow FILE and never the RUN.
+#[derive(Debug, PartialEq)]
+struct CiReference<'a> {
+    file: &'a str,
+    job: Option<&'a str>,
+    step: Option<&'a str>,
+}
+
+fn parse_ci_reference(reference: &str) -> CiReference<'_> {
+    let mut file = reference;
+    let mut job = None;
+    let mut step = None;
+    if let Some(at) = reference.find(" job:") {
+        file = reference[..at].trim();
+        let rest = &reference[at + " job:".len()..];
+        match rest.find(" step:") {
+            Some(s) => {
+                job = Some(rest[..s].trim());
+                step = Some(rest[s + " step:".len()..].trim());
+            }
+            None => job = Some(rest.trim()),
+        }
+    }
+    CiReference { file, job, step }
+}
+
+/// Whether a step's `run:` block would actually reach `path`.
+///
+/// COARSE ON PURPOSE, and the coarseness is stated rather than hidden. It answers
+/// one question - could this command have executed the file at all - and it
+/// answers it from the command text, because resolving what `cargo test
+/// --workspace` really runs needs cargo.
+///
+/// A `None` means "this checker has no opinion", which is NOT the same as "no".
+/// A checker that guessed `no` would turn every unfamiliar command into a
+/// finding, and a wall of false findings is how a gate stops being read.
+fn command_reaches(run: &str, path: &str) -> Option<bool> {
+    let run = run.to_lowercase();
+    // The literal path, or the file's own name, appearing in the command.
+    if run.contains(&path.to_lowercase()) {
+        return Some(true);
+    }
+    // A Rust gate is reached by any workspace-wide cargo invocation, because
+    // the failing-direction test lives in that file and `--workspace` runs it.
+    if path.ends_with(".rs")
+        && run.contains("cargo")
+        && (run.contains("--workspace") || run.contains("--all"))
+    {
+        return Some(true);
+    }
+    // A JS gate under site-factory is reached by its own gate runner.
+    if path.ends_with(".js") && run.contains("site-factory/tests/gate.js") {
+        return Some(true);
+    }
+    // A Rust gate inside this workspace is reached by any step that RUNS THE
+    // BUILT BINARY, because the binary is compiled from those crates. Without
+    // this rule the checker had no opinion on eighteen of nineteen references -
+    // every `vds proof`, `vds doctor` and `vds lock verify` step - which is a
+    // check that almost never fires, dressed as a check that passed.
+    if path.starts_with("crates/") && path.ends_with(".rs") && run.contains("/vds ") {
+        return Some(true);
+    }
+    // A shell gate is reached by a step that invokes it by name; that is the
+    // literal-path case above. Anything else, no opinion, and `None` is not
+    // `false`: guessing `no` would turn every unfamiliar command into a finding
+    // and a wall of false findings is how a gate stops being read.
+    None
+}
+
+/// Every `ci_workflow` reference in the lock, checked against the workflow file.
+///
+/// Returns (findings, checked, unopinionated). Pure, so it is testable without a
+/// repository: the defect this closes is precisely a check that was never run
+/// against a real workflow.
+fn ci_references_resolve(
+    lock: &vds_core::EnforcementLock,
+    workflows: &std::collections::BTreeMap<String, String>,
+) -> (Vec<String>, usize, usize) {
+    let mut findings = Vec::new();
+    let mut checked = 0usize;
+    let mut no_opinion = 0usize;
+
+    for entry in &lock.entries {
+        for invocation in &entry.invoked_by {
+            if invocation.surface.to_string() != "ci_workflow" {
+                continue;
+            }
+            let parsed = parse_ci_reference(&invocation.reference);
+            checked += 1;
+            let Some(text) = workflows.get(parsed.file) else {
+                findings.push(format!(
+                    "{}: names {} and that file is not in the repository. A lock entry \
+                     invoked by a workflow that does not exist is not invoked at all.",
+                    entry.path, parsed.file
+                ));
+                continue;
+            };
+            let Ok(doc) = serde_yaml::from_str::<serde_yaml::Value>(text) else {
+                findings.push(format!(
+                    "{}: {} does not parse as YAML, so nothing can be said about the step \
+                     it names.",
+                    entry.path, parsed.file
+                ));
+                continue;
+            };
+            let Some(job_name) = parsed.job else {
+                // A file-only reference is legal and weaker. Not a finding, but
+                // it cannot be checked past existence, and saying so is the point.
+                no_opinion += 1;
+                continue;
+            };
+            let job = doc.get("jobs").and_then(|j| j.get(job_name));
+            let Some(job) = job else {
+                findings.push(format!(
+                    "{}: names job {:?} in {}, and that job does not exist. The reference has \
+                     drifted from the workflow.",
+                    entry.path, job_name, parsed.file
+                ));
+                continue;
+            };
+            let Some(step_name) = parsed.step else {
+                no_opinion += 1;
+                continue;
+            };
+            let steps = job.get("steps").and_then(|s| s.as_sequence());
+            let found = steps.and_then(|steps| {
+                steps.iter().find(|s| {
+                    s.get("name").and_then(|n| n.as_str()).map(str::trim) == Some(step_name)
+                })
+            });
+            let Some(step) = found else {
+                let available: Vec<String> = steps
+                    .map(|steps| {
+                        steps
+                            .iter()
+                            .filter_map(|s| s.get("name").and_then(|n| n.as_str()))
+                            .map(str::to_owned)
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                findings.push(format!(
+                    "{}: names step {:?} in job {:?}, and no such step exists. The job has: \
+                     {}. A renamed step silently unbinds the gate from CI while the lock \
+                     keeps reporting it as invoked.",
+                    entry.path,
+                    step_name,
+                    job_name,
+                    if available.is_empty() {
+                        "no named steps".to_owned()
+                    } else {
+                        available.join(", ")
+                    }
+                ));
+                continue;
+            };
+            // The step exists. Now the harder half: does what it RUNS reach the
+            // pinned file at all?
+            let run = step.get("run").and_then(|r| r.as_str()).unwrap_or("");
+            match command_reaches(run, &entry.path) {
+                Some(true) => {}
+                Some(false) => findings.push(format!(
+                    "{}: step {:?} exists and what it runs cannot reach that path.",
+                    entry.path, step_name
+                )),
+                None => no_opinion += 1,
+            }
+        }
+    }
+    (findings, checked, no_opinion)
+}
+
 fn verify(store: &Store) -> Result<i32> {
     let gates: Vec<String> = vds_proof::GATE_PATHS
         .iter()
@@ -115,6 +293,49 @@ fn verify(store: &Store) -> Result<i32> {
             "VDS S-8(5), stated plainly: the lock cannot bind an author with write access who \
              edits a gate and re-locks it in the same act. It makes the act visible in a diff. \
              It does not prevent it."
+        );
+        return Ok(EXIT_VIOLATION);
+    }
+
+    // THE SECOND HALF OF THE LOCK'S CLAIM, and until now nobody checked it.
+    // The digest half asks "is this gate the one that was pinned". This half
+    // asks "is it still wired to what the lock says invokes it" - a step can be
+    // renamed, moved or deleted and every digest still match perfectly.
+    let mut ci_findings = Vec::new();
+    if let Some(lock) = store.read_lock()? {
+        let mut workflows = std::collections::BTreeMap::new();
+        let dir = store.project.root.join(".github/workflows");
+        if let Ok(entries) = std::fs::read_dir(&dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if !path.extension().is_some_and(|e| e == "yml" || e == "yaml") {
+                    continue;
+                }
+                if let Ok(text) = std::fs::read_to_string(&path) {
+                    workflows.insert(store.project.rel(&path), text);
+                }
+            }
+        }
+        let (findings, checked, no_opinion) = ci_references_resolve(&lock, &workflows);
+        println!();
+        println!(
+            "{checked} ci_workflow references checked against {} workflow file(s); \
+             {no_opinion} could not be judged past existence.",
+            workflows.len()
+        );
+        ci_findings = findings;
+        for finding in &ci_findings {
+            println!("  {finding}");
+        }
+    }
+
+    if !ci_findings.is_empty() {
+        println!();
+        println!(
+            "A lock entry naming a CI step that does not exist is the same defect as \
+             BREACH-0011 one level up: the lock reported seventeen gates as CI-invoked \
+             while the job had never once started. A reference nobody parses is a \
+             declaration, not a binding."
         );
         return Ok(EXIT_VIOLATION);
     }
@@ -468,5 +689,132 @@ mod tests {
     #[test]
     fn an_empty_reference_is_refused() {
         assert!(parse_invocation("ci_workflow=").is_err());
+    }
+}
+
+#[cfg(test)]
+mod ci_reference_tests {
+    use super::*;
+
+    #[test]
+    fn a_reference_splits_into_file_job_and_step() {
+        let r = parse_ci_reference(".github/workflows/vds-enforce.yml job:enforce step:Test");
+        assert_eq!(r.file, ".github/workflows/vds-enforce.yml");
+        assert_eq!(r.job, Some("enforce"));
+        assert_eq!(r.step, Some("Test"));
+
+        // A step name containing a colon or a comma must survive, because the
+        // real workflow has one: "The worked example, with no exemption".
+        let r = parse_ci_reference("w.yml job:enforce step:The worked example, with no exemption");
+        assert_eq!(r.step, Some("The worked example, with no exemption"));
+
+        // A file-only reference stays legal and is simply weaker.
+        let r = parse_ci_reference(".github/workflows/vds-enforce.yml");
+        assert_eq!(r.job, None);
+        assert_eq!(r.step, None);
+    }
+
+    #[test]
+    fn no_opinion_is_not_the_same_as_unreachable() {
+        // The three rules that DO have an opinion.
+        assert_eq!(
+            command_reaches("cargo test --workspace", "crates/x/src/a.rs"),
+            Some(true)
+        );
+        assert_eq!(
+            command_reaches("node site-factory/tests/gate.js", "site-factory/x.js"),
+            Some(true)
+        );
+        assert_eq!(
+            command_reaches(
+                "./target/release/vds proof --all",
+                "crates/vds-proof/src/x.rs"
+            ),
+            Some(true)
+        );
+        assert_eq!(
+            command_reaches(
+                "bash scripts/githooks/pre-push",
+                "scripts/githooks/pre-push"
+            ),
+            Some(true)
+        );
+
+        // And the honest gap. `None` must never be reported as a finding: a
+        // checker that guessed `false` on every command it did not recognise
+        // would produce a wall of false findings, and a gate nobody reads is
+        // worse than no gate.
+        assert_eq!(command_reaches("echo hello", "crates/x/src/a.rs"), None);
+        assert_eq!(command_reaches("npm run lint", "site-factory/x.js"), None);
+    }
+
+    /// The failing direction, and the one that is the whole point of the check:
+    /// a step renamed in the workflow while every digest still matches.
+    #[test]
+    fn a_renamed_step_unbinds_the_gate_and_is_reported() {
+        let workflow = "name: e\njobs:\n  enforce:\n    steps:\n      - name: Tests\n        run: cargo test --workspace\n";
+        let mut files = std::collections::BTreeMap::new();
+        files.insert(".github/workflows/w.yml".to_owned(), workflow.to_owned());
+
+        let lock: vds_core::EnforcementLock = serde_yaml::from_str(
+            "schema_version: 1\ngenerated_at: 2026-07-31T00:00:00Z\nentries:\n\
+             - path: crates/a/src/b.rs\n  digest: sha256:0\n  kind: proof_script\n\
+               \x20 invoked_by:\n  - surface: ci_workflow\n    reference: '.github/workflows/w.yml job:enforce step:Test'\n\
+               \x20   blocking: true\n  proves: []\n  failing_direction_test:\n    path: crates/a/src/b.rs\n\
+               \x20   test_name: t\n  pinned_at: 2026-07-31T00:00:00Z\n  pinned_by: x\n",
+        )
+        .expect("fixture lock parses");
+
+        let (findings, checked, no_opinion) = ci_references_resolve(&lock, &files);
+        assert_eq!(checked, 1);
+        assert_eq!(no_opinion, 0);
+        assert_eq!(findings.len(), 1, "a renamed step must be a finding");
+        assert!(
+            findings[0].contains("no such step exists"),
+            "{}",
+            findings[0]
+        );
+        // The finding must LIST what the job does have, or it names a problem
+        // and no way to fix it.
+        assert!(findings[0].contains("Tests"), "{}", findings[0]);
+
+        // The negative control: with the step named correctly, clean. Without
+        // this the test above would pass on a checker that always finds fault.
+        let mut fixed = lock;
+        fixed.entries[0].invoked_by[0].reference =
+            ".github/workflows/w.yml job:enforce step:Tests".to_owned();
+        let (findings, _, no_opinion) = ci_references_resolve(&fixed, &files);
+        assert_eq!(findings, Vec::<String>::new());
+        assert_eq!(no_opinion, 0, "cargo test --workspace reaches a .rs gate");
+    }
+
+    #[test]
+    fn a_missing_workflow_file_and_a_missing_job_are_both_reported() {
+        let mut files = std::collections::BTreeMap::new();
+        files.insert(
+            ".github/workflows/w.yml".to_owned(),
+            "name: e\njobs:\n  other:\n    steps: []\n".to_owned(),
+        );
+        let make = |reference: &str| -> vds_core::EnforcementLock {
+            serde_yaml::from_str(&format!(
+                "schema_version: 1\ngenerated_at: 2026-07-31T00:00:00Z\nentries:\n\
+                 - path: crates/a/src/b.rs\n  digest: sha256:0\n  kind: proof_script\n\
+                   \x20 invoked_by:\n  - surface: ci_workflow\n    reference: '{reference}'\n\
+                   \x20   blocking: true\n  proves: []\n  failing_direction_test:\n\
+                   \x20   path: crates/a/src/b.rs\n    test_name: t\n\
+                   \x20 pinned_at: 2026-07-31T00:00:00Z\n  pinned_by: x\n"
+            ))
+            .expect("fixture parses")
+        };
+
+        let (gone, _, _) =
+            ci_references_resolve(&make(".github/workflows/absent.yml job:e step:S"), &files);
+        assert_eq!(gone.len(), 1);
+        assert!(gone[0].contains("not in the repository"), "{}", gone[0]);
+
+        let (job, _, _) =
+            ci_references_resolve(&make(".github/workflows/w.yml job:enforce step:S"), &files);
+        assert_eq!(job.len(), 1);
+        assert!(job[0].contains("does not exist"), "{}", job[0]);
     }
 }

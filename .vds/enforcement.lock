@@ -1,5 +1,5 @@
 schema_version: 1
-generated_at: 2026-07-31T09:26:16Z
+generated_at: 2026-07-31T12:44:38Z
 entries:
 - path: crates/vds-cli/src/doctor.rs
   digest: sha256:994f575215d16c415ba1fac437c57ee0c2f750ee76738611804caa6432e9ce83
@@ -23,6 +23,23 @@ entries:
   pinned_by: jellytot
   supersedes_digest: sha256:a2b74f6820c79fe331b6d35270277b462bbfa13a711253bbf0a2aaf63df7ccf7
   relock_rationale: 'cargo fmt --all reflowed doctor.rs after the D4 third-limb change in this same commit. No logic moved: the only diff against the digest pinned moments earlier is whitespace and line wrapping applied by the formatter, which `make check` runs as its first step and which therefore reaches every pinned Rust gate. Recorded rather than folded silently into the previous rationale, because a re-pin whose reason is "the formatter touched it" is a different fact from a re-pin whose reason is "the gate changed", and a reader who cannot tell them apart cannot audit the lock. Part of BREACH-0011 remediation.'
+- path: crates/vds-cli/src/lock.rs
+  digest: sha256:c5ae0f9bade970f4caddbcbcf156d0701486858db46a611714cff328a0adc7e0
+  kind: hook
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Enforcement lock
+    blocking: true
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Test
+    blocking: true
+  proves: []
+  failing_direction_test:
+    path: crates/vds-cli/src/lock.rs
+    test_name: a_renamed_step_unbinds_the_gate_and_is_reported
+    seeds: a workflow step renamed from Test to Tests while every pinned digest still matches, which is the case the digest half of the lock cannot see
+  pinned_at: 2026-07-31T12:44:38Z
+  pinned_by: jellytot
 - path: crates/vds-proof/src/composition.rs
   digest: sha256:f0265e72bed6a05c7f524a93e2aad3990739fd48208699032ccb0413d323a078
   kind: proof_script
@@ -61,6 +78,26 @@ entries:
   pinned_by: jellytot
   supersedes_digest: sha256:cb7d188e20124fba772d9a5f84a77d4d1d00fa6e62fce376c2da3006b81f66a5
   relock_rationale: 'Adversarial review found all three new gates unsound; four criticals and five highs are closed. contrast: unclassified_palette_scopes returned empty on a sheet with no :root, so R6 was structurally dead and a palette nothing measured passed at exit 0 (the founding defect through the gate written to catch it); the redactor covered three of six realisation shapes and redacted only a colour function''s head; two findings named the default stylesheet rather than the one read. parity: an extends/intersection props type reported a SUBSET as complete, so R6 fired on inherited props or credited the row as enforced. token_pin: the redaction screen closed hex and left base64 open, the locator was never screened, the evidence digest was keyed on pin.id (which carries generated_at), coverage was reported before the currency check, and Store::read_pins never refused an unreadable entry.'
+- path: crates/vds-proof/src/geometry.rs
+  digest: sha256:464a29843dd1755a927feff4cb7fa1dce021cad6dab470393d096086a938da31
+  kind: proof_script
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Proofs
+    blocking: true
+  - surface: package_script
+    reference: make gates
+    blocking: true
+  proves:
+  - geometry
+  failing_direction_test:
+    path: crates/vds-proof/src/geometry.rs
+    test_name: geometry_fails_when_the_bound_only_ever_held
+    seeds: 'a bound that fell from 667 to 561 and then stood for 71 days against a 30-day window, over a reading it is otherwise comfortably under. The subscriber project''s own instrument, reproduced: R2 and R7 are both satisfied and the row still fails, because the direction is the rule. A seed that merely put the count over the bound would have proven a threshold, which a ratchet already had.'
+  pinned_at: 2026-07-31T10:22:00Z
+  pinned_by: jellytot
+  supersedes_digest: sha256:6ec91decb1aab9af2367baf7735d15e062ea84fe234f7d2df98f13b753bae359
+  relock_rationale: 'R10 was added: the reading must match its own content digest. The gate was pinned before the reading carried one, so a bound being exceeded could be brought back inside it by editing an integer in a YAML file and this proof would report a pass. STRENGTHENS: no rule removed, no threshold relaxed, one refusal added, and the named failing-direction test is unchanged and still passes. Re-pinned in the commit that changed the gate, per VDS S-8(4).'
 - path: crates/vds-proof/src/ledger_staleness.rs
   digest: sha256:f46c8cd8d46e9118767da2a52fefc8e2d91aac1a485b0356da5285e3e3047758
   kind: proof_script
@@ -197,27 +234,6 @@ entries:
     seeds: a deprecated component still rendered by a route
   pinned_at: 2026-07-25T13:58:22Z
   pinned_by: jellytot
-- path: crates/vds-proof/src/geometry.rs
-  digest: sha256:464a29843dd1755a927feff4cb7fa1dce021cad6dab470393d096086a938da31
-  kind: proof_script
-  invoked_by:
-  - surface: ci_workflow
-    reference: .github/workflows/vds-enforce.yml job:enforce step:Proofs
-    blocking: true
-  - surface: package_script
-    reference: make gates
-    blocking: true
-  proves:
-  - geometry
-  failing_direction_test:
-    path: crates/vds-proof/src/geometry.rs
-    test_name: geometry_fails_when_the_bound_only_ever_held
-    seeds: 'a bound that fell from 667 to 561 and then stood for 71 days against a 30-day window, over a reading it is otherwise comfortably under. The subscriber project''s own instrument, reproduced: R2 and R7 are both satisfied and the row still fails, because the direction is the rule. A seed that merely put the count over the bound would have proven a threshold, which a ratchet already had.'
-  pinned_at: 2026-07-31T10:22:00Z
-  pinned_by: jellytot
-  supersedes_digest: sha256:6ec91decb1aab9af2367baf7735d15e062ea84fe234f7d2df98f13b753bae359
-  relock_rationale: 'R10 was added: the reading must match its own content digest. The gate was pinned before the reading carried one, so a bound being exceeded could be brought back inside it by editing an integer in a YAML file and this proof would report a pass. STRENGTHENS: no rule removed, no threshold relaxed, one refusal added, and the named failing-direction test is unchanged and still passes. Re-pinned in the commit that changed the gate, per VDS S-8(4).'
-
 - path: crates/vds-proof/src/screen_parity.rs
   digest: sha256:2aa81b074e90449f71ece63c466bb83580265bf65e6f1ce40aa01ea85ecb04c0
   kind: proof_script
