@@ -480,11 +480,64 @@ that is the honest description of where they stand.
 | `ledger_staleness` | each generated ledger is current with its source, S-4(2) |
 | `no_stored_values` | `.vds/**` holds no realisation AND yields none under the S-2(9) recovery test, S-2(8) |
 | `screen_parity` | each registered screen's required arrangement is the one its authoritative frame draws, S-5A |
+| `geometry` | each registered surface's SHAPE - radius, boundary weight, density, type scale - is the one the design system specifies, and the count of surfaces that do not comply is BOUNDED AND FALLING, S-7A |
 
 The eleventh kind was added by amendment on 2026-07-30, by the route S-7(6) requires. The
 first ten all read a COMPONENT; `register_completeness` and `composition` say "screen" and
 read a screen's REFERENCES. So the arrangement of a page was checked by nothing, and S-5A(1)
 records the defect that made that visible.
+
+The twelfth kind was added by amendment on 2026-07-31, by the same route, and it closes the
+same class of hole one level further down. The first eleven answer WHICH components a
+surface uses, in WHAT state, and in WHAT arrangement. None of them answers what the surface
+LOOKS LIKE. A page can compose only registered components, each in an enforceable status,
+arranged exactly as its frame draws, and still read as the outgoing design, because radius,
+boundary weight, density and type scale are none of those things.
+
+S-7A records the defect that made it visible, and it is not hypothetical. On the subscriber
+project the token layer was migrated to a new palette across six themes, every proof went
+green, three separate progress numbers read high - 95.6% adoption, 193/199 routes, 0 owed
+column deviations - and the application looked substantially unchanged to the person who
+commissioned the work. The paint had moved and the shape had not: 561 hand-rolled
+card-geometry containers, 376 legacy rule blocks and 385 files importing the outgoing
+component library were all invisible to every proof in the registry.
+
+### S-7A GEOMETRY, AND WHY A PIN IS NOT A PROOF
+
+**S-7A(1)** The defect. A design system is adopted in two parts and only one of them is
+easy to measure. The PAINT - which token a surface references - is a name, and a name is
+trivially checkable. The SHAPE - corner radius, boundary weight, control density, spacing
+step, type scale - is what a person actually sees, and no proof in this registry read it
+until this amendment.
+
+The consequence is specific and was observed: swapping one dark-neutral palette for another
+dark-neutral palette is a real change that is nearly invisible, while the geometry that
+carries the visual identity stays exactly where it was. Every instrument reported progress.
+The product looked the same. Both were true.
+
+**S-7A(2)** A geometry proof MUST state a bound and that bound MUST fall. This is the
+operative clause and it exists because of how the defect survived after being found.
+
+The subscriber project HAD a shape instrument before this amendment: a ratchet holding the
+count of non-compliant containers at its current value so it could not rise. It reported
+"561 hand-rolled card-geometry containers, pin 561". That is a floor, and a floor is a
+different instrument from a target. A number that may only be held can never fall, and this
+one did not: it moved from 667 to 561 through work done for other reasons, then stopped.
+
+So: a `geometry` proof carries a bound and a DIRECTION. Refuse the proof if the bound was
+not lowered within the declared window. A ratchet that never tightens is a record of a
+defect, presented as a control.
+
+**S-7A(3)** The bound is per SURFACE KIND, not one number for the estate. "561" names no
+work: it cannot be assigned, it cannot be finished, and it hides which surfaces are worst.
+The proof partitions by the shape being violated - radius, boundary weight, density, type
+scale - so each row is a job somebody can pick up and drive to zero.
+
+**S-7A(4)** Geometry is read from the SHIPPED artefact, never from a model of it. A code
+model of the intended design is a legitimate design tool and is NOT admissible as the
+subject of this proof: it is a third artefact that drifts, and on the subscriber project a
+17-page code model of the design drifted so completely that it now models the OUTGOING
+system it was built to replace. The proof reads what ships. The frames remain the target.
 
 **S-7(6)** Adding a proof kind is an amendment to this specification and to the invariant
 registry, not a script anyone may drop in. The registry is closed for the same reason VJS
@@ -698,7 +751,7 @@ it down, which is the state that produced both defects at S-1(4).
 
 **S-14(2)** What VDS adds on top of the register is the gating, which is comparatively
 cheap, and the proofs, most of which are small scripts of the kind already written in this
-project. Two of the eleven proof kinds exist today in some form.
+project. Two of the twelve proof kinds exist today in some form.
 
 > **Superseded on this point by S-14A(3): all eleven are implemented.** S-14(2) is left as
 > written because it is a COST FORECAST made at drafting, and a statute that quietly edits its
