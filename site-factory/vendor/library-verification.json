@@ -1,5 +1,5 @@
 {
-  "_what": "The drawn Figma library, verified at the destination by an instrument that did not draw it.",
+  "_what": "Two claims about the Figma file, verified at the destination by an instrument that did not make them: the drawn component library, and the seven skill prompts written into it \"verbatim\".",
   "_why": "`figma-generated.json` is a census taken PLUGIN-SIDE, by the same tool that did the drawing. A generator confirming its own output is the weakest evidence there is - it can only report what it believes it did. This reads the same page through the REST API, a different instrument on a different transport, and pairs the two.",
   "measured_at": "2026-07-31T14:33:25Z",
   "file": "4pPUFvaPdqYzPquBusSfWl",
@@ -532,5 +532,24 @@
     "claim": "THE CENSUS WAS STALE BY ONE PAGE AND 43 SETS, AND NOTHING COULD TELL.",
     "why": "`measured_at` was a sentence, not a timestamp, so no instrument could compare it to anything while a reader saw a date and a reason. It is now an ISO instant with the reading command beside it.",
     "how_found": "By pointing a SECOND instrument at the same subject. The plugin-side census could not have found this about itself."
+  },
+  "prompts_verified": {
+    "_claim": "figma-prompts.json says the seven skill prompts were written VERBATIM into the `Prompts (verbatim)` page, and fingerprints each by chars, lines and a trivial checksum the plugin sandbox could recompute.",
+    "_checked_two_ways": [
+      "OFFLINE: each SKILL.md re-read from ~/Documents/agents-final/skill-library and its chars, lines and checksum recomputed. 7 of 7 still match the manifest, so the fingerprints are honest about the source.",
+      "AT THE DESTINATION: the seven frames read through the REST API, the body text node of each compared to its source file. 7 of 7 BYTE-IDENTICAL."
+    ],
+    "frames": {
+      "65:7": "offer-clarifier",
+      "66:2": "headline-lab",
+      "67:2": "offer-stack-builder",
+      "68:2": "proof-and-testimonial-engine",
+      "69:2": "pricing-section-designer",
+      "70:2": "objection-and-faq-engine",
+      "71:2": "cta-and-close-writer"
+    },
+    "result": "CLEAN. No finding.",
+    "_why_a_clean_result_is_recorded": "Three destination checks today produced three findings, and a verification suite that only ever reports findings is one nobody trusts when it reports none. This one passed: the prompts really are verbatim, the manifest really does fingerprint the source it names, and the two agree through a route the writer never used. Recording the pass is what makes the failures credible.",
+    "_what_it_does_not_establish": "Each frame carries three text nodes and only the LARGEST is compared. The other two are a title and a path label, which are the frame's own furniture and are not claimed to be verbatim anything. Nor does this say the prompts are GOOD, only that the drawing matches the file."
   }
 }

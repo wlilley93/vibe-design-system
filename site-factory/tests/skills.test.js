@@ -1701,3 +1701,68 @@ test('the library verification pairs two independent readings', () => {
       `${s.blockType}: droppedAxes is present and empty, which records nothing`);
   }
 });
+
+// ---------------------------------------------------------------------------
+// The prompts' "verbatim" claim, re-derived offline.
+//
+// The destination half (comparing the Figma text) needs the network and cannot
+// live here. What CAN live here is the half that makes it meaningful: the
+// manifest's fingerprints must still match the source files they name. If a
+// SKILL.md is edited, the manifest stops describing it, and the byte-identical
+// result recorded against Figma becomes a statement about a file that no longer
+// exists in that form.
+test('the prompt fingerprints still match the source skills', () => {
+  const man = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'figma-prompts.json'), 'utf8'));
+  const v = JSON.parse(fs.readFileSync(
+    path.join(__dirname, '..', 'vendor', 'library-verification.json'), 'utf8'));
+  const root = path.join(process.env.HOME || '', 'Documents/agents-final/skill-library');
+
+  // The checksum is the manifest's own, restated here so a change to either is
+  // a visible disagreement rather than a silent agreement.
+  const checksum = (s) => {
+    let n = 0;
+    for (let i = 0; i < s.length; i += 1) n = (n + s.charCodeAt(i) * ((i % 7) + 1)) % 2147483647;
+    return n;
+  };
+
+  const entries = Object.entries(man.prompts);
+  assert.equal(entries.length, 7, 'the manifest no longer carries seven prompts');
+  assert.equal(Object.keys(v.prompts_verified.frames).length, entries.length,
+    'the verification names a different number of frames than the manifest has prompts');
+
+  if (!fs.existsSync(root)) {
+    // The library lives outside this repository. Saying so is the point: a
+    // silent skip here would let this test pass on a machine that cannot see
+    // the sources at all, which is a green light wired to nothing.
+    assert.ok(v.prompts_verified.result,
+      `the skill library is not at ${root}, so the fingerprints cannot be re-derived here ` +
+      'and the recorded result is the only evidence. It must at least be present.');
+    return;
+  }
+
+  let matched = 0;
+  const drifted = [];
+  for (const [name, entry] of entries) {
+    const file = path.join(root, entry.path);
+    if (!fs.existsSync(file)) { drifted.push(`${name}: source is gone (${entry.path})`); continue; }
+    const text = fs.readFileSync(file, 'utf8');
+    const problems = [];
+    if (text.length !== entry.chars) problems.push(`chars ${text.length} vs ${entry.chars}`);
+    if (text.split('\n').length !== entry.lines) problems.push(`lines ${text.split('\n').length} vs ${entry.lines}`);
+    if (checksum(text) !== entry.checksum) problems.push(`checksum ${checksum(text)} vs ${entry.checksum}`);
+    if (problems.length) drifted.push(`${name}: ${problems.join('; ')}`); else matched += 1;
+  }
+
+  assert.deepEqual(drifted, [],
+    'a source skill has changed since the manifest fingerprinted it, so the "byte-identical ' +
+    'to Figma" result recorded in library-verification.json is now about a file that no ' +
+    `longer exists in that form. Re-run the destination check.\n  ${drifted.join('\n  ')}`);
+  assert.equal(matched, entries.length);
+
+  // The clean result must stay recorded AS a clean result. A verification file
+  // that only ever holds findings is one nobody believes when it holds none.
+  assert.match(v.prompts_verified.result, /CLEAN/,
+    'the prompts verification no longer records its result');
+  assert.ok(v.prompts_verified._what_it_does_not_establish,
+    'a clean result with no stated limits is the most flattering kind');
+});
