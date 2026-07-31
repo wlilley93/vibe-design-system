@@ -69,7 +69,7 @@ Opbox-measured taxonomy, three frames. **Examples** - design-system and creative
 references. **Project: Oneshot**, **Project: Meridian Labs**, **Spec: Balmoral & Co** - one
 record each.
 
-## Two traps this file has already sprung, twice each
+## The traps this file has sprung, most of them more than once
 
 **Reading a page's children without loading the page.** This file is in Figma's
 dynamic-page mode, so `page.children` is empty until `await page.loadAsync()`. A survey that
@@ -84,7 +84,22 @@ read as a deliberate pill, and a prompt frame 200px tall holding 5,690 character
 that works is `layoutMode`, then `resize`, then the sizing modes. Both times it was caught
 by reading the geometry back and asserting it, never by looking.
 
-A third, smaller one: `FILL` describes a child's relationship to its parent, so
+**The sizing modes are named for the AXIS, not for the dimension, and a helper that ignores
+that is wrong on half its call sites.** This is the third and worst instance. A helper took a
+width and did `resize(w, 100); primaryAxisSizingMode = 'AUTO'; counterAxisSizingMode = 'FIXED'`.
+For a VERTICAL frame that is correct - the counter axis is horizontal, so the width is fixed and
+the height hugs. For a HORIZONTAL frame the axes swap, so it pinned the HEIGHT at the 100 passed
+as a placeholder and let the WIDTH hug. 241 frames across four pages were 100px tall, and every
+`layoutWrap` container grew past its intended width instead of wrapping, because wrapping needs a
+fixed primary axis. Releasing the heights then shifted every table column left of its own header,
+because a column IS a width and those had been hugging too. For a horizontal frame that wants a
+fixed width and a hugging height: `resize(w, h)`, then `primaryAxisSizingMode = 'FIXED'`, then
+`counterAxisSizingMode = 'AUTO'`.
+
+The repair was verified by measurement, not by eye: every row's Nth child must start at the same
+offset as every other row's, and the header's cumulative column widths must equal those offsets.
+
+A fourth, smaller one: `FILL` describes a child's relationship to its parent, so
 `layoutSizingHorizontal = 'FILL'` throws on a node that has not been appended yet.
 
 ## And one trap that is not Figma's

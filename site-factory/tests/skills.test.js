@@ -581,13 +581,25 @@ test('the page inventory accounts for every page, and no page is silently empty'
   assert.equal(measured.pageTotals.emptyPages, 0,
     `${measured.pageTotals.emptyPages} pages were measured empty and that has not been explained`);
 
-  // A page is recorded either as a NUMBER of component sets or as the LIST of frames it holds.
-  // Anything else - zero, an empty list - is a page with nothing in it.
+  // A page is recorded in one of three shapes, because pages come in three kinds: a NUMBER of
+  // component sets, the LIST of frames it holds, or BOTH - the Components page carries 26 sets
+  // and an index frame over them. Anything that resolves to nothing is a page with nothing in
+  // it, which is the whole point of the check.
+  //
+  // The both-shape was added after the index frame landed, and it broke this test first: the
+  // reader knew two shapes and got a third, so it reported the Components page as holding
+  // nothing while that page held more than any other. A schema check that cannot describe a
+  // legitimate new case reports it as a defect, which is its own kind of false alarm.
+  const setsOf = (c) => (typeof c === 'number' ? c : (c && typeof c === 'object' && !Array.isArray(c) ? c.sets : null));
+  const framesOf = (c) => (Array.isArray(c) ? c : (c && typeof c === 'object' ? c.frames || [] : []));
+
   const empty = [];
   for (const [name, content] of Object.entries(pages)) {
-    if (typeof content === 'number') { if (content < 1) empty.push(`${name} (0 sets)`); continue; }
-    if (!Array.isArray(content) || content.length === 0) { empty.push(`${name} (no frames)`); continue; }
-    for (const frame of content) {
+    const sets = setsOf(content);
+    const frames = framesOf(content);
+    if (sets === null && frames.length === 0) { empty.push(`${name} (unrecognised shape)`); continue; }
+    if ((sets || 0) < 1 && frames.length === 0) { empty.push(`${name} (no sets and no frames)`); continue; }
+    for (const frame of frames) {
       if (typeof frame !== 'string' || !frame.trim()) empty.push(`${name} (unnamed frame)`);
     }
   }
@@ -598,9 +610,17 @@ test('the page inventory accounts for every page, and no page is silently empty'
   const setsByPage = {};
   for (const s of Object.values(measured.sets)) setsByPage[s.page] = (setsByPage[s.page] || 0) + 1;
   for (const [name, content] of Object.entries(pages)) {
-    if (typeof content !== 'number') continue;
-    assert.equal(content, setsByPage[name],
-      `page "${name}" claims ${content} component sets; the set list holds ${setsByPage[name]}`);
+    const claimed = setsOf(content);
+    if (claimed === null) continue;
+    assert.equal(claimed, setsByPage[name] || 0,
+      `page "${name}" claims ${claimed} component sets; the set list holds ${setsByPage[name] || 0}`);
+  }
+  // And a page that declares NO sets must genuinely have none in the set list, or the manifest
+  // is describing a documentation page that is quietly also a component page.
+  for (const [name, content] of Object.entries(pages)) {
+    if (setsOf(content) !== null) continue;
+    assert.ok(!setsByPage[name],
+      `page "${name}" is recorded as frames only, but the set list puts ${setsByPage[name]} component sets on it`);
   }
   assert.equal(
     Object.keys(measured.sets).length, measured.pageTotals.componentSets,

@@ -7,7 +7,7 @@
   "pageTotals": {
     "pages": 15,
     "componentSets": 42,
-    "frames": 23,
+    "frames": 24,
     "emptyPages": 0
   },
   "pages": {
@@ -20,7 +20,12 @@
     "Playbook": [
       "Product Design Playbook \u2014 full catalog"
     ],
-    "Components": 26,
+    "Components": {
+      "sets": 26,
+      "frames": [
+        "Index \u2014 all 39 block types"
+      ]
+    },
     "Glossary": [
       "Glossary \u2014 Framer design vocabulary (1/2)",
       "Glossary \u2014 Framer design vocabulary (2/2)"
