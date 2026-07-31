@@ -62,7 +62,7 @@ entries:
   supersedes_digest: sha256:cb7d188e20124fba772d9a5f84a77d4d1d00fa6e62fce376c2da3006b81f66a5
   relock_rationale: 'Adversarial review found all three new gates unsound; four criticals and five highs are closed. contrast: unclassified_palette_scopes returned empty on a sheet with no :root, so R6 was structurally dead and a palette nothing measured passed at exit 0 (the founding defect through the gate written to catch it); the redactor covered three of six realisation shapes and redacted only a colour function''s head; two findings named the default stylesheet rather than the one read. parity: an extends/intersection props type reported a SUBSET as complete, so R6 fired on inherited props or credited the row as enforced. token_pin: the redaction screen closed hex and left base64 open, the locator was never screened, the evidence digest was keyed on pin.id (which carries generated_at), coverage was reported before the currency check, and Store::read_pins never refused an unreadable entry.'
 - path: crates/vds-proof/src/ledger_staleness.rs
-  digest: sha256:72a23125c57768a7580dbbaef3480d12a86668992454b31d0e6ecae2a0774c03
+  digest: sha256:f46c8cd8d46e9118767da2a52fefc8e2d91aac1a485b0356da5285e3e3047758
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -77,10 +77,10 @@ entries:
     path: crates/vds-proof/src/ledger_staleness.rs
     test_name: ledger_staleness_fails_on_a_stale_screens_ledger
     seeds: a screen edited after the ledger was generated
-  pinned_at: 2026-07-30T16:31:59Z
+  pinned_at: 2026-07-31T10:22:00Z
   pinned_by: jellytot
-  supersedes_digest: sha256:1999023ccc1214d2a10a907b6c2b8b6e64bdcd26c52aa9c41719140c5289bb26
-  relock_rationale: 'The eleventh proof kind, screen_parity, was added by amendment under VDS S-7(6) and needed the frame ledger it reads to have a staleness test. Without an arm of its own that ledger fell into ledger_staleness R2 and was reported as a ledger with no staleness test, which was the correct answer until it had one. R4 settles the same three limbs R3 settles for the figma ledger (self-consistency, agreement with the file the SCREEN register names, and not being older than the records that read it) and states the fourth it cannot reach: whether the captured file has changed, and whether the capture went deep enough.'
+  supersedes_digest: sha256:72a23125c57768a7580dbbaef3480d12a86668992454b31d0e6ecae2a0774c03
+  relock_rationale: 'R5 was added for the geometry reading, the ledger the twelfth proof kind reads as its sole measurement. Without the arm the reading falls through to R2 and fails as a ledger with no staleness test, which was the correct answer until it had one. STRENGTHENS in both directions: the reading must witness its own content, and it must not be older than a bound measured against it. No existing arm was touched and the named failing-direction test is unchanged.'
 - path: crates/vds-proof/src/no_stored_values.rs
   digest: sha256:09d3675cb7df56e57e39fce8f1f76b7becdc4280c56725fe350bba6924574d85
   kind: proof_script
@@ -198,7 +198,7 @@ entries:
   pinned_at: 2026-07-25T13:58:22Z
   pinned_by: jellytot
 - path: crates/vds-proof/src/geometry.rs
-  digest: sha256:6ec91decb1aab9af2367baf7735d15e062ea84fe234f7d2df98f13b753bae359
+  digest: sha256:464a29843dd1755a927feff4cb7fa1dce021cad6dab470393d096086a938da31
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -213,8 +213,11 @@ entries:
     path: crates/vds-proof/src/geometry.rs
     test_name: geometry_fails_when_the_bound_only_ever_held
     seeds: 'a bound that fell from 667 to 561 and then stood for 71 days against a 30-day window, over a reading it is otherwise comfortably under. The subscriber project''s own instrument, reproduced: R2 and R7 are both satisfied and the row still fails, because the direction is the rule. A seed that merely put the count over the bound would have proven a threshold, which a ratchet already had.'
-  pinned_at: 2026-07-31T09:52:00Z
+  pinned_at: 2026-07-31T10:22:00Z
   pinned_by: jellytot
+  supersedes_digest: sha256:6ec91decb1aab9af2367baf7735d15e062ea84fe234f7d2df98f13b753bae359
+  relock_rationale: 'R10 was added: the reading must match its own content digest. The gate was pinned before the reading carried one, so a bound being exceeded could be brought back inside it by editing an integer in a YAML file and this proof would report a pass. STRENGTHENS: no rule removed, no threshold relaxed, one refusal added, and the named failing-direction test is unchanged and still passes. Re-pinned in the commit that changed the gate, per VDS S-8(4).'
+
 - path: crates/vds-proof/src/screen_parity.rs
   digest: sha256:2aa81b074e90449f71ece63c466bb83580265bf65e6f1ce40aa01ea85ecb04c0
   kind: proof_script
@@ -308,7 +311,7 @@ entries:
   supersedes_digest: sha256:6b4c0ee4c5707cab80ea38d023cf5185ed2e0446798912fe2f8a4bc766ecc17a
   relock_rationale: Five gates edited in commits 1260462 and eb9313d shipped without a re-pin; self-filed as BREACH-0003. The edits are the vds-scan JSX generic fix and the retirement/collision proof work, both tested (674 workspace tests green). Re-pinning to the reviewed bytes so the lock binds what is actually in the tree.
 - path: crates/vds-scan/src/lib.rs
-  digest: sha256:6ab81f88013c57a0c1d757f87e1336720d846f279cee0bc272f8228466181828
+  digest: sha256:2de8814f1d70d035042653b874b58e689578c6819d17e779789ea0d5be81587c
   kind: ledger_generator
   invoked_by:
   - surface: ci_workflow
@@ -320,9 +323,9 @@ entries:
     path: crates/vds-scan/src/lib.rs
     test_name: a_hand_edited_ledger_is_refused_even_though_its_sources_are_untouched
     seeds: a ledger row deleted by hand while its source files are untouched
-  pinned_at: 2026-07-30T13:57:10Z
+  pinned_at: 2026-07-31T10:22:00Z
   pinned_by: jellytot
-  supersedes_digest: sha256:18218d12c5ec737660fa53a8cb6aa36abf241243191666f7e0951c0da41aa34d
+  supersedes_digest: sha256:6ab81f88013c57a0c1d757f87e1336720d846f279cee0bc272f8228466181828
   relock_rationale: Five gates edited in commits 1260462 and eb9313d shipped without a re-pin; self-filed as BREACH-0003. The edits are the vds-scan JSX generic fix and the retirement/collision proof work, both tested (674 workspace tests green). Re-pinning to the reviewed bytes so the lock binds what is actually in the tree.
 - path: crates/vds-store/src/lock.rs
   digest: sha256:7349412e777127171b823bcaadb19e6b8e8266d1ac8d82efa8baec1f67a46c1e
