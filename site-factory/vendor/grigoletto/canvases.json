@@ -7,7 +7,10 @@
    "#7389a4": 1,
    "#0b5030": 10,
    "#ffffff": 3
-  }
+  },
+  "captureRoute": "full-file",
+  "captureComplete": true,
+  "canvasesReturned": null
  },
  {
   "n": 2,
@@ -16,7 +19,10 @@
   "tally": {
    "#5f615e": 1,
    "#454640": 2
-  }
+  },
+  "captureRoute": "full-file",
+  "captureComplete": true,
+  "canvasesReturned": null
  },
  {
   "n": 3,
@@ -25,7 +31,10 @@
   "tally": {
    "#f8f7f8": 1,
    "#454640": 12
-  }
+  },
+  "captureRoute": "full-file",
+  "captureComplete": true,
+  "canvasesReturned": null
  },
  {
   "n": 4,
@@ -34,7 +43,10 @@
   "tally": {
    "#f8f7f8": 1,
    "#303436": 4
-  }
+  },
+  "captureRoute": "full-file",
+  "captureComplete": true,
+  "canvasesReturned": null
  },
  {
   "n": 5,
@@ -43,7 +55,10 @@
   "tally": {
    "#37c1cc": 1,
    "#091517": 2
-  }
+  },
+  "captureRoute": "full-file",
+  "captureComplete": true,
+  "canvasesReturned": null
  },
  {
   "n": 6,
@@ -52,7 +67,10 @@
   "tally": {
    "#37c1cc": 1,
    "#009ca6": 2
-  }
+  },
+  "captureRoute": "full-file",
+  "captureComplete": true,
+  "canvasesReturned": null
  },
  {
   "n": 7,
@@ -62,7 +80,10 @@
    "#7389a4": 1,
    "#b5c9e5": 1,
    "#c5d7f0": 1
-  }
+  },
+  "captureRoute": "full-file",
+  "captureComplete": true,
+  "canvasesReturned": null
  },
  {
   "n": 8,
@@ -72,7 +93,22 @@
    "#b4d1e3": 1,
    "#000000": 7,
    "#ffffff": 1
-  }
+  },
+  "captureRoute": "full-file",
+  "captureComplete": true,
+  "canvasesReturned": null
+ },
+ {
+  "n": 9,
+  "name": "Dulce Flask",
+  "boards": 6,
+  "tally": {
+   "#ffe7cf": 5,
+   "#282d36": 1
+  },
+  "captureRoute": "nodes-by-guessed-canvas-ids",
+  "captureComplete": false,
+  "canvasesReturned": 2
  },
  {
   "n": 20,
@@ -83,6 +119,9 @@
    "#ff975a": 1,
    "#85e6ed": 1,
    "(none)": 1
-  }
+  },
+  "captureRoute": "full-file",
+  "captureComplete": true,
+  "canvasesReturned": null
  }
 ]

@@ -1269,6 +1269,21 @@ test('the Blueprint measurement tallies match its own rows', () => {
     'number of sizes - a threshold has been invented somewhere');
   assert.ok(doc.rules.type_scale._not_judged, 'type_scale must say why it is not judged');
 
+  // A ROW READ BY A WEAKER ROUTE MUST SAY SO. Template 09 was fetched by
+  // GUESSING its canvas ids, because the endpoint that discovers them is
+  // rate-limited - so a canvas not in the guess is absent from the capture and
+  // the response cannot report its own gap. "An unseen child is not an absent
+  // child": that row is a reading of AT LEAST what it shows.
+  assert.ok(doc.capture, 'the capture record has been dropped');
+  const guessed = doc.capture.canvas_ids_guessed || [];
+  const full = doc.capture.full_file_or_equivalent || [];
+  assert.equal(guessed.length + full.length, doc.rows.length,
+    'the capture record does not account for every measured row');
+  if (guessed.length) {
+    assert.ok(doc.capture._what_that_costs,
+      'rows were captured by a guessed canvas list and nothing states what that costs');
+  }
+
   // The first pass measured the wrong subject and flipped a rule from 0/9 to
   // 7/9. That correction stays visible: it is the most useful thing here.
   assert.ok(doc.first_pass_was_wrong && doc.first_pass_was_wrong._lesson,

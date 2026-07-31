@@ -5,11 +5,11 @@
     "THE BLUEPRINT DOES NOT CLAIM THE TEMPLATES FOLLOW IT. They are separate products sold separately, and nothing in either says the pack is a worked example of the doc. Read what follows as \"here is what the rules cost when applied to real shipped work\", not as a contradiction caught.",
     "The templates are HERO SHOWCASE PIECES - illustration-heavy single artboards (template 01 carries 497 VECTOR and 200 STAR nodes) - not component libraries. A rule about a design system's palette is not obviously a rule about a decorative illustration, and where that distinction matters it is drawn below rather than ignored."
   ],
-  "measured_at": "2026-07-31T12:18:38Z",
+  "measured_at": "2026-07-31T13:14:07Z",
   "corpus": {
     "templates_in_pack": 39,
-    "templates_measured": 9,
-    "_why_not_all": "Figma's free tier enforces a COST BUDGET, not a throttle: after roughly ten full-document reads it returned 429 with `x-figma-plan-tier: starter` and `retry-after: 399915` - 4.6 days. The remaining thirty are reachable, unread, and will be picked up when the window opens. Nine measured is nine measured; it is not \"the pack\".",
+    "templates_measured": 10,
+    "_why_not_all": "Figma enforces a COST BUDGET attached to the account that OWNS the file, not to the caller - measured, after this was first written up wrongly as a limit on our own plan. Same token, same minute: our master library 200, a Base Gallery community copy 200, all 39 GRIGOLETTO files 429 with `x-figma-plan-tier: starter`, which is the TEMPLATE AUTHOR's plan. Reading ten of them spent that author's budget; no upgrade on our side refills it. It is also per endpoint class, which is how the tenth was obtained after the first nine: `/nodes` has its own budget and outlived `/files` and `?depth=1`. That is now spent too. The remaining 29 need either the author's window (~4 August) or duplication into an account we own, at which point they read normally.",
     "reachability": "Every one of the 39 is readable through the REST API with a personal token and NO duplication, even though the Figma MCP refuses them for want of edit access. That correction is written up in docs/REFERENCES.md."
   },
   "first_pass_was_wrong": {
@@ -22,19 +22,19 @@
     "typefaces": {
       "rule": "\"Choose exactly two typefaces - one expressive display serif and one neutral geometric sans - then delete every other font from the file.\"",
       "holds": 2,
-      "breaks": 7,
+      "breaks": 8,
       "_reading": "Two of nine hold. The other seven carry three or four families, and the extra is usually a second grotesque doing the same job as the first (07 ships Funnel Sans AND Inter; 20 ships Inter AND General Sans Variable). That is the rule's own failure mode - not a deliberate third voice, but a font that arrived and never left."
     },
     "canvas": {
       "rule": "\"Replace every #FFFFFF with a warm off-white (#FAFAF8) ... never flat white.\"",
-      "holds": 7,
+      "holds": 8,
       "breaks": 2,
       "_reading": "Seven of nine hold at artboard level. See first_pass_was_wrong: this is the rule the first measurement got backwards."
     },
     "eight_point": {
       "rule": "\"Define the scale - 8 / 16 / 24 / 32 / 48 / 64 - and use only those values for every gap and pad.\"",
       "holds": 0,
-      "breaks": 8,
+      "breaks": 9,
       "not_applicable": 1,
       "_reading": "ZERO of nine hold, and this is the finding that does not soften on inspection. Measured only on auto-layout `itemSpacing` and `padding*` - numbers that are unambiguously spacing decisions, never a free-positioned illustration coordinate - off-grid rates run from 20% (05) to 98.5% (06, where 268 of 272 spacing values miss the scale). Template 03 declares no auto-layout spacing at all, so it is n/a rather than compliant: everything is free-positioned, which is the condition the rule exists to prevent.",
       "_why_it_matters": "This is the one rule of the three that a machine can check cheaply and completely, and it is the one nothing was checking. The Blueprint says the off-grid vibration is what \"the viewer can't name but always feels as amateur\"; the pack ships between one-in-five and virtually-all of its spacing off the scale. The gap is not disagreement about the rule, it is that a rule with no instrument is a preference."
@@ -51,6 +51,7 @@
         "6": 9,
         "7": 19,
         "8": 13,
+        "9": 9,
         "20": 16
       }
     }
@@ -443,6 +444,53 @@
       }
     },
     {
+      "n": 9,
+      "name": "Dulce Flask",
+      "key": "LzMfNwvKn0rCsXlmWgEp4b",
+      "nodes": 534,
+      "textNodes": 99,
+      "typefaces": {
+        "count": 3,
+        "families": [
+          "Jomhuria",
+          "Fredoka",
+          "Goblin One"
+        ],
+        "rule": "at most two",
+        "holds": false
+      },
+      "typeScale": {
+        "distinctSizes": 9,
+        "top": [
+          "16px x45",
+          "20px x25",
+          "18px x10",
+          "537px x5",
+          "12px x5",
+          "36px x5"
+        ],
+        "rule": "every size from one fixed scale",
+        "note": "no threshold is stated, so this is REPORTED and not judged"
+      },
+      "canvas": {
+        "artboards": 6,
+        "fills": {
+          "#ffe7cf": 5,
+          "#282d36": 1
+        },
+        "rule": "never flat #FFFFFF; a warm off-white",
+        "flatWhiteArtboards": 0,
+        "holds": true
+      },
+      "eightPoint": {
+        "considered": 446,
+        "offGrid": 341,
+        "offGridPct": 76.5,
+        "rule": "every gap and pad on the 8-point scale",
+        "holds": false
+      }
+    },
+    {
       "n": 20,
       "name": "Rainbow Noir",
       "key": "QTfVAZ8GECnf8B55GQU0Ml",
@@ -492,13 +540,23 @@
       }
     }
   ],
-  "vendored": {
-    "_why": "blueprint.txt is the Blueprint page copied verbatim out of Notion. The digest is recorded so the source is pinned and any edit to it is visible. NOTE: it is a .txt and the em-dash gate only walks .js/.md/.html/.json, so this entry pins the evidence but does not currently exempt anything - the exemption was assumed and then checked, and the honest word is PINNED, not exempted. It would start exempting the moment the file were renamed to .md.",
-    "_how": "Fetched unauthenticated from Notion's own loadPageChunk API, paginated to exhaustion (225 blocks over 3 chunks). The page is public; no credential was used and none is needed.",
-    "source": "https://app.notion.com/p/The-Design-System-Blueprint-396b0fd1c010816c8314c86209b3d48d",
-    "files": {
-      "blueprint.txt": "92697d0468cb74136de24934b7fe538b14ffc929c903deff807439e8c33e8f0a"
-    },
-    "derived_not_vendored": "templates.json, measured.json and canvases.json are produced by this repository from the pack and carry no third-party prose, so they are under the house rules like any other authored file. The template NAMES in them are quoted exactly, minus the \"NN \" numbering prefix, which is presentation and is carried in the `n` field."
+  "capture": {
+    "_why": "Nine templates were read as WHOLE FILES. One (09) was read a different way, and the difference is recorded because it is not a detail: it changes what \"complete\" means for that row.",
+    "full_file_or_equivalent": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      20
+    ],
+    "canvas_ids_guessed": [
+      9
+    ],
+    "_how_09_was_read": "`GET /v1/files/<key>` and `?depth=1` are both rate-limited on this owner's files, and `/nodes?ids=` is NOT - it carries a separate budget. So 09 was fetched by asking for the canvas ids every other template used (0:1, 1:23, 14001:3113) plus the one in its own proto link. Two of the three resolved, 534 nodes.",
+    "_what_that_costs": "The canvas list was GUESSED, because the endpoint that discovers it is refused. A canvas whose id is not in that list is missing from the capture and the response cannot say so - it simply does not mention it. Row 09 is therefore a reading of AT LEAST what it reports and possibly not all of it. It is not marked complete and no number derived from it is presented as a ceiling."
   }
 }

@@ -289,6 +289,42 @@
   "offGridPct": 79.7
  },
  {
+  "n": 9,
+  "name": "Dulce Flask",
+  "key": "LzMfNwvKn0rCsXlmWgEp4b",
+  "nodes": 534,
+  "texts": 99,
+  "families": [
+   "Jomhuria",
+   "Fredoka",
+   "Goblin One"
+  ],
+  "familyCount": 3,
+  "distinctSizes": 9,
+  "topSizes": [
+   "16px x45",
+   "20px x25",
+   "18px x10",
+   "537px x5",
+   "12px x5",
+   "36px x5"
+  ],
+  "distinctFills": 18,
+  "topFills": [
+   "#ffffff x102",
+   "#262324 x45",
+   "#fffcf3 x15",
+   "#ffecd4 x14",
+   "#ebffd4 x13",
+   "#fed4ff x12"
+  ],
+  "pureWhite": 102,
+  "pureBlack": 0,
+  "gridConsidered": 446,
+  "offGrid": 341,
+  "offGridPct": 76.5
+ },
+ {
   "n": 20,
   "name": "Rainbow Noir",
   "key": "QTfVAZ8GECnf8B55GQU0Ml",

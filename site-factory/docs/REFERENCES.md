@@ -228,7 +228,40 @@ different permissions - that is the exact conflation the first correction was fi
 not going to be repeated in the opposite direction. Row two is now: *nothing through the MCP;
 REST untested for community files and PROVEN for link-shared ones.*
 
-### The ceiling that actually stops the harvest: a plan-tier cost budget
+### CORRECTION: the budget is the FILE OWNER's, not the caller's
+
+The section below reads the `429` as a limit on this account's plan. That was
+wrong, and it was wrong in the direction that matters: it told the operator they
+were rate-limited when they were not.
+
+Measured 2026-07-31, same token, same minute:
+
+| file | owner | result |
+|---|---|---|
+| `4pPUFvaPdqYzPquBusSfWl` the master library | this account | **200** |
+| `4mz4UC3nacI6UFEXnyzFJc` Base Gallery | a third party | **200** |
+| all 39 GRIGOLETTO templates, including three read successfully an hour earlier | one third party | **429** |
+
+So it is not the caller's plan (a third-party file still answers) and it is not
+"third-party files are blocked" (Base Gallery answers). The budget is attached to
+the account that OWNS the file, and `x-figma-plan-tier: starter` in the refusal
+describes THAT account. Reading nine GRIGOLETTO templates spent the template
+author's budget, and no upgrade on this side can refill it.
+
+Two consequences, both the opposite of what the section below concluded:
+
+1. **`vds figma pull` is not competing with a harvest** on files this account
+   owns. Those never touched the exhausted budget.
+2. **The thirty unread templates are blocked by somebody else's plan.** The only
+   remedies are to wait for their window (~4 August), or to duplicate a template
+   into this account's drafts, at which point it is owned here and reads normally.
+
+The header was read as a fact about the caller because it arrived in the
+caller's response. It is a fact about the SUBJECT. The measurement that settles
+it costs two requests and was not taken until the operator said the plan was
+wrong.
+
+### The refusal itself, and the trap in Retry-After
 
 Nine of the 39 templates were harvested. The remaining thirty returned `429` with:
 
