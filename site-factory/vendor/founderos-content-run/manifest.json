@@ -1,0 +1,30 @@
+{
+  "run_at": "2026-07-31",
+  "subject": "Founder OS / Heuresis (competitive-intel dry run)",
+  "source": "vendor/founderos-content-run/00-source-extraction.md (copied in: a vendored record must not cite a scratch path that outlives nothing)",
+  "skills_run": [
+    "/home/jellytot/Documents/agents-final/skill-library/revenue/skills/offer-clarifier/SKILL.md",
+    "/home/jellytot/Documents/agents-final/skill-library/revenue/skills/headline-lab/SKILL.md",
+    "/home/jellytot/Documents/agents-final/skill-library/revenue/skills/offer-stack-builder/SKILL.md",
+    "/home/jellytot/Documents/agents-final/skill-library/revenue/skills/proof-and-testimonial-engine/SKILL.md",
+    "/home/jellytot/Documents/agents-final/skill-library/revenue/skills/pricing-section-designer/SKILL.md",
+    "/home/jellytot/Documents/agents-final/skill-library/product/skills/objection-and-faq-engine/SKILL.md",
+    "/home/jellytot/Documents/agents-final/skill-library/revenue/skills/cta-and-close-writer/SKILL.md"
+  ],
+  "facts_absent": [
+    "pack config.json (sales-page-setup / launch-setup never run): brand voice, tone_words, we_never_say, awareness_level, page_length all missing; awareness level assumed solution-aware",
+    "voice-of-customer data / golden pain phrases (customer-research-engine not in run order); all emotional-lens and pain wording is inference, flagged inline",
+    "testimonials or client quotes of any kind; proof engine ran its thin-proof path and the page carries a no-testimonials section instead",
+    "verified client results: the '$120k in two months' and '10x more productive' claims are recorded as unverified marketing and were excluded from all copy",
+    "guarantee / refund terms (guarantee-writer not in chain; no policy in the extraction); pricing and close sections flag the gap and reserve a slot rather than invent terms",
+    "payment plan: only a single Stripe payment link exists, so payment-plan framing steps were marked not applicable",
+    "class/module durations in hours: the time-objection answer gives a completion path in classes/weeks/dates, deviating from the objection skill's specific-hours quality bar",
+    "recordings policy for the live classes (a losable-sale gap flagged in the FAQ)",
+    "seller credentials beyond follower count, public repos, the Encoded Founder paper, and the shipped Clipping OS SaaS",
+    "launch channel plan: DM usage assumed from the measured IG/WhatsApp funnel; no launch webinar documented, so the live Q&A guide was omitted",
+    "sales-page-architect section map (not in run order); proof placement assumed a standard long-form anatomy",
+    "semantics of the bundle's seatsTaken:37 vs seatsClaimed:6 counters; close copy quotes the seat structure as fact and leaves the live count as the seller's display number",
+    "existing hero copy of the live site (extraction does not capture it), so headline-lab had no existing headlines to grade"
+  ],
+  "note": "first real run of the content chain; a dry run against measured competitive-intel data, not client work"
+}
