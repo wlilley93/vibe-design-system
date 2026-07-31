@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "GeometryBound",
+  "description": "A bound on how many surfaces of one kind may fail to comply, and the direction it must travel.\n\nVDS S-7A(2) is the operative clause and it is why this type is not a ratchet. The subscriber project HAD a shape instrument: a ratchet holding the count of non-compliant containers at its current value so it could not rise. That is a FLOOR, and a floor is a different instrument from a target. A number that may only be held can never fall, and this one did not: it moved from 667 to 561 through work done for other reasons, then stopped. A ratchet that never tightens is a record of a defect, presented as a control.",
+  "type": "object",
+  "required": [
+    "declaredWindowDays",
+    "history",
+    "id",
+    "status",
+    "surfaceKind"
+  ],
+  "properties": {
+    "basis": {
+      "description": "The authorities this bound rests on.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "declaredWindowDays": {
+      "description": "How long the bound may stand without falling, in days.\n\nDeclared by the project rather than fixed by VDS, because the rate a backlog can be worked down is a fact about the subject and not about the specification. What VDS fixes is that the window EXISTS and that expiry is fatal.",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    },
+    "history": {
+      "description": "Every bound ever declared for this kind, OLDEST FIRST.\n\nThe current bound is the last entry, derived and never stored beside it. The history is the whole point: a direction is a claim about time, and a record holding only today's number cannot answer whether it fell.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/BoundEntry"
+      }
+    },
+    "id": {
+      "$ref": "#/definitions/GeometryId"
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "$ref": "#/definitions/Status"
+    },
+    "surfaceKind": {
+      "description": "Which shape. One record per kind: S-7A(3).",
+      "$ref": "#/definitions/SurfaceKind"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "BoundEntry": {
+      "description": "One bound, as declared at one moment.",
+      "type": "object",
+      "required": [
+        "at",
+        "bound"
+      ],
+      "properties": {
+        "at": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "because": {
+          "description": "What lowered it, in one line. Printed in the finding when a bound has not moved, because \"declare a lower bound\" is advice and \"the last three reductions came from these three pieces of work\" is a plan.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "bound": {
+          "description": "The largest number of non-compliant surfaces admitted from this moment.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "GeometryId": {
+      "description": "A bound on how many surfaces of one SHAPE do not comply, and the direction it must travel (VDS S-7A).",
+      "type": "string",
+      "pattern": "^GEO-[0-9]{4}$"
+    },
+    "Status": {
+      "description": "The lifecycle at VDS S-5(4). A directed path where skipping is forbidden.",
+      "type": "string",
+      "enum": [
+        "proposed",
+        "designed",
+        "registered",
+        "built",
+        "verified",
+        "deprecated",
+        "retired"
+      ]
+    },
+    "SurfaceKind": {
+      "description": "The shapes a bound may be declared over. CLOSED, and closed on purpose.\n\nVDS S-7A(3): the bound is per SURFACE KIND and never one number for the estate. The subscriber project's instrument reported \"561 hand-rolled card-geometry containers, pin 561\", and that number names no work: it cannot be assigned to anybody, it cannot be finished, and it hides which shapes are worst. An enum rather than a free string is the strongest available form of that rule, because one undifferentiated bucket is then unrepresentable rather than merely discouraged.",
+      "oneOf": [
+        {
+          "description": "Corner radius.",
+          "type": "string",
+          "enum": [
+            "radius"
+          ]
+        },
+        {
+          "description": "The weight of a surface's boundary: a border, a ring, a divider.",
+          "type": "string",
+          "enum": [
+            "boundary_weight"
+          ]
+        },
+        {
+          "description": "Control density: the spacing step a surface sets its own padding and gaps from.",
+          "type": "string",
+          "enum": [
+            "density"
+          ]
+        },
+        {
+          "description": "Type scale: the size and leading step a surface sets its text from.",
+          "type": "string",
+          "enum": [
+            "type_scale"
+          ]
+        }
+      ]
+    },
+    "Timestamp": {
+      "description": "UTC, second resolution, trailing Z. The one canonical form VDS writes.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    }
+  }
+}

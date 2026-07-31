@@ -19,8 +19,8 @@ use std::path::PathBuf;
 use clap::{Args as ClapArgs, Subcommand};
 use schemars::r#gen::{SchemaGenerator, SchemaSettings};
 use vds_core::{
-    ComponentRecord, EXIT_VIOLATION, LockEntry, Pin, ProofResult, Result, ScreenRecord, Submission,
-    VdsError, Warrant, write_text_atomically,
+    ComponentRecord, EXIT_VIOLATION, GeometryBound, GeometryReading, LockEntry, Pin, ProofResult,
+    Result, ScreenRecord, Submission, VdsError, Warrant, write_text_atomically,
 };
 
 use crate::{Context, PASSED};
@@ -59,11 +59,23 @@ fn generator() -> SchemaGenerator {
 }
 
 fn schemas() -> Result<BTreeMap<&'static str, String>> {
-    let mut generator = generator();
     let mut out = BTreeMap::new();
+    // A FRESH generator per schema. Sharing one made every schema a function of
+    // the emission ORDER rather than of its own type: schemars accumulates
+    // `definitions` on the generator, so each artefact absorbed the definitions
+    // of every artefact emitted before it. `pin.schema.json` published
+    // `Accessibility`, `ArrangementContract` and `CodeCounterpart`, none of which
+    // a pin can contain, and reordering two lines in this function would have
+    // rewritten five committed files with no type having changed.
+    //
+    // It was found by adding a tenth artefact: emitting `geometry-bound` second
+    // leaked `BoundEntry` and `SurfaceKind` into the five schemas emitted after
+    // it, and `vds schema check` reported drift in five files a commit had not
+    // touched. A published schema that declares types its artefact cannot hold
+    // is a contract that describes more than it means.
     macro_rules! emit {
         ($name:literal, $type:ty) => {
-            let root = generator.root_schema_for::<$type>();
+            let root = generator().root_schema_for::<$type>();
             let text = serde_json::to_string_pretty(&root).map_err(|e| VdsError::Serialize {
                 what: $name.to_owned(),
                 message: e.to_string(),
@@ -73,6 +85,8 @@ fn schemas() -> Result<BTreeMap<&'static str, String>> {
     }
     emit!("component-record", ComponentRecord);
     emit!("screen-record", ScreenRecord);
+    emit!("geometry-bound", GeometryBound);
+    emit!("geometry-reading", GeometryReading);
     emit!("warrant", Warrant);
     emit!("proof-result", ProofResult);
     emit!("pin", Pin);
@@ -177,16 +191,54 @@ fn resolve_dir(ctx: &Context, explicit: Option<PathBuf>) -> Result<PathBuf> {
 mod tests {
     use super::*;
 
+    /// Every emitted schema is committed, and every committed schema is emitted.
+    ///
+    /// This used to assert a HARD-CODED COUNT of seven, and the count rotted the moment the
+    /// twelfth proof kind landed with two artefacts of its own: nine schemas emitted, the
+    /// test still demanding seven, and the failure message still explaining why seven was
+    /// the right number. That is the count-restated-instead-of-derived failure this
+    /// repository has now had in four places, and the fix is the same every time - ask the
+    /// artefacts, not a number somebody typed.
+    ///
+    /// Pairing both directions is what makes it non-circular. Comparing the generator with
+    /// itself would pass on any count at all; comparing it with the COMMITTED directory
+    /// catches a schema emitted and never committed, and one committed after its type was
+    /// deleted.
     #[test]
-    fn seven_schemas_are_generated_and_each_is_valid_json() {
+    fn every_emitted_schema_is_committed_and_each_is_valid_json() {
         let generated = schemas().unwrap();
-        assert_eq!(
-            generated.len(),
-            7,
-            "VDS S-4(1): seven of the nine artefact kinds have a schema here. The screen record \
-             is the seventh, added by amendment on 2026-07-30; the decision log and the breach \
-             report are adopted from VJS and validated against its schemas."
+        assert!(
+            !generated.is_empty(),
+            "the generator emitted nothing, so every assertion below would pass vacuously"
         );
+
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../schema");
+        let committed: std::collections::BTreeSet<String> = std::fs::read_dir(&dir)
+            .unwrap_or_else(|e| panic!("cannot read {}: {e}", dir.display()))
+            .filter_map(|e| e.ok())
+            .filter_map(|e| {
+                e.file_name()
+                    .to_str()
+                    .and_then(|n| n.strip_suffix(".schema.json"))
+                    .map(str::to_owned)
+            })
+            .collect();
+        let emitted: std::collections::BTreeSet<String> =
+            generated.keys().map(|k| (*k).to_owned()).collect();
+
+        let uncommitted: Vec<&String> = emitted.difference(&committed).collect();
+        assert!(
+            uncommitted.is_empty(),
+            "these schemas are generated and not committed, so nothing publishes them: \
+             {uncommitted:?}. Run `vds schema emit`."
+        );
+        let orphaned: Vec<&String> = committed.difference(&emitted).collect();
+        assert!(
+            orphaned.is_empty(),
+            "these schemas are committed and no longer generated, so they publish a contract \
+             for an artefact this build cannot produce: {orphaned:?}"
+        );
+
         for (name, text) in &generated {
             let value: serde_json::Value = serde_json::from_str(text)
                 .unwrap_or_else(|e| panic!("{name} is not valid JSON: {e}"));

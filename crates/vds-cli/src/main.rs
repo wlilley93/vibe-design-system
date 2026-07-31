@@ -24,6 +24,7 @@ use vds_core::{EXIT_PASSED, EXIT_PRECONDITION, Result, VdsError};
 mod ci;
 mod doctor;
 mod figma;
+mod geometry;
 mod import;
 mod init;
 mod ledger;
@@ -78,6 +79,15 @@ enum Command {
     /// contrast floor, and folding them together would make "how many
     /// components are registered" a question nobody could answer by counting.
     Screen(screen::Args),
+    /// Declare a bound on how many surfaces of one SHAPE do not comply, and
+    /// lower it.
+    ///
+    /// A separate front door again, and for a sharper reason than `screen`. A
+    /// geometry bound is the only artefact whose whole content is a DIRECTION,
+    /// so the command has a `lower` verb and no `set`: raising a bound is not
+    /// something the interface should make available one character away from
+    /// lowering it.
+    Geometry(geometry::Args),
     /// Run one proof kind, or every implemented kind.
     /// The governance logs: a decisive call, or a self-reported breach.
     Log(log::Args),
@@ -130,6 +140,7 @@ fn dispatch(cli: &Cli) -> Result<i32> {
         Command::Ledger(args) => ledger::run(&ctx, args),
         Command::Register(args) => register::run(&ctx, args),
         Command::Screen(args) => screen::run(&ctx, args),
+        Command::Geometry(args) => geometry::run(&ctx, args),
         Command::Log(args) => log::run(&ctx, args),
         Command::Pin(args) => figma::run_pin(&ctx, args),
         Command::Proof(args) => proof::run(&ctx, args),

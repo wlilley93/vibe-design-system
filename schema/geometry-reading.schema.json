@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "GeometryReading",
+  "description": "A generated reading of the shipped artefact's geometry.\n\nA ledger under VDS S-4(2): generated, never hand-edited, and byte-reproducible by the named command. It is an INPUT to the proof and never a record of it.",
+  "type": "object",
+  "required": [
+    "generatedBy",
+    "kinds",
+    "readFrom",
+    "schemaVersion",
+    "takenAt"
+  ],
+  "properties": {
+    "doesNotCover": {
+      "description": "What the reader knows it did not cover, in the reader's own words.\n\nRequired to be stated, because a census that does not publish its own blind spots reads as complete.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "generatedBy": {
+      "description": "The command that reproduces this file byte for byte.",
+      "type": "string"
+    },
+    "kinds": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/KindReading"
+      }
+    },
+    "readFrom": {
+      "description": "What was read. S-7A(4).",
+      "$ref": "#/definitions/ReadFrom"
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    },
+    "sources": {
+      "description": "The artefacts actually read, repository-relative. Named so a reader can tell a reading of the built bundle from a reading of one stylesheet that happens to sit beside it.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "takenAt": {
+      "description": "When the reading was taken. The proof measures the bound's DIRECTION against this moment and never against the wall clock: a rule read from the system time would make a proof's findings change without any input changing, and VDS S-7(2)(1) requires an unchanged check to cite the same evidence.",
+      "$ref": "#/definitions/Timestamp"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "KindReading": {
+      "description": "One kind's reading: how many surfaces were looked at, and what they were.",
+      "type": "object",
+      "required": [
+        "considered",
+        "nonCompliant",
+        "surfaceKind",
+        "undecided"
+      ],
+      "properties": {
+        "considered": {
+          "description": "Every surface the reader looked at, of this kind.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "nonCompliant": {
+          "description": "Of those, how many do not comply.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "sample": {
+          "description": "Where the worst offenders are, so a row is a job somebody can pick up. Repository-relative, and a sample rather than the full list: a ledger carrying six hundred paths is a ledger nobody reads.",
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "surfaceKind": {
+          "$ref": "#/definitions/SurfaceKind"
+        },
+        "undecided": {
+          "description": "Of those, how many the reader could not resolve.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "ReadFrom": {
+      "description": "What a reading was taken FROM.\n\nVDS S-7A(4): geometry is read from the SHIPPED artefact, never from a model of it. A code model of the intended design is a legitimate design tool and is NOT admissible as the subject of this proof, because it is a third artefact that drifts: on the subscriber project a 17-page code model of the design drifted so completely that it came to model the OUTGOING system it was built to replace.\n\n# Why [`ReadFrom::CodeModel`] is representable at all\n\nIt would be stronger, on the face of it, to leave it out of the enum so a code-model reading could not be written down. It is weaker. A generator that read a code model would then have no way to say so truthfully, and its only route to a parseable ledger would be to label the reading `ShippedSource`. The variant exists so that the honest recorder produces a finding that NAMES the problem, rather than a validation error that teaches mislabelling. The proof refuses it; the type does not hide it.",
+      "oneOf": [
+        {
+          "description": "The stylesheet that ships: the built, compiled CSS a browser receives. The strongest reading, because it is what the user's machine renders.",
+          "type": "string",
+          "enum": [
+            "shipped_stylesheet"
+          ]
+        },
+        {
+          "description": "The source that compiles into what ships. Admissible: it is the shipping code, not a description of it. Weaker than the stylesheet by exactly the distance a build step can introduce, and a reading must say which it took so nobody has to guess.",
+          "type": "string",
+          "enum": [
+            "shipped_source"
+          ]
+        },
+        {
+          "description": "A hand-authored model of the intended design. REFUSED by the proof (S-7A(4)). Representable so it can be refused by name.",
+          "type": "string",
+          "enum": [
+            "code_model"
+          ]
+        }
+      ]
+    },
+    "SurfaceKind": {
+      "description": "The shapes a bound may be declared over. CLOSED, and closed on purpose.\n\nVDS S-7A(3): the bound is per SURFACE KIND and never one number for the estate. The subscriber project's instrument reported \"561 hand-rolled card-geometry containers, pin 561\", and that number names no work: it cannot be assigned to anybody, it cannot be finished, and it hides which shapes are worst. An enum rather than a free string is the strongest available form of that rule, because one undifferentiated bucket is then unrepresentable rather than merely discouraged.",
+      "oneOf": [
+        {
+          "description": "Corner radius.",
+          "type": "string",
+          "enum": [
+            "radius"
+          ]
+        },
+        {
+          "description": "The weight of a surface's boundary: a border, a ring, a divider.",
+          "type": "string",
+          "enum": [
+            "boundary_weight"
+          ]
+        },
+        {
+          "description": "Control density: the spacing step a surface sets its own padding and gaps from.",
+          "type": "string",
+          "enum": [
+            "density"
+          ]
+        },
+        {
+          "description": "Type scale: the size and leading step a surface sets its text from.",
+          "type": "string",
+          "enum": [
+            "type_scale"
+          ]
+        }
+      ]
+    },
+    "Timestamp": {
+      "description": "UTC, second resolution, trailing Z. The one canonical form VDS writes.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    }
+  }
+}

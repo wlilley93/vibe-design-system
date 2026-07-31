@@ -21,6 +21,17 @@ pub struct Args {
 /// The record directories `init` creates.
 const RECORD_DIRS: &[&str] = &[
     "register",
+    // `screens` and `geometry` were each ADDED LATE, and `screens` was missing
+    // from this list for the whole life of the ninth artefact kind. The failure
+    // was quiet rather than loud, which is why it survived: the store's readers
+    // return an empty vector for a directory that is not there, so `vds screen
+    // list` said "no screen is registered" and `screen_parity` ran vacuous, both
+    // of which are exactly what a project with no screens looks like. A scaffold
+    // that omits a record directory does not break anything; it makes the
+    // artefact kind invisible, and an artefact kind nobody can see is one nobody
+    // registers.
+    "screens",
+    "geometry",
     "warrants",
     "proofs",
     "pins",
