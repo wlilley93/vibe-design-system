@@ -76,10 +76,32 @@ square"*.
 
 So the earlier reading was not wrong about what it tested. It was a claim wider than its test: a
 file-level refusal was written up as a system-level unreachability, and the fix was recorded as a
-user-owned duplication that turns out not to be needed for most of the list. **What remains
-untested is whether `importComponentSetByKeyAsync` resolves a subscribed library's keys** - search
-returning a key is not the same as an import resolving it, and that is exactly the distinction the
-Uber Base row exists to record. Do not read this correction as more than it measured.
+user-owned duplication that turns out not to be needed for most of the list.
+
+**And the open question is now SETTLED, with a negative control.** The correction above left one
+thing untested - whether `importComponentSetByKeyAsync` actually RESOLVES a key that
+`search_design_system` returned, because search returning a key is not the same as an import
+resolving it. Probed 2026-07-31 against Simple Design System, which is subscribed:
+
+| key | result |
+|---|---|
+| `0000...0000` (impossible, the control) | `Component set with key "0000..." not found` |
+| `cc8b558d...` Button | **RESOLVED** - 18 variants, axes `Variant / State / Size`, `remote: true` |
+| `e098805c...` Icon Button | **RESOLVED** - 18 variants, same three axes |
+| `3d307317...` Button Danger | **RESOLVED** - 12 variants, same three axes |
+
+The control ran FIRST and was refused, so the three passes are not an API that returns something
+for anything. And the refusal text is BYTE-IDENTICAL to the one Uber Base gives, which closes the
+loop on that row: Base's keys fail for the reason recorded there and no other, and a subscribed
+library's keys import cleanly.
+
+**Consequence for Base, and it is a two-step fix rather than one.** Duplicating the library file
+puts a copy in your drafts; it does not make it a library this file can use. `get_libraries` on
+the master file lists eight subscribed libraries and `libraries_available_to_add` is EMPTY, so a
+duplicate exists somewhere and nothing here can reach it. Either publish the duplicate as a
+library and enable it on this file, or hand over its file key - a file in your own drafts is
+fully readable by every tool, which is the first row of the table above, so the key alone
+unblocks the harvest even with no library subscription at all.
 
 Uber Base is now the only entry genuinely blocked on an action nobody but the Principal can take.
 
