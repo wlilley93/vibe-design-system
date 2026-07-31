@@ -29,6 +29,8 @@ pub struct Config {
     #[serde(default)]
     pub screens: ScreensConfig,
     #[serde(default)]
+    pub geometry: GeometryConfig,
+    #[serde(default)]
     pub governance: Governance,
 }
 
@@ -45,6 +47,13 @@ pub struct Paths {
     /// adopting project.
     #[serde(default = "default_screens_dir")]
     pub screens: PathBuf,
+    /// The geometry bounds: one record per SURFACE KIND (VDS S-7A(3)).
+    ///
+    /// Defaulted for the same reason `screens` is: a config written before the
+    /// twelfth proof kind existed omits it, and refusing those would make an
+    /// amendment a flag day for every adopting project.
+    #[serde(default = "default_geometry_dir")]
+    pub geometry: PathBuf,
     pub warrants: PathBuf,
     pub proofs: PathBuf,
     pub pins: PathBuf,
@@ -58,11 +67,16 @@ fn default_screens_dir() -> PathBuf {
     PathBuf::from(".vds/screens")
 }
 
+fn default_geometry_dir() -> PathBuf {
+    PathBuf::from(".vds/geometry")
+}
+
 impl Default for Paths {
     fn default() -> Self {
         Self {
             register: ".vds/register".into(),
             screens: default_screens_dir(),
+            geometry: default_geometry_dir(),
             warrants: ".vds/warrants".into(),
             proofs: ".vds/proofs".into(),
             pins: ".vds/pins".into(),
@@ -213,6 +227,29 @@ impl Default for ScreensConfig {
     }
 }
 
+/// Where the geometry reading is written, and nothing else.
+///
+/// Deliberately thin. The reader's THRESHOLDS - which radii are the system's,
+/// which boundary weights, which spacing steps - are not here and must not come
+/// here. That is the subject's design system talking, and VDS deciding what
+/// counts as a compliant radius would be VDS becoming a fourth design authority,
+/// which [2026] VJS-CC-OPBOX 3 forbids. VDS holds the BOUND and the DIRECTION;
+/// the subject's generator holds what compliance means.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct GeometryConfig {
+    /// Where the generated geometry reading is written (VDS S-7A(4)).
+    pub reading_ledger: PathBuf,
+}
+
+impl Default for GeometryConfig {
+    fn default() -> Self {
+        Self {
+            reading_ledger: ".vds/ledgers/geometry.yaml".into(),
+        }
+    }
+}
+
 /// VDS S-3(8): the enforcement machinery must not be editable without a permit,
 /// or the gate can be removed by the same hand it constrains.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -248,6 +285,7 @@ impl Default for Governance {
 pub enum PathRole {
     Register,
     Screens,
+    Geometry,
     Warrants,
     Proofs,
     Pins,
@@ -262,6 +300,7 @@ impl PathRole {
         match self {
             PathRole::Register => "register",
             PathRole::Screens => "screens",
+            PathRole::Geometry => "geometry",
             PathRole::Warrants => "warrants",
             PathRole::Proofs => "proofs",
             PathRole::Pins => "pins",
@@ -278,6 +317,7 @@ impl Config {
         match role {
             PathRole::Register => &self.paths.register,
             PathRole::Screens => &self.paths.screens,
+            PathRole::Geometry => &self.paths.geometry,
             PathRole::Warrants => &self.paths.warrants,
             PathRole::Proofs => &self.paths.proofs,
             PathRole::Pins => &self.paths.pins,
@@ -319,6 +359,7 @@ impl Config {
         for role in [
             PathRole::Register,
             PathRole::Screens,
+            PathRole::Geometry,
             PathRole::Warrants,
             PathRole::Proofs,
             PathRole::Pins,

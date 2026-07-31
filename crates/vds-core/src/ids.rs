@@ -93,6 +93,11 @@ lexical_id!(
     "A registered screen: one route's ARRANGEMENT requirement, allocated as the highest on disk plus one (VDS S-4(4))."
 );
 lexical_id!(
+    GeometryId,
+    r"^GEO-[0-9]{4}$",
+    "A bound on how many surfaces of one SHAPE do not comply, and the direction it must travel (VDS S-7A)."
+);
+lexical_id!(
     WarrantId,
     r"^WARRANT-W[1-4]-[0-9]{3}$",
     "A warrant record. The stage number is part of the identifier so the four series are independent."
@@ -164,6 +169,31 @@ impl ScreenId {
             ));
         }
         Self::parse(format!("SCR-{:04}", highest + 1))
+    }
+}
+
+impl GeometryId {
+    /// The next free geometry-bound id, read off disk. VDS S-4(4).
+    ///
+    /// Its own series, and not a suffix on `CMP-`, for the reason `SCR-` is its
+    /// own: a bound is a different subject from a component. There are at most
+    /// four live bounds, one per surface kind (VDS S-7A(3)), so the series is
+    /// tiny by construction - but superseded bounds are kept, and a project that
+    /// re-baselines its shape backlog every quarter accumulates them.
+    pub fn allocate(geometry_dir: &Path) -> Result<Self> {
+        let highest = highest_numbered(geometry_dir, |stem| {
+            stem.strip_prefix("GEO-")
+                .filter(|rest| rest.len() == 4)
+                .and_then(|rest| rest.parse::<u32>().ok())
+        })?;
+        if highest >= 9999 {
+            return Err(VdsError::Identifier(
+                "the geometry id space GEO-0001..GEO-9999 is exhausted. Widening it is an \
+                 amendment to the geometry-bound schema, not a change to this allocator."
+                    .into(),
+            ));
+        }
+        Self::parse(format!("GEO-{:04}", highest + 1))
     }
 }
 

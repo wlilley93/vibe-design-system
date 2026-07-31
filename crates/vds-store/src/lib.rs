@@ -20,8 +20,9 @@ use serde::de::DeserializeOwned;
 
 use vds_core::{
     BreachReport, ComponentId, ComponentRecord, DecisionLog, Digest, EnforcementLock,
-    LOCK_FILE_NAME, LOCK_SCHEMA_VERSION, PathRole, Pin, Project, ProofId, ProofKind, ProofResult,
-    Result, ScreenId, ScreenRecord, Stage, Submission, Timestamp, VdsError, Warrant, WarrantId,
+    GeometryBound, GeometryId, LOCK_FILE_NAME, LOCK_SCHEMA_VERSION, PathRole, Pin, Project,
+    ProofId, ProofKind, ProofResult, Result, ScreenId, ScreenRecord, Stage, Submission, Timestamp,
+    VdsError, Warrant, WarrantId,
     WarrantStatus, write_text_atomically, yaml_files,
 };
 
@@ -189,6 +190,48 @@ impl<'a> Store<'a> {
     pub fn read_screens(&self) -> Result<Vec<Located<ScreenRecord>>> {
         self.refuse_unreadable_entries(&self.screens_dir(), "screen record")?;
         let records: Vec<Located<ScreenRecord>> = self.read_all(&self.screens_dir())?;
+        for record in &records {
+            let expected = format!("{}.yaml", record.value.id);
+            let actual = record
+                .path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or_default();
+            if actual != expected {
+                return Err(VdsError::Artefact {
+                    path: self.project.rel(&record.path),
+                    message: format!(
+                        "is filed as {actual} and carries id {}. One of those is the \
+                         identifier and nothing says which, so this is refused rather than \
+                         guessed (VDS S-4(4)). Rename the file to {expected}.",
+                        record.value.id
+                    ),
+                });
+            }
+        }
+        Ok(records)
+    }
+
+    // -- the geometry bounds -------------------------------------------------
+
+    pub fn geometry_dir(&self) -> PathBuf {
+        self.project.path(PathRole::Geometry)
+    }
+
+    pub fn geometry_path(&self, id: &GeometryId) -> PathBuf {
+        self.geometry_dir().join(format!("{id}.yaml"))
+    }
+
+    /// Every geometry bound, refusing any entry this reader would not pick up.
+    ///
+    /// The same two guards as [`Self::read_register`] and [`Self::read_screens`],
+    /// and here they matter more than anywhere else. There are at most four live
+    /// bounds (VDS S-7A(3)), so ONE record hidden in a subdirectory or saved as
+    /// `.yml` takes a quarter of the estate's shape out of enforcement, and the
+    /// proof would report the remaining three as the whole picture.
+    pub fn read_geometry(&self) -> Result<Vec<Located<GeometryBound>>> {
+        self.refuse_unreadable_entries(&self.geometry_dir(), "geometry bound")?;
+        let records: Vec<Located<GeometryBound>> = self.read_all(&self.geometry_dir())?;
         for record in &records {
             let expected = format!("{}.yaml", record.value.id);
             let actual = record

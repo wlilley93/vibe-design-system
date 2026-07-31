@@ -55,10 +55,14 @@ pub enum ProofKind {
     /// Each registered screen's required arrangement is the arrangement its
     /// authoritative frame draws. The only kind whose subject is a SCREEN.
     ScreenParity,
+    /// Each registered surface's SHAPE is the one the design system specifies,
+    /// and the count that does not comply is BOUNDED AND FALLING. The only kind
+    /// that carries a DIRECTION rather than a threshold.
+    Geometry,
 }
 
 impl ProofKind {
-    pub const ALL: [ProofKind; 11] = [
+    pub const ALL: [ProofKind; 12] = [
         ProofKind::RegisterCompleteness,
         ProofKind::Reconciliation,
         ProofKind::Composition,
@@ -70,6 +74,7 @@ impl ProofKind {
         ProofKind::LedgerStaleness,
         ProofKind::NoStoredValues,
         ProofKind::ScreenParity,
+        ProofKind::Geometry,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -85,6 +90,7 @@ impl ProofKind {
             ProofKind::LedgerStaleness => "ledger_staleness",
             ProofKind::NoStoredValues => "no_stored_values",
             ProofKind::ScreenParity => "screen_parity",
+            ProofKind::Geometry => "geometry",
         }
     }
 
@@ -121,11 +127,15 @@ impl ProofKind {
                 "each registered screen's required arrangement is the one its authoritative \
                  frame draws"
             }
+            ProofKind::Geometry => {
+                "each registered surface's SHAPE is the one the design system specifies, and \
+                 the count that does not comply is bounded AND falling"
+            }
         }
     }
 
     /// Why this kind is not implemented, or `None` where it is. Currently `None`
-    /// for all eleven.
+    /// for all twelve.
     ///
     /// KEPT after the last kind was built rather than deleted, and the emptiness
     /// is the point. The reason a kind is unbuilt has to be stated PER KIND
@@ -398,8 +408,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_registry_is_closed_at_eleven() {
-        assert_eq!(ProofKind::ALL.len(), 11);
+    fn the_registry_is_closed_at_twelve() {
+        // Twelve since the `geometry` amendment of 2026-07-31. This number is
+        // asserted rather than derived on purpose: VDS S-7(6) makes adding a
+        // kind an amendment to the specification, so a variant appearing without
+        // one has to fail somewhere, and this is where.
+        assert_eq!(ProofKind::ALL.len(), 12);
         assert!(serde_json::from_str::<ProofKind>("\"vibes\"").is_err());
     }
 
@@ -432,10 +446,10 @@ mod tests {
             unimplemented.is_empty(),
             "these kinds report themselves unimplemented: {unimplemented:?}. That is lawful, \
              but VDS.md S-14A(3), crates/vds-proof/src/lib.rs and docs/ADOPTING.md all say all \
-             eleven are built, and one of the four is now wrong."
+             twelve are built, and one of the four is now wrong."
         );
         assert_eq!(ProofKind::implemented().len(), ProofKind::ALL.len());
-        assert_eq!(ProofKind::ALL.len(), 11, "the registry is closed at eleven");
+        assert_eq!(ProofKind::ALL.len(), 12, "the registry is closed at twelve");
 
         // The honest form, held in place for whenever a kind has to be
         // withdrawn: a reason is a sentence, not a shrug.

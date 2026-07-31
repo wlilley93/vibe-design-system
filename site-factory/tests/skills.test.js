@@ -669,3 +669,94 @@ test('any block whose Figma set draws more variants than the code exports says w
   const phantom = Object.keys(axes).filter((k) => !k.startsWith('_') && !code[k]);
   assert.deepEqual(phantom, [], `variantAxes names block types that do not exist: ${phantom.join(', ')}`);
 });
+
+test('the variant-axis measurement matches the code it pairs, and every axis is really an axis', () => {
+  // figma-nodes.json records how MANY variants a set draws. This file records WHICH, and the
+  // difference is the whole reason `PropContract.figmaProperty` is null on all 43 records.
+  //
+  // Measured 2026-07-31 across every set: the Figma side is NOMINAL - twelve distinct axis
+  // names (Style on 16 sets, Layout on 8, State on 7, Kind on 4, then Tone, Size, Panes,
+  // Confirm, Pointer, Inset, Artwork, Class) with meaningful values like `Tone=Negative` and
+  // `Confirm=Type to confirm`. The code side is POSITIONAL: `banner-1`, `banner-2`, and for
+  // one block `footer-a`/`footer-b`. A positional key carries no value, so NO derivation can
+  // bind it to a nominal axis - there is nothing to compare. That is the finding this file
+  // exists to hold, and it is why the fix is a change to the block contract rather than a
+  // cleverer matcher.
+  //
+  // WHAT THIS TEST CANNOT CHECK: the Figma half. Re-reading the axes needs the file, which is
+  // a network call. It guards the code half and the file's internal consistency, so a renamed
+  // export fails here and a renamed Figma AXIS fails only on the next re-measure. The same
+  // honest limit figma-nodes.json and figma-variables.json both carry.
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const { FIGMA_NODES, FIGMA_FILE_KEY } = require('../vds-bridge.js');
+  const { listBlockVariants } = require('../compose.js');
+  const measured = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'figma-variants.json'), 'utf8'));
+  const nodes = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'figma-nodes.json'), 'utf8'));
+  const code = listBlockVariants();
+
+  assert.equal(measured.file_key, FIGMA_FILE_KEY,
+    'the variant measurement was taken from a different file than the bridge writes records against');
+
+  // Every block type must be accounted for. A block absent from the measurement is a block
+  // whose axis nobody has read, and it would silently be exempt from everything below.
+  const missing = Object.keys(code).filter((t) => !measured.blocks[t]);
+  assert.deepEqual(missing, [], `figma-variants.json has no entry for: ${missing.join(', ')}`);
+  const phantom = Object.keys(measured.blocks).filter((t) => !code[t]);
+  assert.deepEqual(phantom, [], `figma-variants.json names block types that do not exist: ${phantom.join(', ')}`);
+
+  const keyDrift = [], nodeDrift = [], thinAxis = [];
+  for (const [type, rec] of Object.entries(measured.blocks)) {
+    // The code half, checked against what the module actually exports. This is the arm that
+    // fires on a rename, which is the realistic way this file goes stale.
+    assert.deepEqual(rec.codeKeys, code[type],
+      `${type}: figma-variants.json records code keys ${JSON.stringify(rec.codeKeys)} but the ` +
+      `module exports ${JSON.stringify(code[type])}. Re-measure rather than editing the record.`);
+    if (rec.codeVariants !== code[type].length) keyDrift.push(type);
+
+    // The two measurements must agree about the same node, or one of them is about a
+    // different component.
+    if (FIGMA_NODES[type] !== rec.nodeId) nodeDrift.push(`${type}: bridge says ${FIGMA_NODES[type]}, measurement says ${rec.nodeId}`);
+    const set = nodes.sets[rec.nodeId];
+    if (set) {
+      assert.equal(rec.figmaVariants, set.variants,
+        `${type}: figma-variants.json counted ${rec.figmaVariants} variants and figma-nodes.json ` +
+        `counted ${set.variants} for the same node. Two measurements of one set disagree.`);
+    }
+
+    // An axis with one value is not an axis, it is a label. Recording one would make a
+    // future binding look derivable when the Figma side offers no choice at all.
+    for (const [axis, values] of Object.entries(rec.axes)) {
+      if (values.length < 2) thinAxis.push(`${type}.${axis} has only ${JSON.stringify(values)}`);
+      assert.ok(new Set(values).size === values.length, `${type}.${axis} lists a duplicate value`);
+    }
+    assert.ok(Object.keys(rec.axes).length >= 1, `${type}: no variant axis was measured at all`);
+  }
+
+  assert.deepEqual(keyDrift, [], `codeVariants disagrees with codeKeys for: ${keyDrift.join(', ')}`);
+  assert.deepEqual(nodeDrift, [], `node id disagreement:\n  ${nodeDrift.join('\n  ')}`);
+  assert.deepEqual(thinAxis, [], `these axes offer no choice:\n  ${thinAxis.join('\n  ')}`);
+
+  // The header must state the axis tally, and it must be derived rather than typed - so the
+  // recorded tally is recomputed from the per-block axes here.
+  const recomputed = {};
+  for (const rec of Object.values(measured.blocks)) {
+    for (const axis of Object.keys(rec.axes)) recomputed[axis] = (recomputed[axis] || 0) + 1;
+  }
+  assert.deepEqual(measured.axisNames, recomputed,
+    'the axisNames tally in the header does not match the per-block axes below it. A summary ' +
+    'that disagrees with its own detail is the four-hand-kept-copies failure in one file.');
+
+  // And the positional-versus-nominal finding itself, asserted so it cannot quietly stop
+  // being true without someone noticing that the whole binding problem changed shape.
+  const nominalCodeKeys = Object.entries(measured.blocks)
+    .filter(([type, rec]) => rec.codeKeys.some((k) => {
+      const suffix = k.slice(type.length + 1);
+      return suffix && !/^[0-9]+$/.test(suffix) && !/^[a-z]$/.test(suffix);
+    }))
+    .map(([type]) => type);
+  assert.deepEqual(nominalCodeKeys, [],
+    `these blocks now export NOMINAL variant keys: ${nominalCodeKeys.join(', ')}. That is the ` +
+    'intended direction and it means figmaProperty became derivable for them - update this ' +
+    'test and bind them rather than leaving the binding null.');
+});

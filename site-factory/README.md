@@ -57,7 +57,7 @@ brief ──▶ suggest.js ──▶ config (36 fields) ──▶ compose.js ─
 | `docs/REFERENCES.md` | Every external system looked at, what was taken, and the three access blockers |
 | `docs/DESIGN-TWIN.md` | Why the Figma and code components are twins, and which direction automates |
 | `vendor/relume-*.json` | The Relume kit harvest (1,799 sets) and site-factory's coverage against it |
-| `tests/` | 96 tests, run by `make test-factory` |
+| `tests/` | 97 tests, run by `make test-factory` |
 
 ---
 

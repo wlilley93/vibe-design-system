@@ -1,0 +1,734 @@
+{
+  "_what": "A measured read of the VARIANT AXES of every component set paired to a block type, and the code variant keys beside them. figma-nodes.json records how MANY variants a set has; this records WHICH, which is the half a binding needs.",
+  "_why": "PropContract.figmaProperty is null on every record and nothing in the kernel has ever set it. This file is why it could not be set: the Figma side is NOMINAL (an axis with named values) and the code side is POSITIONAL (a numbered export key). A positional key has no value to pair, so no derivation can bind one to the other. Nothing here is a fix; it is the evidence that names the fix.",
+  "_how": "Node ids read from FIGMA_NODES in vds-bridge.js, resolved against a GET /v1/files/4pPUFvaPdqYzPquBusSfWl response captured 2026-07-31. Axis names and values parsed from each variant child's own name (\"Style=Centered\"), which is where Figma stores them. Code keys read by requiring each block module.",
+  "measured_at": "2026-07-31T09:30:35Z",
+  "file_key": "4pPUFvaPdqYzPquBusSfWl",
+  "file_version": "2382294690904046327",
+  "axisNames": {
+    "Tone": 2,
+    "Kind": 4,
+    "State": 7,
+    "Confirm": 1,
+    "Style": 16,
+    "Inset": 1,
+    "Artwork": 1,
+    "Layout": 8,
+    "Class": 1,
+    "Panes": 1,
+    "Size": 2,
+    "Pointer": 1
+  },
+  "blocks": {
+    "banner": {
+      "nodeId": "54:55",
+      "setName": "Base/Banner",
+      "axes": {
+        "Tone": [
+          "Warning",
+          "Negative",
+          "Accent",
+          "Positive"
+        ]
+      },
+      "figmaVariants": 4,
+      "codeVariants": 2,
+      "codeKeys": [
+        "banner-1",
+        "banner-2"
+      ],
+      "gap": 2
+    },
+    "card": {
+      "nodeId": "39:178",
+      "setName": "Card",
+      "axes": {
+        "Kind": [
+          "Record",
+          "Metric"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "card-1",
+        "card-2"
+      ]
+    },
+    "checkbox": {
+      "nodeId": "47:25",
+      "setName": "Base/Check",
+      "axes": {
+        "State": [
+          "Unchecked",
+          "Checked",
+          "Indeterminate"
+        ]
+      },
+      "figmaVariants": 3,
+      "codeVariants": 2,
+      "codeKeys": [
+        "checkbox-1",
+        "checkbox-2"
+      ],
+      "gap": 1
+    },
+    "confirmdialog": {
+      "nodeId": "37:165",
+      "setName": "ConfirmDialog",
+      "axes": {
+        "Confirm": [
+          "Acknowledge",
+          "Type to confirm"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "confirmdialog-1",
+        "confirmdialog-2"
+      ]
+    },
+    "contact": {
+      "nodeId": "16:107",
+      "setName": "Contact",
+      "axes": {
+        "Style": [
+          "Form",
+          "Split"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "contact-1",
+        "contact-2"
+      ]
+    },
+    "cta": {
+      "nodeId": "16:35",
+      "setName": "CTA",
+      "axes": {
+        "Style": [
+          "Banner",
+          "Signup"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "cta-1",
+        "cta-2"
+      ]
+    },
+    "divider": {
+      "nodeId": "47:63",
+      "setName": "Base/Divider",
+      "axes": {
+        "Inset": [
+          "None",
+          "Cell"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "divider-1",
+        "divider-2"
+      ]
+    },
+    "draggablelist": {
+      "nodeId": "56:150",
+      "setName": "Base/Draggable list",
+      "axes": {
+        "Artwork": [
+          "Custom",
+          "None"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "draggablelist-1",
+        "draggablelist-2"
+      ]
+    },
+    "emptystate": {
+      "nodeId": "36:204",
+      "setName": "EmptyState",
+      "axes": {
+        "State": [
+          "First run",
+          "No results"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "emptystate-1",
+        "emptystate-2"
+      ]
+    },
+    "facetstrip": {
+      "nodeId": "28:29",
+      "setName": "FacetStrip",
+      "axes": {
+        "Style": [
+          "Chips",
+          "Grouped"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "facetstrip-1",
+        "facetstrip-2"
+      ]
+    },
+    "faq": {
+      "nodeId": "16:21",
+      "setName": "FAQ",
+      "axes": {
+        "Style": [
+          "Accordion",
+          "Columns"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "faq-1",
+        "faq-2"
+      ]
+    },
+    "features": {
+      "nodeId": "15:107",
+      "setName": "Features",
+      "axes": {
+        "Style": [
+          "Grid",
+          "Comparison"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "features-1",
+        "features-2"
+      ]
+    },
+    "footer": {
+      "nodeId": "10:28",
+      "setName": "Footer",
+      "axes": {
+        "Style": [
+          "Simple",
+          "Columns"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "footer-a",
+        "footer-b"
+      ]
+    },
+    "formfield": {
+      "nodeId": "36:189",
+      "setName": "FormField",
+      "axes": {
+        "Layout": [
+          "Stacked",
+          "Two column"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "formfield-1",
+        "formfield-2"
+      ]
+    },
+    "gallery": {
+      "nodeId": "86:225",
+      "setName": "Gallery",
+      "axes": {
+        "Class": [
+          "Gallery",
+          "Portfolio"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "gallery-1",
+        "gallery-2"
+      ]
+    },
+    "hero": {
+      "nodeId": "9:25",
+      "setName": "Hero",
+      "axes": {
+        "Style": [
+          "Centered",
+          "Split"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "hero-1",
+        "hero-2"
+      ]
+    },
+    "inspector": {
+      "nodeId": "29:79",
+      "setName": "Inspector",
+      "axes": {
+        "Style": [
+          "Properties",
+          "Activity"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "inspector-1",
+        "inspector-2"
+      ]
+    },
+    "logolist": {
+      "nodeId": "86:148",
+      "setName": "LogoList",
+      "axes": {
+        "Layout": [
+          "Row",
+          "Grid"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "logolist-1",
+        "logolist-2"
+      ]
+    },
+    "masterdetail": {
+      "nodeId": "31:138",
+      "setName": "Master-Detail Assembly",
+      "axes": {
+        "Panes": [
+          "Two",
+          "Three"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "masterdetail-1",
+        "masterdetail-2"
+      ]
+    },
+    "menu": {
+      "nodeId": "56:69",
+      "setName": "Base/Menu",
+      "axes": {
+        "Size": [
+          "Small",
+          "Medium"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "menu-1",
+        "menu-2"
+      ]
+    },
+    "messagecard": {
+      "nodeId": "54:69",
+      "setName": "Base/Message card",
+      "axes": {
+        "Layout": [
+          "WithArtwork",
+          "TextOnly"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "messagecard-1",
+        "messagecard-2"
+      ]
+    },
+    "nav": {
+      "nodeId": "15:18",
+      "setName": "Nav",
+      "axes": {
+        "Style": [
+          "Simple",
+          "Centered"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "nav-1",
+        "nav-2"
+      ]
+    },
+    "notfound": {
+      "nodeId": "16:119",
+      "setName": "404",
+      "axes": {
+        "Style": [
+          "Simple",
+          "Search"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "notfound-1",
+        "notfound-2"
+      ]
+    },
+    "notificationbadge": {
+      "nodeId": "47:54",
+      "setName": "Base/Notification badge",
+      "axes": {
+        "Kind": [
+          "Dot",
+          "Count",
+          "Overflow"
+        ]
+      },
+      "figmaVariants": 3,
+      "codeVariants": 2,
+      "codeKeys": [
+        "notificationbadge-1",
+        "notificationbadge-2"
+      ],
+      "gap": 1
+    },
+    "objecttable": {
+      "nodeId": "28:71",
+      "setName": "ObjectTable",
+      "axes": {
+        "Style": [
+          "Grid",
+          "List"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "objecttable-1",
+        "objecttable-2"
+      ]
+    },
+    "objectview": {
+      "nodeId": "29:50",
+      "setName": "Object View",
+      "axes": {
+        "Style": [
+          "Header",
+          "Tabbed"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "objectview-1",
+        "objectview-2"
+      ]
+    },
+    "pagecontrols": {
+      "nodeId": "55:106",
+      "setName": "Base/Page controls",
+      "axes": {
+        "State": [
+          "Enabled",
+          "Disabled"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "pagecontrols-1",
+        "pagecontrols-2"
+      ]
+    },
+    "pagestate": {
+      "nodeId": "37:143",
+      "setName": "PageState",
+      "axes": {
+        "State": [
+          "Loading",
+          "Error"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "pagestate-1",
+        "pagestate-2"
+      ]
+    },
+    "pagination": {
+      "nodeId": "57:91",
+      "setName": "Base/Pagination",
+      "axes": {
+        "Layout": [
+          "Compact",
+          "Full"
+        ],
+        "State": [
+          "Enabled",
+          "Disabled"
+        ]
+      },
+      "figmaVariants": 4,
+      "codeVariants": 2,
+      "codeKeys": [
+        "pagination-1",
+        "pagination-2"
+      ],
+      "gap": 2,
+      "multiAxis": true
+    },
+    "pricing": {
+      "nodeId": "15:64",
+      "setName": "Pricing",
+      "axes": {
+        "Style": [
+          "Cards",
+          "Table"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "pricing-1",
+        "pricing-2"
+      ]
+    },
+    "progressbar": {
+      "nodeId": "55:121",
+      "setName": "Base/Progress bar - Determinate",
+      "axes": {
+        "Size": [
+          "Small",
+          "Medium"
+        ],
+        "Layout": [
+          "Label",
+          "None"
+        ]
+      },
+      "figmaVariants": 4,
+      "codeVariants": 2,
+      "codeKeys": [
+        "progressbar-1",
+        "progressbar-2"
+      ],
+      "gap": 2,
+      "multiAxis": true
+    },
+    "progresssteps": {
+      "nodeId": "57:135",
+      "setName": "Base/Progress steps",
+      "axes": {
+        "Layout": [
+          "Horizontal",
+          "Vertical"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "progresssteps-1",
+        "progresssteps-2"
+      ]
+    },
+    "radio": {
+      "nodeId": "47:33",
+      "setName": "Base/Radio",
+      "axes": {
+        "State": [
+          "Unselected",
+          "Selected"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "radio-1",
+        "radio-2"
+      ]
+    },
+    "segmentedcontrol": {
+      "nodeId": "39:161",
+      "setName": "SegmentedControl",
+      "axes": {
+        "Kind": [
+          "View switch",
+          "Filter"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "segmentedcontrol-1",
+        "segmentedcontrol-2"
+      ]
+    },
+    "sidebar": {
+      "nodeId": "16:54",
+      "setName": "Sidebar",
+      "axes": {
+        "Style": [
+          "Simple",
+          "Grouped"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "sidebar-1",
+        "sidebar-2"
+      ]
+    },
+    "stats": {
+      "nodeId": "86:189",
+      "setName": "Stats",
+      "axes": {
+        "Layout": [
+          "Row",
+          "WithClaim"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "stats-1",
+        "stats-2"
+      ]
+    },
+    "switch": {
+      "nodeId": "47:13",
+      "setName": "Base/Switch",
+      "axes": {
+        "State": [
+          "Off",
+          "On"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "switch-1",
+        "switch-2"
+      ]
+    },
+    "systembanner": {
+      "nodeId": "54:26",
+      "setName": "Base/System banner",
+      "axes": {
+        "Tone": [
+          "Warning",
+          "Negative",
+          "Accent",
+          "Positive"
+        ]
+      },
+      "figmaVariants": 4,
+      "codeVariants": 2,
+      "codeKeys": [
+        "systembanner-1",
+        "systembanner-2"
+      ],
+      "gap": 2
+    },
+    "team": {
+      "nodeId": "16:82",
+      "setName": "Team",
+      "axes": {
+        "Style": [
+          "Grid",
+          "List"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "team-1",
+        "team-2"
+      ]
+    },
+    "testimonials": {
+      "nodeId": "15:80",
+      "setName": "Testimonials",
+      "axes": {
+        "Style": [
+          "Grid",
+          "Featured"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "testimonials-1",
+        "testimonials-2"
+      ]
+    },
+    "timeline": {
+      "nodeId": "86:271",
+      "setName": "Timeline",
+      "axes": {
+        "Layout": [
+          "Vertical",
+          "Horizontal"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "timeline-1",
+        "timeline-2"
+      ]
+    },
+    "toast": {
+      "nodeId": "39:139",
+      "setName": "Toast",
+      "axes": {
+        "Kind": [
+          "Confirmation",
+          "Undoable"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "toast-1",
+        "toast-2"
+      ]
+    },
+    "tooltip": {
+      "nodeId": "47:42",
+      "setName": "Base/Tooltip",
+      "axes": {
+        "Pointer": [
+          "Bottom",
+          "Top"
+        ]
+      },
+      "figmaVariants": 2,
+      "codeVariants": 2,
+      "codeKeys": [
+        "tooltip-1",
+        "tooltip-2"
+      ]
+    }
+  }
+}

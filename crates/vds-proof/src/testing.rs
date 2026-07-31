@@ -14,10 +14,10 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use vds_core::{
-    Accessibility, ArrangementContract, CodeCounterpart, ComponentId, ComponentRecord,
-    ContrastFloor, Demand, FigmaFrame, FloorScope, InvokedBy, NameSource, Project, ProofKind,
-    ProofResult, ScreenId, ScreenRecord, State, StateContract, Status, Timestamp, VdsError,
-    default_config,
+    Accessibility, ArrangementContract, BoundEntry, CodeCounterpart, ComponentId, ComponentRecord,
+    ContrastFloor, Demand, FigmaFrame, FloorScope, GeometryBound, GeometryId, GeometryReading,
+    InvokedBy, KindReading, NameSource, Project, ProofKind, ProofResult, ReadFrom, ScreenId,
+    ScreenRecord, State, StateContract, Status, SurfaceKind, Timestamp, VdsError, default_config,
 };
 use vds_store::Store;
 
@@ -42,7 +42,8 @@ impl Harness {
     pub fn with_config(config: &str) -> Harness {
         let tmp = tempfile::tempdir().expect("a temporary directory");
         for dir in [
-            "register", "screens", "warrants", "proofs", "pins", "ledgers", "logs", "permits",
+            "register", "screens", "geometry", "warrants", "proofs", "pins", "ledgers", "logs",
+            "permits",
         ] {
             std::fs::create_dir_all(tmp.path().join(".vds").join(dir)).unwrap();
         }
@@ -113,6 +114,75 @@ impl Harness {
             &format!("src/components/ui/{}.tsx", name.to_lowercase()),
             &format!("export function {name}() {{ return <div />; }}\n"),
         )
+    }
+
+    // -- geometry -------------------------------------------------------------
+
+    /// Write a geometry bound with the given history, as `(date, bound)` pairs
+    /// OLDEST FIRST.
+    ///
+    /// The history is spelled out at every call site rather than defaulted,
+    /// because the direction rule is the whole subject of this kind and a
+    /// fixture that supplies a plausible history for you is a fixture that
+    /// decides the answer.
+    pub fn geometry_bound(
+        &self,
+        kind: SurfaceKind,
+        window_days: u32,
+        history: &[(&str, u32)],
+    ) -> PathBuf {
+        let store = self.store();
+        let id = GeometryId::allocate(&store.geometry_dir()).expect("a geometry id");
+        let record = GeometryBound {
+            id: id.clone(),
+            surface_kind: kind,
+            status: Status::Registered,
+            declared_window_days: window_days,
+            history: history
+                .iter()
+                .map(|(at, bound)| BoundEntry {
+                    at: Timestamp::parse(format!("{at}T00:00:00Z")).expect("a fixture date"),
+                    bound: *bound,
+                    because: None,
+                })
+                .collect(),
+            basis: vec!["VDS S-7A(2)".into()],
+            notes: None,
+        };
+        let path = store.geometry_path(&id);
+        let text = serde_yaml::to_string(&record).expect("a serialisable bound");
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, text).unwrap();
+        path
+    }
+
+    /// Write a geometry reading covering one surface kind.
+    pub fn geometry_reading(
+        &self,
+        taken: &str,
+        read_from: ReadFrom,
+        kinds: &[(SurfaceKind, u32, u32, u32)],
+    ) -> PathBuf {
+        let reading = GeometryReading {
+            schema_version: vds_core::READING_SCHEMA_VERSION,
+            generated_by: "vds ledger geometry".into(),
+            taken_at: Timestamp::parse(format!("{taken}T00:00:00Z")).expect("a fixture date"),
+            read_from,
+            sources: vec![".next/static/css/app.css".into()],
+            kinds: kinds
+                .iter()
+                .map(|(kind, considered, non_compliant, undecided)| KindReading {
+                    surface_kind: *kind,
+                    considered: *considered,
+                    non_compliant: *non_compliant,
+                    undecided: *undecided,
+                    sample: vec![],
+                })
+                .collect(),
+            does_not_cover: vec!["inline style attributes".into()],
+        };
+        let project = self.project();
+        vds_core::write_reading(&project, &reading).expect("a written reading")
     }
 
     /// Regenerate the screens ledger.

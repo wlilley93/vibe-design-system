@@ -1,12 +1,12 @@
 //! The proof kinds, and the engine that captures them.
 //!
-//! VDS S-7(5) fixes eleven kinds as a CLOSED registry and VDS S-7(6) makes
+//! VDS S-7(5) fixes twelve kinds as a CLOSED registry and VDS S-7(6) makes
 //! adding one an amendment to the specification rather than a script anyone may
 //! drop in. That closure is enforced here by construction: [`run`] matches on
 //! [`ProofKind`], which is an enum, so a new kind cannot be dispatched without
 //! adding a variant to the type the specification names.
 //!
-//! All eleven are implemented. [`ProofKind::unimplemented_because`] returns None
+//! All twelve are implemented. [`ProofKind::unimplemented_because`] returns None
 //! for every one of them, and the type still carries it: a kind that later has to
 //! be withdrawn must say WHY, per kind, rather than disappearing from a match.
 
@@ -17,6 +17,7 @@ use vds_store::Store;
 
 pub mod composition;
 pub mod contrast;
+pub mod geometry;
 pub mod index;
 pub mod ledger_staleness;
 pub mod no_stored_values;
@@ -108,6 +109,7 @@ pub fn run(kind: ProofKind, ctx: &ProofContext, out: &mut dyn Write) -> Result<O
         ProofKind::NoStoredValues => no_stored_values::run(ctx, out),
         ProofKind::TokenPin => token_pin::run(ctx, out),
         ProofKind::ScreenParity => screen_parity::run(ctx, out),
+        ProofKind::Geometry => geometry::run(ctx, out),
     }
 }
 

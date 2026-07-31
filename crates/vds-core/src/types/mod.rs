@@ -13,6 +13,7 @@
 //! on disk rather than trusting it (VDS S-2(8)).
 
 mod component;
+mod geometry;
 mod lock;
 mod log;
 mod pin;
@@ -22,6 +23,7 @@ mod submission;
 mod warrant;
 
 pub use component::*;
+pub use geometry::*;
 pub use lock::*;
 pub use log::*;
 pub use pin::*;
