@@ -147,7 +147,8 @@
     {
       "name": "THE SYNC BOUNDARY, stated as a rule",
       "what": "docs/16: \"The contract carries only canvas-expressible facts ... The contract will never carry hooks, event handlers, business logic, data fetching, side effects. Not not-yet - never, by design. Code is allowed to be arbitrarily richer than the canvas; the sync surface is capped at what a Figma component set can express, because that is the largest surface on which a DETERMINISTIC round trip is possible.\"",
-      "why": "This is the clearest statement of the twin problem anyone in this programme has written, including me. It is also directly load-bearing on SUBMISSION-VDS-011: if the sync surface is capped at what a component set expresses, then a code module of variant exports is OUTSIDE the boundary by construction, and the question of what its coordinate is may dissolve rather than need deciding."
+      "why": "This is the clearest statement of the twin problem anyone in this programme has written, including me. It is also directly load-bearing on SUBMISSION-VDS-011: if the sync surface is capped at what a component set expresses, then a code module of variant exports is OUTSIDE the boundary by construction, and the question of what its coordinate is may dissolve rather than need deciding.",
+      "adopted": "NOT ADOPTED, DELIBERATELY, and this is a holding rather than an omission. The sync boundary decides which side of the Figma/code pair is authoritative for a given fact. That is the question in SUBMISSION-VDS-011 (the register row's counterpart for a variant registry) and it rests on the structural finding that Figma varies NOMINALLY while code varies POSITIONALLY. Adopting a rule here would answer, in code, a first-impression question already before the bench - which is the fourth-authority problem [2026] VJS-CC-OPBOX 3 D1 forbids. It waits for the ruling."
     },
     {
       "name": "FINDINGS CLASSIFIED ahead / behind / mismatch, per SURFACE",
@@ -158,12 +159,14 @@
     {
       "name": "GOLDEN BYTES PER EMITTED FILE",
       "what": "evals/golden.json maps 265 emitted file paths to a sha256 each. Not a whole-run digest: a per-file one.",
-      "why": "figma-draw is gated on two runs being byte-identical, which catches non-determinism and NOT an intended change slipping through unreviewed. A per-file golden turns every emitter change into a reviewable diff. This is strictly stronger than what this repository does."
+      "why": "figma-draw is gated on two runs being byte-identical, which catches non-determinism and NOT an intended change slipping through unreviewed. A per-file golden turns every emitter change into a reviewable diff. This is strictly stronger than what this repository does.",
+      "adopted": "site-factory/figma-golden.js (8c5e045). The golden is the LITERAL EMITTED BYTES in vendor/figma-draw.golden.js, not a per-file digest, which is where this departs from the source: a digest mismatch names no change, and the emitted script writes to the live Figma file, so the review surface has to be git diff. A drift is classified as data-moved (ordinary) or emitter-moved (needs eyes). The emitter's own digest is recorded and NOT judged on - listing it among the classified inputs, as the first version did, made the emitter_moved branch unreachable, and all four fabricated negative controls passed over that because they supply the digests they hand the classifier. Seeding a real edit into figma-draw.js is what caught it. DECISION-0006."
     },
     {
       "name": "REFUSALS THAT NAME THE COMPOSITION RULE",
       "what": "emit-react.ts refuses by name: a part whose component ref creates a cycle (\"a contract cannot compose itself\"), structured values fixed in anatomy, and layoutByProp restyling a component instance (\"the child contract owns its layout\").",
-      "why": "Each is a composition rule expressed as a refusal at emit time rather than as prose in a doc. VDS S-7(5) composition checks membership of may_use; it does not check for cycles, and nothing here would catch a block composing itself."
+      "why": "Each is a composition rule expressed as a refusal at emit time rather than as prose in a doc. VDS S-7(5) composition checks membership of may_use; it does not check for cycles, and nothing here would catch a block composing itself.",
+      "adopted": "site-factory/block-graph.js (edc7853). A block that composes itself, directly or through another, is refused by name. CommonJS does not throw on a circular require - it hands back a half-built exports object - so nothing else would have said so."
     }
   ],
   "their_own_evidence_re_read": {
@@ -180,5 +183,11 @@
     "baseline_entries": 0,
     "coverage_ceiling": "no library captured past 11.9%, their own words, docs/22-generality.md",
     "_fairness": "They state every one of these limits themselves, in committed docs, in numbers. That is rarer than the tooling and it is the reason this repository is worth reading at all."
+  },
+  "adoption_tally": {
+    "adopted": 3,
+    "held_for_the_court": 1,
+    "of": 4,
+    "_note": "Three of four mechanisms are in the tree with a seeded failing direction each. The fourth is not unfinished work: it is a question the bench has, and building it would be deciding it."
   }
 }
