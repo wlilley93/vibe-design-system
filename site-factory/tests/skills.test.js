@@ -921,6 +921,87 @@ test('the library generator is deterministic, refuses rather than guesses, and h
     'the script must not throw: a throw rolls back every set it had already drawn');
 });
 
+test('the emitted Figma script matches its committed golden bytes', () => {
+  // DETERMINISM IS THE WEAKER HALF. The check above runs the generator twice and requires
+  // the two runs to agree, which catches an emitter that moves ON ITS OWN and catches
+  // nothing else: an intended edit passes silently, because both runs agree with each
+  // other and neither is compared with anything committed. This script WRITES TO THE LIVE
+  // FIGMA FILE - 43 component sets - so a change nobody read is a redraw nobody approved.
+  //
+  // Borrowed with attribution from `southleft/ds-contracts-poc`, which keeps a golden per
+  // emitted file. The golden here is the literal bytes rather than a digest, so the review
+  // surface is `git diff` and not a message saying two hexes differ.
+  const golden = require('../figma-golden.js');
+  const { classify, check, emitted, sha256 } = golden;
+
+  const verdict = check();
+  assert.ok(verdict.ok,
+    `${verdict.reason}: ${verdict.detail}\n`
+    + 'Read the diff, then `node site-factory/figma-golden.js --update`.');
+
+  // THE GOLDEN IS THE BYTES, and the bytes have to be the ones the generator makes. A
+  // golden file that had been hand-edited, or written from a different input set, would
+  // satisfy every assertion above by construction.
+  const now = emitted();
+  assert.equal(fs.readFileSync(golden.GOLDEN_SCRIPT, 'utf8'), now.script,
+    'the committed golden is not what the generator emits');
+
+  // NEGATIVE CONTROLS. The verdict function is pure precisely so these can be driven
+  // without writing to the tree - a seed that has to be written is a seed that can
+  // silently miss, and a check that never sees a disagreement cannot be told from one
+  // that cannot see one.
+  const manifestNow = {
+    script_sha256: sha256(now.script),
+    inputs: now.digests,
+  };
+
+  // THE EMITTER MUST NOT BE AMONG THE CLASSIFIED INPUTS. It was, in the first version, and
+  // that made `emitter_moved` UNREACHABLE: editing the generator moves its own digest, so
+  // every generator edit answered `inputs_moved` - "an ordinary consequence" - and the one
+  // case the classification exists to surface could never fire. Seeding a real edit into
+  // `figma-draw.js` and reading which branch answered is what caught it; the fabricated
+  // controls below could not, because they supply whatever digests they are handed. This
+  // assertion is what stops it coming back.
+  assert.deepEqual(Object.keys(now.digests).sort(), ['figma-variants.json', 'register'],
+    'the emitter is not an input to itself - listing it here makes emitter_moved dead');
+  assert.equal(typeof now.emitter_sha256, 'string',
+    'the emitter digest is still RECORDED, so a failure can name it without judging on it');
+
+  // (1) The emitter moved and every input is identical. This is the case that matters:
+  // somebody edited the generator, and no input explains it.
+  const emitterMoved = classify(`${now.script}\n// edited`, {
+    script_sha256: sha256(`${now.script}\n// edited`),
+    inputs: now.digests,
+  }, now);
+  assert.equal(emitterMoved.ok, false, 'a golden that disagrees with the emitter must fail');
+  assert.equal(emitterMoved.reason, 'emitter_moved');
+  assert.deepEqual(emitterMoved.moved, [], 'no input moved, so none may be blamed');
+  assert.match(emitterMoved.detail, /redraws the live Figma library/);
+
+  // (2) An input moved too. Ordinary, and it must READ as ordinary - a gate that shouts
+  // equally at a routine input change is a gate people update without looking.
+  const inputMoved = classify(`${now.script}\n// edited`, {
+    script_sha256: sha256(`${now.script}\n// edited`),
+    inputs: { ...now.digests, 'figma-variants.json': '0'.repeat(64) },
+  }, now);
+  assert.equal(inputMoved.reason, 'inputs_moved');
+  assert.deepEqual(inputMoved.moved, ['figma-variants.json']);
+  assert.ok(inputMoved.detail.includes('ordinary consequence'));
+
+  // (3) The manifest and the bytes beside it disagree, which is what hand-editing one of
+  // the two produces. Neither is trustworthy then, and the digest must be checked BEFORE
+  // the comparison rather than after - otherwise a stale manifest silently decides which
+  // of the two branches above gets reported.
+  const desynced = classify(now.script, { script_sha256: '1'.repeat(64), inputs: now.digests }, now);
+  assert.equal(desynced.reason, 'manifest_disagrees_with_bytes',
+    'a manifest that does not describe the bytes next to it must be refused, even when '
+    + 'those bytes happen to match the generator');
+
+  // (4) And the passing direction is reachable at all, so (1)-(3) are not just three ways
+  // of saying no.
+  assert.equal(classify(now.script, manifestNow, now).ok, true);
+});
+
 test('coverage reports three separate numbers per library and never invents a denominator', () => {
   // THE INSTRUMENT MUST NOT COMPUTE ITS OWN DENOMINATOR. Every coverage answer this
   // programme has given was a single fraction, and a fraction hides which of three

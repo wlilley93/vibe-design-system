@@ -35,8 +35,15 @@ const GATES = [
   'site-factory/tests/gate.js',
   // This file. It holds the floors, so weakening it weakens every count.
   'site-factory/tests/floors.js',
-  // An instrument that renders a verdict rather than being measured by one.
+  // Instruments that render a verdict rather than being measured by one.
   'site-factory/token-reach.js',
+  // The composition-cycle check. A block that composes itself does not throw in
+  // CommonJS - it hands back a half-built exports object - so this is the only
+  // thing that would say so.
+  'site-factory/block-graph.js',
+  // The golden for the script that REDRAWS THE LIVE FIGMA LIBRARY. Weakening this
+  // is how 43 component sets get rewritten by an edit nobody read.
+  'site-factory/figma-golden.js',
 ];
 
 /**
@@ -68,7 +75,7 @@ function lockFindings(gates, lockText, digestOf) {
 
 module.exports = {
   MIN_FILES: 7,
-  MIN_TESTS: 118,
+  MIN_TESTS: 119,
   GATES,
   lockFindings,
 };

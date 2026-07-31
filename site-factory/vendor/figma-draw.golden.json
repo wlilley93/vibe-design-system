@@ -1,0 +1,13 @@
+{
+  "_what": "The bytes site-factory/figma-draw.js emits, committed so a change to the generator arrives as a reviewable diff rather than a silently passing test.",
+  "_why_bytes_not_a_digest": "A digest mismatch names no change. The script writes to the live Figma file; a reviewer needs to see what a redraw would do before it does it.",
+  "_inputs_are_diagnostics": "These digests are NOT asserted. They exist so a failure can say whether an input moved (ordinary) or only the emitter did (needs eyes).",
+  "script": "figma-draw.golden.js",
+  "script_sha256": "85ee1d4ed2e49ad584d72c8fa62685b46838798fdc1d27df5b15d97e3f81d394",
+  "script_bytes": 20040,
+  "inputs": {
+    "figma-draw.js": "1f234552a5bf675cec2458d147a090fa696da4d4571d83be8258963893f5f997",
+    "figma-variants.json": "89807e8c9c108829af35c47e44cc2c1161e9a7df2461f848f0d2211dbea2dfe4",
+    "register": "95be6b995104ebe9f7480029c31e0c072bf28a415d08042d83cbedba1288dabf"
+  }
+}

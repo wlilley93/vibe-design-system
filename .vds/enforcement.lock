@@ -1,5 +1,5 @@
 schema_version: 1
-generated_at: 2026-07-31T16:59:44Z
+generated_at: 2026-07-31T17:13:04Z
 entries:
 - path: crates/vds-cli/src/doctor.rs
   digest: sha256:994f575215d16c415ba1fac437c57ee0c2f750ee76738611804caa6432e9ce83
@@ -374,8 +374,36 @@ entries:
     seeds: the hook narrowed from `make check` to `make test`, so it still exits non-zero on a failing test while silently no longer running any gate
   pinned_at: 2026-07-31T09:23:43Z
   pinned_by: jellytot
+- path: site-factory/block-graph.js
+  digest: sha256:050163fa3777c684402752f49c04ed65c8faf7cd11b273f0e2a83640e769823f
+  kind: hook
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:site-factory gate
+    blocking: true
+  proves: []
+  failing_direction_test:
+    path: site-factory/tests/skills.test.js
+    test_name: no block composes itself, directly or through another
+    seeds: a block that requires itself, and a two-block cycle, each asserted to be found exactly once
+  pinned_at: 2026-07-31T17:13:00Z
+  pinned_by: jellytot
+- path: site-factory/figma-golden.js
+  digest: sha256:445a97bc7509bf677eee15bebca34664b07a422d860d0ff3188e6ce6572e9468
+  kind: hook
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:site-factory gate
+    blocking: true
+  proves: []
+  failing_direction_test:
+    path: site-factory/tests/skills.test.js
+    test_name: the emitted Figma script matches its committed golden bytes
+    seeds: a real edit to figma-draw.js with data inputs unchanged, and a data-only change, each classified separately
+  pinned_at: 2026-07-31T17:13:00Z
+  pinned_by: jellytot
 - path: site-factory/tests/floors.js
-  digest: sha256:c346e6f192905659410fd92a45a8a05dffe98927e93b0d60f30fc2f2f3c8c98e
+  digest: sha256:2cb5d5afc63a1a13fb4e735afa82efc468e372ab3efcea1a487fcfcd1993cf83
   kind: hook
   invoked_by:
   - surface: ci_workflow
@@ -386,10 +414,10 @@ entries:
     path: site-factory/tests/skills.test.js
     test_name: every declared site-factory gate is pinned, at its current digest
     seeds: MIN_TESTS lowered without a re-pin, so deleting tests stops being detectable by the count
-  pinned_at: 2026-07-31T16:59:44Z
+  pinned_at: 2026-07-31T17:13:04Z
   pinned_by: jellytot
-  supersedes_digest: sha256:64d3d48349d729ca02e5197cf0275f5e7c560d0cfc01a376ce8cea4584e63f9f
-  relock_rationale: MIN_TESTS 117 -> 118 for the block composition cycle check. A floor rising.
+  supersedes_digest: sha256:c346e6f192905659410fd92a45a8a05dffe98927e93b0d60f30fc2f2f3c8c98e
+  relock_rationale: 'floors.js gains two gate-surface entries: block-graph.js (the composition-cycle check) and figma-golden.js (the golden over the script that redraws the live Figma library), and MIN_TESTS rises 118 -> 119 for the golden test.'
 - path: site-factory/tests/gate.js
   digest: sha256:89e019eb675d8ed565de16940252769ed5829f5482568ddadcb5d9bb5f9e75e9
   kind: hook
