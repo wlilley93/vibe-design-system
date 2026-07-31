@@ -1,0 +1,69 @@
+id: 2026-VJS-CC-VDS-WARRANT-OPERATION-004
+citation: "[2026] VJS-CC-VIBE-DESIGN-SYSTEM 4"
+court: county
+jurisdiction: vibe-design-system
+repo_code: VIBE-DESIGN-SYSTEM
+status: binding
+issue: warrant-statute-operation
+question: >
+  Three consolidated questions on the warrant statute: the greenfield form of W1, the
+  granting authority for W2, and the binding scope of a designpack.
+holding: |
+  THREE HOLDINGS (Marbury J, sitting alone at first instance, on the case file pinned at
+  CONVENING-county-2026-07-31-190911), consolidated because the three questions share one
+  case file and one subject - how the warrant statute operates - and none turns on a fact
+  the others do not.
+
+  H1, THE GREENFIELD W1 (VDS-001): OPTION (c). W1 REGISTER-COMPLETE may be granted over a
+  DECLARED SUBSET, the subset named by digest in the grant itself. The claim stays exact -
+  "these records, at these digests, are complete" - so W1-before-design keeps the property
+  it exists for: drift is structurally impossible INSIDE the granted subset. Design
+  proceeds inside the subset; touching a record outside it is work W1 does not cover, and
+  widening the subset is a NEW grant, never a drifted old one. Option (b) is refused
+  because a provisional grant awaiting ratification is deferred enforcement, and this
+  programme's ledger of deferred enforcement is a ledger of defects: an unrun gate banks
+  debt, and nothing in (b) forces the ratification to ever happen.
+
+  H2, WHO GRANTS W2 (VDS-002): REFERRED TO VJS, as W1 and W4 are. Machine-checkable
+  evidence lowers the COST of the bench - the proofs ARE the case file, and a sitting over
+  green proofs is short - but it does not replace the bench, because the question a grant
+  answers is not "are the proofs green" but "is the party's claim to completeness the
+  right claim to certify". A self-granted warrant is the laundering vector the VJS
+  assent-resolution line closed: the party doing the work certifies the work, on evidence
+  the same party maintains. The proof suite's own history decides this - twice this
+  programme found a green suite whose gate could not fail, and a bench reading the seeded
+  failing directions is exactly what catches that class.
+
+  H3, THE DESIGNPACK'S SCOPE (VDS-003): ONE PROJECT, the one whose .vds/config.toml pins
+  it. A pack binding a tenant or the realm makes one re-pin change law under sibling
+  projects that never assented - the same defect [2026] VJS-CC-VJS 12 condemned the same
+  day in lock form: a subscription must be a resolved, recorded act OF THE SUBSCRIBING
+  repository. Fleet consistency is achieved the way the sibling fleet already achieves it:
+  every project pins the same pack version, and divergence is VISIBLE as differing pins,
+  measurable by a drift report, corrected by each project's own recorded act. Consistency
+  by shared choice, never by remote control.
+directives:
+  - id: D1
+    actor: kernel
+    must: record_the_granted_subset_by_digest_in_a_w1_grant
+    when: granting_w1_on_a_surface_with_records_outside_the_subset
+  - id: D2
+    actor: agent
+    must: refer_w2_grants_to_the_bench_with_the_proofs_as_case_file
+    when: seeking_design_complete
+  - id: D3
+    actor: kernel
+    must: bind_a_designpack_to_the_project_whose_config_pins_it_and_no_wider
+    when: resolving_designpack_scope
+forbidden:
+  - grant_a_provisional_w1_awaiting_ratification
+  - self_grant_a_warrant_on_proof_alone
+  - bind_a_pack_beyond_the_repository_that_pinned_it
+supersedes: []
+source_opinion: 2026-VJS-CC-VDS-4-opinion.md
+runtime_summary: >
+  W1 may be granted over a declared subset named by digest; widening is a new grant. W2 is
+  referred to the bench with the proofs as case file - machine evidence lowers the cost of
+  a sitting, never replaces it. A designpack binds exactly the project whose config pins
+  it; fleet consistency is shared pins made visible, never one binding pin.
+created_at: "2026-07-31T19:12:00Z"

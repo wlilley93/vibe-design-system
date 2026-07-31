@@ -20,7 +20,11 @@ case_file_digest: sha256:c6323a412d72bd532d5d1b6bff1d06ee8ac953d734247d6a32693be
 reserved_clause: "S-6(6)"
 fail_closed_interim: "DIGEST PROVENANCE: case_file_digest is derived by `scripts/case-file-digest.sh VDS.md docs/GOAL.md`, the two files this submission's evidence names. Submissions 001 through 006 share it because they share a case file: each is a question about how the specification reads, decided on the specification and the goal statement. All six carried sixty-four zeros from filing until 2026-07-31 - a placeholder that reads exactly like a computed digest, so six pending questions were all awaiting a ruling on a record that could move under them with nothing saying so. W2 is referred to VJS, and VDS may record a proof-only candidate but may never treat it as granted"
 filed_to: vjs
-vjs_submission_id: null
+vjs_submission_id: SUBMISSION-2026-07-31-190904
 created_at: 2026-07-25T13:00:00Z
 filed_at: 2026-07-25T13:00:00Z
-answer: null
+answer:
+  citation: "[2026] VJS-CC-VIBE-DESIGN-SYSTEM 4"
+  ratio: >-
+    W2 DESIGN-COMPLETE is referred to the bench like W1 and W4, with the proofs as the case file. Machine-checkable evidence lowers the cost of the sitting and never replaces it: a self-granted warrant is the laundering vector already closed, and twice this programme found a green suite whose gate could not fail - a bench reading the seeded failing directions is what catches that class.
+  answered_at: 2026-07-31T19:16:00Z

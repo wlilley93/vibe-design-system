@@ -1,0 +1,67 @@
+id: 2026-VJS-CC-VDS-PROOF-OPERATION-005
+citation: "[2026] VJS-CC-VIBE-DESIGN-SYSTEM 5"
+court: county
+jurisdiction: vibe-design-system
+repo_code: VIBE-DESIGN-SYSTEM
+status: binding
+issue: proof-statute-operation
+question: >
+  Three consolidated questions on the proof statutes: forced drain over live demand, the
+  composition primitive floor, and the pin row's content.
+holding: |
+  THREE HOLDINGS (Halden J, sitting alone at first instance, on the case file pinned at
+  CONVENING-county-2026-07-31-191011).
+
+  H1, FORCED DRAIN (VDS-004): OPTION (b), NARROWLY. The absolute drain remains the
+  default and the only executive path. A retirement may complete over non-zero demand
+  ONLY under an order of this court that names the remaining demand - each route, each
+  count - on its face, sets the date, and states why breakage-on-a-date is preferred to
+  the hostage state. An executive deadline alone can never force it: the party wanting
+  the retirement is the party declaring the breakage acceptable, which is the
+  self-certification this series has now refused three times. The order's named demand is
+  the safeguard: a court cannot be asked to order over demand it has not been shown.
+
+  H2, THE PRIMITIVE FLOOR (VDS-005): OPTION (c). An ENUMERATED SET of elements sits below
+  the composition floor, held as a governed artefact a reader can disagree with and a
+  diff can show changing. Everything outside the set is either a registered component or
+  a named carve-out. Option (a) leaves the floor unstated, and an unstated floor is where
+  a screen of hand-rolled divs styled as buttons composes nothing registrable and nothing
+  says so. Option (b) is the cry-wolf failure at maximum volume, and a gate that cries
+  wolf gets disabled - this programme's own recorded lesson. The initial set is the
+  drafter's to propose and this court's to see in the diff; its CHANGES are ordinary
+  governed edits, not new sittings.
+
+  H3, THE PIN ROW (VDS-006): OPTION (c), AND NOT AS A DISCRETION. S-2(8) already decides
+  this: a value "recoverable from the record whether it is written as a literal or as an
+  encoding" is a realisation, and a per-value digest over a domain small enough to invert
+  is recoverable by dictionary. The drafted pin contradicted the statute the same tree is
+  scanned under - two copies of a rule, one of them wrong, the class measured twice
+  today. Salting is refused: the salt is a key that must live somewhere, and the
+  holder-of-salt inverts at will while the record pretends nobody can. A pin row carries
+  the token NAME and the AGREEMENT BIT and nothing else; the value stays in the system of
+  record, where S-2(3) put it.
+directives:
+  - id: D1
+    actor: agent
+    must: seek_a_court_order_naming_the_remaining_demand_before_retiring_over_it
+    when: demand_is_non_zero_and_retirement_is_sought
+  - id: D2
+    actor: kernel
+    must: hold_the_primitive_floor_as_an_enumerated_governed_set
+    when: running_the_composition_proof
+  - id: D3
+    actor: kernel
+    must: limit_a_pin_row_to_the_token_name_and_the_agreement_bit
+    when: generating_or_verifying_a_token_pin
+forbidden:
+  - force_a_drain_by_executive_deadline_alone
+  - fail_bare_elements_wholesale
+  - carry_a_recoverable_encoding_of_a_token_value_in_a_pin
+supersedes: []
+source_opinion: 2026-VJS-CC-VDS-5-opinion.md
+runtime_summary: >
+  Retirement over live demand needs a court order naming that demand; never an executive
+  deadline. The composition floor is an enumerated governed set of elements. A pin row is
+  a token name plus an agreement bit - a per-value digest over an invertible domain is a
+  realisation under S-2(8) and is forbidden; so is salting it.
+created_at: "2026-07-31T19:14:00Z"

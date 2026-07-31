@@ -1,0 +1,54 @@
+id: SUBMISSION-2026-07-31-191501
+court_requested: county
+jurisdiction: default
+question: Is the register canonical with contracts derived, or does the record adopt a two-sided per-prop binding as ds-contracts-poc does; and what becomes of the held sync boundary? (SUBMISSION-VDS-008)
+facts: |
+  FACTS (from SUBMISSION-VDS-008 and the vendored harvest, undisputed).
+
+  F1. VDS's register is the governed record: ComponentRecord with props, states, a11y,
+  demand, lifecycle, warrants, breach records, an enforcement lock over gate source. `vds
+  brief` projects it outbound, `vds impl` inbound; neither direction is authored.
+
+  F2. ds-contracts-poc (MIT) is ahead on exactly three things VDS lacks: a per-prop binding
+  carrying a Figma side AND a code side with per-value spelling maps; an anatomy tree whose
+  leaves are token references; and four golden-byte-gated emitters with a Figma plugin that
+  amends in place by identity stamp. Its own ledger is honest: "No library in this repo is
+  captured past 11.9%".
+
+  F3. Measured since filing: the same Figma shape becomes positional children on one
+  component and a ReactNode prop on another (SDS, both directions), so the code side of a
+  binding is NOT derivable from the Figma side - if it is to be exact it must be RECORDED.
+
+  F4. Since filing, [2026] VJS-CC-VIBE-DESIGN-SYSTEM 2 made a code-side coordinate real for
+  variant registries: the record's variant union is checked against the module's keys. That
+  is a code side for ONE realisation shape, arrived at by ruling.
+
+  F5. Three of four borrowed mechanisms are adopted with seeded failing directions (drift
+  classification, composition-cycle refusal, golden bytes); the fourth (the sync boundary)
+  was held for the court and remains held.
+
+  OPTION 1: REGISTER CANONICAL, contract derived, figmaProperty stays a bare name. FOR:
+  smallest surface. AGAINST: F3 - a bare name cannot carry the value-spelling map or the
+  code side, so the binding stays partly assertion.
+
+  OPTION 2: REGISTER CANONICAL, and the binding grows a CODE SIDE - adopt the SHAPE, not
+  the tool. FOR: keeps the court registry (warrants, breaches, locks - everything
+  ds-contracts does not attempt) while recording what F3 proves underivable. AGAINST: schema
+  surface grows; the binding must not become a second opinion about what the scanner reads.
+
+  OPTION 3: CUT OVER to the ds-contracts contract as the record, VDS as a checker. FOR: the
+  richest binding today. AGAINST: discards the whole governance layer; their own 11.9%
+  ceiling; authoring both sides makes the contract a second authority, the
+  fourth-authority problem [2026] VJS-CC-OPBOX 3 D1 forbids.
+
+  OPTION 4: adopt Custom Elements Manifest. AGAINST, measured: CEM 2.1.0 has no field for
+  variants, a11y role, accessible name, keyboard, or tokens - precisely the half that
+  matters - and is GPL-3.0. Already rejected as a decisive call; renewed here only for
+  completeness.
+
+  TO SETTLE: (a) which artefact is canonical; (b) whether the binding grows a recorded code
+  side, and what guards it against becoming a second opinion; (c) the fate of the held
+  fourth mechanism, the sync boundary.
+requested_order: TBD
+private_boundary: local
+word_count: 466

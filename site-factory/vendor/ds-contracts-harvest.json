@@ -148,7 +148,7 @@
       "name": "THE SYNC BOUNDARY, stated as a rule",
       "what": "docs/16: \"The contract carries only canvas-expressible facts ... The contract will never carry hooks, event handlers, business logic, data fetching, side effects. Not not-yet - never, by design. Code is allowed to be arbitrarily richer than the canvas; the sync surface is capped at what a Figma component set can express, because that is the largest surface on which a DETERMINISTIC round trip is possible.\"",
       "why": "This is the clearest statement of the twin problem anyone in this programme has written, including me. It is also directly load-bearing on SUBMISSION-VDS-011: if the sync surface is capped at what a component set expresses, then a code module of variant exports is OUTSIDE the boundary by construction, and the question of what its coordinate is may dissolve rather than need deciding.",
-      "adopted": "NOT ADOPTED, DELIBERATELY, and this is a holding rather than an omission. The sync boundary decides which side of the Figma/code pair is authoritative for a given fact. That is the question in SUBMISSION-VDS-011 (the register row's counterpart for a variant registry) and it rests on the structural finding that Figma varies NOMINALLY while code varies POSITIONALLY. Adopting a rule here would answer, in code, a first-impression question already before the bench - which is the fourth-authority problem [2026] VJS-CC-OPBOX 3 D1 forbids. It waits for the ruling."
+      "adopted": "CLOSED AS SUPERSEDED BY STRUCTURE, [2026] VJS-CC-VIBE-DESIGN-SYSTEM 7 D4 - not adopted and no longer pending. The question it answers (which side is authoritative for a fact) is answered per-fact: the Figma file for what is DECIDED (OPBOX 3 D1), the register for what is CONTRACTED, the code for what is REALISED, and every crossing is a measured parity. A boundary that decides who overwrites whom presumes an overwrite path, and this system has none to govern."
     },
     {
       "name": "FINDINGS CLASSIFIED ahead / behind / mismatch, per SURFACE",
@@ -186,8 +186,8 @@
   },
   "adoption_tally": {
     "adopted": 3,
-    "held_for_the_court": 1,
+    "closed_as_superseded": 1,
     "of": 4,
-    "_note": "Three of four mechanisms are in the tree with a seeded failing direction each. The fourth is not unfinished work: it is a question the bench has, and building it would be deciding it."
+    "_note": "Three mechanisms in the tree with seeded failing directions each. The fourth was held for the court and the court dissolved the question rather than adopting the mechanism."
   }
 }

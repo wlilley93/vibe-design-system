@@ -74,7 +74,20 @@ case_file_digest: sha256:95882c8f0ff2e70d978cd2eeb5144f741b236d6cadd872b5218e46a
 reserved_clause: null
 fail_closed_interim: "THE INTERIM: `figmaProperty` stays a bare name and is bound only where an axis and a code variant vary the SAME question; the 11 different_axis blocks carry null and a stated reason. No anatomy is stored, and no realisation enters `.vds/` in any option. Nothing has been cut over: the register remains canonical and no contract emitter has been built, so the question is open in fact as well as on paper. DIGEST PROVENANCE: the case_file_digest above is derived by `scripts/case-file-digest.sh` over the SIX in-repository evidence files: site-factory/vendor/sds-code-contract.json, site-factory/vendor/sds-figma-contract.json, site-factory/figma-variants.json, site-factory/docs/DESIGN-TWIN.md, .vds/logs/breaches/BREACH-0001.yaml and site-factory/vendor/ds-contracts-harvest.json. It carried sixty-four zeros until 2026-07-31, which reads exactly like a computed digest and pinned nothing. EVERY EVIDENCE ITEM IS NOW IN THE REPOSITORY. The sixth was a bare pointer to a clone in /var/tmp, which cannot be digest-pinned and could vanish between filing and ruling; it has been HARVESTED into ds-contracts-harvest.json, which records the numbers and the 40-character commit they were taken at. Measuring it also corrected three claims this submission had carried from prose: the anatomy is one flat `root` part and not a tree, there are three named extraction adapters and not six, and the conformance manifest holds 53 cases and not 51."
 filed_to: vjs
-vjs_submission_id: null
+vjs_submission_id: SUBMISSION-2026-07-31-191501
 created_at: 2026-07-31T10:30:00Z
 filed_at: 2026-07-31T10:30:00Z
-answer: null
+answer:
+  citation: "[2026] VJS-CC-VIBE-DESIGN-SYSTEM 7"
+  ratio: >-
+    The register is canonical and the per-prop binding grows a RECORDED code side: the
+    shape adopted, never the tool. The code side records only what is underivable (the
+    measured SDS finding: the same Figma shape realises as children on one component and
+    a prop on another, so exactness requires recording) and derives the rest at proof
+    time; every recorded field must be paired with a proof limb comparing it to the scan,
+    on the CC-VDS-2 template, and a recorded field no proof reads is forbidden. Cut-over
+    and CEM are refused; the prior CEM rejection is ratified as law. The sync boundary is
+    dissolved as superseded by structure: decided in Figma, contracted in the register,
+    realised in code, every crossing a measured parity - there is no overwrite path for a
+    boundary to govern.
+  answered_at: 2026-07-31T19:27:00Z

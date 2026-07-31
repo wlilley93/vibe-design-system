@@ -1,0 +1,61 @@
+id: 2026-VJS-CC-VDS-PRUNE-AUTHORITY-006
+citation: "[2026] VJS-CC-VIBE-DESIGN-SYSTEM 6"
+court: county
+jurisdiction: vibe-design-system
+repo_code: VIBE-DESIGN-SYSTEM
+status: binding
+issue: prune-delete-power
+question: >
+  Under what authority may vds prune delete committed proof records, where does its
+  retention log live, and may it ever run unattended?
+holding: |
+  OPTION ONE (Marbury J, sitting alone at first instance, on the case file pinned at
+  CONVENING-county-2026-07-31-191142). The delete power is LEGISLATED, not withdrawn and
+  not laundered into scratch.
+
+  (a) AUTHORITY. A power that exists in code and nowhere in law is the "toggle for
+  behaviour that does not exist" defect inverted - behaviour with no toggle in the
+  statute - and both are cured the same way: the statute says what the system does. VDS.md
+  gains a clause under S-4 naming the retention log as the tenth artefact kind, stating
+  the keep-rules ON ITS FACE (the most recent record per kind, every failure, anything a
+  warrant cites, and a log of what was removed), and recording that git is the append-only
+  store behind the working set - which is what makes this a WORKING-SET operation and not
+  a destruction of records. Withdrawal (option two) is refused on the submission's own
+  evidence: an unreadable record store fails its readers on schedule, and the next
+  ungoverned cleanup script is this question again without a court. Scratch (option
+  three) is refused for one sentence: a record of deletions that can itself be deleted is
+  not a record.
+
+  (b) THE LOG lives in .vds/, schema-governed like its nine siblings, and is itself
+  covered by the keep-rules: a retention log is never pruned by the run it explains.
+
+  (c) UNATTENDED RUNS: NO. The interim's rule becomes the permanent one - prune stays out
+  of every automated path, and the enforced test that holds it there
+  (crates/vds-cli/tests/cli.rs) stays as the gate. Deletion is an act a person initiates
+  with the keep-rules in front of them; automation would make the one destructive verb in
+  the toolchain the one nobody watches.
+directives:
+  - id: D1
+    actor: agent
+    must: add_the_retention_clause_to_the_specification_naming_log_kind_and_keep_rules
+    when: implementing_this_order
+  - id: D2
+    actor: kernel
+    must: keep_the_retention_log_schema_governed_inside_vds_and_never_pruned_by_its_own_run
+    when: pruning
+  - id: D3
+    actor: kernel
+    must: keep_prune_out_of_every_automated_path
+    when: always
+forbidden:
+  - prune_unattended
+  - prune_the_retention_log
+  - reclassify_deletion_records_as_scratch
+supersedes: []
+source_opinion: 2026-VJS-CC-VDS-6-opinion.md
+runtime_summary: >
+  The prune power is legislated: a tenth artefact kind (the retention log) with the
+  keep-rules stated in the statute and git recorded as the append-only store. The log is
+  schema-governed, never pruned by its own run. Prune never runs unattended; the enforced
+  interim test becomes the permanent gate.
+created_at: "2026-07-31T19:20:00Z"

@@ -1,4 +1,4 @@
-//! The artefact types. VDS holds exactly nine artefact kinds (VDS S-4(1)).
+//! The artefact types. VDS holds exactly ten artefact kinds (VDS S-4(1); the tenth, the retention log, was enacted at S-4(5) by [2026] VJS-CC-VIBE-DESIGN-SYSTEM 6).
 //!
 //! Every closed set in the specification is an `enum` here rather than a
 //! validated string. That is the strongest available form of the rule: VDS S-5(3)

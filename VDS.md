@@ -210,7 +210,7 @@ ignored. A governance record that is gitignored is not a record.
 
 ## S-4 The artefact set
 
-**S-4(1)** VDS holds exactly nine artefact kinds. Seven have a JSON Schema under `schema/`,
+**S-4(1)** VDS holds exactly ten artefact kinds (nine before the retention log was enacted at S-4(5)). Seven have a JSON Schema under `schema/`,
 and a file that does not validate against its schema is not an artefact of that kind. The
 remaining two, the decision log and the breach report, are ADOPTED from VJS and are validated
 against VJS's schemas rather than redefined here; saying "each has a schema under `schema/`"
@@ -252,6 +252,18 @@ a check reserved to the Sovereign or to a constituted bench.
 maximum plus one. No identifier may be asserted by hand or held in memory across a run. A
 collision is a fail-closed validation error, never a silent overwrite. VJS deleted an
 in-memory citation registry for exactly this defect: it restarted every series at genesis.
+
+**S-4(5)** The RETENTION LOG is the tenth artefact kind, enacted by
+[2026] VJS-CC-VIBE-DESIGN-SYSTEM 6, and it is the only lawful exhaust of the only delete
+power in the toolchain. `vds prune` operates on the WORKING SET, not on the record: git is
+the append-only store behind `.vds/`, which is what makes pruning housekeeping rather than
+destruction. The keep-rules are these, on the statute's face and not in the tool's help
+text: the most recent record per proof kind is kept (D2, D3, D7 and D8 each settle on it);
+every FAILURE is kept; anything a warrant cites is kept; and every removal is written to
+the retention log, which lives in `.vds/`, is schema-governed like its nine siblings, and
+is never pruned by the run it explains. Prune never runs unattended - it stays out of every
+automated path, held there by an enforced test, because deletion is an act a person
+initiates with these rules in front of them.
 
 ---
 

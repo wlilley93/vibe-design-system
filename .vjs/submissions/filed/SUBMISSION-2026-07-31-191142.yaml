@@ -1,0 +1,47 @@
+id: SUBMISSION-2026-07-31-191142
+court_requested: county
+jurisdiction: default
+question: Under what authority may vds prune delete committed proof records, where does its retention log live, and may it ever run unattended? (SUBMISSION-VDS-007)
+facts: |
+  FACTS (from SUBMISSION-VDS-007, undisputed).
+
+  F1. `vds prune` DELETES committed proof records from .vds/proofs/ and writes a retention
+  log in exchange. No clause of VDS.md names the command, the log, or the keep-rules; S-4
+  enumerates nine artefact kinds and the retention log is not one of them. The power exists
+  in code and nowhere in law.
+
+  F2. The keep-rules as implemented: keep the most recent record per kind (D2, D3, D7 and
+  D8 each settle on it), keep every failure, keep anything a warrant cites, log what was
+  removed. Git is in fact the append-only store behind the working set: nothing is
+  unrecoverable.
+
+  F3. Interim in force and ENFORCED, not asserted: prune stays out of every automated path
+  while the question is open (crates/vds-cli/tests/cli.rs, the test named on the
+  submission), and the case file it is decided on is pinned by digest.
+
+  F4. This programme's own lessons cut both ways: "the audit ledger is immutable and
+  unread" (deletion of governance records is the thing an append-only store exists to
+  prevent) against "473 files past the point where the directory is readable" (an
+  unreadable record store fails its readers a different way).
+
+  OPTION 1: LEGISLATE. A clause under S-4 naming the retention log as a tenth kind,
+  stating the keep-rules in the statute, and recording that git is the append-only store
+  behind the working set. FOR: the power becomes law with its limits on its face; the log
+  becomes an artefact the schema governs. AGAINST: a tenth kind is real statute surface for
+  what is arguably housekeeping.
+
+  OPTION 2: WITHDRAW the command. The proof directory grows and git is the only store.
+  FOR: no delete power at all. AGAINST: F2's readability failure arrives on schedule; the
+  next agent writes an ungoverned cleanup script, which is this question again without a
+  court.
+
+  OPTION 3: KEEP the command, reclassify its output as scratch, gitignored, outside .vds/.
+  FOR: cheap. AGAINST: deletion of governance records becomes ungoverned by definition, and
+  the log that explains what was removed is itself removable - a record of deletions that
+  can be deleted.
+
+  TO SETTLE: (a) under what authority prune deletes; (b) where the retention log lives and
+  what governs it; (c) whether prune may ever run unattended.
+requested_order: TBD
+private_boundary: local
+word_count: 391

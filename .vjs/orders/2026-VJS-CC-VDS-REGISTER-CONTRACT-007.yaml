@@ -1,0 +1,77 @@
+id: 2026-VJS-CC-VDS-REGISTER-CONTRACT-007
+citation: "[2026] VJS-CC-VIBE-DESIGN-SYSTEM 7"
+court: county
+jurisdiction: vibe-design-system
+repo_code: VIBE-DESIGN-SYSTEM
+status: binding
+issue: register-contract-relationship
+question: >
+  Is the register canonical with contracts derived, or does the record adopt a two-sided
+  per-prop binding as ds-contracts-poc does; and what becomes of the held sync boundary?
+holding: |
+  OPTION TWO (Halden J, sitting alone at first instance, on the case file pinned at
+  CONVENING-county-2026-07-31-191511). THE REGISTER IS CANONICAL, and the per-prop
+  binding GROWS A RECORDED CODE SIDE: the shape is adopted, never the tool.
+
+  (a) CANONICITY. The register is a court registry - warrants, breach records, lifecycle,
+  demand, an enforcement lock over gate source - and nothing in ds-contracts-poc attempts
+  any of it. Cutting over (option three) would trade the governance layer for a richer
+  binding whose own ledger caps at 11.9% capture, and would make a hand-authored contract
+  a second authority about what is decided - the fourth-authority problem
+  [2026] VJS-CC-OPBOX 3 D1 forbids. CEM (option four) was measured and lacks precisely
+  the half of the contract that matters; its prior rejection as a decisive call is
+  RATIFIED as law. And option one is refused on the evidence that arrived after filing:
+  the same Figma shape becomes positional children on one component and a ReactNode prop
+  on another, in both directions, so the code side of a binding is NOT derivable from the
+  Figma side. What cannot be derived and must be exact must be RECORDED.
+
+  (b) THE GUARD. The recorded code side must never become a second opinion about what the
+  scanner reads. The rule is the derive-don't-store ratio applied at a finer grain: the
+  binding records what is UNDERIVABLE (which code prop, which realisation shape, the
+  value-spelling map where spellings differ) and derives everything else at proof time.
+  [2026] VJS-CC-VIBE-DESIGN-SYSTEM 2 is the constitutional template and is hereby
+  generalised: there, the recorded side is the variant union and the derived side is the
+  registry's keys, and PARITY between them is the proof. Every future code-side field
+  must arrive the same way - with a proof limb that compares the recorded side against
+  the scanned realisation and fails each difference by name. A recorded field no proof
+  reads is a token declared and reaching nothing, and is forbidden.
+
+  (c) THE SYNC BOUNDARY, held for this court, is DISSOLVED rather than adopted. The
+  question it answers - which side is authoritative for a fact - is now answered
+  per-fact by the structure this series has built: the Figma file is authoritative for
+  what is DECIDED (OPBOX 3 D1), the register for what is CONTRACTED, the code for what is
+  REALISED, and every crossing is a measured parity, not a synchronisation. A boundary
+  that decides who overwrites whom presumes overwriting; this system has no overwrite
+  path to govern. The fourth mechanism's ledger entry is to be closed as superseded by
+  structure, not adopted and not pending.
+directives:
+  - id: D1
+    actor: agent
+    must: keep_the_register_canonical_and_derive_contracts_from_it
+    when: always
+  - id: D2
+    actor: kernel
+    must: record_only_underivable_code_side_facts_and_derive_the_rest_at_proof_time
+    when: extending_the_binding
+  - id: D3
+    actor: kernel
+    must: pair_every_recorded_code_side_field_with_a_proof_limb_that_compares_it_to_the_scan
+    when: extending_the_binding
+  - id: D4
+    actor: agent
+    must: close_the_sync_boundary_ledger_entry_as_superseded_by_structure
+    when: implementing_this_order
+forbidden:
+  - cut_over_to_an_external_contract_as_the_record
+  - author_a_second_authority_about_what_is_decided
+  - record_a_code_side_field_no_proof_reads
+  - adopt_a_sync_boundary_that_presumes_an_overwrite_path
+supersedes: []
+source_opinion: 2026-VJS-CC-VDS-7-opinion.md
+runtime_summary: >
+  The register is canonical; the binding grows a recorded code side limited to what is
+  underivable, each recorded field paired with a proof limb that compares it to the scan
+  (the CC-VDS-2 template generalised). Cut-over, CEM, and any second authority are
+  forbidden. The sync boundary is dissolved as superseded by structure: decided in Figma,
+  contracted in the register, realised in code, every crossing a measured parity.
+created_at: "2026-07-31T19:25:00Z"

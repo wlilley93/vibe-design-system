@@ -1,0 +1,47 @@
+id: SUBMISSION-2026-07-31-190904
+court_requested: county
+jurisdiction: default
+question: 'Three consolidated questions on the warrant statute: the greenfield form of W1, the granting authority for W2, and the binding scope of a designpack (SUBMISSION-VDS-001..003)'
+facts: |
+  THREE QUESTIONS ON HOW THE WARRANT STATUTE OPERATES, sharing one case file (VDS.md,
+  docs/GOAL.md) as filed in SUBMISSION-VDS-001..003.
+
+  Q1 (VDS-001). May W1 REGISTER-COMPLETE be granted provisionally on a greenfield surface?
+  W1-before-design is what makes drift structurally impossible; on a greenfield surface the
+  register cannot be completed without designing first, so strict W1 may be unsatisfiable.
+  OPTIONS: (a) strict W1 as now - greenfield work stalls or proceeds unwarranted; (b) a
+  provisional registration that design may use and W1 later ratifies - deferred enforcement,
+  a debt whose ratification nothing forces; (c) W1 granted over a DECLARED SUBSET named by
+  digest - the claim stays exact ("these N records are complete"), design proceeds inside
+  the subset, and widening the subset is a new grant, not a drifted old one.
+
+  Q2 (VDS-002). Who may grant W2 DESIGN-COMPLETE, given composition, states and contrast
+  are all machine-checkable? OPTIONS: (a) referred to VJS like W1 and W4 - a bench grants on
+  the proofs as case file; slower, and the bench adds nothing a green proof did not already
+  establish, says the objection; (b) granted by proof alone, recorded not adjudicated -
+  cheaper, but a self-granted warrant is the laundering vector the VJS assent-resolution
+  line closed: the party doing the work grants itself the certificate that the work is done,
+  and a proof suite the same party maintains is the evidence. Machine-checkable evidence
+  lowers the COST of a bench; whether it replaces one is the question.
+
+  Q3 (VDS-003). Does a designpack bind a single project, a tenant, or the whole realm?
+  OPTIONS: (a) one project, the one whose .vds/config.toml pins it - fleet consistency is
+  then achieved by each project pinning the same pack version, and divergence is visible as
+  differing pins; (b) a tenant - one pin governs sibling projects that never assented, and a
+  re-pin changes law under their feet; (c) the realm - the strongest consistency and the
+  strongest version of the same objection, plus a single point whose compromise restyles
+  everything at once.
+
+  BEARING FACTS. F1: the enforcement-lock discipline already in force makes every pin an
+  explicit, rationale-carrying act. F2: [2026] VJS-CC-VJS 12 held the same day that a
+  subscription must be a resolved, recorded act of the subscribing repository - a lock
+  asserting a subscription that did not happen is false, not incomplete. F3: the two-seats
+  ruling (No 1 of this series) established that a claim must name its scope so two claims
+  are never one number. F4: sibling precedent (jellytot tenant topology) routes fleet
+  consistency through per-deployment pins plus a drift report, never through one binding pin.
+
+  TO SETTLE: (a) the greenfield form of W1; (b) the granting authority for W2; (c) the
+  binding scope of a designpack.
+requested_order: TBD
+private_boundary: local
+word_count: 473

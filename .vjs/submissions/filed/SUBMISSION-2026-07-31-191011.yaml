@@ -1,0 +1,40 @@
+id: SUBMISSION-2026-07-31-191011
+court_requested: county
+jurisdiction: default
+question: 'Three consolidated questions on the proof statutes: forced drain over live demand, the composition primitive floor, and the pin row''s content (SUBMISSION-VDS-004..006)'
+facts: |
+  THREE CONSOLIDATED QUESTIONS on the proof statutes, sharing the case file of
+  SUBMISSION-VDS-004..006 (VDS.md, docs/GOAL.md).
+
+  Q1 (VDS-004). May a component be retired against a forced-drain deadline while shipped
+  routes still consume it? The retirement_drain proof currently requires demand to reach
+  zero before retirement completes - the absolute drain. OPTIONS: (a) absolute drain as
+  now - retirement can be held hostage by one route nobody will migrate, and the register
+  carries a permanently half-retired record; (b) a deadline ordered by VJS may force
+  retirement over a non-zero demand - the routes that still consume it break, visibly and
+  on a date a court set with the demand named before it, rather than silently never.
+
+  Q2 (VDS-005). Where does the primitive floor sit for the composition proof: is a bare
+  HTML element in a screen an unregistered component? OPTIONS: (a) bare elements are
+  informational, as now - the floor is unstated and a screen of hand-rolled divs styled as
+  buttons composes nothing registrable; (b) every bare element is an unregistered
+  component - every div, span and p becomes a violation, the cry-wolf failure at maximum
+  volume; (c) an ENUMERATED SET of elements is below the floor - a governed list a reader
+  can disagree with, everything outside it needing registration or an explicit carve-out.
+
+  Q3 (VDS-006). May a pin carry a per-value digest, given that a design token's domain is
+  small enough to invert? A digest over a domain of a few thousand spellings is a
+  dictionary lookup, so the digest IS the value wearing a hash. BEARING STATUTE: S-2(8)
+  already reads "it is recoverable from the record whether it is written as a literal or
+  as an encoding" - the no_stored_values gate treats recoverable encodings as
+  realisations. OPTIONS: (a) keep per-value digests as drafted - the pin contradicts the
+  statute the same tree is scanned under; (b) salt the digests - the salt file becomes a
+  key that must live somewhere, and holder-of-salt can still invert; (c) a row carries the
+  NAME and the AGREEMENT BIT and nothing else - the pin says "this token, at the recorded
+  value, agrees/disagrees" and the value stays in the system of record.
+
+  TO SETTLE: (a) whether a court-ordered deadline may override the absolute drain;
+  (b) the composition floor's form; (c) the pin row's content.
+requested_order: TBD
+private_boundary: local
+word_count: 402
