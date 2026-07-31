@@ -39,8 +39,8 @@ brief ──▶ suggest.js ──▶ config (36 fields) ──▶ compose.js ─
 | `suggest.js` | Brief → a filled config. Rule-based, not a model call |
 | `compose.js` | The ONE place a config becomes (tokens, manifest) |
 | `build.js` | `renderPage()` - the pure renderer. Also the CLI |
-| `blocks/*.js` | 39 block types, 78 variants. Pure functions |
-| `tokens/*.json` | 4 style packs, real values from real systems |
+| `blocks/*.js` | 43 block types, 86 variants. Pure functions |
+| `tokens/*.json` | 5 style packs: 4 real systems plus the wireframe projection |
 | `copy.js` | The voice layer: derive what the brief supports, mark the rest |
 | `skills.js` | Assigns each unwritten line to the agents-final skill that writes it |
 | `scaffold.js` | Copies a project out of the bank, with transitive block deps |

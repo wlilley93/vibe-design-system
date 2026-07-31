@@ -1,0 +1,34 @@
+{
+  "name": "wireframe",
+  "_what": "Not a brand. The WIREFRAME projection of a page, produced by the same renderer from the same manifest as the branded one, so the two cannot drift: a wireframe that is drawn separately is a second description of the build, and it goes stale the moment a section is added.",
+  "_why_greyscale": "A wireframe's job is to show structure and to refuse to imply anything else. So every tone resolves to the same mid-grey: in this pack a danger chip and a success chip are deliberately indistinguishable, because at wireframe stage the DECISION that one is red has not been taken. The tones still carry their own inks and still clear WCAG AA, because the contrast floor is a floor rather than a brand choice.",
+  "_why_square": "Radius 0 on both steps signals that the corner has not been decided rather than that it has been decided to be sharp. Balmoral also ships radius 0, and there it IS the decision; the difference is recorded here so the two are not confused.",
+  "colors": {
+    "bg": "#ffffff",
+    "surface": "#f4f4f4",
+    "ink": "#333333",
+    "muted": "#767676",
+    "border": "#cfcfcf",
+    "accent": "#595959",
+    "accentInk": "#ffffff",
+    "danger": "#595959",
+    "dangerInk": "#ffffff",
+    "warning": "#595959",
+    "warningInk": "#ffffff",
+    "success": "#595959",
+    "successInk": "#ffffff",
+    "info": "#595959",
+    "infoInk": "#ffffff"
+  },
+  "font": {
+    "family": "ui-sans-serif, system-ui, -apple-system, sans-serif",
+    "mono": "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+  },
+  "radius": {
+    "sm": "0px",
+    "lg": "0px"
+  },
+  "space": {
+    "unit": 4
+  }
+}

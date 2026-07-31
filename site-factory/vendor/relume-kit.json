@@ -1,0 +1,329 @@
+{
+  "_source": "Relume Figma Kit (v3.7, Community), file NV8SrzLfRBiPfcwGyDGHJd",
+  "_harvestedAt": "2026-07-31",
+  "_how": "Walked figma.root.children with `await page.loadAsync()` on each - a page's children are unavailable until it is loaded, and skipping that is what produced a false \"seven pages are empty\" reading earlier. Counted COMPONENT_SET children per page and their variants, and read variantGroupProperties for the axis names.",
+  "_why_no_set_names": "The 1,799 individual set names are NOT stored. Every one follows the same pattern - \"<Category> / <n> /\" - so a list of them is 1,799 near-identical strings carrying no information the category and count do not already carry. Recording them would be a large artefact that looks like evidence and is not. The naming convention is recorded instead, which is the part that can be checked.",
+  "_measured_defect": "One of the 32 Navbar sets declares its variant property as \"Breakpint\" rather than \"Breakpoint\". Every other set in the entire kit uses \"Breakpoint\". Any tooling that switches a section between breakpoints by property NAME will silently fail on that one set, and it is invisible in the canvas.",
+  "_workspace": "The kit ships the four-view workspace this programme is adopting, as four dedicated pages: Sitemap, Wireframe, Style Guide, Design. Three of the four are empty in the community file - they are working surfaces, not deliverables - which is itself the point: the views are PROJECTIONS a team fills, not artefacts the library hands over.",
+  "totals": {
+    "pages": 74,
+    "categories": 58,
+    "sets": 1799,
+    "variants": 3634,
+    "byGroup": {
+      "marketing": {
+        "categories": 32,
+        "sets": 1589,
+        "variants": 3188
+      },
+      "ecommerce": {
+        "categories": 3,
+        "sets": 27,
+        "variants": 61
+      },
+      "application": {
+        "categories": 15,
+        "sets": 141,
+        "variants": 301
+      },
+      "page-template": {
+        "categories": 8,
+        "sets": 42,
+        "variants": 84
+      }
+    }
+  },
+  "breakpointAxis": "Every set carries a Breakpoint variant property, so one \"section\" is one layout at two widths. That is why sets x 2 is roughly the variant count.",
+  "categories": {
+    "Navbars": {
+      "sets": 32,
+      "variants": 64,
+      "group": "marketing"
+    },
+    "Footers": {
+      "sets": 17,
+      "variants": 34,
+      "group": "marketing"
+    },
+    "Hero Headers": {
+      "sets": 130,
+      "variants": 260,
+      "group": "marketing"
+    },
+    "Headers": {
+      "sets": 27,
+      "variants": 54,
+      "group": "marketing"
+    },
+    "Features": {
+      "sets": 682,
+      "variants": 1364,
+      "group": "marketing"
+    },
+    "Careers": {
+      "sets": 27,
+      "variants": 54,
+      "group": "marketing"
+    },
+    "Gallery": {
+      "sets": 27,
+      "variants": 54,
+      "group": "marketing"
+    },
+    "Contact": {
+      "sets": 30,
+      "variants": 60,
+      "group": "marketing"
+    },
+    "FAQ": {
+      "sets": 14,
+      "variants": 28,
+      "group": "marketing"
+    },
+    "Pricing": {
+      "sets": 57,
+      "variants": 114,
+      "group": "marketing"
+    },
+    "Testimonials": {
+      "sets": 67,
+      "variants": 134,
+      "group": "marketing"
+    },
+    "Logos": {
+      "sets": 6,
+      "variants": 12,
+      "group": "marketing"
+    },
+    "Team": {
+      "sets": 22,
+      "variants": 44,
+      "group": "marketing"
+    },
+    "Timelines": {
+      "sets": 21,
+      "variants": 42,
+      "group": "marketing"
+    },
+    "CTA": {
+      "sets": 67,
+      "variants": 134,
+      "group": "marketing"
+    },
+    "Cookie Consent": {
+      "sets": 5,
+      "variants": 20,
+      "group": "marketing"
+    },
+    "Blog Headers": {
+      "sets": 32,
+      "variants": 64,
+      "group": "marketing"
+    },
+    "Blog Sections": {
+      "sets": 36,
+      "variants": 72,
+      "group": "marketing"
+    },
+    "Blog Post Headers": {
+      "sets": 5,
+      "variants": 10,
+      "group": "marketing"
+    },
+    "Banners": {
+      "sets": 16,
+      "variants": 32,
+      "group": "marketing"
+    },
+    "Contact Modals": {
+      "sets": 6,
+      "variants": 12,
+      "group": "marketing"
+    },
+    "Comparisons": {
+      "sets": 15,
+      "variants": 30,
+      "group": "marketing"
+    },
+    "Portfolio Sections": {
+      "sets": 23,
+      "variants": 46,
+      "group": "marketing"
+    },
+    "Portfolio Headers": {
+      "sets": 12,
+      "variants": 24,
+      "group": "marketing"
+    },
+    "Event Sections": {
+      "sets": 37,
+      "variants": 74,
+      "group": "marketing"
+    },
+    "Event Headers": {
+      "sets": 6,
+      "variants": 12,
+      "group": "marketing"
+    },
+    "Event Item Headers": {
+      "sets": 11,
+      "variants": 22,
+      "group": "marketing"
+    },
+    "Stats Sections": {
+      "sets": 60,
+      "variants": 120,
+      "group": "marketing"
+    },
+    "Multi-step Forms": {
+      "sets": 46,
+      "variants": 92,
+      "group": "marketing"
+    },
+    "Long Form Content Sections": {
+      "sets": 32,
+      "variants": 64,
+      "group": "marketing"
+    },
+    "Loaders": {
+      "sets": 5,
+      "variants": 10,
+      "group": "marketing"
+    },
+    "Links pages": {
+      "sets": 16,
+      "variants": 32,
+      "group": "marketing"
+    },
+    "Product Headers": {
+      "sets": 9,
+      "variants": 18,
+      "group": "ecommerce"
+    },
+    "Product List Sections": {
+      "sets": 12,
+      "variants": 24,
+      "group": "ecommerce"
+    },
+    "Category Filters": {
+      "sets": 6,
+      "variants": 19,
+      "group": "ecommerce"
+    },
+    "Application Shells": {
+      "sets": 16,
+      "variants": 48,
+      "group": "application"
+    },
+    "Sidebars": {
+      "sets": 9,
+      "variants": 21,
+      "group": "application"
+    },
+    "Topbars": {
+      "sets": 4,
+      "variants": 8,
+      "group": "application"
+    },
+    "Page Headers": {
+      "sets": 5,
+      "variants": 10,
+      "group": "application"
+    },
+    "Section Headers": {
+      "sets": 4,
+      "variants": 8,
+      "group": "application"
+    },
+    "Card Headers": {
+      "sets": 2,
+      "variants": 4,
+      "group": "application"
+    },
+    "Sign Up and Log In Pages": {
+      "sets": 17,
+      "variants": 34,
+      "group": "application"
+    },
+    "Sign Up and Log In Modals": {
+      "sets": 5,
+      "variants": 10,
+      "group": "application"
+    },
+    "Onboarding Forms": {
+      "sets": 17,
+      "variants": 34,
+      "group": "application"
+    },
+    "Tables": {
+      "sets": 10,
+      "variants": 20,
+      "group": "application"
+    },
+    "Stacked Lists": {
+      "sets": 10,
+      "variants": 20,
+      "group": "application"
+    },
+    "Grid Lists": {
+      "sets": 10,
+      "variants": 20,
+      "group": "application"
+    },
+    "Stat Cards": {
+      "sets": 8,
+      "variants": 16,
+      "group": "application"
+    },
+    "Forms": {
+      "sets": 20,
+      "variants": 40,
+      "group": "application"
+    },
+    "Description Lists": {
+      "sets": 4,
+      "variants": 8,
+      "group": "application"
+    },
+    "Home Pages": {
+      "sets": 8,
+      "variants": 16,
+      "group": "page-template"
+    },
+    "Pricing Pages": {
+      "sets": 5,
+      "variants": 10,
+      "group": "page-template"
+    },
+    "About Pages": {
+      "sets": 5,
+      "variants": 10,
+      "group": "page-template"
+    },
+    "Contact Pages": {
+      "sets": 5,
+      "variants": 10,
+      "group": "page-template"
+    },
+    "Blog Pages": {
+      "sets": 5,
+      "variants": 10,
+      "group": "page-template"
+    },
+    "Blog Post Pages": {
+      "sets": 5,
+      "variants": 10,
+      "group": "page-template"
+    },
+    "Portfolio Pages": {
+      "sets": 7,
+      "variants": 14,
+      "group": "page-template"
+    },
+    "Legal Pages": {
+      "sets": 2,
+      "variants": 4,
+      "group": "page-template"
+    }
+  }
+}

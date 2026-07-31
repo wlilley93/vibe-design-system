@@ -799,6 +799,69 @@ a { color: var(--color-accent); }
 .facet__search { margin: 0 0 calc(var(--space) * 3); }
 .oview__id { display: flex; flex-direction: column; min-width: 0; }
 .team__rowText { display: flex; flex-direction: column; min-width: 0; }
+
+/* ---- The four marketing sections the Relume comparison found missing. Measured: 50 section
+   categories, 31 answered, and these four were the largest gaps that need no content
+   collection behind them. See vendor/relume-coverage.json. ---- */
+
+/* Logo strip. Text wordmarks, not images: a generated site has no logo files, and a grey box
+   where a logo goes says "an image failed" where the company name set in the page's own type
+   says "this is a placeholder for Acme". */
+.logos { padding: calc(var(--space) * 12) 0; text-align: center; }
+.logos__caption { line-height: var(--lh-label); font-size: var(--text-xs); color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 calc(var(--space) * 6); }
+.logos__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: calc(var(--space) * 10); }
+.logos__mark { line-height: var(--lh-label); font-size: var(--text-lg); font-weight: 600; color: var(--color-muted); }
+.logos__link { text-decoration: none; }
+.logos__link:hover .logos__mark { color: var(--color-ink); }
+.logos__heading { line-height: var(--lh-heading); font-size: var(--text-2xl); margin: 0 0 calc(var(--space) * 3); }
+.logos__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: calc(var(--space) * 8); margin-top: calc(var(--space) * 6); }
+.logos__cell { display: flex; align-items: center; justify-content: center; padding: calc(var(--space) * 5); border: var(--border-weight) solid var(--color-border); border-radius: var(--radius-sm); }
+
+/* Stats. A figure without a basis is decoration, so the basis has a rule of its own rather
+   than being an optional afterthought. */
+.stats { padding: calc(var(--space) * 14) 0; }
+.stats__heading { line-height: var(--lh-heading); font-size: var(--text-3xl); margin: 0 0 calc(var(--space) * 8); max-width: var(--measure); }
+.stats__row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: calc(var(--space) * 8); }
+.stats__item { display: flex; flex-direction: column; gap: calc(var(--space) * 1); }
+.stats__figure { line-height: var(--lh-display); font-size: var(--text-5xl); font-weight: 600; color: var(--color-ink); margin: 0; }
+.stats__label { line-height: var(--lh-label); font-size: var(--text-md); font-weight: 600; color: var(--color-ink); margin: 0; }
+.stats__basis { line-height: var(--lh-body); font-size: var(--text-xs); color: var(--color-muted); margin: 0; }
+.stats--claim { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: calc(var(--space) * 12); align-items: start; }
+.stats__text { display: flex; flex-direction: column; align-items: flex-start; gap: calc(var(--space) * 3); }
+.stats__body { line-height: var(--lh-body); font-size: var(--text-md); color: var(--color-muted); margin: 0; max-width: var(--measure); }
+.stats__cta { line-height: var(--lh-label); font-size: var(--text-sm); font-weight: 600; color: var(--color-accent); text-decoration: none; }
+.stats__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: calc(var(--space) * 8); }
+
+/* Gallery and portfolio. Every tile's alt text is the brief for the image that does not exist
+   yet, which is why the media element carries it rather than a decorative div. */
+.gallery { padding: calc(var(--space) * 14) 0; }
+.gallery__heading { line-height: var(--lh-heading); font-size: var(--text-3xl); margin: 0 0 calc(var(--space) * 8); max-width: var(--measure); }
+.gallery__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: calc(var(--space) * 5); }
+.gallery__tile { margin: 0; display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
+.gallery__media { display: block; width: 100%; aspect-ratio: 4 / 3; background: var(--color-surface); border: var(--border-weight) solid var(--color-border); border-radius: var(--radius-sm); }
+.gallery__caption { line-height: var(--lh-body); font-size: var(--text-xs); color: var(--color-muted); }
+.gallery__tile--link { text-decoration: none; }
+.gallery__meta { display: flex; flex-direction: column; gap: calc(var(--space) * 0.5); }
+.gallery__title { line-height: var(--lh-label); font-size: var(--text-sm); font-weight: 600; color: var(--color-ink); }
+.gallery__more { display: inline-block; margin-top: calc(var(--space) * 8); line-height: var(--lh-label); font-size: var(--text-sm); font-weight: 600; color: var(--color-accent); text-decoration: none; }
+
+/* Timeline. A record of what happened, so it takes DATES and never a current index - that is
+   the whole difference from progresssteps, which is about where the READER is. */
+.timeline { padding: calc(var(--space) * 14) 0; }
+.timeline__heading { line-height: var(--lh-heading); font-size: var(--text-3xl); margin: 0 0 calc(var(--space) * 8); max-width: var(--measure); }
+.timeline__list { list-style: none; margin: 0; padding: 0; max-width: var(--measure-form); }
+.timeline__entry { display: flex; gap: calc(var(--space) * 5); }
+.timeline__rail { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+.timeline__dot { width: calc(var(--space) * 3); height: calc(var(--space) * 3); border-radius: 999px; background: var(--color-accent); flex-shrink: 0; margin-top: calc(var(--space) * 1.5); }
+.timeline__line { width: var(--border-weight); flex: 1; background: var(--color-border); margin: calc(var(--space) * 1) 0; }
+.timeline__body { display: flex; flex-direction: column; gap: calc(var(--space) * 1); padding-bottom: calc(var(--space) * 8); }
+.timeline__when { line-height: var(--lh-label); font-size: var(--text-xs); color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.timeline__title { line-height: var(--lh-heading); font-size: var(--text-lg); font-weight: 600; color: var(--color-ink); }
+.timeline__text { line-height: var(--lh-body); font-size: var(--text-sm); color: var(--color-muted); }
+.timeline__entry--last .timeline__body { padding-bottom: 0; }
+.timeline--horizontal .timeline__track { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: calc(var(--space) * 6); }
+.timeline__milestone { display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
+.timeline--horizontal .timeline__rail { flex-direction: row; align-items: center; width: 100%; }
 `;
 
 /*

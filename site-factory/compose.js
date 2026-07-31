@@ -162,6 +162,15 @@ const BASE_BLOCKS = new Set([
 ]);
 
 // What the saas-app route may place: everything from either provenance.
+/*
+ * The marketing sections derived from the Relume Figma Kit's section vocabulary (1,799
+ * component sets across 58 categories). A THIRD provenance, kept separate from the other two
+ * for the same arithmetic reason: the Opbox gap is measured against Opbox's 109-type
+ * catalogue and the Relume coverage against Relume's 50 section categories, and adding a
+ * Relume-derived block to SAAS_BLOCKS would claim one more of Opbox's catalogue had been built.
+ */
+const RELUME_BLOCKS = new Set(['logolist', 'stats', 'gallery', 'timeline']);
+
 const APP_BLOCKS = new Set([...SAAS_BLOCKS, ...BASE_BLOCKS]);
 
 const SAAS_DEFAULT = ['nav-1', 'sidebar-2', 'masterdetail-2'];
@@ -345,4 +354,4 @@ function configToSite(config) {
   }));
 }
 
-module.exports = { configToTokens, configToManifest, configToSite, pagesOf, navLinks, radiusPx, listStylePacks, listBlockVariants, RADIUS, SAAS_BLOCKS, BASE_BLOCKS, APP_BLOCKS, SAAS_CATALOG_TOTAL };
+module.exports = { configToTokens, configToManifest, configToSite, pagesOf, navLinks, radiusPx, listStylePacks, listBlockVariants, RADIUS, SAAS_BLOCKS, BASE_BLOCKS, RELUME_BLOCKS, APP_BLOCKS, SAAS_CATALOG_TOTAL };

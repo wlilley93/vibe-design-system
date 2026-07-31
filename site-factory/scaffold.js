@@ -354,6 +354,49 @@ function placeholderContent(type) {
     divider: {
       label: 'Replace this label', inset: false,
     },
+
+    /* The four marketing sections the Relume comparison found missing. Each placeholder
+       carries the field the block refuses to be vague about: a logo strip's caption (whose
+       credibility is being borrowed), a stat's basis (what makes the figure checkable), a
+       tile's alt (the brief for an image that does not exist yet), a timeline's date. */
+    logolist: {
+      caption: 'Replace this with whose logos these are and why',
+      heading: 'Replace this heading.',
+      total: 'Replace this with the real count',
+      logos: [
+        { name: 'Replace this', href: '#' }, { name: 'Replace this', href: '#' },
+        { name: 'Replace this', href: '#' }, { name: 'Replace this' },
+      ],
+    },
+    stats: {
+      heading: 'Replace this heading.',
+      body: 'Replace this line with what the figures mean, because a reader will not draw the conclusion themselves.',
+      ctaLabel: 'Replace this action', ctaHref: '#',
+      stats: [
+        { figure: '0', label: 'Replace this label', basis: 'Replace this with how it was measured' },
+        { figure: '0', label: 'Replace this label', basis: 'Replace this with how it was measured' },
+        { figure: '0', label: 'Replace this label', basis: 'Replace this with how it was measured' },
+        { figure: '0', label: 'Replace this label', basis: 'Replace this with how it was measured' },
+      ],
+    },
+    gallery: {
+      heading: 'Replace this heading.',
+      moreLabel: 'Show more', moreHref: '#',
+      items: [
+        { alt: 'Replace this with what the image shows', caption: 'Replace this caption', title: 'Replace this title', href: '#' },
+        { alt: 'Replace this with what the image shows', caption: 'Replace this caption', title: 'Replace this title', href: '#' },
+        { alt: 'Replace this with what the image shows', caption: 'Replace this caption', title: 'Replace this title', href: '#' },
+        { alt: 'Replace this with what the image shows', caption: 'Replace this caption', title: 'Replace this title', href: '#' },
+      ],
+    },
+    timeline: {
+      heading: 'Replace this heading.',
+      entries: [
+        { when: '2024', iso: '2024', title: 'Replace this milestone', body: 'Replace this line with what happened.' },
+        { when: '2025', iso: '2025', title: 'Replace this milestone', body: 'Replace this line with what happened.' },
+        { when: '2026', iso: '2026', title: 'Replace this milestone', body: 'Replace this line with what happened.' },
+      ],
+    },
     pagination: {
       // Page 4 of 12, so the elision renders on BOTH sides. A placeholder on page 1
       // shows a row that never elides, which is the half of the component that is hard.

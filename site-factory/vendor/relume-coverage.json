@@ -1,0 +1,366 @@
+{
+  "_what": "site-factory's 39 block types measured against the Relume Figma Kit's section vocabulary. The same treatment vendor/uber-base-tiers.json gives Uber Base, for the other half of the system: Base is the control and messaging baseline, Relume is the MARKETING SECTION baseline.",
+  "_how": "Derived from vendor/relume-kit.json. Page-template categories are excluded because a template is a MANIFEST (an ordered list of sections), not a section - site-factory already models that, and counting them as unbuilt sections would inflate the gap.",
+  "_tier1": "CLOSED on 2026-07-31. The four were built: logolist, stats, gallery (which answers both Gallery and Portfolio Sections) and timeline. Everything still in the gap list needs a source of ITEMS behind it - a blog, an event calendar, a job board, a product catalogue, an auth system - which is a bigger scope than a section and is why those are not next by default.",
+  "measured_at": "2026-07-31",
+  "totals": {
+    "categories": 50,
+    "answered": 36,
+    "gaps": 14,
+    "setsAnswered": 1515,
+    "setsGap": 242
+  },
+  "tier1": [],
+  "categories": {
+    "Navbars": {
+      "group": "marketing",
+      "sets": 32,
+      "variants": 64,
+      "answeredBy": "nav",
+      "gap": null
+    },
+    "Footers": {
+      "group": "marketing",
+      "sets": 17,
+      "variants": 34,
+      "answeredBy": "footer",
+      "gap": null
+    },
+    "Hero Headers": {
+      "group": "marketing",
+      "sets": 130,
+      "variants": 260,
+      "answeredBy": "hero",
+      "gap": null
+    },
+    "Headers": {
+      "group": "marketing",
+      "sets": 27,
+      "variants": 54,
+      "answeredBy": "hero",
+      "gap": null
+    },
+    "Features": {
+      "group": "marketing",
+      "sets": 682,
+      "variants": 1364,
+      "answeredBy": "features",
+      "gap": null
+    },
+    "Careers": {
+      "group": "marketing",
+      "sets": 27,
+      "variants": 54,
+      "answeredBy": null,
+      "gap": "A job listing list."
+    },
+    "Gallery": {
+      "group": "marketing",
+      "sets": 27,
+      "variants": 54,
+      "answeredBy": "gallery",
+      "gap": null
+    },
+    "Contact": {
+      "group": "marketing",
+      "sets": 30,
+      "variants": 60,
+      "answeredBy": "contact",
+      "gap": null
+    },
+    "FAQ": {
+      "group": "marketing",
+      "sets": 14,
+      "variants": 28,
+      "answeredBy": "faq",
+      "gap": null
+    },
+    "Pricing": {
+      "group": "marketing",
+      "sets": 57,
+      "variants": 114,
+      "answeredBy": "pricing",
+      "gap": null
+    },
+    "Testimonials": {
+      "group": "marketing",
+      "sets": 67,
+      "variants": 134,
+      "answeredBy": "testimonials",
+      "gap": null
+    },
+    "Logos": {
+      "group": "marketing",
+      "sets": 6,
+      "variants": 12,
+      "answeredBy": "logolist",
+      "gap": null
+    },
+    "Team": {
+      "group": "marketing",
+      "sets": 22,
+      "variants": 44,
+      "answeredBy": "team",
+      "gap": null
+    },
+    "Timelines": {
+      "group": "marketing",
+      "sets": 21,
+      "variants": 42,
+      "answeredBy": "timeline",
+      "gap": null
+    },
+    "CTA": {
+      "group": "marketing",
+      "sets": 67,
+      "variants": 134,
+      "answeredBy": "cta",
+      "gap": null
+    },
+    "Cookie Consent": {
+      "group": "marketing",
+      "sets": 5,
+      "variants": 20,
+      "answeredBy": "banner",
+      "gap": null
+    },
+    "Blog Headers": {
+      "group": "marketing",
+      "sets": 32,
+      "variants": 64,
+      "answeredBy": null,
+      "gap": "A post list."
+    },
+    "Blog Sections": {
+      "group": "marketing",
+      "sets": 36,
+      "variants": 72,
+      "answeredBy": null,
+      "gap": "A post list, other layouts."
+    },
+    "Blog Post Headers": {
+      "group": "marketing",
+      "sets": 5,
+      "variants": 10,
+      "answeredBy": null,
+      "gap": "A single post header."
+    },
+    "Banners": {
+      "group": "marketing",
+      "sets": 16,
+      "variants": 32,
+      "answeredBy": "banner",
+      "gap": null
+    },
+    "Contact Modals": {
+      "group": "marketing",
+      "sets": 6,
+      "variants": 12,
+      "answeredBy": "confirmdialog",
+      "gap": null
+    },
+    "Comparisons": {
+      "group": "marketing",
+      "sets": 15,
+      "variants": 30,
+      "answeredBy": "features",
+      "gap": null
+    },
+    "Portfolio Sections": {
+      "group": "marketing",
+      "sets": 23,
+      "variants": 46,
+      "answeredBy": "gallery",
+      "gap": null
+    },
+    "Portfolio Headers": {
+      "group": "marketing",
+      "sets": 12,
+      "variants": 24,
+      "answeredBy": null,
+      "gap": "A single project header."
+    },
+    "Event Sections": {
+      "group": "marketing",
+      "sets": 37,
+      "variants": 74,
+      "answeredBy": null,
+      "gap": "An event list."
+    },
+    "Event Headers": {
+      "group": "marketing",
+      "sets": 6,
+      "variants": 12,
+      "answeredBy": null,
+      "gap": "An event list header."
+    },
+    "Event Item Headers": {
+      "group": "marketing",
+      "sets": 11,
+      "variants": 22,
+      "answeredBy": null,
+      "gap": "A single event header."
+    },
+    "Stats Sections": {
+      "group": "marketing",
+      "sets": 60,
+      "variants": 120,
+      "answeredBy": "stats",
+      "gap": null
+    },
+    "Multi-step Forms": {
+      "group": "marketing",
+      "sets": 46,
+      "variants": 92,
+      "answeredBy": "progresssteps",
+      "gap": null
+    },
+    "Long Form Content Sections": {
+      "group": "marketing",
+      "sets": 32,
+      "variants": 64,
+      "answeredBy": "features",
+      "gap": null
+    },
+    "Loaders": {
+      "group": "marketing",
+      "sets": 5,
+      "variants": 10,
+      "answeredBy": "pagestate",
+      "gap": null
+    },
+    "Links pages": {
+      "group": "marketing",
+      "sets": 16,
+      "variants": 32,
+      "answeredBy": null,
+      "gap": "A link-in-bio page."
+    },
+    "Product Headers": {
+      "group": "ecommerce",
+      "sets": 9,
+      "variants": 18,
+      "answeredBy": null,
+      "gap": "A single product header."
+    },
+    "Product List Sections": {
+      "group": "ecommerce",
+      "sets": 12,
+      "variants": 24,
+      "answeredBy": null,
+      "gap": "A product grid."
+    },
+    "Category Filters": {
+      "group": "ecommerce",
+      "sets": 6,
+      "variants": 19,
+      "answeredBy": "facetstrip",
+      "gap": null
+    },
+    "Application Shells": {
+      "group": "application",
+      "sets": 16,
+      "variants": 48,
+      "answeredBy": "masterdetail",
+      "gap": null
+    },
+    "Sidebars": {
+      "group": "application",
+      "sets": 9,
+      "variants": 21,
+      "answeredBy": "sidebar",
+      "gap": null
+    },
+    "Topbars": {
+      "group": "application",
+      "sets": 4,
+      "variants": 8,
+      "answeredBy": "nav",
+      "gap": null
+    },
+    "Page Headers": {
+      "group": "application",
+      "sets": 5,
+      "variants": 10,
+      "answeredBy": "objectview",
+      "gap": null
+    },
+    "Section Headers": {
+      "group": "application",
+      "sets": 4,
+      "variants": 8,
+      "answeredBy": "objectview",
+      "gap": null
+    },
+    "Card Headers": {
+      "group": "application",
+      "sets": 2,
+      "variants": 4,
+      "answeredBy": "card",
+      "gap": null
+    },
+    "Sign Up and Log In Pages": {
+      "group": "application",
+      "sets": 17,
+      "variants": 34,
+      "answeredBy": null,
+      "gap": "Auth screens."
+    },
+    "Sign Up and Log In Modals": {
+      "group": "application",
+      "sets": 5,
+      "variants": 10,
+      "answeredBy": null,
+      "gap": "Auth modals."
+    },
+    "Onboarding Forms": {
+      "group": "application",
+      "sets": 17,
+      "variants": 34,
+      "answeredBy": null,
+      "gap": "A multi-step onboarding flow."
+    },
+    "Tables": {
+      "group": "application",
+      "sets": 10,
+      "variants": 20,
+      "answeredBy": "objecttable",
+      "gap": null
+    },
+    "Stacked Lists": {
+      "group": "application",
+      "sets": 10,
+      "variants": 20,
+      "answeredBy": "inspector",
+      "gap": null
+    },
+    "Grid Lists": {
+      "group": "application",
+      "sets": 10,
+      "variants": 20,
+      "answeredBy": "card",
+      "gap": null
+    },
+    "Stat Cards": {
+      "group": "application",
+      "sets": 8,
+      "variants": 16,
+      "answeredBy": "card",
+      "gap": null
+    },
+    "Forms": {
+      "group": "application",
+      "sets": 20,
+      "variants": 40,
+      "answeredBy": "formfield",
+      "gap": null
+    },
+    "Description Lists": {
+      "group": "application",
+      "sets": 4,
+      "variants": 8,
+      "answeredBy": "inspector",
+      "gap": null
+    }
+  }
+}

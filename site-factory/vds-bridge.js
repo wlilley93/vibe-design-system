@@ -116,6 +116,13 @@ const FIGMA_NODES = {
   // 56:36 (Menu item) is therefore drawn and deliberately unpaired.
   menu: '56:69',
   draggablelist: '56:150',
+  // The four marketing sections the Relume comparison found missing: 50 section categories
+  // measured, 31 already answered, and these were the largest gaps that need no content
+  // collection behind them. See vendor/relume-coverage.json.
+  logolist: '86:148',
+  stats: '86:189',
+  gallery: '86:225',
+  timeline: '86:271',
   progressbar: '55:121',
   progresssteps: '57:135',
   banner: '54:55',
@@ -156,6 +163,7 @@ const FIGMA_VARIABLE_MODES = {
 // file's collection already carries the two that the drawing work uses. These two are
 // exercised through `build.js` and the contrast floor, not through the Figma file.
 const FIGMA_UNBOUND_PACKS = {
+  wireframe: 'not a brand at all: the WIREFRAME projection, rendered by the same code from the same manifest as the branded page. It has no Figma mode because the wireframe view in Figma is a PAGE rather than a mode - the whole point is that a wireframe is a projection and not a theme',
   balmoral: 'a client brand, not a factory default; nothing is drawn in it',
   jellytot: 'a client brand, not a factory default; nothing is drawn in it',
 };

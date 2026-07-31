@@ -2,11 +2,11 @@
   "_what": "A measured read of the Figma file named by FIGMA_FILE_KEY: every page with its top-level contents, and every COMPONENT_SET keyed by node id. EVIDENCE, not intent. FIGMA_NODES in vds-bridge.js pairs a block type to an id, and until this file existed the only test on that pairing checked the id's SHAPE (/^\\d+:\\d+$/) and never that anything was there, so a deleted component set failed nothing.",
   "_correction": "This file was first written on the strength of a finding that was WRONG, and the mistake is worth more than the file. A survey walked figma.root.children and read p.children on each page, and reported SEVEN OF TEN PAGES EMPTY - Examples, Playbook, Glossary, SaaS Components and the three project/spec pages - all of which the task log records as built. I reported that as a probable concurrent-writer wipe. It was not. This file runs in Figma's dynamic-page mode, where a page's children are NOT available until the page has been loaded, and the survey never loaded them: the three pages that reported content were simply the ones already loaded in that session. Re-measured with `await p.loadAsync()` on every page, there are 12 pages, 42 component sets, 20 frames and ZERO empty pages. Every page holds exactly the work the task log claims, under sensible names. Nothing was lost. THE LESSON: an empty collection returned by an API that loads lazily is not evidence of absence, it is the absence of evidence, and reading it as fact manufactured a data-loss incident out of a missing await.",
   "_how": "Re-derive with the Figma MCP: for every page in figma.root.children call `await page.loadAsync()` FIRST, then record its top-level children and every child of type COMPONENT_SET as id -> {name, page, variants}. Do not use setCurrentPageAsync for a survey and do not read page.children without loading - see _correction.",
-  "measured_at": "2026-07-30 (re-measured with loadAsync after the three system pages landed)",
+  "measured_at": "2026-07-31 (re-measured with loadAsync after the four Relume-derived sections landed)",
   "file_key": "4pPUFvaPdqYzPquBusSfWl",
   "pageTotals": {
     "pages": 16,
-    "componentSets": 42,
+    "componentSets": 46,
     "frames": 25,
     "emptyPages": 0
   },
@@ -21,7 +21,7 @@
       "Product Design Playbook \u2014 full catalog"
     ],
     "Components": {
-      "sets": 26,
+      "sets": 30,
       "frames": [
         "Index \u2014 all 39 block types"
       ]
@@ -289,6 +289,26 @@
     "57:135": {
       "name": "Base/Progress steps",
       "page": "Base (redrawn)",
+      "variants": 2
+    },
+    "86:148": {
+      "name": "LogoList",
+      "page": "Components",
+      "variants": 2
+    },
+    "86:189": {
+      "name": "Stats",
+      "page": "Components",
+      "variants": 2
+    },
+    "86:225": {
+      "name": "Gallery",
+      "page": "Components",
+      "variants": 2
+    },
+    "86:271": {
+      "name": "Timeline",
+      "page": "Components",
       "variants": 2
     }
   },
