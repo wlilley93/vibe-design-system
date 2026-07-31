@@ -1,0 +1,517 @@
+{
+  "_what": "The drawn Figma library, verified at the destination by an instrument that did not draw it.",
+  "_why": "`figma-generated.json` is a census taken PLUGIN-SIDE, by the same tool that did the drawing. A generator confirming its own output is the weakest evidence there is - it can only report what it believes it did. This reads the same page through the REST API, a different instrument on a different transport, and pairs the two.",
+  "measured_at": "2026-07-31T14:33:25Z",
+  "file": "4pPUFvaPdqYzPquBusSfWl",
+  "page": "Library (generated)",
+  "pageNodeId": "90:2",
+  "totals": {
+    "plugin_side": {
+      "sets": 43,
+      "variants": 92
+    },
+    "rest_side": {
+      "sets": 43,
+      "variants": 92
+    },
+    "agree": true
+  },
+  "identity": {
+    "_what": "Not just the counts. Every census row paired to a live node by ID, and every live set found in the census.",
+    "matched_by_node_id_and_variant_count": 43,
+    "census_rows_not_found_live": 0,
+    "live_sets_the_census_does_not_name": 0,
+    "duplicate_node_ids": 0,
+    "duplicate_names": 0,
+    "non_component_set_children": 0
+  },
+  "the_finding": {
+    "claim": "THE GENERATED LIBRARY IS A PROJECTION OF THE MEASUREMENT, NOT A COPY OF IT, FOR TWO BLOCKS - AND NOTHING SAID SO.",
+    "detail": "41 of 43 blocks agree with figma-variants.json on their axis NAMES. Two do not: pagination declares Layout x State and the live set has only Layout; progressbar declares Layout x Size and the live set has only Size.",
+    "cause": "figma-draw.js took `Object.keys(measured.axes)[0]` and dropped the rest with no record. The module comment says the generator \"does not decide the axis\", which was true of the axis it picked and silent about the one it did not.",
+    "why_it_matters": "This is BREACH-0010's class in different clothes. That breach was that an artefact called GENERATED had no generator; this is a real generator whose output is called a reproduction while it silently narrows its input. Both leave a reader believing a stronger thing than is true, and neither is visible in the artefact - the census reported 43 of 43 sets drawn, 0 refusals, 0 skipped, and it was right about every number it printed.",
+    "fixed": "`specsFor` now carries `droppedAxes`, and the emitted script returns `projectedOntoOneAxis` naming each one. Not a throw: refusing would leave two blocks undrawn, and an undrawn block is worse than a projected one. What was missing was the RECORD."
+  },
+  "_what_this_does_not_establish": [
+    "That the drawn variants LOOK like the measured ones. This pairs identity, counts and axis names; it reads no fill, no radius and no text.",
+    "That the 41 agreeing blocks are faithful in any deeper sense - only that their axis names match and their variant counts do.",
+    "Anything about the other 18 pages of the file. Only `Library (generated)` was read."
+  ],
+  "axes": [
+    {
+      "blockType": "banner",
+      "nodeId": "90:29",
+      "declared": [
+        "Tone"
+      ],
+      "live": [
+        "Tone"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "card",
+      "nodeId": "96:8",
+      "declared": [
+        "Kind"
+      ],
+      "live": [
+        "Kind"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "checkbox",
+      "nodeId": "96:18",
+      "declared": [
+        "State"
+      ],
+      "live": [
+        "State"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "confirmdialog",
+      "nodeId": "94:8",
+      "declared": [
+        "Confirm"
+      ],
+      "live": [
+        "Confirm"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "contact",
+      "nodeId": "94:15",
+      "declared": [
+        "Style"
+      ],
+      "live": [
+        "Style"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "cta",
+      "nodeId": "94:22",
+      "declared": [
+        "Style"
+      ],
+      "live": [
+        "Style"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "divider",
+      "nodeId": "90:16",
+      "declared": [
+        "Inset"
+      ],
+      "live": [
+        "Inset"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "draggablelist",
+      "nodeId": "94:29",
+      "declared": [
+        "Artwork"
+      ],
+      "live": [
+        "Artwork"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "emptystate",
+      "nodeId": "94:36",
+      "declared": [
+        "State"
+      ],
+      "live": [
+        "State"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "facetstrip",
+      "nodeId": "94:43",
+      "declared": [
+        "Style"
+      ],
+      "live": [
+        "Style"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "faq",
+      "nodeId": "96:25",
+      "declared": [
+        "Style"
+      ],
+      "live": [
+        "Style"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "features",
+      "nodeId": "96:32",
+      "declared": [
+        "Style"
+      ],
+      "live": [
+        "Style"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "footer",
+      "nodeId": "96:39",
+      "declared": [
+        "Style"
+      ],
+      "live": [
+        "Style"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "formfield",
+      "nodeId": "96:46",
+      "declared": [
+        "Layout"
+      ],
+      "live": [
+        "Layout"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "gallery",
+      "nodeId": "96:53",
+      "declared": [
+        "Class"
+      ],
+      "live": [
+        "Class"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "hero",
+      "nodeId": "90:9",
+      "declared": [
+        "Style"
+      ],
+      "live": [
+        "Style"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "inspector",
+      "nodeId": "96:60",
+      "declared": [
+        "Style"
+      ],
+      "live": [
+        "Style"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "logolist",
+      "nodeId": "96:67",
+      "declared": [
+        "Layout"
+      ],
+      "live": [
+        "Layout"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "masterdetail",
+      "nodeId": "96:74",
+      "declared": [
+        "Panes"
+      ],
+      "live": [
+        "Panes"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "menu",
+      "nodeId": "96:81",
+      "declared": [
+        "Size"
+      ],
+      "live": [
+        "Size"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "messagecard",
+      "nodeId": "96:88",
+      "declared": [
+        "Layout"
+      ],
+      "live": [
+        "Layout"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "nav",
+      "nodeId": "96:95",
+      "declared": [
+        "Style"
+      ],
+      "live": [
+        "Style"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "notfound",
+      "nodeId": "96:102",
+      "declared": [
+        "Style"
+      ],
+      "live": [
+        "Style"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "notificationbadge",
+      "nodeId": "96:112",
+      "declared": [
+        "Kind"
+      ],
+      "live": [
+        "Kind"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "objecttable",
+      "nodeId": "96:119",
+      "declared": [
+        "Style"
+      ],
+      "live": [
+        "Style"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "objectview",
+      "nodeId": "96:126",
+      "declared": [
+        "Style"
+      ],
+      "live": [
+        "Style"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "pagecontrols",
+      "nodeId": "96:133",
+      "declared": [
+        "State"
+      ],
+      "live": [
+        "State"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "pagestate",
+      "nodeId": "96:140",
+      "declared": [
+        "State"
+      ],
+      "live": [
+        "State"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "pagination",
+      "nodeId": "96:147",
+      "declared": [
+        "Layout",
+        "State"
+      ],
+      "live": [
+        "Layout"
+      ],
+      "agrees": false
+    },
+    {
+      "blockType": "pricing",
+      "nodeId": "96:154",
+      "declared": [
+        "Style"
+      ],
+      "live": [
+        "Style"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "progressbar",
+      "nodeId": "96:161",
+      "declared": [
+        "Layout",
+        "Size"
+      ],
+      "live": [
+        "Size"
+      ],
+      "agrees": false
+    },
+    {
+      "blockType": "progresssteps",
+      "nodeId": "96:168",
+      "declared": [
+        "Layout"
+      ],
+      "live": [
+        "Layout"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "radio",
+      "nodeId": "96:175",
+      "declared": [
+        "State"
+      ],
+      "live": [
+        "State"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "segmentedcontrol",
+      "nodeId": "97:8",
+      "declared": [
+        "Kind"
+      ],
+      "live": [
+        "Kind"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "sidebar",
+      "nodeId": "97:15",
+      "declared": [
+        "Style"
+      ],
+      "live": [
+        "Style"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "stats",
+      "nodeId": "97:22",
+      "declared": [
+        "Layout"
+      ],
+      "live": [
+        "Layout"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "switch",
+      "nodeId": "97:29",
+      "declared": [
+        "State"
+      ],
+      "live": [
+        "State"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "systembanner",
+      "nodeId": "97:42",
+      "declared": [
+        "Tone"
+      ],
+      "live": [
+        "Tone"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "team",
+      "nodeId": "97:49",
+      "declared": [
+        "Style"
+      ],
+      "live": [
+        "Style"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "testimonials",
+      "nodeId": "97:56",
+      "declared": [
+        "Style"
+      ],
+      "live": [
+        "Style"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "timeline",
+      "nodeId": "97:63",
+      "declared": [
+        "Layout"
+      ],
+      "live": [
+        "Layout"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "toast",
+      "nodeId": "97:70",
+      "declared": [
+        "Kind"
+      ],
+      "live": [
+        "Kind"
+      ],
+      "agrees": true
+    },
+    {
+      "blockType": "tooltip",
+      "nodeId": "97:77",
+      "declared": [
+        "Pointer"
+      ],
+      "live": [
+        "Pointer"
+      ],
+      "agrees": true
+    }
+  ]
+}

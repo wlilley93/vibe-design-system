@@ -1641,3 +1641,63 @@ test('every declared site-factory gate is pinned, at its current digest', () => 
     { missingFile: [], unpinned: [], drifted: [] },
   );
 });
+
+// ---------------------------------------------------------------------------
+// The drawn Figma library, verified by an instrument that did not draw it.
+// `figma-generated.json` is a PLUGIN-SIDE census: the generator reporting on
+// its own output, which is the weakest evidence there is. This guard holds the
+// independent REST reading to the same standard, and keeps its finding visible.
+test('the library verification pairs two independent readings', () => {
+  const dir = path.join(__dirname, '..');
+  const v = JSON.parse(fs.readFileSync(path.join(dir, 'vendor', 'library-verification.json'), 'utf8'));
+  const census = JSON.parse(fs.readFileSync(path.join(dir, 'figma-generated.json'), 'utf8'));
+  const variants = JSON.parse(fs.readFileSync(path.join(dir, 'figma-variants.json'), 'utf8')).blocks;
+
+  // TWO INSTRUMENTS, and the verification is worthless if it quietly became one.
+  assert.ok(v.totals.plugin_side && v.totals.rest_side,
+    'the verification no longer carries both readings, so it pairs nothing');
+  assert.equal(v.totals.plugin_side.sets, census.totals.sets,
+    'the recorded plugin-side count disagrees with the census it was taken from');
+  assert.equal(v.totals.agree, v.totals.plugin_side.sets === v.totals.rest_side.sets,
+    'the agree flag does not follow from the two counts beside it');
+
+  // Identity, not just totals. A verification that only compared counts would
+  // pass over 43 sets that were all the wrong ones.
+  assert.equal(v.identity.matched_by_node_id_and_variant_count, census.sets.length,
+    'not every census row was paired to a live node by id');
+  assert.equal(v.identity.live_sets_the_census_does_not_name, 0,
+    'the live page carries a set the census does not name, so the census is not the whole page');
+
+  // THE FINDING MUST SURVIVE. 41 of 43 agree on axis names; two do not, because
+  // the generator projects a multi-axis measurement onto one axis. A later run
+  // that quietly reports 43 of 43 has either fixed the generator or lost the
+  // finding, and those must not look the same.
+  const differ = v.axes.filter((a) => !a.agrees);
+  assert.equal(differ.length, 2,
+    `${differ.length} blocks disagree on axis names, not 2. If it is now 0 the generator ` +
+    'may draw every measured axis - check that before celebrating, and rewrite the_finding ' +
+    'rather than deleting it.');
+  for (const row of differ) {
+    // Each disagreement must be a NARROWING, never a widening. A drawn set with
+    // an axis the measurement does not have is a different and worse defect:
+    // the generator inventing a design decision.
+    assert.ok(row.live.every((a) => row.declared.includes(a)),
+      `${row.blockType}: the live set has an axis the measurement does not - ` +
+      `live ${row.live.join(',')} vs declared ${row.declared.join(',')}. That is the ` +
+      'generator inventing an axis, which is worse than dropping one.');
+    assert.ok(row.live.length < row.declared.length, `${row.blockType}: not a narrowing`);
+  }
+  assert.ok(v.the_finding && v.the_finding.fixed, 'the finding and its remedy must stay recorded');
+
+  // And the remedy is real: specsFor names what it drops.
+  const { specsFor } = require('../figma-draw.js');
+  const register = census.sets.map((s) => ({ id: s.componentId, blockType: s.blockType, name: s.blockType }));
+  const specs = specsFor(register, { blocks: variants });
+  const lossy = specs.filter((s) => (s.droppedAxes || []).length);
+  assert.equal(lossy.length, differ.length,
+    `specsFor reports ${lossy.length} projected blocks and the live file shows ${differ.length}`);
+  for (const s of lossy) {
+    assert.ok(s.droppedAxes.length > 0 && s.axis,
+      `${s.blockType}: droppedAxes is present and empty, which records nothing`);
+  }
+});

@@ -135,14 +135,37 @@ function specsFor(register, variants) {
     const measured = variants.blocks[type];
     if (!measured) continue;
 
-    const axis = Object.keys(measured.axes)[0];
+    // ONE AXIS IS DRAWN, AND THE REST ARE NOW NAMED RATHER THAN DROPPED.
+    //
+    // This was `Object.keys(measured.axes)[0]` and nothing else. Two of the 43
+    // blocks carry TWO measured axes - `pagination` is Layout x State and
+    // `progressbar` is Size x Layout - so the generated set is a PROJECTION of
+    // the measured one onto its first axis, and no artefact said so. An
+    // independent read of the live file found it: 41 of 43 blocks agree with
+    // `figma-variants.json` on their axis names and two do not, because the
+    // drawn set has fewer axes than the measurement it was drawn from.
+    //
+    // The module comment above says this generator "does not decide the axis",
+    // which was true of the axis it picked and silent about the one it did not.
+    // A generator that narrows its input silently is the shape BREACH-0010 was
+    // filed for wearing different clothes: the output looks derived because it
+    // IS derived, and the derivation quietly lost something.
+    //
+    // Not a throw. Refusing would leave two blocks undrawn, and an
+    // undrawn block is worse than a projected one - what was missing was the
+    // RECORD, so the record is what this adds. `droppedAxes` travels into the
+    // emitted script's return value and into the census beside it.
+    const axisNames = Object.keys(measured.axes);
+    const axis = axisNames[0];
     const values = measured.axes[axis];
+    const droppedAxes = axisNames.slice(1);
     specs.push({
       componentId: record.id,
       blockType: type,
       name: record.name,
       nodeId: measured.nodeId,
       axis,
+      droppedAxes,
       // The variant list is what the FILE draws, so a redraw reproduces the set that is
       // there. Taking the code's variant count instead would silently drop the four Tone
       // values `banner` draws and the code takes as content.
@@ -351,6 +374,13 @@ return {
   sets: drawn.length + amended.length,
   skipped,
   refusals: [...new Set(refusals)],
+  // Every set drawn as a PROJECTION of a multi-axis measurement onto one axis.
+  // Returned rather than left to be inferred: a run that reports 43 sets drawn
+  // and says nothing about this reads as a faithful reproduction of 43
+  // measured sets, and for two of them it is not.
+  projectedOntoOneAxis: D.specs
+    .filter((s) => (s.droppedAxes || []).length)
+    .map((s) => s.blockType + ' drew ' + s.axis + ', not also ' + s.droppedAxes.join('/')),
 };
 `;
 }

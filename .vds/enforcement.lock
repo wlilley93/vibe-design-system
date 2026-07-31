@@ -1,5 +1,5 @@
 schema_version: 1
-generated_at: 2026-07-31T13:26:16Z
+generated_at: 2026-07-31T14:34:01Z
 entries:
 - path: crates/vds-cli/src/doctor.rs
   digest: sha256:994f575215d16c415ba1fac437c57ee0c2f750ee76738611804caa6432e9ce83
@@ -375,7 +375,7 @@ entries:
   pinned_at: 2026-07-31T09:23:43Z
   pinned_by: jellytot
 - path: site-factory/tests/floors.js
-  digest: sha256:67a15890fcb2ebb9b7c56f2306bd5d392d683d327014baf3ffac1cbbeafe1e84
+  digest: sha256:eb0c9e2dbdc5cc6a6c0a3ee386b0d4e547c557a42829fe1c3e890e250db4432e
   kind: hook
   invoked_by:
   - surface: ci_workflow
@@ -386,8 +386,10 @@ entries:
     path: site-factory/tests/skills.test.js
     test_name: every declared site-factory gate is pinned, at its current digest
     seeds: MIN_TESTS lowered without a re-pin, so deleting tests stops being detectable by the count
-  pinned_at: 2026-07-31T13:26:16Z
+  pinned_at: 2026-07-31T14:34:01Z
   pinned_by: jellytot
+  supersedes_digest: sha256:67a15890fcb2ebb9b7c56f2306bd5d392d683d327014baf3ffac1cbbeafe1e84
+  relock_rationale: MIN_TESTS 111 -> 112 for the library-verification test, which pairs the plugin-side census of the drawn Figma library against an independent REST reading of the same page. A floor rising cannot weaken anything; the direction is stated because a digest cannot tell rising from falling.
 - path: site-factory/tests/gate.js
   digest: sha256:89e019eb675d8ed565de16940252769ed5829f5482568ddadcb5d9bb5f9e75e9
   kind: hook
