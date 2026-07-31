@@ -352,6 +352,7 @@ mod tests {
             pinned_by: "tester".into(),
             supersedes_digest: None,
             relock_rationale: None,
+            provenance: None,
         }
     }
 

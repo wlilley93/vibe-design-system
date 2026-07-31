@@ -1,8 +1,8 @@
 schema_version: 1
-generated_at: 2026-07-31T18:41:00Z
+generated_at: 2026-07-31T18:49:53Z
 entries:
 - path: crates/vds-cli/src/doctor.rs
-  digest: sha256:5d5d4ae45f4937a1d141fac6b8419e74653972d50e2d8453c50c8ad1df14d68c
+  digest: sha256:810d5634a364a5db5c63dc4ecdd8746b7a448ac2d4bcf43f82864cec69fb393b
   kind: criteria_grader
   invoked_by:
   - surface: ci_workflow
@@ -19,12 +19,12 @@ entries:
     path: crates/vds-cli/src/doctor.rs
     test_name: a_pass_over_zero_rows_is_still_a_vacuous_pass
     seeds: a proof record labelled passed over rows_enforced 0, which D3 once agreed was a pass
-  pinned_at: 2026-07-31T18:18:07Z
+  pinned_at: 2026-07-31T18:47:59Z
   pinned_by: jellytot
-  supersedes_digest: sha256:994f575215d16c415ba1fac437c57ee0c2f750ee76738611804caa6432e9ce83
-  relock_rationale: 'ledger_staleness gains R6, a self-consistency arm for the CI run ledger (BREACH-0011 remedy): the parse and cross-total rules live once, on vds_core::types::ci::CiLedger, the same type vds ledger ci writes through. doctor.rs moved its test imports to that type after the CiLedger/WorkflowRuns definitions were consolidated out of vds-cli - the same two-copies defect the sibling VJS repo measured today ([2026] VJS-CC-VJS 12), fixed here before it bit.'
+  supersedes_digest: sha256:5d5d4ae45f4937a1d141fac6b8419e74653972d50e2d8453c50c8ad1df14d68c
+  relock_rationale: 'Implement [2026] VJS-CC-VIBE-DESIGN-SYSTEM 1: D2 evaluates by seat. doctor.rs gains the subscriber seat (released_binary pin verified by digest, provenance required, NOT CHECKED with the missing link named when absent); lock.rs admits kind released_binary with empty proves (it runs all kinds, it is not one) and a --provenance flag; the lock schema gains the optional provenance field. The failing direction (a replaced binary reads UNMET) is proven with green-first plus a landed-seed assertion.'
 - path: crates/vds-cli/src/lock.rs
-  digest: sha256:c5ae0f9bade970f4caddbcbcf156d0701486858db46a611714cff328a0adc7e0
+  digest: sha256:056a937bdacc8b2539624a618c39ca5bb6ec8b67d3119925cf417a185daefdcc
   kind: hook
   invoked_by:
   - surface: ci_workflow
@@ -38,8 +38,10 @@ entries:
     path: crates/vds-cli/src/lock.rs
     test_name: a_renamed_step_unbinds_the_gate_and_is_reported
     seeds: a workflow step renamed from Test to Tests while every pinned digest still matches, which is the case the digest half of the lock cannot see
-  pinned_at: 2026-07-31T12:44:38Z
+  pinned_at: 2026-07-31T18:47:59Z
   pinned_by: jellytot
+  supersedes_digest: sha256:c5ae0f9bade970f4caddbcbcf156d0701486858db46a611714cff328a0adc7e0
+  relock_rationale: 'Implement [2026] VJS-CC-VIBE-DESIGN-SYSTEM 1: D2 evaluates by seat. doctor.rs gains the subscriber seat (released_binary pin verified by digest, provenance required, NOT CHECKED with the missing link named when absent); lock.rs admits kind released_binary with empty proves (it runs all kinds, it is not one) and a --provenance flag; the lock schema gains the optional provenance field. The failing direction (a replaced binary reads UNMET) is proven with green-first plus a landed-seed assertion.'
 - path: crates/vds-proof/src/composition.rs
   digest: sha256:f0265e72bed6a05c7f524a93e2aad3990739fd48208699032ccb0413d323a078
   kind: proof_script
@@ -344,7 +346,7 @@ entries:
   supersedes_digest: sha256:6ab81f88013c57a0c1d757f87e1336720d846f279cee0bc272f8228466181828
   relock_rationale: Five gates edited in commits 1260462 and eb9313d shipped without a re-pin; self-filed as BREACH-0003. The edits are the vds-scan JSX generic fix and the retirement/collision proof work, both tested (674 workspace tests green). Re-pinning to the reviewed bytes so the lock binds what is actually in the tree.
 - path: crates/vds-store/src/lock.rs
-  digest: sha256:7349412e777127171b823bcaadb19e6b8e8266d1ac8d82efa8baec1f67a46c1e
+  digest: sha256:6bb701818ded3751f3687f1d85823e8375b8867e85af248e53d21f407f47ef55
   kind: config
   invoked_by:
   - surface: ci_workflow
@@ -356,10 +358,10 @@ entries:
     path: crates/vds-store/src/lock.rs
     test_name: editing_a_pinned_gate_trips_a_fatal_drift_finding
     seeds: a pinned gate edited after it was pinned
-  pinned_at: 2026-07-31T09:05:34Z
+  pinned_at: 2026-07-31T18:49:53Z
   pinned_by: jellytot
-  supersedes_digest: sha256:12ef53575e7fd450a69b037506084c600c99c40b88045932eb179b6050d841fe
-  relock_rationale: 'Two gate edits shipped without re-pins, both legitimate strengthenings that rode along in commits about other subjects. (1) crates/vds-cli/src/doctor.rs, edited in 78f196a: D2 asked the failing-direction question with a matcher that could not pass, so the criterion could never report the failure it existed to find. (2) crates/vds-store/src/lock.rs, edited in 3fd5a7d: test_name_resolves was made public because the same question is asked in two places and was answered in only one. Neither weakened a gate; both were shipped in a commit whose subject line named something else, which is exactly how a pinned path gets edited without anyone thinking about the pin. Self-filed as BREACH-0011, which records this as the third and fourth occurrence of the pattern after BREACH-0003 and BREACH-0009, and treats the recurrence as evidence that the discipline does not hold and the remedy must be a program.'
+  supersedes_digest: sha256:7349412e777127171b823bcaadb19e6b8e8266d1ac8d82efa8baec1f67a46c1e
+  relock_rationale: cargo fmt over the subscriber-seat additions plus the two provenance:None initialisers clippy required in test fixtures. No behavioural change; the seat test and 72 parity tests pass either side.
 - path: scripts/githooks/pre-push
   digest: sha256:229b6ddcc7bcfaf7fd48363e216510a0a1f4461d6f606b68384e76b99da321cf
   kind: hook

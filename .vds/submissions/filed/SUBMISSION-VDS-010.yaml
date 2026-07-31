@@ -29,7 +29,19 @@ case_file_digest: sha256:13b8df9ff88539d760d3d90f5fe3de21c909de51b524a877399506b
 reserved_clause: "S-7(2)"
 fail_closed_interim: "The case_file_digest above is derived by `scripts/case-file-digest.sh` over crates/vds-proof/src/lib.rs, .vds/config.toml, docs/CEILING.md and crates/vds-cli/src/doctor.rs; the schema has no field naming what a digest is over, so it is recorded here as it is on SUBMISSION-VDS-007 and 009. THE INTERIM: no lock is created in examples/storefront while the question is open. Creating one that pins the kernel's paths from a subscriber root would answer the question by doing it, and it would put a lock in the worked example that no subscriber could reproduce - the worked example teaching a move only the kernel can make is worse than it teaching nothing, because it would be copied."
 filed_to: vjs
-vjs_submission_id: null
+vjs_submission_id: SUBMISSION-2026-07-31-182718
 created_at: 2026-07-31T15:05:00Z
 filed_at: 2026-07-31T15:05:00Z
-answer: null
+answer:
+  citation: "[2026] VJS-CC-VIBE-DESIGN-SYSTEM 1"
+  ratio: >-
+    D2 is one criterion with two seats. The kernel seat is unchanged: five limbs over gate
+    source. The subscriber seat pins the RELEASED BINARY (digest and version) and resolves
+    the rest transitively through the release's kernel commit, whose own enforcement lock
+    is where the named failing-direction tests resolve; the claim is smaller and doctor
+    must name the seat, so MET in the two cases is never one number. Where the provenance
+    chain is absent the disposition is NOT CHECKED with the missing link named - never MET,
+    never a permanent UNMET for what is not the subscriber's to fix. Folding the designpack
+    pin into D2 is refused (that is pack verify and D6's subject), and the worked example's
+    lock pins the binary it runs, never kernel source paths from a subscriber root.
+  answered_at: 2026-07-31T18:55:00Z

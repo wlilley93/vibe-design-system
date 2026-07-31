@@ -28,6 +28,13 @@ pub enum LockKind {
     Hook,
     Schema,
     Config,
+    /// The SUBSCRIBER seat's gate pin ([2026] VJS-CC-VIBE-DESIGN-SYSTEM 1). A
+    /// subscriber holds no gate source; what it can witness is the released
+    /// binary that judges it - `path` is that binary, `digest` its bytes, and
+    /// `provenance` the kernel commit whose own enforcement lock resolves the
+    /// five limbs the subscriber relies on transitively. `proves` is empty:
+    /// the binary is not one proof kind, it is the runner of all of them.
+    ReleasedBinary,
     /// A gate that GRADES rather than proves: it reads the proof records and
     /// reports whether the criteria are met. It has no ProofKind, so `proves` is
     /// empty for this kind, and that emptiness is correct rather than missing.
@@ -42,12 +49,13 @@ pub enum LockKind {
 }
 
 impl LockKind {
-    pub const ALL: [LockKind; 6] = [
+    pub const ALL: [LockKind; 7] = [
         LockKind::ProofScript,
         LockKind::LedgerGenerator,
         LockKind::Hook,
         LockKind::Schema,
         LockKind::Config,
+        LockKind::ReleasedBinary,
         LockKind::CriteriaGrader,
     ];
 
@@ -58,6 +66,7 @@ impl LockKind {
             LockKind::Hook => "hook",
             LockKind::Schema => "schema",
             LockKind::Config => "config",
+            LockKind::ReleasedBinary => "released_binary",
             LockKind::CriteriaGrader => "criteria_grader",
         }
     }
@@ -124,6 +133,12 @@ pub struct LockEntry {
     pub supersedes_digest: Option<Digest>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub relock_rationale: Option<String>,
+    /// For a `released_binary` entry: the kernel commit the binary was built
+    /// from, which is where the five limbs actually resolve. Absent on every
+    /// other kind, and absent here it is a NAMED missing link: doctor reports
+    /// the subscriber seat NOT CHECKED rather than inventing a chain.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provenance: Option<String>,
 }
 
 impl LockEntry {
@@ -294,6 +309,7 @@ mod tests {
             pinned_by: "tester".into(),
             supersedes_digest: None,
             relock_rationale: None,
+            provenance: None,
         }
     }
 

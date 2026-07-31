@@ -363,6 +363,10 @@ pub struct AddArgs {
     /// The file holding the test that proves this gate's FAILING direction.
     #[arg(long)]
     test_path: Option<String>,
+    /// For --kind released_binary: the kernel commit the binary was built from,
+    /// where the five limbs actually resolve ([2026] VJS-CC-VIBE-DESIGN-SYSTEM 1).
+    #[arg(long)]
+    provenance: Option<String>,
     /// The name of that test.
     #[arg(long)]
     test_name: Option<String>,
@@ -452,6 +456,7 @@ fn add(store: &Store, args: &AddArgs) -> Result<i32> {
         pinned_by: actor(),
         supersedes_digest: None,
         relock_rationale: None,
+        provenance: args.provenance.clone(),
     };
 
     if let Some(previous) = previous
@@ -564,13 +569,21 @@ fn repin(store: &Store, rationale: Option<&str>) -> Result<i32> {
 /// carrying `proves: [contrast]` would claim the hook establishes a contrast result, which
 /// it does not, and VDS S-8(5) forbids overclaiming an enforcement surface.
 fn proves_matches_kind(kind: LockKind, proves: usize) -> std::result::Result<(), String> {
-    let proves_nothing = matches!(kind, LockKind::CriteriaGrader | LockKind::Hook);
+    // ReleasedBinary joins the empty-proves set for the opposite reason to the
+    // other two: it is not one check but the RUNNER of all of them, and naming
+    // any single kind would understate it while naming all twelve would claim
+    // this entry establishes what only the kernel's own lock establishes
+    // ([2026] VJS-CC-VIBE-DESIGN-SYSTEM 1: the subscriber's claim is transitive).
+    let proves_nothing = matches!(
+        kind,
+        LockKind::CriteriaGrader | LockKind::Hook | LockKind::ReleasedBinary
+    );
     match (proves == 0, proves_nothing) {
         (true, false) => Err(format!(
             "pass --proves at least once, naming a kind from the closed registry. A {} gate \
              that proves nothing is not a gate, and a lock entry claiming otherwise is a pin \
              on a file rather than on a check. (`criteria_grader` and `hook` are the only \
-             kinds that may omit it: one GRADES proofs, the other INVOKES them.)",
+             kinds that may omit it: one GRADES proofs, one INVOKES them, and released_binary RUNS them all.)",
             kind.as_str()
         )),
         (false, true) => Err(format!(

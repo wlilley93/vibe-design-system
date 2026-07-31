@@ -1,0 +1,18 @@
+schema_version: 1
+generated_at: 2026-07-31T18:46:38Z
+entries:
+- path: ../../target/release/vds
+  digest: sha256:b54fbaf4ba40d3c52c5df2880f085a3ea3d46ba7893911e1eaca42f67a65d4e0
+  kind: released_binary
+  invoked_by:
+  - surface: package_script
+    reference: npm run vds gates (every proof invocation in package.json runs this binary)
+    blocking: true
+  proves: []
+  failing_direction_test:
+    path: ../../crates/vds-cli/src/doctor.rs
+    test_name: a_replaced_binary_fails_the_subscriber_seat_by_digest
+    seeds: the pinned binary replaced by different bytes, which must read UNMET, the one D2 failure that is the subscriber own to fix
+  pinned_at: 2026-07-31T18:46:38Z
+  pinned_by: jellytot
+  provenance: 0e54cc75770bfc41884c35eda8c7e1a9b825ff44

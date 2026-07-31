@@ -39,6 +39,13 @@
     "pinned_by": {
       "type": "string"
     },
+    "provenance": {
+      "description": "For a `released_binary` entry: the kernel commit the binary was built from, which is where the five limbs actually resolve. Absent on every other kind, and absent here it is a NAMED missing link: doctor reports the subscriber seat NOT CHECKED rather than inventing a chain.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "proves": {
       "type": "array",
       "items": {
@@ -129,6 +136,13 @@
             "hook",
             "schema",
             "config"
+          ]
+        },
+        {
+          "description": "The SUBSCRIBER seat's gate pin ([2026] VJS-CC-VIBE-DESIGN-SYSTEM 1). A subscriber holds no gate source; what it can witness is the released binary that judges it - `path` is that binary, `digest` its bytes, and `provenance` the kernel commit whose own enforcement lock resolves the five limbs the subscriber relies on transitively. `proves` is empty: the binary is not one proof kind, it is the runner of all of them.",
+          "type": "string",
+          "enum": [
+            "released_binary"
           ]
         },
         {

@@ -139,6 +139,20 @@ fn d1(store: &Store) -> Result<Row> {
 }
 
 fn d2(store: &Store) -> Result<Row> {
+    // THE SEAT, DECIDED FIRST ([2026] VJS-CC-VIBE-DESIGN-SYSTEM 1). D2 asks
+    // whether the thing that judges this surface is itself reviewed and pinned,
+    // and the honest evidence differs by who answers. A root holding the gate
+    // SOURCE answers with the five limbs below. A root that does not - a
+    // subscriber running a released binary - cannot, and reporting the five
+    // limbs UNMET there told it to fix something not its to fix, which is how
+    // D2 came to be MET nowhere.
+    let holds_gate_source = vds_proof::GATE_PATHS
+        .iter()
+        .any(|path| store.project.root.join(path).is_file());
+    if !holds_gate_source {
+        return d2_subscriber_seat(store);
+    }
+
     let census = store.proof_census()?;
     let lock = store.read_lock()?;
     let mut satisfied = Vec::new();
@@ -234,6 +248,108 @@ fn d2(store: &Store) -> Result<Row> {
         .chain(short)
         .collect(),
         settled_by: "a cross-check of .vds/proofs/ against .vds/enforcement.lock",
+    })
+}
+
+/// The subscriber seat of D2.
+///
+/// What a subscriber can witness: the released binary's bytes. What it relies
+/// on transitively: the kernel commit that binary was built from, whose own
+/// enforcement lock resolves the five limbs. Three dispositions:
+///
+///   MET (subscriber seat)  - a released_binary entry whose digest matches the
+///                            binary on disk and whose provenance names the
+///                            kernel commit.
+///   UNMET                  - the pinned digest does NOT match the binary: the
+///                            thing that judges this surface was replaced and
+///                            nothing re-pinned it. This is the one failure
+///                            that IS the subscriber's to fix.
+///   NOT CHECKED            - no released_binary entry, or one with no
+///                            provenance: the missing link is NAMED, because a
+///                            criterion that can never clear trains its
+///                            readers to ignore it.
+fn d2_subscriber_seat(store: &Store) -> Result<Row> {
+    let title = "every proof kind is valid on all five limbs of VDS S-7(2)";
+    let settled = "the subscriber seat: the released_binary lock entry against the binary's \
+                   bytes ([2026] VJS-CC-VIBE-DESIGN-SYSTEM 1)";
+    let lock = store.read_lock()?;
+    let entry = lock.as_ref().and_then(|l| {
+        l.entries
+            .iter()
+            .find(|e| e.kind == vds_core::LockKind::ReleasedBinary)
+    });
+    let Some(entry) = entry else {
+        return Ok(Row {
+            id: "D2 ",
+            title,
+            verdict: Verdict::Unmeasurable,
+            detail: vec![
+                "SUBSCRIBER SEAT (this root holds no gate source). Missing link: no \
+                 released_binary entry in .vds/enforcement.lock, so the binary that judges \
+                 this surface is pinned by nothing here. Pin it with `vds lock add <binary> \
+                 --kind released_binary`."
+                    .into(),
+            ],
+            settled_by: settled,
+        });
+    };
+
+    let binary = store.project.root.join(&entry.path);
+    let Ok(bytes) = std::fs::read(&binary) else {
+        return Ok(Row {
+            id: "D2 ",
+            title,
+            verdict: Verdict::Unmet,
+            detail: vec![format!(
+                "SUBSCRIBER SEAT. The released_binary entry pins {} and no such file is \
+                 readable: the pin outlived the binary it witnesses.",
+                entry.path
+            )],
+            settled_by: settled,
+        });
+    };
+    let actual = vds_core::Digest::of_bytes(&bytes);
+    if actual != entry.digest {
+        return Ok(Row {
+            id: "D2 ",
+            title,
+            verdict: Verdict::Unmet,
+            detail: vec![format!(
+                "SUBSCRIBER SEAT. {} does not hash to the pinned digest: the binary that \
+                 judges this surface was replaced and nothing re-pinned it. This is the one \
+                 D2 failure that is the subscriber's own to fix.",
+                entry.path
+            )],
+            settled_by: settled,
+        });
+    }
+    let Some(provenance) = &entry.provenance else {
+        return Ok(Row {
+            id: "D2 ",
+            title,
+            verdict: Verdict::Unmeasurable,
+            detail: vec![format!(
+                "SUBSCRIBER SEAT. {} matches its pin, but the entry carries no provenance: \
+                 without the kernel commit the binary was built from, the chain from this \
+                 pin to a lock where the five limbs resolve is assertion, not evidence.",
+                entry.path
+            )],
+            settled_by: settled,
+        });
+    };
+    Ok(Row {
+        id: "D2 ",
+        title,
+        verdict: Verdict::Met,
+        detail: vec![format!(
+            "MET ON THE SUBSCRIBER SEAT, a smaller claim than the kernel's and named as \
+             one: {} matches its pinned digest, built from kernel commit {provenance}, \
+             whose enforcement lock is where the five limbs resolve. The failing direction \
+             (a replaced binary) is proven in the kernel's own suite - the same \
+             transitivity this seat relies on, exercised once for everyone.",
+            entry.path
+        )],
+        settled_by: settled,
     })
 }
 
@@ -1051,6 +1167,82 @@ describe('design adoption gate', () => {\n\
     /// is the test that stops it coming back, and without it the fix would be unproven and
     /// therefore not a proof of anything.
     ///
+    /// The subscriber seat's failing direction ([2026] VJS-CC-VIBE-DESIGN-SYSTEM 1 D5):
+    /// a binary replaced under a subscriber must read UNMET by digest, the one D2 failure
+    /// that is the subscriber's own to fix. Green first, so the red half cannot pass on a
+    /// seat that refuses everything; then the seed is asserted to have LANDED before the
+    /// verdict is read.
+    #[test]
+    fn a_replaced_binary_fails_the_subscriber_seat_by_digest() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        std::fs::create_dir_all(root.join(".vds")).unwrap();
+        std::fs::write(
+            root.join(".vds/config.toml"),
+            vds_core::default_config("sub", "SUB"),
+        )
+        .unwrap();
+        std::fs::write(root.join("bin-vds"), b"the released binary's bytes").unwrap();
+        let digest = vds_core::Digest::of_bytes(b"the released binary's bytes");
+        std::fs::write(
+            root.join(".vds/enforcement.lock"),
+            format!(
+                "schema_version: 1\ngenerated_at: 2026-07-31T18:00:00Z\nentries:\n\
+                 - path: bin-vds\n  digest: {digest}\n  kind: released_binary\n\
+                 \x20 invoked_by:\n  - surface: package_script\n    reference: npm run gates\n\
+                 \x20   blocking: true\n  proves: []\n  failing_direction_test:\n\
+                 \x20   path: crates/vds-cli/src/doctor.rs\n\
+                 \x20   test_name: a_replaced_binary_fails_the_subscriber_seat_by_digest\n\
+                 \x20 pinned_at: 2026-07-31T18:00:00Z\n  pinned_by: test\n"
+            ),
+        )
+        .unwrap();
+        let project = vds_core::Project::discover(Some(root)).unwrap();
+        let store = Store::new(&project);
+
+        let row = d2(&store).unwrap();
+        assert_eq!(
+            row.verdict,
+            Verdict::Unmeasurable,
+            "no provenance yet: {:?}",
+            row.detail
+        );
+        assert!(row.detail[0].contains("no provenance"), "{:?}", row.detail);
+
+        // Provenance named: the seat can now be MET, and says which seat.
+        let lock = std::fs::read_to_string(root.join(".vds/enforcement.lock")).unwrap();
+        std::fs::write(
+            root.join(".vds/enforcement.lock"),
+            lock.replace(
+                "  pinned_by: test\n",
+                "  pinned_by: test\n  provenance: abc123\n",
+            ),
+        )
+        .unwrap();
+        let row = d2(&store).unwrap();
+        assert_eq!(row.verdict, Verdict::Met, "{:?}", row.detail);
+        assert!(
+            row.detail[0].contains("SUBSCRIBER SEAT"),
+            "the seat must be named: {:?}",
+            row.detail
+        );
+
+        // THE SEED: different bytes under the same pin, asserted landed.
+        std::fs::write(root.join("bin-vds"), b"DIFFERENT bytes entirely").unwrap();
+        assert_ne!(
+            vds_core::Digest::of_bytes(b"DIFFERENT bytes entirely"),
+            digest,
+            "the seed did not land"
+        );
+        let row = d2(&store).unwrap();
+        assert_eq!(row.verdict, Verdict::Unmet, "{:?}", row.detail);
+        assert!(
+            row.detail[0].contains("was replaced"),
+            "the failure must say what happened, not only that a hash differed: {:?}",
+            row.detail
+        );
+    }
+
     /// Every arm seeds a DIFFERENT way for a reference to be a name rather than a wiring,
     /// because "unresolvable" collapses four distinct fixes into one word.
     #[test]
