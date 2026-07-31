@@ -187,10 +187,13 @@ subscribes to a designpack by vendoring it read-only and pinning its digest in
 `.vds/designpack.lock`, exactly as a VJS subscriber pins a lawpack. That is what allows a
 second project to carry the same doctrine without copying this project's register.
 
-**S-3(6) RESERVED.** Whether one designpack binds a single project, a tenant, or the whole
-realm is not settled. The nearest authority is the locus ratio of [2026] VJS-CC-OPBOX 1.
-Referred as `SUBMISSION-VDS-003`. Until it is answered, a designpack binds exactly the
-project whose `.vds/config.toml` pins it, and no other.
+**S-3(6)** A designpack binds exactly ONE project, the one whose `.vds/config.toml` pins
+it, and no other - settled by [2026] VJS-CC-VIBE-DESIGN-SYSTEM 4 H3 (answering
+`SUBMISSION-VDS-003`). Tenant or realm binding would let one re-pin change law under
+sibling projects that never assented, the defect [2026] VJS-CC-VJS 12 condemned in lock
+form the same day. Fleet consistency is achieved by every project pinning the same pack
+version, divergence made VISIBLE as differing pins and measured by a drift report:
+consistency by shared choice, never by remote control.
 
 **S-3(7)** `.vds/config.toml` is the one fixed anchor. Every other path is configurable
 from its `[paths]` table by role. The file carries `version`, `jurisdiction_id`,
@@ -404,7 +407,7 @@ used was registered.
 | warrant | granted on this evidence | granted by | unlocks |
 |---|---|---|---|
 | **W1 REGISTER-COMPLETE** | `register_completeness` proof exit 0 and `reconciliation` proof exit 0, both non-vacuous, over the declared surface | VJS on a referred submission | design may begin |
-| **W2 DESIGN-COMPLETE** | `composition` exit 0 over every declared screen, plus `states` exit 0 and `contrast` exit 0 | RESERVED, S-6(6) | Principal review |
+| **W2 DESIGN-COMPLETE** | `composition` exit 0 over every declared screen, plus `states` exit 0 and `contrast` exit 0 | the bench, per S-6(6) | Principal review |
 | **W3 PRINCIPAL-ACCEPTED** | a dated, digest-pinned acceptance event in `designpack/v1/provenance/assent/` | the Principal alone, S-6(7) | parity work may begin |
 | **W4 PARITY** | `parity` exit 0 for every registered component, plus `token_pin` and `contrast` re-run against the shipped CSS | VJS on a referred submission | the system is done |
 
@@ -416,18 +419,24 @@ evidence entry is a signature on nothing and is void on its face.
 after W2, or a component after W1, does not inherit the warrant: the proof re-runs and the
 warrant is re-granted or refused. `status: spent` is recorded, never deleted.
 
-**S-6(5) RESERVED.** Whether W1 may be granted provisionally is unsettled. W1-before-design
-is what makes drift structurally impossible, and it may also be impossible to satisfy on a
-greenfield surface, where the register cannot be completed without designing first. A
-provisional registration that design may use and that W1 later ratifies is the obvious
-relief and is also a hole large enough to drive the whole mechanism through. Referred as
-`SUBMISSION-VDS-001`. Until answered, no provisional registration exists and W1 is strict.
+**S-6(5)** On a greenfield surface, W1 may be granted over a DECLARED SUBSET of the
+register, the subset named by digest in the grant itself - settled by
+[2026] VJS-CC-VIBE-DESIGN-SYSTEM 4 H1 (answering `SUBMISSION-VDS-001`). The grant's claim
+stays exact: these records, at these digests, are complete, and drift stays structurally
+impossible INSIDE the subset. Touching a record outside the subset is work the grant does
+not cover, and widening the subset is a NEW grant, never a drifted old one. No provisional
+registration awaiting ratification exists: deferred enforcement is banked debt, and
+nothing in a provisional grant forces the ratification to ever happen.
 
-**S-6(6) RESERVED.** Who may grant W2 is unsettled. Composition is fully machine-checkable,
-so granting by proof alone with no bench is cheaper and faster, and a self-granted warrant
-is the laundering vector the VJS assent-resolution line closed. Referred as
-`SUBMISSION-VDS-002`. Until answered, W2 is referred to VJS like W1 and W4, and VDS may
-record a proof-only candidate but may not treat it as granted.
+**S-6(6)** W2 DESIGN-COMPLETE is granted by the bench, referred to VJS like W1 and W4 -
+settled by [2026] VJS-CC-VIBE-DESIGN-SYSTEM 4 H2 (answering `SUBMISSION-VDS-002`). The
+proofs ARE the case file, so a sitting over green proofs is short: machine-checkable
+evidence lowers the COST of the bench and never replaces it, because the question a grant
+answers is not "are the proofs green" but "is this claim to completeness the right claim
+to certify". A self-granted warrant is the laundering vector the VJS assent-resolution
+line closed, and twice this programme found a green suite whose gate could not fail - a
+bench reading the seeded failing directions is what catches that class. VDS may record a
+proof-only candidate; it may never treat one as granted.
 
 **S-6(7)** W3 is the Principal's and no one else's. Acceptance is reserved to the Sovereign
 under ACT-001:s2. No proof substitutes for it, no bench may grant it, and VDS may never
@@ -648,10 +657,14 @@ proof. `reconciliation` treats a retired record's absence from the codebase as c
 its **presence** in the codebase as a violation. That inversion is the point: after
 retirement, the code being there is the defect.
 
-**S-9(9) RESERVED.** Whether a component may ever be retired while a shipped route still
-consumes it, on a forced-drain deadline ordered rather than measured, is unsettled.
-Referred as `SUBMISSION-VDS-004`. Until answered, S-9(6)(2) is absolute and no deadline
-overrides a non-zero demand.
+**S-9(9)** The absolute drain of S-9(6)(2) is the default and the ONLY executive path -
+settled by [2026] VJS-CC-VIBE-DESIGN-SYSTEM 5 H1 (answering `SUBMISSION-VDS-004`). A
+retirement may complete over non-zero demand only under an order of the court that names
+the remaining demand - each route, each count - on its face, sets the date, and states why
+breakage-on-a-date is preferred to the hostage state. An executive deadline alone can
+never force it: the party wanting the retirement declaring the breakage acceptable is
+self-certification, and a court cannot be asked to order over demand it has not been
+shown.
 
 **S-9(10)** The primitive floor, settled by [2026] VJS-CC-VIBE-DESIGN-SYSTEM 5 (answering
 `SUBMISSION-VDS-005`): an ENUMERATED SET of elements is below the register's floor, held in
@@ -748,10 +761,10 @@ any of them.
 
 | clause | question | submission |
 |---|---|---|
-| S-6(5) | may W1 be granted provisionally on a greenfield surface | `SUBMISSION-VDS-001` |
-| S-6(6) | who may grant W2, given composition is fully machine-checkable | `SUBMISSION-VDS-002` |
-| S-3(6) | does a designpack bind one project, a tenant, or the realm | `SUBMISSION-VDS-003` |
-| S-9(9) | may a component be retired against a forced-drain deadline while consumers remain | `SUBMISSION-VDS-004` |
+| S-6(5), SETTLED by [2026] VJS-CC-VIBE-DESIGN-SYSTEM 4 | may W1 be granted provisionally on a greenfield surface | `SUBMISSION-VDS-001` |
+| S-6(6), SETTLED by [2026] VJS-CC-VIBE-DESIGN-SYSTEM 4 | who may grant W2, given composition is fully machine-checkable | `SUBMISSION-VDS-002` |
+| S-3(6), SETTLED by [2026] VJS-CC-VIBE-DESIGN-SYSTEM 4 | does a designpack bind one project, a tenant, or the realm | `SUBMISSION-VDS-003` |
+| S-9(9), SETTLED by [2026] VJS-CC-VIBE-DESIGN-SYSTEM 5 | may a component be retired against a forced-drain deadline while consumers remain | `SUBMISSION-VDS-004` |
 | S-9(10), SETTLED by [2026] VJS-CC-VIBE-DESIGN-SYSTEM 5 | where the primitive floor sits for the composition proof | `SUBMISSION-VDS-005` |
 
 ---

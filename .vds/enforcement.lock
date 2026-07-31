@@ -1,8 +1,8 @@
 schema_version: 1
-generated_at: 2026-07-31T19:49:31Z
+generated_at: 2026-07-31T19:53:23Z
 entries:
 - path: crates/vds-cli/src/doctor.rs
-  digest: sha256:91e6c44eb8b9a25b0474ae801918511ab67ad28abaeeb0ea0bf27fce5fbc1461
+  digest: sha256:d5e64c61ce271e43cd53f01e3a702d61df371a05a1fea610149b4b23a2a3ce52
   kind: criteria_grader
   invoked_by:
   - surface: ci_workflow
@@ -19,10 +19,10 @@ entries:
     path: crates/vds-cli/src/doctor.rs
     test_name: a_pass_over_zero_rows_is_still_a_vacuous_pass
     seeds: a proof record labelled passed over rows_enforced 0, which D3 once agreed was a pass
-  pinned_at: 2026-07-31T19:49:31Z
+  pinned_at: 2026-07-31T19:53:23Z
   pinned_by: jellytot
-  supersedes_digest: sha256:810d5634a364a5db5c63dc4ecdd8746b7a448ac2d4bcf43f82864cec69fb393b
-  relock_rationale: 'The reserved-clause census in doctor.rs moves from five to four: S-9(10) was enacted from RESERVED by [2026] VJS-CC-VIBE-DESIGN-SYSTEM 5 and its statute text rewritten, so the parser correctly no longer reports it. The four remaining reserved clauses keep their markers; enacting them from their rulings is task #53.'
+  supersedes_digest: sha256:91e6c44eb8b9a25b0474ae801918511ab67ad28abaeeb0ea0bf27fce5fbc1461
+  relock_rationale: 'Task #53: the last four RESERVED clauses (S-3(6), S-6(5), S-6(6), S-9(9)) enacted from their rulings ([2026] VJS-CC-VIBE-DESIGN-SYSTEM 4 and 5), each rewritten to carry its ratio. The doctor reserved-census goes to zero with a comment explaining why zero is the deliberate value and what a future marker owes.'
 - path: crates/vds-cli/src/lock.rs
   digest: sha256:056a937bdacc8b2539624a618c39ca5bb6ec8b67d3119925cf417a185daefdcc
   kind: hook

@@ -1145,18 +1145,15 @@ describe('design adoption gate', () => {\n\
             .join("VDS.md");
         let specification = std::fs::read_to_string(path).expect("VDS.md");
         let reserved = reserved_clauses_in(&specification);
-        // S-9(10) left this list when [2026] VJS-CC-VIBE-DESIGN-SYSTEM 5 settled
-        // it and the statute text was rewritten from RESERVED to enacted - the
-        // count below moved with it deliberately.
-        for clause in ["S-3(6)", "S-6(5)", "S-6(6)", "S-9(9)"] {
-            assert!(
-                reserved.contains(&clause.to_owned()),
-                "{clause} is marked RESERVED in VDS.md and the parser missed it: {reserved:?}"
-            );
-        }
+        // EMPTY, deliberately, since 2026-07-31: all five originally reserved
+        // clauses (S-3(6), S-6(5), S-6(6), S-9(9), S-9(10)) were settled by
+        // [2026] VJS-CC-VIBE-DESIGN-SYSTEM 4 and 5 and their statute text
+        // rewritten from RESERVED to enacted, each carrying its ruling's ratio.
+        // A future RESERVED marker moves this count up again, and D10 will ask
+        // it to name its submission.
         assert_eq!(
             reserved.len(),
-            4,
+            0,
             "the specification reserves {} clauses. If that is right, this number moves with \
              it deliberately; if it is not, a marker has been misread: {reserved:?}",
             reserved.len()
