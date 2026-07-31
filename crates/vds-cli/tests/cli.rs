@@ -1380,3 +1380,78 @@ fn the_documents_and_the_enum_agree_on_how_many_proof_kinds_there_are() {
         );
     }
 }
+
+/// SUBMISSION-VDS-007's fail-closed interim, enforced instead of asserted.
+///
+/// The submission promises that `vds prune` - the largest un-statuted power in
+/// the build, a delete over committed governance records - "stays out of every
+/// automated path and is run only by a human who typed it". That promise was
+/// prose in a YAML field, which is the exact shape this repository keeps filing
+/// against other people's work: a rule written down, with nothing checking it.
+/// Adding `$(MAKE) prune` to `check` tomorrow would make the submission's
+/// guarantee false and nothing would say so.
+///
+/// The guard is CONDITIONAL on the submission being unanswered. When the bench
+/// rules, this fails and says to revisit - because an interim that outlives its
+/// question is its own defect, and a guard that silently keeps enforcing a
+/// withdrawn interim is how a temporary measure becomes permanent by accident.
+#[test]
+fn prune_stays_out_of_every_automated_path_while_its_authority_is_unsettled() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(|p| p.parent())
+        .expect("workspace root")
+        .to_path_buf();
+
+    let submission =
+        std::fs::read_to_string(root.join(".vds/submissions/filed/SUBMISSION-VDS-007.yaml"))
+            .expect("SUBMISSION-VDS-007 must exist; the interim below is its promise");
+    let doc: serde_yaml::Value = serde_yaml::from_str(&submission).expect("it parses");
+    let answered = !matches!(doc.get("answer"), None | Some(serde_yaml::Value::Null));
+    assert!(
+        !answered,
+        "SUBMISSION-VDS-007 has been ANSWERED. Read the ruling and decide what happens to \
+         the fail-closed interim this test enforces - it must be lifted, narrowed or \
+         legislated, not left running because nobody looked."
+    );
+
+    // The three automated paths. `make check` is what the pre-push hook runs and
+    // what CI runs, so reaching it is reaching both.
+    let makefile = std::fs::read_to_string(root.join("Makefile")).expect("Makefile");
+    let check_body: String = makefile
+        .split("\ncheck:")
+        .nth(1)
+        .expect("a check: target")
+        .lines()
+        .take_while(|l| l.starts_with('\t') || l.trim().is_empty())
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(
+        !check_body.contains("prune"),
+        "`make check` now reaches prune, so a delete over committed proof records runs as a \
+         side effect of a test command. The Makefile's own words: 'a delete that runs as a \
+         side effect of a test command is a delete nobody chose'.\n{check_body}"
+    );
+
+    let workflow = std::fs::read_to_string(root.join(".github/workflows/vds-enforce.yml"))
+        .expect("the workflow");
+    assert!(
+        !workflow.contains("prune"),
+        "CI now runs prune. SUBMISSION-VDS-007 promises it runs only when a human types it."
+    );
+
+    let hook = std::fs::read_to_string(root.join("scripts/githooks/pre-push")).expect("the hook");
+    assert!(
+        !hook.contains("prune"),
+        "the pre-push hook now runs prune, so pushing deletes governance records."
+    );
+
+    // The negative control. If `prune` had been renamed or removed, every
+    // assertion above would pass over a command that no longer exists, and this
+    // test would report a guarantee it was not checking.
+    assert!(
+        makefile.contains("prune: build"),
+        "the prune target is gone, so the three assertions above prove nothing. If the \
+         command was withdrawn, that answers the submission and this test should go with it."
+    );
+}
