@@ -1,0 +1,55 @@
+id: SUBMISSION-2026-07-31-182905
+court_requested: county
+jurisdiction: default
+question: What is a register record's code counterpart when one component set is realised as a module of variant exports, and what must parity R4 then check?
+facts: |
+  FACTS (measured 2026-07-31, undisputed).
+
+  F1. parity R4 (VDS S-7(5)) requires `code.exportName` to be exported by
+  `code.sourceFile`. On a fresh project, parity FAILED 13 of 13 rows, all R4, all one
+  shape: `blocks/nav.js exports nav-1, nav-2, and not "nav"`.
+
+  F2. The bridge writes one record per BLOCK, matching Figma, where `Nav` is ONE set
+  varying on Style. The code has no `nav`: the module exports a registry keyed by variant;
+  the scanner reads 26 components across the same 13 files. The sides disagree about HOW
+  MANY COMPONENTS THERE ARE, not about a value.
+
+  F3. This is the programme's structural finding (Figma is nominal, code is positional;
+  recorded three times: site-factory, SDS, Opbox) arriving for the first time as a failing
+  proof.
+
+  F4. Invisible until W2 taught the scanner the CommonJS registry shape: before that, zero
+  exports were found, R4's export limb skipped the row with a warning, and the false
+  coordinate passed unremarked.
+
+  F5. W1b already gave each record a `variant` prop typed as the CLOSED UNION of the
+  module's export keys. The contract is complete; it is the coordinate that resolves to
+  nothing.
+
+  F6. Interim: the gate stays red, 13 of 13, because the failure is CORRECT and a green
+  obtained by writing the first variant key into exportName would decide this silently.
+
+  OPTION 1: ONE RECORD PER VARIANT (26 records, exportName nav-1). FOR: every coordinate
+  true, no rule change. AGAINST: register stops matching Figma one-for-one (26 vs 13), the
+  variant prop becomes a union of one, and a reader sees two counts of one system - the
+  confusion this programme exists to remove.
+
+  OPTION 2: THE MODULE IS THE COUNTERPART. exportName may resolve to what require() returns
+  - the registry - and the record stays one-per-set. FOR: register and Figma stay aligned,
+  and the coordinate is true (require('./blocks/nav') really returns the registry).
+  AGAINST: as stated it weakens R4 from "a named thing exists" to "the module exists", a
+  much smaller claim. UNLESS the registry arm is required to check that the registry's KEYS
+  equal the record's `variant` union exactly - then the claim is STRONGER than the named
+  check, because every variant is verified and an extra or missing one fails by name.
+
+  OPTION 3: REFUSE THE SHAPE; blocks restructure to one export per module. FOR: R4
+  unchanged. AGAINST: 43 modules restructured, and it decides VDS's model constrains how a
+  subscriber organises code - the largest claim yet, contradicted by every measured system.
+
+  TO SETTLE. (a) What is the code counterpart of a component SET realised as a variant
+  registry? (b) If the module, what must R4 check so the claim is not weakened? (c) May a
+  registry arm absorb a typo'd exportName in a non-registry module? (d) Does the interim's
+  red go green by rule change or by data change?
+requested_order: TBD
+private_boundary: local
+word_count: 488

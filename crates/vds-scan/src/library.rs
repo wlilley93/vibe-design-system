@@ -41,6 +41,15 @@ pub struct LibraryExport {
     /// Why the prop list may be incomplete, where there is a reason to think so.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub props_incomplete_because: Option<String>,
+    /// True for a CommonJS variant-registry entry (`module.exports = {'x-1': fn}`).
+    ///
+    /// STRUCTURED, not inferred from the prose in `props_incomplete_because`:
+    /// parity's registry arm ([2026] VJS-CC-VIBE-DESIGN-SYSTEM 2) activates only
+    /// where the module really is a registry, and a consumer matching on a
+    /// reason STRING would break the day the wording improved - the
+    /// field-name-asserts-a-condition trap, structured out.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub registry: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -190,6 +199,7 @@ fn exports_in(source: &str, relative: &str) -> Vec<LibraryExport> {
                 line: line_number,
                 props_incomplete_because: incomplete_reason(&props, inherited.clone()),
                 props,
+                registry: false,
             });
             continue;
         }
@@ -215,6 +225,7 @@ fn exports_in(source: &str, relative: &str) -> Vec<LibraryExport> {
                     line: line_number,
                     props_incomplete_because: incomplete_reason(&props, inherited.clone()),
                     props,
+                    registry: false,
                 });
             }
             continue;
@@ -245,6 +256,7 @@ fn exports_in(source: &str, relative: &str) -> Vec<LibraryExport> {
                         line: line_number,
                         props_incomplete_because: incomplete_reason(&props, inherited.clone()),
                         props,
+                        registry: false,
                     });
                 }
             }
@@ -355,6 +367,7 @@ fn commonjs_registry_exports(code: &str, source: &str, relative: &str) -> Vec<Li
                              `proposed`."
                                 .to_owned(),
                         ),
+                        registry: true,
                     });
                 }
             }

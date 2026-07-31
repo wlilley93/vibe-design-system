@@ -1,0 +1,53 @@
+id: SUBMISSION-2026-07-31-182718
+court_requested: county
+jurisdiction: default
+question: Can a subscriber satisfy D2, whose five limbs ask for gate source only the kernel holds; and what does the worked example's lock teach?
+facts: |
+  FACTS (measured 2026-07-31, undisputed).
+
+  F1. D2's five limbs (VDS S-7(2)) require, per proof kind, a pinned gate whose named
+  failing-direction test resolves and a blocking ci_workflow invocation resolving to a real
+  step. The twelve gates are crates/vds-proof/src/*.rs, in the KERNEL repository.
+
+  F2. A subscriber runs a released `vds` binary and holds none of that source. The worked
+  example, examples/storefront (three screens, six components), has no enforcement.lock,
+  and doctor there reports D2 "0 of 12 kinds satisfy all five limbs", every kind for the
+  same pair of reasons.
+
+  F3. D2 is MET nowhere. In the kernel repo it is vacuous (the kernel ships no screens, and
+  its config says so in its own words). docs/CEILING.md records every other unmet criterion
+  as structural or externally blocked; this is the single row that is neither.
+
+  F4. Interim: no lock is created in storefront while this is open - one pinning kernel
+  paths from a subscriber root would answer the question by doing it, and be copied.
+
+  F5. What a subscriber CAN witness: the binary's digest and version. A release is a
+  specific kernel commit, and that commit carries the kernel's own enforcement lock, where
+  all five limbs resolve. What a subscriber CANNOT witness: any source path, any
+  failing-direction test, any gate edit.
+
+  OPTION A: the subscriber's surface is the vendored designpack plus its own guard tests;
+  D2 reads the pack pin for a subscriber and gate source for the kernel. FOR: reachable by
+  every subscriber. AGAINST: pack integrity is already `vds pack verify` / D6 territory, so
+  D2 becomes two numbers wearing one name, and it acquires a dependency on an assent event.
+
+  OPTION B: D2 is kernel-only; a subscriber's doctor reports NOT CHECKED, never UNMET.
+  FOR: honest, costs no machinery (the disposition exists). AGAINST: a subscriber can then
+  never show that the gates it relies on are pinned by anyone, which is the assurance D2
+  exists to give.
+
+  OPTION C: a subscriber pins the RELEASED BINARY (digest + version). FOR: closest to what a
+  subscriber can actually witness; answers "is the thing that judged me the thing that was
+  reviewed". AGAINST: a binary digest names no failing-direction test, so the second half of
+  the limb is unsatisfiable as written and must be re-expressed for that seat - and if the
+  release does not record its kernel commit, the chain from binary to pinned gates is
+  assertion, not evidence.
+
+  TO SETTLE. (a) Is D2 one criterion or one criterion with two seats (kernel and
+  subscriber)? (b) If two seats, what does the subscriber's limb pin - the pack, the binary,
+  or nothing? (c) What disposition does a subscriber report when the provenance chain is
+  absent? (d) What does the worked example's lock contain, so that what it teaches is a move
+  a subscriber can make?
+requested_order: TBD
+private_boundary: local
+word_count: 486

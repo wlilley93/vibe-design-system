@@ -110,6 +110,8 @@ const RULE_SOURCE_NOT_RELATIVE: &str =
 const RULE_SOURCE_ABSENT: &str = "VDS S-7(5) parity R3: code.sourceFile is a file in the tree";
 const RULE_EXPORT_ABSENT: &str =
     "VDS S-7(5) parity R4: code.exportName is exported by code.sourceFile";
+const RULE_REGISTRY_KEYS: &str = "VDS S-7(5) parity R4 (registry arm, [2026] VJS-CC-VIBE-DESIGN-SYSTEM 2): a \
+     variant-registry module's keys equal the record's variant union exactly";
 const RULE_PROP_NOT_IN_CODE: &str =
     "VDS S-7(5) parity R5: every prop the contract names is accepted by the component";
 const RULE_PROP_NOT_CONTRACTED: &str =
@@ -354,8 +356,28 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
             record.id,
             record.name
         );
-        let Some(export) = resolve(&mut run, project, record, &location, &library)? else {
-            continue;
+        let export = match resolve(&mut run, project, record, &location, &library)? {
+            Resolved::Nothing => continue,
+            // The registry arm settled the export limb (and counted its own
+            // enforced row). Props have no single counterpart to compare - each
+            // registry entry is its own function - but R11-R13 do not need one,
+            // and skipping them here would narrow the proof for exactly the
+            // rows the arm exists to serve.
+            Resolved::Registry => {
+                compare_figma_variants(
+                    &mut run,
+                    &mut variant_undecided,
+                    record,
+                    &location,
+                    figma_ledger.as_ref(),
+                );
+                if record.states.required.is_empty() {
+                    without_requirement += 1;
+                }
+                compare_states(&mut run, record, &location);
+                continue;
+            }
+            Resolved::Single(export) => export,
         };
 
         run.row(Verdict::Enforced);
@@ -469,24 +491,38 @@ impl<'a> Library<'a> {
 /// success path, which leaves the row to the caller: the caller is where the
 /// enforced row's two limbs run, and splitting the classification from the work
 /// would let the two drift apart.
+/// What a record's code coordinate resolved to.
+///
+/// Three outcomes rather than an Option, because "no single export" covers two
+/// situations that must not share a disposition: a coordinate that resolved to
+/// NOTHING (skip the row's remaining limbs - there is nothing to compare), and a
+/// coordinate that resolved to a whole REGISTRY (the export limb is settled and
+/// R11-R13 still run). Collapsing the second into the first would silently
+/// narrow the proof for exactly the rows the registry arm exists to serve.
+enum Resolved<'a> {
+    Nothing,
+    Single(&'a LibraryExport),
+    Registry,
+}
+
 fn resolve<'a>(
     run: &mut ProofRun<'_>,
     project: &Project,
     record: &ComponentRecord,
     location: &str,
     library: &Library<'a>,
-) -> Result<Option<&'a LibraryExport>> {
+) -> Result<Resolved<'a>> {
     // Written out rather than matched with a wildcard: the lifecycle is closed by
     // VDS S-5(4), and a wildcard would silently enforce whatever an eighth status
     // turned out to mean.
     match record.status {
         Status::Proposed | Status::Designed => {
             run.row(Verdict::Skipped(SKIP_BELOW_REGISTERED));
-            return Ok(None);
+            return Ok(Resolved::Nothing);
         }
         Status::Retired => {
             run.row(Verdict::Skipped(SKIP_RETIRED));
-            return Ok(None);
+            return Ok(Resolved::Nothing);
         }
         Status::Registered | Status::Built | Status::Verified | Status::Deprecated => {}
     }
@@ -509,7 +545,7 @@ fn resolve<'a>(
                 record.id, record.status
             ),
         ));
-        return Ok(None);
+        return Ok(Resolved::Nothing);
     };
     let source = normalise(&code.source_file);
 
@@ -534,7 +570,7 @@ fn resolve<'a>(
                 record.id
             ),
         ));
-        return Ok(None);
+        return Ok(Resolved::Nothing);
     }
 
     let absolute = project.root.join(&source);
@@ -553,7 +589,7 @@ fn resolve<'a>(
                 record.id, record.status
             ),
         ));
-        return Ok(None);
+        return Ok(Resolved::Nothing);
     }
     // Digested whether or not it produced a finding, so the evidence digest
     // witnesses every source this run read. A file that appears between two runs
@@ -577,7 +613,7 @@ fn resolve<'a>(
                 record.id
             ),
         ));
-        return Ok(None);
+        return Ok(Resolved::Nothing);
     }
 
     if let Some(because) = library.no_export_because.get(&source) {
@@ -616,7 +652,101 @@ fn resolve<'a>(
                 ),
             ));
         }
-        return Ok(None);
+        return Ok(Resolved::Nothing);
+    }
+
+    // THE REGISTRY ARM ([2026] VJS-CC-VIBE-DESIGN-SYSTEM 2). A component SET
+    // realised as a module of variant exports has no single named counterpart:
+    // `blocks/nav.js` exports `nav-1` and `nav-2` and the record - one per set,
+    // matching the Figma side - names `nav`. The counterpart is THE MODULE, and
+    // the claim is not "the module exists" (which would weaken R4) but that the
+    // registry's keys equal the record's `variant` union EXACTLY, extra and
+    // missing keys each failing by name - which verifies every variant, more
+    // than the named arm ever did.
+    //
+    // ACTIVATION IS THE RECORD'S SHAPE, NEVER THE NAMED ARM'S FAILURE: a closed
+    // `variant` union plus an exportName that names the module. A fallback that
+    // fires on failure absorbs typos - the silent-absorption class the lawpack
+    // fallback was condemned for the same day ([2026] VJS-CC-VJS 12).
+    let module_stem = std::path::Path::new(&source)
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .unwrap_or_default();
+    // Three conditions, all shape and none failure: the record contracts a
+    // closed variant union, the coordinate names the module, and the module IS
+    // a registry (the scanner's structured marker, never its prose). The third
+    // is what keeps `Button.tsx` exporting `Button` - where stem and exportName
+    // collide by ordinary convention - on the named arm it always had.
+    let module_is_registry = library
+        .by_file
+        .get(&source)
+        .map(|exports| !exports.is_empty() && exports.iter().all(|export| export.registry))
+        .unwrap_or(false);
+    if module_is_registry
+        && code.export_name == module_stem
+        && let Some(mut union_members) = registry_union(record)
+    {
+        run.row(Verdict::Enforced);
+        let mut keys: Vec<String> = library
+            .by_file
+            .get(&source)
+            .map(|exports| {
+                exports
+                    .iter()
+                    .map(|export| export.export_name.clone())
+                    .collect()
+            })
+            .unwrap_or_default();
+        keys.sort();
+        union_members.sort();
+
+        let missing: Vec<&String> = union_members
+            .iter()
+            .filter(|member| !keys.contains(member))
+            .collect();
+        let extra: Vec<&String> = keys
+            .iter()
+            .filter(|key| !union_members.contains(key))
+            .collect();
+        for member in &missing {
+            run.fail(
+                Violation::fatal(
+                    format!("{location} -> {source}"),
+                    RULE_REGISTRY_KEYS,
+                    format!(
+                        "{source} exports a registry whose keys are exactly the variant union \
+                         of {}: {:?}",
+                        record.id, union_members
+                    ),
+                    format!(
+                        "the contracted variant {member:?} is not a key of the registry \
+                         {source} exports ({keys:?}). A reader selecting it gets undefined, \
+                         which surfaces as a blank section a long way from this record"
+                    ),
+                )
+                .with_drift(Drift::Behind),
+            );
+        }
+        for key in &extra {
+            run.fail(
+                Violation::fatal(
+                    format!("{location} -> {source}"),
+                    RULE_REGISTRY_KEYS,
+                    format!(
+                        "{source} exports a registry whose keys are exactly the variant union \
+                         of {}: {:?}",
+                        record.id, union_members
+                    ),
+                    format!(
+                        "{source} exports {key:?}, which {} does not contract. An export the \
+                         record does not admit is a variant nothing governs",
+                        record.id
+                    ),
+                )
+                .with_drift(Drift::Ahead),
+            );
+        }
+        return Ok(Resolved::Registry);
     }
 
     let Some(export) = library
@@ -660,7 +790,7 @@ fn resolve<'a>(
         )
             // the record names an export the file does not have, so the CODE is behind the coordinate
             .with_drift(Drift::Behind));
-        return Ok(None);
+        return Ok(Resolved::Nothing);
     };
 
     if let Some(because) = &export.props_incomplete_because {
@@ -710,10 +840,10 @@ fn resolve<'a>(
                 ),
             ));
         }
-        return Ok(None);
+        return Ok(Resolved::Nothing);
     }
 
-    Ok(Some(export))
+    Ok(Resolved::Single(export))
 }
 
 /// R5, R6, R7, R8 and R10, in both directions.
@@ -789,6 +919,23 @@ fn is_legal_value_set(members: &[Vec<Token>], names: &[String]) -> bool {
         return false;
     }
     names.len() > 1
+}
+
+/// The record's closed `variant` union, where it has one.
+///
+/// `None` for anything else - a widened union, a type alias, no variant prop at
+/// all - so the registry arm cannot activate on a record that never contracted
+/// a closed set of variants. The same three rules as [`is_legal_value_set`],
+/// through the same tokeniser, so "closed union" means one thing in this file.
+fn registry_union(record: &ComponentRecord) -> Option<Vec<String>> {
+    let prop = record.props.iter().find(|prop| prop.name == "variant")?;
+    let tokens = tokenise(&prop.type_expr)?;
+    let members = top_level_union(&tokens);
+    let names = member_names(&members)?;
+    if !is_legal_value_set(&members, &names) {
+        return None;
+    }
+    Some(names)
 }
 
 /// R11 and R12: the legal values a prop admits, against the legal values of the
@@ -1323,7 +1470,21 @@ fn tokenise(expression: &str) -> Option<Vec<Token>> {
         }
         if is_word_char(current) {
             let mut word = String::new();
-            while at < chars.len() && is_word_char(chars[at]) {
+            // An INTERIOR hyphen followed by a word character stays in the word,
+            // so the contract shorthand `nav-1|nav-2` reads as two members and
+            // not six tokens. PropContract documents "a closed union written
+            // a|b|c" and a kebab-cased variant key is a lawful member of it -
+            // measured on every generated project, where the bridge writes the
+            // registry keys this way. A leading hyphen, or one followed by
+            // anything else, is still punctuation: `A - B` and `-1` tokenise as
+            // they always did.
+            while at < chars.len()
+                && (is_word_char(chars[at])
+                    || (chars[at] == '-'
+                        && !word.is_empty()
+                        && at + 1 < chars.len()
+                        && is_word_char(chars[at + 1])))
+            {
                 word.push(chars[at]);
                 at += 1;
             }
@@ -1476,6 +1637,31 @@ mod tests {
                  export function {name}(p: {name}Props) {{ return <div />; }}\n"
             ),
         );
+    }
+
+    /// A CommonJS variant-registry block, the site-factory shape, at a path the
+    /// default scan reads (`.jsx` is in the default extensions; the registry
+    /// reader does not care which extension carried it).
+    fn registry_block(h: &Harness, stem: &str, keys: &[&str]) {
+        let body: String = keys.iter().map(|k| format!("  '{k}': render,\n")).collect();
+        h.write(
+            &format!("src/components/ui/{stem}.jsx"),
+            &format!(
+                "'use strict';\nfunction render(content) {{ return '<div></div>'; }}\n\
+                 module.exports = {{\n{body}}};\n"
+            ),
+        );
+    }
+
+    /// One record per SET, the coordinate naming the module, the `variant` prop
+    /// carrying the closed union - the exact shape the bridge writes.
+    fn registry_record(h: &Harness, name: &str, stem: &str, union: &str) -> ComponentId {
+        let id = h.register_as("CMP-0001", name, stem, Status::Registered);
+        h.amend(&id, |record| {
+            record.code.as_mut().unwrap().source_file = format!("src/components/ui/{stem}.jsx");
+        });
+        set_props(h, &id, &[("variant", union, false)]);
+        id
     }
 
     fn set_props(h: &Harness, id: &ComponentId, props: &[(&str, &str, bool)]) {
@@ -1635,6 +1821,79 @@ mod tests {
         let (outcome, text) = run_kind(&h, ProofKind::Parity);
         assert_eq!(outcome.exit_code, EXIT_PASSED, "{text}");
         assert_eq!(outcome.rows_enforced, 1);
+    }
+
+    /// [2026] VJS-CC-VIBE-DESIGN-SYSTEM 2: the code counterpart of a component
+    /// SET realised as a variant registry is the MODULE, and the registry arm
+    /// proves the keys equal the record's variant union exactly. This is the
+    /// ruling that turned 13-of-13 red rows on every generated project into a
+    /// pass earned by rule change, not by data change.
+    #[test]
+    fn a_variant_registry_record_resolves_to_the_module_and_passes() {
+        let h = Harness::new();
+        registry_block(&h, "nav", &["nav-1", "nav-2"]);
+        registry_record(&h, "Nav", "nav", "'nav-1' | 'nav-2'");
+
+        let (outcome, text) = run_kind(&h, ProofKind::Parity);
+        assert_eq!(outcome.exit_code, EXIT_PASSED, "{text}");
+        assert_eq!(outcome.rows_enforced, 1, "{text}");
+    }
+
+    /// Failing direction one (order D4): a contracted variant the registry does
+    /// not export, refused by name with the code marked BEHIND the record.
+    #[test]
+    fn a_contracted_variant_missing_from_the_registry_fails_by_name() {
+        let h = Harness::new();
+        registry_block(&h, "nav", &["nav-1"]);
+        registry_record(&h, "Nav", "nav", "'nav-1' | 'nav-2'");
+
+        let (outcome, text) = run_kind(&h, ProofKind::Parity);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("registry arm"), "{text}");
+        assert!(
+            text.contains("\"nav-2\" is not a key"),
+            "the missing variant must be named, not counted: {text}"
+        );
+    }
+
+    /// Failing direction two (order D4): an export the record does not
+    /// contract - a variant nothing governs - with the code marked AHEAD.
+    #[test]
+    fn a_registry_key_the_record_does_not_contract_fails_by_name() {
+        let h = Harness::new();
+        registry_block(&h, "nav", &["nav-1", "nav-2", "nav-3"]);
+        registry_record(&h, "Nav", "nav", "'nav-1' | 'nav-2'");
+
+        let (outcome, text) = run_kind(&h, ProofKind::Parity);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(
+            text.contains("\"nav-3\", which CMP-0001 does not contract"),
+            "{text}"
+        );
+    }
+
+    /// The no-absorption control the order makes explicit: the registry arm
+    /// activates on the RECORD'S SHAPE (a closed variant union), never on the
+    /// named arm's failure. A typo'd exportName that happens to equal the
+    /// module stem, on a record with no variant union, must still fail the
+    /// NAMED arm - a fallback that fires on failure absorbs typos.
+    #[test]
+    fn a_typoed_export_name_without_a_variant_union_is_not_absorbed() {
+        let h = Harness::new();
+        let id = h.register_as("CMP-0001", "Button", "button", Status::Registered);
+        component_with_props(&h, "Button", "  label: string;");
+        set_props(&h, &id, &[("label", "string", true)]);
+
+        let (outcome, text) = run_kind(&h, ProofKind::Parity);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(
+            text.contains("exports Button"),
+            "the named arm must answer, naming what the file DOES export: {text}"
+        );
+        assert!(
+            !text.contains("registry arm"),
+            "the registry arm must not activate without a closed variant union: {text}"
+        );
     }
 
     /// The one spelling difference this build will not rule on. It is counted

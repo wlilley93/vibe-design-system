@@ -1,0 +1,81 @@
+id: 2026-VJS-CC-VDS-SUBSCRIBER-D2-001
+citation: "[2026] VJS-CC-VIBE-DESIGN-SYSTEM 1"
+court: county
+jurisdiction: vibe-design-system
+repo_code: VIBE-DESIGN-SYSTEM
+status: binding
+issue: subscriber-enforcement-surface
+question: >
+  Can a subscriber satisfy D2, whose five limbs ask for gate source only the kernel holds;
+  and what does the worked example's lock teach?
+holding: |
+  ONE CRITERION, TWO SEATS (Halden J, sitting alone at first instance, on the case file
+  pinned at CONVENING-county-2026-07-31-182723). D2 asks one question - "is the thing that
+  judges this surface itself reviewed, pinned, and unable to change silently" - and the
+  honest evidence for it differs by who is answering. Pretending otherwise is what made D2
+  MET nowhere: the kernel answers it vacuously and the subscriber cannot answer it at all.
+
+  THE KERNEL SEAT is unchanged: five limbs over gate source, per VDS S-7(2), as the
+  enforcement lock already witnesses.
+
+  THE SUBSCRIBER SEAT pins the RELEASED BINARY - digest and version - and resolves the rest
+  TRANSITIVELY: a release is a specific kernel commit, and that commit carries the kernel's
+  own enforcement lock, where every named failing-direction test resolves. The subscriber's
+  claim is therefore "the binary that judged me is pinned, and the pinned binary's
+  provenance reaches a kernel lock where the five limbs hold". That is a smaller claim than
+  the kernel's and it must SAY SO: doctor's output names the seat, so MET in the two cases
+  can never be read as one number. Option A is rejected - the designpack's integrity is
+  `vds pack verify` and D6's subject, and folding it into D2 would make D2 two numbers
+  wearing one name, which is the submission's own objection stated back to it.
+
+  WHERE THE PROVENANCE CHAIN IS ABSENT - the pinned binary records no kernel commit, or the
+  commit's lock is unreachable - the subscriber reports NOT CHECKED with the missing link
+  named. Not MET, because nothing was witnessed; not UNMET, because UNMET tells a
+  subscriber to fix something that is not theirs to fix, and a criterion that can never be
+  cleared trains its readers to ignore it (the cry-wolf failure this programme has recorded
+  in four other forms).
+
+  THE WORKED EXAMPLE must teach a move a subscriber can make. Its lock pins the binary it
+  actually runs. It must NOT pin kernel source paths from a subscriber root - the interim's
+  reasoning is affirmed: an example teaching a move only the kernel can make is worse than
+  one teaching nothing, because it would be copied.
+
+  THE FAILING DIRECTION survives every seat: a binary replaced under a subscriber (digest
+  mismatch) must fail D2's subscriber limb, and the test proving that failing direction
+  lives in the KERNEL repository, pinned by the kernel's lock - which is exactly the
+  transitivity the subscriber relies on, exercised once for everyone.
+directives:
+  - id: D1
+    actor: kernel
+    must: evaluate_d2_by_seat_and_name_the_seat_in_the_output
+    when: running_doctor
+  - id: D2
+    actor: kernel
+    must: accept_a_released_binary_pin_as_the_subscriber_gate_limb
+    when: the_root_does_not_hold_the_gate_source
+  - id: D3
+    actor: kernel
+    must: report_not_checked_with_the_missing_link_named_when_provenance_is_absent
+    when: a_subscriber_binary_pin_lacks_kernel_provenance
+  - id: D4
+    actor: agent
+    must: give_the_worked_example_a_lock_that_pins_the_binary_it_runs
+    when: implementing_this_order
+  - id: D5
+    actor: agent
+    must: prove_the_failing_direction_with_a_digest_mismatch_test
+    when: implementing_this_order
+forbidden:
+  - fold_designpack_integrity_into_d2
+  - report_met_without_naming_the_seat
+  - pin_kernel_source_paths_from_a_subscriber_root
+exceptions:
+  - the_kernel_seat_is_unchanged_five_limbs_over_source
+supersedes: []
+source_opinion: 2026-VJS-CC-VDS-1-opinion.md
+runtime_summary: >
+  D2 has two seats. Kernel: five limbs over gate source. Subscriber: pin the released
+  binary and resolve transitively through its kernel provenance; absent provenance,
+  NOT CHECKED with the missing link named. Doctor names the seat. The worked example pins
+  the binary it runs, never kernel paths.
+created_at: "2026-07-31T18:30:00Z"

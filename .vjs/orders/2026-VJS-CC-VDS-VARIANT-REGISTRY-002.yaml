@@ -1,0 +1,77 @@
+id: 2026-VJS-CC-VDS-VARIANT-REGISTRY-002
+citation: "[2026] VJS-CC-VIBE-DESIGN-SYSTEM 2"
+court: county
+jurisdiction: vibe-design-system
+repo_code: VIBE-DESIGN-SYSTEM
+status: binding
+issue: variant-registry-counterpart
+question: >
+  What is a register record's code counterpart when one component set is realised as a
+  module of variant exports, and what must parity R4 then check?
+holding: |
+  OPTION TWO, WITH ITS OWN CONDITION MADE MANDATORY (Marbury J, sitting alone at first
+  instance, on the case file pinned at CONVENING-county-2026-07-31-182909). The code
+  counterpart of a component SET realised as a variant registry is THE MODULE - what
+  `require()` returns - and R4's registry arm must check that the registry's keys equal
+  the record's `variant` union EXACTLY, extra and missing keys each failing by name.
+
+  WHY NOT ONE RECORD PER VARIANT. The register exists to be the one place where the count
+  of components is settled, and [2026] VJS-CC-OPBOX 3 D1 makes the Figma file the record
+  of what is DECIDED: `Nav` is one decision varying on Style, not two decisions. Twenty-six
+  records over thirteen sets would make the register disagree with the decided artefact
+  about the only fact a register exists to hold. The submission is right that this is the
+  exact confusion the programme exists to remove.
+
+  WHY NOT REFUSING THE SHAPE. Every system this programme has measured - site-factory,
+  SDS, Opbox - realises sets as registries or composites. A model that refuses the
+  ordinary shape of real code is not a model of code; it is a demand that code model IT,
+  and that demand has never been enacted in VDS.md and is not enacted here.
+
+  WHY THE CONDITION IS NOT OPTIONAL. Bare option two proves "the module exists", which is
+  weaker than the named-export check it replaces, and a weakened R4 is how a renamed
+  variant rots silently. With key-set equality the registry arm proves MORE than the named
+  check ever did: every variant the record contracts is verified present, and every export
+  the record does not contract is verified absent. The union W1b wrote into the `variant`
+  prop is what makes this checkable at all - the contract was already complete, and this
+  order gives the coordinate the meaning the contract was waiting for.
+
+  ON THE TYPO QUESTION (c): the registry arm must NOT absorb a failed named lookup in a
+  module that is not a registry, and must not activate at all where the record carries no
+  `variant` union. It activates on the SHAPE OF THE RECORD, not on the failure of the
+  other arm: a record whose exportName names the module and whose variant union is closed
+  is a registry record; anything else takes the named arm and fails as before. A fallback
+  that fires on failure is a fallback that absorbs typos - the same silent-absorption
+  class the lawpack fallback was condemned for in the parent jurisdiction the same day.
+
+  ON (d): the interim's red goes green by RULE CHANGE, not data change. `exportName` keeps
+  naming the block, which is what it always truthfully named; R4 learns what that means
+  for a registry record. No generated project changes.
+directives:
+  - id: D1
+    actor: kernel
+    must: accept_the_module_as_the_counterpart_of_a_variant_registry_record
+    when: the_record_carries_a_closed_variant_union_and_exportname_names_the_module
+  - id: D2
+    actor: kernel
+    must: check_registry_keys_equal_the_variant_union_exactly_failing_each_difference_by_name
+    when: the_registry_arm_activates
+  - id: D3
+    actor: kernel
+    must: keep_the_named_arm_for_every_record_without_a_closed_variant_union
+    when: running_parity_r4
+  - id: D4
+    actor: agent
+    must: prove_both_failing_directions_missing_key_and_extra_key
+    when: implementing_this_order
+forbidden:
+  - activate_the_registry_arm_on_failure_of_the_named_arm
+  - split_a_component_set_into_per_variant_records
+  - refuse_the_registry_shape
+supersedes: []
+source_opinion: 2026-VJS-CC-VDS-2-opinion.md
+runtime_summary: >
+  A variant-registry record's code counterpart is the module; parity R4's registry arm
+  checks the registry keys equal the record's variant union exactly, each difference
+  failing by name. The arm activates on the record's shape, never on the named arm's
+  failure. One record per set stands; the red goes green by rule change.
+created_at: "2026-07-31T18:32:00Z"

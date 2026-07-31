@@ -1,5 +1,5 @@
 schema_version: 1
-generated_at: 2026-07-31T18:18:07Z
+generated_at: 2026-07-31T18:41:00Z
 entries:
 - path: crates/vds-cli/src/doctor.rs
   digest: sha256:5d5d4ae45f4937a1d141fac6b8419e74653972d50e2d8453c50c8ad1df14d68c
@@ -139,7 +139,7 @@ entries:
   supersedes_digest: sha256:3436e78174fd5dceb6241756eb8fc8117cd52959595c7d825f81893085cf1fd5
   relock_rationale: 'Adversarial review found all three new gates unsound; four criticals and five highs are closed. contrast: unclassified_palette_scopes returned empty on a sheet with no :root, so R6 was structurally dead and a palette nothing measured passed at exit 0 (the founding defect through the gate written to catch it); the redactor covered three of six realisation shapes and redacted only a colour function''s head; two findings named the default stylesheet rather than the one read. parity: an extends/intersection props type reported a SUBSET as complete, so R6 fired on inherited props or credited the row as enforced. token_pin: the redaction screen closed hex and left base64 open, the locator was never screened, the evidence digest was keyed on pin.id (which carries generated_at), coverage was reported before the currency check, and Store::read_pins never refused an unreadable entry.'
 - path: crates/vds-proof/src/parity.rs
-  digest: sha256:0191f5eac0e335058359781c96cff014bab05841e27927c27539352ec55dfaa9
+  digest: sha256:82a48217eee317b1cee3389c2c26e4f3aeccb7fe1f1b6261874ff17b0b118862
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -154,10 +154,10 @@ entries:
     path: crates/vds-proof/src/parity.rs
     test_name: parity_fails_on_a_prop_the_component_accepts_that_no_contract_names
     seeds: a prop the component source exposes that no register record contracts, which is how a component drifts out from under its contract without anything being removed
-  pinned_at: 2026-07-31T15:48:00Z
+  pinned_at: 2026-07-31T18:41:00Z
   pinned_by: jellytot
-  supersedes_digest: sha256:6ea9ff1be88f59e442560f5421a8462996a5c2d506bb989a92072dbebbd85e4e
-  relock_rationale: 'parity.rs and the shared Violation type gain a DRIFT direction (ahead/behind/mismatch/undetermined), borrowed with attribution from ds-contracts-poc''s parity/diff.ts. Additive: no row changes verdict, the field defaults to undetermined so every proof record already on disk still parses, and the six emit sites that KNOW the direction now say it. The gate''s decisions are unchanged; what changed is that a finding now names which side moved.'
+  supersedes_digest: sha256:b656d174c984045c103255bafd1a5c67b00464da8727f80a1b76aa1726ce8fe0
+  relock_rationale: 'Formatting-only follow-up to the registry-arm re-pin: cargo fmt over the new arm and one clippy needless_borrow in its test helper. No behavioural byte: 72 parity tests and the 13-row generated project verdict are unchanged either side.'
 - path: crates/vds-proof/src/preimage.rs
   digest: sha256:fcfcab1fcbed2616823fa040d824fa45819ae9f28a4745a39b345f9099d7d720
   kind: proof_script

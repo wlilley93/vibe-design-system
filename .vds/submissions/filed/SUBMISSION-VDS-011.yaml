@@ -30,7 +30,17 @@ case_file_digest: sha256:0ea8d0bf577b8430fb548b217d42f9d438f0742bef3f0a3d89c2ea8
 reserved_clause: "S-7(5)"
 fail_closed_interim: "The case_file_digest above is derived by `scripts/case-file-digest.sh` over site-factory/vds-bridge.js, crates/vds-proof/src/parity.rs, crates/vds-scan/src/library.rs and site-factory/figma-variants.json; the schema has no field naming what a digest is over. THE INTERIM IS TO LEAVE THE GATE RED. `parity` fails 13 of 13 on every generated project and that failure is CORRECT: the coordinate really does not resolve. It would be trivial to go green by writing the first variant key into exportName, and that would be a false pass - it would decide the question by doing it, silently choosing option one for every future subscriber, and it would put a record named `Nav` over a coordinate meaning `nav-1`. A red gate that is understood and written down is worth more than a green one obtained by guessing. Nothing is papered over and no generated project is shipped as conformant while this is open."
 filed_to: vjs
-vjs_submission_id: null
+vjs_submission_id: SUBMISSION-2026-07-31-182905
 created_at: 2026-07-31T15:40:00Z
 filed_at: 2026-07-31T15:40:00Z
-answer: null
+answer:
+  citation: "[2026] VJS-CC-VIBE-DESIGN-SYSTEM 2"
+  ratio: >-
+    The code counterpart of a component set realised as a variant registry is THE MODULE,
+    and parity R4's registry arm must check the registry's keys equal the record's variant
+    union EXACTLY, extra and missing keys each failing by name. The arm activates on shape
+    - a closed variant union on the record, a coordinate naming the module, and a module
+    the scanner structurally marks as a registry - never on the named arm's failure. One
+    record per component set stands; splitting per variant and refusing the registry shape
+    are both forbidden. The interim's red goes green by rule change, not data change.
+  answered_at: 2026-07-31T18:36:00Z
