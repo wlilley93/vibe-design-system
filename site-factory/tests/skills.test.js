@@ -1335,3 +1335,94 @@ test('the prompt coverage is measured, not scored', () => {
   assert.ok(/genre/i.test(doc.the_finding.claim) && /section/i.test(doc.the_finding.claim),
     'the axis finding - genre versus section - has been lost from the claim');
 });
+
+// ---------------------------------------------------------------------------
+// token-reach: does a declared custom property reach anything, and does every
+// reference resolve? Built after Opbox's `--action` was found defined-and-unused
+// while the rule it existed to carry was broken by the CSS beside it.
+//
+// Guarded in three parts: the instrument works on a fixture, it holds on THIS
+// repo's own output (where it already found and removed a dead token), and it
+// still reproduces the Opbox findings.
+test('token-reach finds both directions', () => {
+  const { tokenReach } = require('../token-reach.js');
+
+  const r = tokenReach([
+    { source: 'tokens.css', css: ':root { --used: red; --dead: blue; }' },
+    { source: 'app.css', css: '.a { color: var(--used); background: var(--missing); }' },
+  ]);
+  assert.deepEqual(r.unreferenced.map((u) => u.name), ['--dead'],
+    'a declared-and-unused token must be reported');
+  assert.equal(r.unreferenced[0].source, 'tokens.css', 'a finding must name where to go');
+  assert.deepEqual(r.undeclared.map((u) => u.name), ['--missing'],
+    'a var() with no declaration must be reported - this is the direction that is a ' +
+    'defect every time, because the browser falls back silently');
+
+  // A COMMENT IS NOT CODE. `--token` was reported undeclared because build.js
+  // and blocks/hero.js write `var(--token)` in prose as a placeholder. An
+  // instrument that invents work from comments is one people learn to ignore.
+  const commented = tokenReach([
+    { source: 'x.css', css: '/* every value is a var(--token) */\n:root { --real: 1px; }\n' +
+      '.a { width: var(--real); }' },
+  ]);
+  assert.deepEqual(commented.undeclared, [],
+    'a var() inside a CSS comment was counted as a reference');
+
+  // Passing ONLY a token file would make every token look unreferenced, which
+  // is a confident wrong answer rather than a missing one.
+  const alone = tokenReach([{ source: 'tokens.css', css: ':root { --a: 1px; --b: 2px; }' }]);
+  assert.equal(alone.unreferenced.length, 2);
+  assert.ok(alone.doesNotCover.some((l) => /not in `sources`/.test(l)),
+    'the reading must say that a token used elsewhere reads as unreferenced here');
+});
+
+test('this repository declares no token that reaches nothing', () => {
+  const { tokenReach } = require('../token-reach.js');
+  const { cssVars, STRUCTURE_CSS } = require('../build.js');
+  const tokens = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'tokens', 'geist.json'), 'utf8'));
+
+  const r = tokenReach([
+    { source: 'cssVars(tokens/geist.json)', css: cssVars(tokens.tokens || tokens) },
+    { source: 'STRUCTURE_CSS', css: STRUCTURE_CSS },
+  ], { ignoreDeclared: ['--type-scale'] });
+
+  // THE ONE EXEMPTION, AND WHY IT IS AN EXEMPTION RATHER THAN A FIX.
+  //
+  // `--type-scale` is the only token this check reports here, and the first
+  // response was to delete the emission as dead weight. Two existing tests
+  // refused: `typography.typeScale actually changes --type-scale`, and the one
+  // pairing the Figma type-scale specimen against the value the build emits.
+  // It is a PUBLISHED READING consumed by an instrument, not an input to any
+  // rule - so "no CSS reads it" was true and "nothing reads it" was not.
+  //
+  // Kept as a named exemption with the reason attached, because the alternative
+  // is a check that people learn to override. If a second name ever joins this
+  // list, the reason has to be as good as this one.
+  assert.deepEqual(r.unreferenced.map((u) => u.name), [],
+    'a custom property is emitted that nothing reads - either wire it up or stop emitting it');
+  assert.deepEqual(r.undeclared.map((u) => u.name), [],
+    'the stylesheet references a token nothing declares, so those surfaces render ' +
+    'with the browser fallback and it looks like a design decision');
+  assert.ok(r.declared > 40, `only ${r.declared} tokens considered - the reading looks empty`);
+});
+
+test('the Opbox kit references three tokens neither of its token sets declares', () => {
+  const { tokenReach } = require('../token-reach.js');
+  const dir = path.join(__dirname, '..', 'vendor', 'opbox');
+  const read = (f) => ({ source: f, css: fs.readFileSync(path.join(dir, f), 'utf8') });
+
+  // Checked against BOTH token sets, because "it must be declared in the other
+  // one" is the first thing anyone would say, and it is not true.
+  for (const set of ['tokens.geist.css', 'tokens.css']) {
+    const r = tokenReach([read(set), read('opbox.css')]);
+    assert.deepEqual(r.undeclared.map((u) => u.name).sort(), ['--mono', '--radius-sm', '--sans'],
+      `with ${set}, the undeclared set changed. If it is now empty the defect is FIXED ` +
+      'and this test should record that rather than be relaxed.');
+  }
+  const geist = tokenReach([read('tokens.geist.css'), read('opbox.css')]);
+  assert.ok(geist.undeclared.find((u) => u.name === '--mono').uses >= 16,
+    '--mono was used 16 times and declared nowhere; every mono surface falls back');
+  assert.ok(geist.unreferenced.some((u) => u.name === '--action'),
+    '--action is the token that started this: defined to carry "ink acts, blue selects" ' +
+    'and consumed by nothing');
+});

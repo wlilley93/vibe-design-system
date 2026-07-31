@@ -89,5 +89,13 @@
       "tokens.css": "c6c3280e59db412bc16ba0ed10d7cf86fd79a80891a353e77b921260278b5078"
     },
     "guard": "site-factory/tests/skills.test.js :: \"the Opbox audit re-derives from the vendored bytes\". Both findings were seeded in the FIXED direction and the guard failed on each; the seeds were restored from a copy and the digest above re-checked."
-  }
+  },
+  "third_finding_found_by_instrument": {
+    "claim": "THE KIT REFERENCES THREE TOKENS THAT NEITHER OF ITS TOKEN SETS DECLARES, 21 TIMES.",
+    "evidence": "`opbox.css` uses `var(--mono)` 16 times, `var(--radius-sm)` 3 times and `var(--sans)` twice. Neither `tokens.geist.css` nor `tokens.css` declares any of the three - checked against BOTH, because \"it must be in the other file\" is the first thing anyone would say and it is not true.",
+    "why_it_matters": "A `var()` with no declaration does not error. The browser falls back to the initial value, so every mono surface in the kit - the RID chip, the kbd, the timeline, and the blocked-reason note from finding 2 - renders in the inherited face and looks like a deliberate choice. This is the quiet direction: an unreferenced token is usually harmless, an unresolved reference is a defect every time.",
+    "found_by": "site-factory/token-reach.js, written for finding 1 and then run over the kit. Finding 1 was known and this was not.",
+    "also": "88 custom properties are declared and 35 referenced, so 56 are declared-and-unused. Most are ordinary (a chart palette, an entity-hue set, a spacing ramp for components not built here) and are NOT presented as defects. `--action` is the one that matters, and it matters because of finding 1: it is the token built to carry a stated rule, consumed by nothing."
+  },
+  "_note_on_the_instrument": "token-reach.js was run on THIS repository first. It reported one token, `--type-scale`, as declared-and-unreferenced; removing it broke two existing tests, because it is a published reading the Figma type-scale specimen is paired against rather than an input to any rule. It is now a named exemption carrying that reason. An instrument that had only ever been pointed at somebody else would not have earned that correction."
 }

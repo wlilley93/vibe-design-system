@@ -103,6 +103,17 @@ function cssVars(tokens) {
   const scale = tokens.scale || {};
   const density = DENSITY[scale.density] ?? 1;
   lines.push(`  --space: ${(tokens.space.unit * density).toFixed(2)}px;`);
+  // No rule in the stylesheet reads `var(--type-scale)` - the ramp is scaled
+  // here, in JS, when `--text-*` is computed below - and `token-reach.js`
+  // reports it as declared-and-unreferenced for exactly that reason. It stays,
+  // and the reason is worth the comment: it is a PUBLISHED READING, not a
+  // rule input. `tests/spec.test.js` pairs the Figma type-scale specimen
+  // against this emitted value, so removing it silently unhooks the drawing
+  // from the build - which is what happened when it was removed, and two
+  // tests caught it. A token consumed by an instrument rather than by a
+  // declaration is still reaching something; the check just cannot see the
+  // reader. That is why it is named in `ignoreDeclared` with this reason
+  // rather than deleted or quietly tolerated.
   lines.push(`  --type-scale: ${TYPE_SCALE[scale.type] ?? 1};`);
   lines.push(`  --border-weight: ${BORDER_WEIGHT[(tokens.border || {}).weight] || '1px'};`);
   lines.push(`  --shadow: ${ELEVATION[tokens.elevation] || 'none'};`);
