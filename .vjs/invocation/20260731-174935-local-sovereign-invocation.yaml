@@ -1,0 +1,29 @@
+id: INVOCATION-20260731-174935
+kind: local_sovereign_invocation
+status: in_force
+jurisdiction:
+  id: vibe-design-system
+  repo_root: "."
+  repo_code: VIBE-DESIGN-SYSTEM
+principal:
+  name: "wlilley93"
+  capacity: local_sovereign
+subscription:
+  lawpack: vjs-v2@0.1.0
+  lawpack_lock: .vjs/lawpack.lock
+  mode: subscribed
+  v1_archive_import: none_unless_expressly_incorporated
+assent:
+  given: true
+  form: local_sovereign_act
+  statement: >
+    The Principal invokes this repository as a VJS V2 local jurisdiction,
+    subscribes it to the stated lawpack, and authorises the kernel, hooks,
+    permits, proofs, logs, and court route to govern repo work.
+effect:
+  - creates_local_jurisdiction
+  - creates_county_court_for_repo
+  - binds_agents_to_kernel_route
+  - requires_permits_for_governed_writes
+  - requires_logs_for_material_decisions
+  - installs_validation_hooks

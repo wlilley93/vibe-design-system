@@ -1,0 +1,21 @@
+version = "2"
+jurisdiction_id = "vibe-design-system"
+repo_code = "VIBE-DESIGN-SYSTEM"
+lawpack = "vjs-v2@0.1.0"
+lawpack_path = "../vibe-justice-system/lawpack/v2"
+principal = "wlilley93"
+
+[paths]
+orders = ".vjs/orders"
+logs = ".vjs/logs"
+submissions = ".vjs/submissions"
+proofs = ".vjs/proofs"
+permits = ".vjs/permits"
+private = ".vjs/private"
+
+[paths.public]
+enabled = false
+
+[governance]
+permit_required = ["src/**", "crates/**", "lawpack/**", "Cargo.toml", "package.json", "AGENTS.md", "VJS.md", "README.md"]
+permit_exempt = [".vjs/logs/**", ".vjs/permits/**", ".vjs/proofs/**", ".vjs/cache/**", ".vjs/private/**", "target/**", "node_modules/**"]

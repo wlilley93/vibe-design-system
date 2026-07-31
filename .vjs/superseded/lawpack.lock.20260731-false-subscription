@@ -1,0 +1,12 @@
+# SUPERSEDED, recorded under [2026] VJS-CC-VJS 12 D5 rather than overwritten in silence.
+# This lock asserted a subscription to vjs-v2@0.1.0 and pinned sha256:e3b0c442..., which is
+# the sha256 of the EMPTY STRING. No lawpack was ever resolved for this jurisdiction: the
+# kernel fell back to an empty canon and `vjs lookup --issue enforcement` returned nothing
+# while the same command in vibe-justice-system returned ACT-001:s1-s4. The record was not
+# incomplete but false. Replaced 2026-07-31 by an invocation that resolves the lawpack.
+lawpack_id = "/home/jellytot/Projects/vibe-justice-system/lawpack/v2"
+lawpack_version = "0.1.0"
+digest = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+schema_version = 1
+generated_at = "2026-07-31T17:16:30.617331598+00:00"
+locked_by = "wlilley93"

@@ -1,0 +1,10 @@
+# VJS install manifest (REG-INSTALL-MANIFEST-001).
+schema_version = 1
+generated_at = "2026-07-31T17:49:35.757236798+00:00"
+config_digest = "sha256:de575e923ed37c59494bc25b7d72ac2e78b5d115fb48bc8228e816f9d49fc040"
+invocation = ".vjs/invocation/20260731-171557-local-sovereign-invocation.yaml"
+invocation_digest = "sha256:38b2e2c5ab939ab329db5c458ba13d264c874a85689d5238a101566506e2b8be"
+lawpack_lock = ".vjs/lawpack.lock"
+hooks = []
+hook_digests = []
+adapters = []
