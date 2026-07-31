@@ -150,7 +150,15 @@ fn not_a_component_file(path: &Path) -> Option<String> {
 /// register with rows no screen can reference.
 fn exports_in(source: &str, relative: &str) -> Vec<LibraryExport> {
     let code = jsx::blank_non_code(source);
-    let types = prop_types_in(&code, source);
+    let mut types = prop_types_in(&code, source);
+    // Appended, never merged: a named `interface FooProps` is the component's
+    // declared contract and wins over the inline literal if a file carries both.
+    for entry in inline_prop_types_in(&code, source) {
+        if !types.iter().any(|t| t.0 == entry.0) {
+            types.push(entry);
+        }
+    }
+    let types = types;
     let mut out = Vec::new();
 
     for (index, line) in code.lines().enumerate() {
@@ -502,6 +510,134 @@ fn prop_types_in(code: &str, source: &str) -> Vec<(String, Vec<LibraryProp>, Opt
         i = close + 1;
     }
     out
+}
+
+/// The THIRD prop-declaration shape: an anonymous type literal at the signature.
+///
+/// `prop_types_in` above reads `interface FooProps { ... }`, which is the shape
+/// every React style guide teaches. Opbox's kit does not use it: nineteen of its
+/// twenty-one components annotate the destructured parameter directly -
+///
+/// ```text
+/// export function Field({ label, required, hint, children }: {
+///   label: string; required?: boolean; hint?: string; children: React.ReactNode;
+/// }) {
+/// ```
+///
+/// - and the named reader finds nothing, so the import wrote nineteen records
+/// carrying `props: []`. That is not a component without a contract; it is a
+/// contract this reader could not see, and the two are indistinguishable in the
+/// register, which is what makes it worth fixing rather than reporting.
+///
+/// Emitted as synthetic `{Name}Props` entries so the three lookup sites in
+/// `exports_in` need no change, and appended AFTER the named ones so a real
+/// `interface FooProps` always wins - a component with both is declaring the
+/// named one as its contract.
+fn inline_prop_types_in(code: &str, source: &str) -> Vec<(String, Vec<LibraryProp>, Option<String>)> {
+    let chars: Vec<char> = code.chars().collect();
+    let original: Vec<char> = source.chars().collect();
+    let mut out = Vec::new();
+    let mut search = 0usize;
+
+    while let Some(found) = find_from(&chars, search, "export function ") {
+        let after = found + "export function ".len();
+        search = after;
+        let name: String = chars[after..]
+            .iter()
+            .take_while(|c| c.is_ascii_alphanumeric() || **c == '_' || **c == '$')
+            .collect();
+        if name.is_empty() || !is_component_name(&name) {
+            continue;
+        }
+        // A generic component (`function DataTable<T extends Row>({...})`) puts a
+        // type parameter list between the name and the parameters, so find the
+        // paren rather than assuming it sits against the name.
+        let Some(open_paren) = chars[after + name.len()..]
+            .iter()
+            .position(|c| *c == '(')
+            .map(|o| after + name.len() + o)
+        else {
+            continue;
+        };
+        let Some(close_paren) = matching_paren(&chars, open_paren) else {
+            continue;
+        };
+        // The annotation colon sits at depth zero of the parameter list, AFTER
+        // the destructuring block closes. A colon inside the destructuring is a
+        // rename (`{ a: b }`) and a colon inside the type is a member, so depth
+        // is the only thing that tells the three apart.
+        let mut depth = 0i32;
+        let mut colon = None;
+        for idx in open_paren + 1..close_paren {
+            match chars[idx] {
+                '{' | '(' | '[' | '<' => depth += 1,
+                '}' | ')' | ']' | '>' => depth -= 1,
+                ':' if depth == 0 => {
+                    colon = Some(idx);
+                    break;
+                }
+                _ => {}
+            }
+        }
+        let Some(colon) = colon else { continue };
+        let Some(open) = chars[colon + 1..close_paren]
+            .iter()
+            .position(|c| !c.is_whitespace())
+            .map(|o| colon + 1 + o)
+        else {
+            continue;
+        };
+        if chars[open] != '{' {
+            // An annotation naming a type (`: ButtonProps`) is the first
+            // reader's job, and re-reading it here would double-count.
+            continue;
+        }
+        let Some(close) = matching_brace(&chars, open) else {
+            continue;
+        };
+        // Read the members from the ORIGINAL for the reason the named reader
+        // does: blanking strips a string-literal union down to its separators,
+        // turning `'sm' | 'lg'` into `|`.
+        let body: String = if close < original.len() {
+            original[open + 1..close].iter().collect()
+        } else {
+            chars[open + 1..close].iter().collect()
+        };
+        // Everything after the literal and before the parameter list ends. This
+        // is where `& React.HTMLAttributes<HTMLDivElement>` lives, and Panel and
+        // Tab both have one, so a reader that ignored it would present a subset
+        // as the whole contract.
+        let tail: String = chars[close + 1..close_paren].iter().collect();
+        out.push((format!("{name}Props"), props_in_body(&body), inheritance_in(&tail)));
+        search = close_paren;
+    }
+    out
+}
+
+/// The index of `needle` in `chars` at or after `from`.
+fn find_from(chars: &[char], from: usize, needle: &str) -> Option<usize> {
+    let pat: Vec<char> = needle.chars().collect();
+    if from >= chars.len() || pat.is_empty() {
+        return None;
+    }
+    (from..=chars.len().saturating_sub(pat.len())).find(|&i| chars[i..i + pat.len()] == pat[..])
+}
+
+fn matching_paren(chars: &[char], open: usize) -> Option<usize> {
+    let mut depth = 0usize;
+    for (offset, ch) in chars.iter().enumerate().skip(open) {
+        match ch {
+            '(' => depth += 1,
+            ')' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(offset);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
 }
 
 /// What this declaration inherits that the shallow reader did not resolve.
@@ -1056,6 +1192,63 @@ mod tests {
                 .map(|e| e.export_name.as_str())
                 .collect::<Vec<_>>(),
             vec!["Hero"]
+        );
+    }
+}
+
+#[cfg(test)]
+mod inline_props_tests {
+    use super::*;
+
+    /// The Opbox kit's shape, and the reason the inline reader exists: nineteen
+    /// of its twenty-one components annotate the destructured parameter rather
+    /// than declaring a named `<Name>Props`.
+    #[test]
+    fn reads_an_inline_annotation_and_flags_its_intersection() {
+        let source = "export function Field({ label, required }: {\n  \
+                      label: string; required?: boolean;\n}) { return <div />; }\n\
+                      export function Panel({ interactive, ...rest }: {\n  \
+                      interactive?: boolean;\n} & React.HTMLAttributes<HTMLDivElement>) \
+                      { return <div />; }\n";
+        let exports = exports_in(source, "ui.tsx");
+
+        let field = exports.iter().find(|e| e.export_name == "Field").expect("Field");
+        assert_eq!(
+            field.props.iter().map(|p| p.name.as_str()).collect::<Vec<_>>(),
+            ["label", "required"],
+            "an inline type literal is a prop contract and must be read as one"
+        );
+        assert!(
+            field.props_incomplete_because.is_none(),
+            "Field inherits nothing, so nothing may be withheld from it"
+        );
+
+        // THE HALF THAT MATTERS. A non-empty list that is still a SUBSET is
+        // worse than an empty one, because it looks complete.
+        let panel = exports.iter().find(|e| e.export_name == "Panel").expect("Panel");
+        assert_eq!(panel.props.len(), 1);
+        let because = panel
+            .props_incomplete_because
+            .as_deref()
+            .expect("Panel intersects React.HTMLAttributes and must say so");
+        assert!(
+            because.contains("intersection"),
+            "the reason must name the intersection, got: {because}"
+        );
+    }
+
+    /// A named declaration still wins, so a file carrying both is not read twice.
+    #[test]
+    fn a_named_props_type_beats_the_inline_literal() {
+        let source = "interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> \
+                      {\n  variant?: 'a' | 'b';\n}\n\
+                      export function Button({ variant }: ButtonProps) { return <button />; }\n";
+        let exports = exports_in(source, "ui.tsx");
+        let button = exports.iter().find(|e| e.export_name == "Button").expect("Button");
+        assert_eq!(button.props.len(), 1);
+        assert!(
+            button.props_incomplete_because.as_deref().unwrap_or("").contains("extends"),
+            "an `extends` clause must be declared as making the list a subset"
         );
     }
 }

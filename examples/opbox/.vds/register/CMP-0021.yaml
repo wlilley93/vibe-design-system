@@ -1,0 +1,41 @@
+id: CMP-0021
+name: Tag
+status: proposed
+contractVersion: 1
+figma: null
+code:
+  importPath: '@/components/ui/ui'
+  sourceFile: src/components/ui/ui.tsx
+  exportName: Tag
+props:
+- name: children
+  type: React.ReactNode
+  required: true
+  figmaProperty: null
+- name: className
+  type: string
+  required: false
+  figmaProperty: null
+- name: flag
+  type: boolean
+  required: false
+  figmaProperty: null
+states:
+  required: []
+  drawn: []
+  built: []
+a11y:
+  role: null
+  accessibleNameSource: children
+  keyboard: []
+  contrastFloors: []
+demand:
+  routes: 0
+  measuredAt: 2026-07-31T12:23:35Z
+  measuredBy: 'vds register import (not yet measured; run: vds register measure-demand --all)'
+supersedes: []
+supersededBy: null
+amendments: []
+basis:
+- ACT-VDS-001:s5
+notes: 'Imported by `vds register import` from src/components/ui/ui.tsx:46. A CANDIDATE, not a contract: it carries what the code says and nothing the code cannot say. Its required states, contrast floors, role and keyboard contract are decisions nobody has made yet.'

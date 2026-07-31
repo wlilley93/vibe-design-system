@@ -1,0 +1,57 @@
+id: CMP-0002
+name: DataTable
+status: proposed
+contractVersion: 1
+figma: null
+code:
+  importPath: '@/components/ui/DataTable'
+  sourceFile: src/components/ui/DataTable.tsx
+  exportName: DataTable
+props:
+- name: columns
+  type: Column<T>[]
+  required: true
+  figmaProperty: null
+- name: density
+  type: '''compact'' | ''default'''
+  required: false
+  figmaProperty: null
+- name: empty
+  type: '{ title: string; body?: string; type?: ObjectTypeId }'
+  required: false
+  figmaProperty: null
+- name: loading
+  type: boolean
+  required: false
+  figmaProperty: null
+- name: onRowClick
+  type: '(row: T) => void'
+  required: false
+  figmaProperty: null
+- name: rows
+  type: T[]
+  required: true
+  figmaProperty: null
+- name: selectedId
+  type: string
+  required: false
+  figmaProperty: null
+states:
+  required: []
+  drawn: []
+  built: []
+a11y:
+  role: null
+  accessibleNameSource: children
+  keyboard: []
+  contrastFloors: []
+demand:
+  routes: 0
+  measuredAt: 2026-07-31T12:23:35Z
+  measuredBy: 'vds register import (not yet measured; run: vds register measure-demand --all)'
+supersedes: []
+supersededBy: null
+amendments: []
+basis:
+- ACT-VDS-001:s5
+notes: 'Imported by `vds register import` from src/components/ui/DataTable.tsx:28. A CANDIDATE, not a contract: it carries what the code says and nothing the code cannot say. Its required states, contrast floors, role and keyboard contract are decisions nobody has made yet.'

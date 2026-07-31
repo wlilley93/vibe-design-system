@@ -212,6 +212,17 @@ pub fn run(ctx: &Context, args: &Args) -> Result<i32> {
                     .collect::<Vec<_>>()
                     .join(", ")
             );
+            // A NON-EMPTY list can still be a subset, and this arm used to say
+            // nothing at all - the reason was computed, carried on the export and
+            // then printed only when the list was empty. So a component whose
+            // declaration intersects `React.HTMLAttributes` was reported as
+            // `props: interactive?, selected?` with no hint that it also accepts
+            // every DOM attribute. `parity` knew (it skips such a row rather than
+            // crediting it), but the person reading the import did not, and they
+            // are the one deciding whether the candidate is ready to advance.
+            if let Some(because) = &export.props_incomplete_because {
+                println!("    INCOMPLETE:  {because}");
+            }
         }
     }
 
