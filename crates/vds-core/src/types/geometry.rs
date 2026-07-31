@@ -132,6 +132,15 @@ pub enum ReadFrom {
     /// A hand-authored model of the intended design. REFUSED by the proof
     /// (S-7A(4)). Representable so it can be refused by name.
     CodeModel,
+    /// A reading of the DESIGN FILE - the Figma file that is the system of
+    /// record for what was decided ([2026] VJS-CC-OPBOX 3 D1). Admitted by
+    /// [2026] VJS-CC-VIBE-DESIGN-SYSTEM 3 and NOT shipped: no browser renders
+    /// it, so it is refused as the subject of the shipped bound for its OWN
+    /// reason - a different subject, not an unreliable one - never under
+    /// code_model's. Any output derived from one must name the drawing as its
+    /// subject; a number that does not name its subject is two numbers wearing
+    /// one name.
+    DesignFile,
 }
 
 impl ReadFrom {
@@ -140,6 +149,7 @@ impl ReadFrom {
             ReadFrom::ShippedStylesheet => "shipped_stylesheet",
             ReadFrom::ShippedSource => "shipped_source",
             ReadFrom::CodeModel => "code_model",
+            ReadFrom::DesignFile => "design_file",
         }
     }
 

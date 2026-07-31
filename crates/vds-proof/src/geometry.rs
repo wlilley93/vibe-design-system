@@ -192,6 +192,28 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
     // print the same finding four times and let a reader think four things went
     // wrong.
     let admissible = match &reading {
+        // The design file is refused for its OWN reason, never under
+        // code_model's ([2026] VJS-CC-VIBE-DESIGN-SYSTEM 3, forbidden clause):
+        // a code model is a third artefact that drifts, while the design file
+        // is the system of record for what was DECIDED. Its reading is a
+        // different SUBJECT - no browser renders it - so the shipped bound has
+        // nothing to say about it, and a drawing-side bound is where it will
+        // be measured when one is declared.
+        Some(r) if r.read_from == vds_core::ReadFrom::DesignFile => {
+            run.fail(Violation::fatal(
+                project.rel(&vds_core::reading_path(project)),
+                RULE_CODE_MODEL,
+                "a reading taken from the shipped stylesheet or the shipped source",
+                "readFrom is design_file. The design file is the record of what was \
+                 DECIDED, and this proof's subject is what SHIPPED: a reading of the \
+                 drawing is a fact about the drawing, and reporting it under the shipped \
+                 bound would be two numbers wearing one name. Measure it against a bound \
+                 declared over the drawing, and name the drawing as the subject in the \
+                 output ([2026] VJS-CC-VIBE-DESIGN-SYSTEM 3)."
+                    .to_owned(),
+            ));
+            false
+        }
         Some(r) if !r.read_from.is_shipped() => {
             run.fail(Violation::fatal(
                 project.rel(&vds_core::reading_path(project)),
@@ -767,6 +789,39 @@ mod proof_tests {
         );
         let (outcome, text) = run_kind(&h, ProofKind::Geometry);
         assert_eq!(outcome.status, ProofStatus::Passed, "{text}");
+    }
+
+    #[test]
+    fn a_design_file_reading_is_refused_for_its_own_reason_not_code_models() {
+        // [2026] VJS-CC-VIBE-DESIGN-SYSTEM 3 D2, and its forbidden clause. The
+        // drawing's reading is a DIFFERENT SUBJECT, not an unreliable one, and
+        // the refusal must say so - a reader told their design file "drifts"
+        // has been told something false about the system of record.
+        let h = Harness::new();
+        h.geometry_bound(
+            SurfaceKind::Radius,
+            30,
+            &[("2026-06-01", 667), ("2026-07-20", 561)],
+        );
+        h.geometry_reading(
+            "2026-07-31",
+            ReadFrom::DesignFile,
+            &[(SurfaceKind::Radius, 900, 100, 0)],
+        );
+        let (outcome, text) = run_kind(&h, ProofKind::Geometry);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert_eq!(
+            outcome.rows_enforced, 0,
+            "a drawing enforces no shipped row: {text}"
+        );
+        assert!(
+            text.contains("two numbers wearing one name"),
+            "the refusal must state the subject distinction: {text}"
+        );
+        assert!(
+            !text.contains("third artefact that drifts"),
+            "refusing the design file under code_model's reason is forbidden by the order: {text}"
+        );
     }
 
     #[test]

@@ -1,0 +1,52 @@
+id: SUBMISSION-2026-07-31-190133
+court_requested: county
+jurisdiction: default
+question: Is a geometry reading taken from the Figma file admissible, and if so under which ReadFrom and against which bound?
+facts: |
+  FACTS (measured, undisputed).
+
+  F1. `geometry` (VDS S-7A(4)) proves the SHIPPED product's density and type scale. A
+  reading must state how it was taken: `ReadFrom` is a closed enum of three -
+  shipped_stylesheet, shipped_source, and code_model, which the proof REFUSES by name.
+
+  F2. A Figma file fits none cleanly. It is not shipped - no browser renders it - so
+  admitting it as shipped_source would make geometry measure a picture and report the
+  number as a fact about the product. It is also more than a code_model: it is the SYSTEM
+  OF RECORD for what was decided ([2026] VJS-CC-OPBOX 3 D1).
+
+  F3. The instrument exists and where its output may be entered does not. Nine template
+  files were read in full, their auto-layout itemSpacing and padding* classified against
+  an 8-point scale: off-grid rates 20% to 98.5%. Zero of nine measured templates hold the
+  8-point rule their own author states.
+
+  F4. The same class exists in code: opbox-rules-audit.json records a rule stated in a
+  README and broken by the CSS beside it.
+
+  F5. Interim in force: no Figma-derived reading is written to .vds/ledgers/ or passed to
+  `vds ledger geometry --from`. The measurements live in site-factory/vendor/ as vendored
+  measurements with their own guards, outside the proof surface.
+
+  OPTION 1: REFUSE, keep ReadFrom at three. FOR: the proof stays unambiguously about what
+  users see. AGAINST: the drawing's own conformance - the thing the Blueprint's 8-point
+  rule is about, and which 0 of 9 templates hold - stays uncheckable by any VDS
+  instrument, so a system can be off-scale in Figma and the governance never says so.
+
+  OPTION 2: ADMIT as a fourth variant `design_file`, NOT is_shipped, refused as the
+  subject of the existing shipped bound exactly as code_model is - but usable as the
+  subject of a SEPARATE bound declared over the drawing. FOR: both sides measurable by one
+  schema, neither mistaken for the other. AGAINST: a variant on a closed enum, a second
+  bound per surface kind, and the risk that two numbers per kind get quoted
+  interchangeably by anyone not reading the ReadFrom field.
+
+  OPTION 3: ADMIT and make drawing-versus-code AGREEMENT the proof - a parity, not a
+  bound. FOR: answers "does the built thing match the drawing". AGAINST: abandons the
+  question the Blueprint asks ("is the drawing on the scale at all"): a system perfectly
+  in agreement with a 98.5%-off-grid drawing would report a pass.
+
+  TO SETTLE. (a) Is a reading of the Figma file admissible at all? (b) If so, under what
+  ReadFrom, and against which bound? (c) What stops the two numbers per kind being quoted
+  as one? (d) Does the vendored-measurement interim become the permanent home or a
+  temporary one?
+requested_order: TBD
+private_boundary: local
+word_count: 462

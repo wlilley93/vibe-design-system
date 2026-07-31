@@ -1,0 +1,75 @@
+id: 2026-VJS-CC-VDS-GEOMETRY-ADMISSIBILITY-003
+citation: "[2026] VJS-CC-VIBE-DESIGN-SYSTEM 3"
+court: county
+jurisdiction: vibe-design-system
+repo_code: VIBE-DESIGN-SYSTEM
+status: binding
+issue: geometry-reading-admissibility
+question: >
+  Is a geometry reading taken from the Figma file admissible, and if so under which
+  ReadFrom and against which bound?
+holding: |
+  OPTION TWO (Halden J, sitting alone at first instance, on the case file pinned at
+  CONVENING-county-2026-07-31-190138). A reading of the Figma file is ADMISSIBLE into the
+  schema as a fourth ReadFrom variant, `design_file`, which is NOT shipped and is REFUSED
+  as the subject of the shipped bound by its own name and for its own reason - never under
+  code_model's, because the two refusals have different grounds. A code model is a third
+  artefact that drifts; the design file is the system of record for what was DECIDED
+  ([2026] VJS-CC-OPBOX 3 D1), and the reason its reading may not stand in for the product
+  is not that it is unreliable but that it is a different subject: no browser renders it.
+
+  WHY NOT REFUSING OUTRIGHT. The measured harm is real and specific: nine template files
+  read in full, zero holding the 8-point rule their own author states, off-grid rates 20%
+  to 98.5%. Under option one that entire defect class - a drawing off its own scale - is
+  invisible to every VDS instrument forever, in a programme whose Figma file is the record
+  of decisions. A governance that can measure the code against a rule and cannot measure
+  the decided artefact against the same rule has ceded half its subject.
+
+  WHY NOT AGREEMENT-AS-PROOF. Option three refutes itself on the submission's own facts:
+  a product in perfect agreement with a drawing that is 98.5% off-grid would report a
+  pass. Agreement is a parity question and may some day be one; it is not a conformance
+  bound and must never be reported as one.
+
+  THE TWO-NUMBERS RISK is answered as the seat question was answered in
+  [2026] VJS-CC-VIBE-DESIGN-SYSTEM 1: the OUTPUT names the subject. Any verdict derived
+  from a design_file reading must say, in the printed row, that it is a fact about the
+  drawing and not about the product. A number that does not name its subject is two
+  numbers wearing one name, which this court has now refused twice in one day.
+
+  ON (d): the vendored home is PERMANENT for third-party files - GRIGOLETTO, Uber Base,
+  files this jurisdiction does not govern and whose conformance it merely records as
+  evidence. The ledger home is reserved for a jurisdiction's OWN design file, whose
+  drawing-side bound is a governed artefact. Until such a bound is declared and a reading
+  enters a ledger, `design_file` exists to be refused by name - which is the same
+  legitimate terminal state `code_model` has always had, and the enum's own doc states it:
+  representable so it can be refused, never hidden.
+directives:
+  - id: D1
+    actor: kernel
+    must: admit_design_file_as_a_fourth_readfrom_variant_not_shipped
+    when: implementing_this_order
+  - id: D2
+    actor: kernel
+    must: refuse_a_design_file_reading_for_the_shipped_bound_by_its_own_name_and_reason
+    when: running_the_geometry_proof
+  - id: D3
+    actor: kernel
+    must: name_the_drawing_as_the_subject_in_any_output_derived_from_a_design_file_reading
+    when: a_design_file_reading_is_reported_on
+  - id: D4
+    actor: agent
+    must: keep_third_party_measurements_vendored_and_reserve_the_ledger_for_the_governed_design_file
+    when: recording_figma_measurements
+forbidden:
+  - report_agreement_with_a_drawing_as_conformance
+  - refuse_a_design_file_reading_under_code_models_reason
+  - enter_a_third_party_file_reading_into_a_ledger
+supersedes: []
+source_opinion: 2026-VJS-CC-VDS-3-opinion.md
+runtime_summary: >
+  A Figma geometry reading is admissible as ReadFrom design_file: not shipped, refused for
+  the shipped bound by its own name and reason (a different subject, not an unreliable
+  one), and any output derived from one must name the drawing as its subject. Third-party
+  measurements stay vendored; the ledger is reserved for the governed design file.
+  Agreement with a drawing is never conformance.
+created_at: "2026-07-31T19:05:00Z"

@@ -29,7 +29,18 @@ case_file_digest: sha256:6379baeedbb3d9a143c0d1a63766ec07175f06617dcf9f212d94cf2
 reserved_clause: "S-7A(4)"
 fail_closed_interim: "The case_file_digest above is derived by `scripts/case-file-digest.sh` over crates/vds-core/src/types/geometry.rs, crates/vds-cli/src/ledger.rs, site-factory/vendor/grigoletto/blueprint-vs-pack.json and site-factory/vendor/opbox-rules-audit.json; the schema has no field naming what a digest is over, so it is recorded here. THE INTERIM: No Figma-derived reading is written to `.vds/ledgers/` and none is passed to `vds ledger geometry --from`. The measurements taken of the Figma side live in `site-factory/vendor/` as vendored measurements with their own guards, outside the proof surface entirely, so nothing in the governance record currently rests on one."
 filed_to: vjs
-vjs_submission_id: null
+vjs_submission_id: SUBMISSION-2026-07-31-190133
 created_at: 2026-07-31T13:40:00Z
 filed_at: 2026-07-31T13:40:00Z
-answer: null
+answer:
+  citation: "[2026] VJS-CC-VIBE-DESIGN-SYSTEM 3"
+  ratio: >-
+    A Figma geometry reading is admissible as a fourth ReadFrom variant, design_file. It
+    is NOT shipped and is refused as the subject of the shipped bound by its own name and
+    for its own reason - a different subject, not an unreliable one - never under
+    code_model's drift rationale, which is forbidden. Any output derived from a
+    design_file reading must name the drawing as its subject. Agreement between drawing
+    and code is never conformance. Third-party file measurements stay vendored
+    permanently; the ledger is reserved for the jurisdiction's own governed design file,
+    against a bound declared over the drawing.
+  answered_at: 2026-07-31T19:10:00Z
