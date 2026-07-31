@@ -1,0 +1,42 @@
+id: SUBMISSION-VDS-009
+status: filed
+question: "Is a geometry reading taken from the Figma file admissible, and if so under which `ReadFrom`? The proof's subject is the SHIPPED product; the Figma file is a drawing of the intended one."
+trigger: first_impression
+why_first_impression: "`ReadFrom` is a closed enum of three: `shipped_stylesheet`, `shipped_source`, and `code_model` which the proof REFUSES by name (S-7A(4)). A Figma file fits none of them cleanly. It is not shipped - no browser renders it - so admitting it as `shipped_source` would make `geometry` measure a picture and report the number as a fact about the product. But it is also not a `code_model`: a code model is a hand-authored description of intent written in code, whereas the Figma file is the SYSTEM OF RECORD for what was decided ([2026] VJS-CC-OPBOX 3 D1), which is a stronger status than the enum's weakest member implies. The question arose because the Figma side is now measurable: 9 template files were read in full and their auto-layout `itemSpacing` and `padding*` classified against an 8-point scale, off-grid rates from 20% to 98.5%. The instrument exists; where its output may be entered does not."
+citator_checked:
+  - citation: "VDS S-7A(4)"
+    why_not_on_all_fours: "It fixes that a reading must SAY how it was taken and that a code_model is refused. It settles the three surfaces it enumerates and is silent on a fourth, so it decides the admissibility of a drawing neither way."
+  - citation: "[2026] VJS-CC-OPBOX 3 D1"
+    why_not_on_all_fours: "Makes the Figma file the system of record for what is DECIDED and forbids a fourth design authority. It bears on the Figma file's status and says nothing about whether a measurement of it may be the subject of a conformance proof over the shipped product."
+  - citation: "VDS S-2(4)"
+    why_not_on_all_fours: "Admits a requirement and refuses a realisation. A geometry reading is a COUNT either way, so this clause does not distinguish a count taken from CSS from a count taken from a canvas."
+  - citation: "VDS S-4(2)"
+    why_not_on_all_fours: "A reading is generated, not hand-written, and the Figma reader would be a generator like any other. It governs how the reading is produced, not what it may be produced FROM."
+options:
+  - option: "REFUSE. Keep `ReadFrom` at three. A geometry reading is about the shipped product and the Figma file is not it. Measurements of the drawing stay outside the proof surface, as vendored measurements."
+    consequence: "The proof stays unambiguously about what users see. The cost is that the drawing's own conformance - the thing the GRIGOLETTO Blueprint's 8-point rule is about, and the thing 0 of 9 measured templates hold - remains uncheckable by any VDS instrument, so a system can be off-scale in Figma and nothing in the governance says so."
+  - option: "ADMIT as a fourth variant, `design_file`, NOT `is_shipped`, and therefore refused as the subject of the existing geometry bound exactly as `code_model` is - but usable as the subject of a SEPARATE bound declared over the drawing."
+    consequence: "Both sides become measurable by one schema without either being mistaken for the other. Costs a variant on a closed enum, a second bound per surface kind, and the risk that two numbers per kind get quoted interchangeably by anyone not reading the ReadFrom field."
+  - option: "ADMIT and treat drawing-versus-code geometry AGREEMENT as the proof, rather than either side's absolute conformance - a parity, not a bound."
+    consequence: "Answers the question people actually have ('does the built thing match the drawing') and abandons the one the Blueprint asks ('is the drawing on the scale at all'). A system can be perfectly in agreement with a drawing that is 98.5% off-grid, and this option would report that as a pass."
+evidence:
+  - "crates/vds-core/src/types/geometry.rs:123-151, the closed three-variant `ReadFrom` and `is_shipped`"
+  - "crates/vds-core/src/types/geometry.rs:61-71, `SurfaceKind::Density` and `TypeScale`, which are already the right kinds for the 8-point and type-scale rules"
+  - "crates/vds-cli/src/ledger.rs, `vds ledger geometry --from`, the seam that already accepts a reading produced by a subject's own reader"
+  - "site-factory/vendor/grigoletto/blueprint-vs-pack.json, where 0 of 9 measured templates hold the 8-point rule their own author states, off-grid 20% to 98.5%"
+  - "site-factory/vendor/opbox-rules-audit.json, the same class in code: a rule stated in a README and broken by the CSS beside it"
+case_file_digest: sha256:6379baeedbb3d9a143c0d1a63766ec07175f06617dcf9f212d94cf28753c8310
+case_file:
+  _how: "scripts/case-file-digest.sh crates/vds-core/src/types/geometry.rs crates/vds-cli/src/ledger.rs site-factory/vendor/grigoletto/blueprint-vs-pack.json site-factory/vendor/opbox-rules-audit.json"
+  files:
+  - crates/vds-core/src/types/geometry.rs
+  - crates/vds-cli/src/ledger.rs
+  - site-factory/vendor/grigoletto/blueprint-vs-pack.json
+  - site-factory/vendor/opbox-rules-audit.json
+reserved_clause: "S-7A(4)"
+fail_closed_interim: "No Figma-derived reading is written to `.vds/ledgers/` and none is passed to `vds ledger geometry --from`. The measurements taken of the Figma side live in `site-factory/vendor/` as vendored measurements with their own guards, outside the proof surface entirely, so nothing in the governance record currently rests on one."
+filed_to: vjs
+vjs_submission_id: null
+created_at: 2026-07-31T13:40:00Z
+filed_at: 2026-07-31T13:40:00Z
+answer: null
