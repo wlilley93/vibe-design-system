@@ -1,0 +1,35 @@
+id: SUBMISSION-VDS-010
+status: filed
+question: "Can a SUBSCRIBER satisfy D2? Its five-limb test asks for a lock entry whose named failing-direction test resolves, but a subscriber runs a released `vds` binary and does not hold the proof scripts' source, so it has nothing of its own to pin."
+trigger: first_impression
+why_first_impression: "D2 is MET nowhere. In this repository it is vacuous because VDS ships no screens (`.vds/config.toml` says so in its own words). On `examples/storefront` - the worked example, which is a real Next.js-shaped surface with three `app/**/page.tsx` screens and six components - it reports `0 of 12 kinds satisfy all five limbs`, and the reason given for every kind is the same pair: `no lock entry whose named failing-direction test resolves, no blocking ci_workflow invocation that resolves to a real step`. storefront has no `.vds/enforcement.lock` at all, and it is not obvious it could have a useful one: the twelve gates are `crates/vds-proof/src/*.rs`, which live in the KERNEL repository, outside storefront's root. A subscriber consuming a released binary holds none of that source. So the question is not `pin the gates in storefront` - it is what a subscriber's enforcement surface IS."
+citator_checked:
+  - citation: "VDS S-7(2)"
+    why_not_on_all_fours: "It states the five limbs a proof kind must satisfy, including the pinned gate and the named failing-direction test. It is silent on who holds the gate when the runner and the subject are different repositories, which is the ordinary subscriber case and the case the worked example models."
+  - citation: "VDS S-8(5)"
+    why_not_on_all_fours: "Fixes what the enforcement lock can and cannot do - it makes an edit visible in a diff and does not prevent it. That is about the lock's force, not about whose artefacts populate it."
+  - citation: "VDS S-15(1)"
+    why_not_on_all_fours: "The specification commences on a dated, digest-pinned assent event, and until a pack is vendored nothing downstream resolves. That gates D10 and D6 for a subscriber and does not answer whether the PACK is the thing a subscriber's lock should pin."
+  - citation: "BREACH-0011"
+    why_not_on_all_fours: "Established that a lock entry declaring CI invocation must be measured against runs, not against a workflow file, and that is now enforced (21 of 21 references resolved). It settles the CI limb's evidence and not the pinned-gate limb's subject."
+options:
+  - option: "A subscriber's enforcement surface is the VENDORED DESIGNPACK plus its own guard tests. `vds pack verify` already pins the pack; D2's gate limb reads the pack pin for a subscriber and the gate source for the kernel."
+    consequence: "D2 becomes reachable by every subscriber and means something different in the two cases, which has to be stated on the criterion or the number is two numbers wearing one name. It also makes D2 depend on an assent event, since there is no pack to pin before one."
+  - option: "D2 is a criterion only the KERNEL can satisfy, and a subscriber's doctor reports it NOT CHECKED rather than UNMET."
+    consequence: "Honest, and it shrinks what a subscriber can demonstrate to nine criteria. `doctor` already has a NOT CHECKED disposition, so this costs no new machinery - but a subscriber can then never show that the gates it relies on are pinned by anyone, which is the assurance D2 exists to give."
+  - option: "A subscriber pins the RELEASED BINARY it runs - its digest, its version - rather than the source it does not hold."
+    consequence: "Closest to what a subscriber can actually witness, and it answers 'is the thing that judged me the thing that was reviewed'. But a binary digest names no failing-direction test, so the second half of the limb is unsatisfiable and would have to be relaxed or re-expressed for that case."
+evidence:
+  - "examples/storefront/.vds/, which holds no enforcement.lock"
+  - "`vds doctor --root examples/storefront`: D2 `0 of 12 kinds satisfy all five limbs`, D4 `no enforcement.lock, so no gate is pinned and none is invoked`"
+  - "crates/vds-proof/src/lib.rs:210, GATE_PATHS, one path per proof kind, all under crates/"
+  - ".vds/config.toml in this repository, whose surface comment records that the kernel ships no screens and every proof bounded by it is correctly vacuous"
+  - "docs/CEILING.md, which records every other unmet criterion as externally blocked and names this one as the single row that is neither structural nor blocked"
+case_file_digest: sha256:13b8df9ff88539d760d3d90f5fe3de21c909de51b524a877399506be1a34564a
+reserved_clause: "S-7(2)"
+fail_closed_interim: "The case_file_digest above is derived by `scripts/case-file-digest.sh` over crates/vds-proof/src/lib.rs, .vds/config.toml, docs/CEILING.md and crates/vds-cli/src/doctor.rs; the schema has no field naming what a digest is over, so it is recorded here as it is on SUBMISSION-VDS-007 and 009. THE INTERIM: no lock is created in examples/storefront while the question is open. Creating one that pins the kernel's paths from a subscriber root would answer the question by doing it, and it would put a lock in the worked example that no subscriber could reproduce - the worked example teaching a move only the kernel can make is worse than it teaching nothing, because it would be copied."
+filed_to: vjs
+vjs_submission_id: null
+created_at: 2026-07-31T15:05:00Z
+filed_at: 2026-07-31T15:05:00Z
+answer: null

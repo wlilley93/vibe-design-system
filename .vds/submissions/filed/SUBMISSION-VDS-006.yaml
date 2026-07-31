@@ -18,9 +18,9 @@ options:
 evidence:
   - "VDS.md, the clause named in reserved_clause"
   - "docs/GOAL.md, the done criterion the clause bears on"
-case_file_digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+case_file_digest: sha256:c6323a412d72bd532d5d1b6bff1d06ee8ac953d734247d6a32693be6b18d8299
 reserved_clause: "S-2(7)"
-fail_closed_interim: "no per-value digest appears anywhere in .vds/. A pin row carries the name and the agreement bit, and the whole-record digest answers whether a record moved"
+fail_closed_interim: "DIGEST PROVENANCE: case_file_digest is derived by `scripts/case-file-digest.sh VDS.md docs/GOAL.md`, the two files this submission's evidence names. Submissions 001 through 006 share it because they share a case file: each is a question about how the specification reads, decided on the specification and the goal statement. All six carried sixty-four zeros from filing until 2026-07-31 - a placeholder that reads exactly like a computed digest, so six pending questions were all awaiting a ruling on a record that could move under them with nothing saying so. no per-value digest appears anywhere in .vds/. A pin row carries the name and the agreement bit, and the whole-record digest answers whether a record moved"
 filed_to: vjs
 vjs_submission_id: null
 created_at: 2026-07-25T13:00:00Z

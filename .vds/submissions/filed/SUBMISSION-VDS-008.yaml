@@ -65,12 +65,9 @@ evidence:
   - "site-factory/docs/DESIGN-TWIN.md - the design twin argument and the five measured gaps"
   - "/var/tmp/claude/refs/ds-contracts-poc - the subject, MIT, HEAD f3b9bbf, 51 contracts"
   - ".vds/logs/breaches/BREACH-0001.yaml - the founding defect the a11y surface must be able to catch"
-case_file_digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+case_file_digest: sha256:8eeb3ebf22969a5c280ed14d345a909a998872312f5050b3e576da6eaecee74d
 reserved_clause: null
-fail_closed_interim: |
-  `figmaProperty` stays a bare name and is bound only where an axis and a code variant vary the
-  SAME question; the 11 different_axis blocks carry null and a stated reason. No anatomy is
-  stored, and no realisation enters `.vds/` in any option.
+fail_closed_interim: "THE INTERIM: `figmaProperty` stays a bare name and is bound only where an axis and a code variant vary the SAME question; the 11 different_axis blocks carry null and a stated reason. No anatomy is stored, and no realisation enters `.vds/` in any option. Nothing has been cut over: the register remains canonical and no contract emitter has been built, so the question is open in fact as well as on paper. DIGEST PROVENANCE: the case_file_digest above is derived by `scripts/case-file-digest.sh` over the FIVE in-repository evidence files: site-factory/vendor/sds-code-contract.json, site-factory/vendor/sds-figma-contract.json, site-factory/figma-variants.json, site-factory/docs/DESIGN-TWIN.md and .vds/logs/breaches/BREACH-0001.yaml. It carried sixty-four zeros until 2026-07-31, which reads exactly like a computed digest and pinned nothing. THE SIXTH EVIDENCE ITEM CANNOT BE PINNED THAT WAY: `/var/tmp/claude/refs/ds-contracts-poc` is a clone in a disposable directory, outside this repository and outside git here, so it is pinned by its own HEAD instead - f3b9bbf, verified present and unchanged at the time of pinning. A case file naming evidence in /var/tmp is a case file that can lose its evidence between filing and ruling; recorded rather than quietly relied on."
 filed_to: vjs
 vjs_submission_id: null
 created_at: 2026-07-31T10:30:00Z
