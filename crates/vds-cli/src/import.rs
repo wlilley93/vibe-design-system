@@ -149,10 +149,23 @@ pub fn run(ctx: &Context, args: &Args) -> Result<i32> {
         planned.push((record, source, export));
     }
 
+    // Files and exports are counted separately, because they are not the same number and
+    // this line used to add them together and call the sum "library files". It read
+    // correctly only while every file yielded at most one export - true for the React
+    // convention this scanner was written against, and false the moment it learned to read
+    // a CommonJS registry, where one file exports a variant per key. The count then jumped
+    // from 13 to 26 with no file added, which is how the mislabel was found.
+    let files: std::collections::BTreeSet<&str> = scan
+        .exports
+        .iter()
+        .map(|e| e.source_file.as_str())
+        .chain(scan.skipped.iter().map(|s| s.path.as_str()))
+        .collect();
     println!(
-        "scanned {} library files: {} exported components, {} files skipped",
-        scan.exports.len() + scan.skipped.len(),
+        "scanned {} library files: {} exported components across {} of them, {} files skipped",
+        files.len(),
         scan.exports.len(),
+        files.len() - scan.skipped.len(),
         scan.skipped.len()
     );
     println!("  already registered: {already}");

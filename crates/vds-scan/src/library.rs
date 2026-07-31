@@ -242,8 +242,160 @@ fn exports_in(source: &str, relative: &str) -> Vec<LibraryExport> {
             }
         }
     }
+    // The second export shape, and it is not a stylistic variant of the first.
+    //
+    // ESM-with-a-capital is the React file convention, and it is the ONLY shape this
+    // scanner knew. site-factory's blocks are CommonJS registries of render functions
+    // keyed by variant:
+    //
+    //     module.exports = { 'divider-1': dividerPlain, 'divider-2': dividerLabelled };
+    //
+    // Every key is lowercase and none is a declaration, so `exports_in` matched nothing.
+    // Not an error - a SILENT ZERO. All 43 blocks scanned clean and yielded nothing, and
+    // `vds register import` therefore could not read the library this repository ships,
+    // which is why `vds-bridge.js` writes register records by hand instead. A scanner
+    // that finds nothing and reports success is the failure mode this whole programme
+    // exists to refuse, and it was sitting inside the importer.
+    //
+    // Only entered when the ESM pass found nothing, so a file that is both (a bundler
+    // interop shim) is read as the ESM it primarily is.
+    if out.is_empty() {
+        out.extend(commonjs_registry_exports(&code, source, relative));
+    }
+
     out.dedup_by(|a, b| a.export_name == b.export_name && a.source_file == b.source_file);
     out
+}
+
+/// `module.exports = { 'name-1': fn, 'name-2': fn }` - a registry, not a component.
+///
+/// Deliberately narrow. It reads ONE object literal assigned to `module.exports`, takes
+/// its keys, and stops. It does not follow a spread, resolve a computed key, or read a
+/// later `module.exports.x = y`, because each of those needs an evaluator and a
+/// half-evaluated answer is confidently wrong - the same reason `prop_types_in` refuses
+/// to follow an `extends`.
+///
+/// The keys are NOT filtered by `is_component_name`. That rule exists to keep hooks and
+/// constants out of the register, and it earns its keep in a file where a component and a
+/// helper are both top-level exports. In a registry every key is a variant by
+/// construction: the object IS the component's variant list, so a capital-letter filter
+/// would reject the whole shape rather than sift it.
+///
+/// No prop contract is attached. A registry's render functions take one argument and its
+/// shape lives in no type this file declares, so every candidate carries
+/// `props_incomplete_because` rather than an empty list that reads as "takes nothing".
+fn commonjs_registry_exports(code: &str, source: &str, relative: &str) -> Vec<LibraryExport> {
+    let mut out = Vec::new();
+    let Some(assign) = code.find("module.exports") else {
+        return out;
+    };
+    let after = &code[assign + "module.exports".len()..];
+    // `module.exports.foo = ...` is a different shape and is not read here.
+    let Some(eq) = after.find('=') else {
+        return out;
+    };
+    if after[..eq].chars().any(|c| !c.is_whitespace()) {
+        return out;
+    }
+    let rest = after[eq + 1..].trim_start();
+    if !rest.starts_with('{') {
+        return out;
+    }
+    let base = code.len() - rest.len();
+    let line = code[..assign].lines().count().max(1) as u32;
+
+    // STRUCTURE from the blanked copy, TEXT from the original, and the split is not a
+    // stylistic preference - it is forced by what blanking does.
+    //
+    // `blank_non_code` replaces a string literal INCLUDING ITS QUOTES with spaces, so
+    // `{ 'nav-1': navSimple }` arrives here as `{          : navSimple }`. The first
+    // version of this function looked for quote characters at depth 1 and found none, so
+    // it walked all 43 blocks correctly and returned nothing - a silent zero inside the
+    // fix for a silent zero.
+    //
+    // So the brace walk runs on the blanked text, where a brace inside a comment or a
+    // string cannot mislead it, and records the OFFSET of each `:` at the literal's own
+    // depth. The key is then read backwards from that offset in the ORIGINAL, where it
+    // still has its characters. `prop_types_in` carries the same warning about union
+    // types, which is the tell that this is a property of the blanking pass rather than a
+    // mistake either function made.
+    let blanked: Vec<char> = rest.chars().collect();
+    let original: Vec<char> = source.chars().collect();
+    let mut depth = 0usize;
+    let mut i = 0usize;
+    while i < blanked.len() {
+        match blanked[i] {
+            '{' | '[' | '(' => depth += 1,
+            '}' | ']' | ')' => {
+                depth -= 1;
+                if depth == 0 {
+                    break;
+                }
+            }
+            ':' if depth == 1 => {
+                if let Some(name) = key_before(&original, base + i) {
+                    out.push(LibraryExport {
+                        source_file: relative.to_owned(),
+                        export_name: name,
+                        local_name: None,
+                        line,
+                        props: Vec::new(),
+                        props_incomplete_because: Some(
+                            "a CommonJS registry entry: its render function takes one argument \
+                             whose shape no type in this file declares, so no prop contract \
+                             could be read. Add what it accepts before advancing it past \
+                             `proposed`."
+                                .to_owned(),
+                        ),
+                    });
+                }
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    out
+}
+
+/// The object key immediately before `colon`, read out of the ORIGINAL characters.
+///
+/// Returns `None` rather than a guess wherever the text is not a plain key: an empty
+/// span, an unterminated quote, or an identifier with a character no key may contain.
+/// A registry whose keys this cannot read yields no candidates, which is the honest
+/// outcome - importing a row named by a fragment of someone else's expression would put
+/// a name in the register that names nothing.
+fn key_before(original: &[char], colon: usize) -> Option<String> {
+    let mut end = colon;
+    while end > 0 && original.get(end - 1).is_some_and(|c| c.is_whitespace()) {
+        end -= 1;
+    }
+    if end == 0 {
+        return None;
+    }
+    let quote = original[end - 1];
+    if quote == '\'' || quote == '"' || quote == '`' {
+        let mut start = end - 1;
+        while start > 0 && original[start - 1] != quote {
+            start -= 1;
+        }
+        // `start` is now just after the opening quote, or 0 if there was none.
+        if start == 0 && original.first() != Some(&quote) {
+            return None;
+        }
+        let name: String = original[start..end - 1].iter().collect();
+        return (!name.is_empty()).then_some(name);
+    }
+    // A bare identifier key: `{ hero: fn }`.
+    let mut start = end;
+    while start > 0 && is_key_char(original[start - 1]) {
+        start -= 1;
+    }
+    let name: String = original[start..end].iter().collect();
+    (!name.is_empty() && !name.chars().next().is_some_and(|c| c.is_ascii_digit())).then_some(name)
+}
+
+fn is_key_char(c: char) -> bool {
+    c.is_ascii_alphanumeric() || c == '_' || c == '$' || c == '-'
 }
 
 /// Why this export's prop list is not the whole set, or `None`.
@@ -811,6 +963,99 @@ mod tests {
             ImportPathSource::Derived {
                 specifier: "@/components/ui/button".into()
             }
+        );
+    }
+
+    /// The failing-direction test for the CommonJS registry shape, with the negative
+    /// control ASSERTED rather than assumed.
+    ///
+    /// The defect this closes was a SILENT ZERO. `exports_in` knew only the React
+    /// convention - a capitalised named export or a default export - so site-factory's 43
+    /// blocks, which export `module.exports = { 'divider-1': fn, 'divider-2': fn }`,
+    /// scanned clean and yielded nothing. Not an error. A scan reporting success over an
+    /// empty set, inside the importer that is supposed to be the on-ramp.
+    ///
+    /// The negative control is the whole point and it comes first: a file with no exports
+    /// must yield ZERO. Without it, a reader that returned every colon in the file would
+    /// satisfy every positive assertion below.
+    #[test]
+    fn a_commonjs_registry_yields_one_export_per_key_and_a_bare_file_yields_none() {
+        // NEGATIVE CONTROL, asserted before anything is read from it.
+        let helper = "'use strict';\nfunction esc(s) { return s; }\nconst X = { a: 1 };\n";
+        assert_eq!(
+            exports_in(helper, "blocks/helper.js"),
+            Vec::new(),
+            "a file that exports nothing must yield nothing. If this ever passes trivially, \
+             every assertion below is meaningless."
+        );
+
+        // The real shape, quoted from site-factory/blocks/divider.js.
+        let block = "'use strict';\n\
+                     function dividerPlain(content) { return '<hr>'; }\n\
+                     function dividerLabelled(content) { return '<div></div>'; }\n\
+                     module.exports = {\n  'divider-1': dividerPlain,\n  \
+                     'divider-2': dividerLabelled,\n};\n";
+        let found = exports_in(block, "blocks/divider.js");
+        let names: Vec<&str> = found.iter().map(|e| e.export_name.as_str()).collect();
+        assert_eq!(
+            names,
+            vec!["divider-1", "divider-2"],
+            "each registry key is one export, and the key is the variant"
+        );
+        assert!(
+            found
+                .iter()
+                .all(|e| e.props_incomplete_because.is_some() && e.props.is_empty()),
+            "a registry entry declares no prop type, so the candidate must SAY its contract \
+             is unread rather than carry an empty list that reads as `takes nothing`"
+        );
+
+        // Keys survive blanking. `blank_non_code` replaces a string literal INCLUDING its
+        // quotes with spaces, so a reader looking for quote characters finds none - which
+        // is exactly how the first version of this returned 43 empty names.
+        assert!(
+            names.iter().all(|n| !n.trim().is_empty()),
+            "keys must be read from the ORIGINAL source, not the blanked copy"
+        );
+
+        // A bare identifier key is a registry too.
+        let bare = "module.exports = {\n  hero: h,\n  footer: f,\n};\n";
+        assert_eq!(
+            exports_in(bare, "blocks/x.js")
+                .iter()
+                .map(|e| e.export_name.as_str())
+                .collect::<Vec<_>>(),
+            vec!["hero", "footer"]
+        );
+
+        // A nested object must not contribute keys: only the literal's own depth counts,
+        // or a render function's inline config would arrive in the register as components.
+        let nested = "module.exports = {\n  'a-1': make({ inner: 1, deeper: { x: 2 } }),\n};\n";
+        assert_eq!(
+            exports_in(nested, "blocks/n.js")
+                .iter()
+                .map(|e| e.export_name.as_str())
+                .collect::<Vec<_>>(),
+            vec!["a-1"],
+            "keys inside a nested object are not exports"
+        );
+
+        // `module.exports.foo = bar` is a DIFFERENT shape and is deliberately not read.
+        // Reading half of it would produce a partial export list presented as a whole one.
+        assert_eq!(
+            exports_in("module.exports.hero = h;\n", "blocks/p.js"),
+            Vec::new()
+        );
+
+        // ESM wins where a file has both, so a bundler interop shim is read as the ESM it
+        // primarily is rather than twice.
+        let both = "export function Hero() {}\nmodule.exports = { 'hero-1': Hero };\n";
+        assert_eq!(
+            exports_in(both, "blocks/b.js")
+                .iter()
+                .map(|e| e.export_name.as_str())
+                .collect::<Vec<_>>(),
+            vec!["Hero"]
         );
     }
 }
