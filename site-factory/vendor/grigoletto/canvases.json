@@ -1,0 +1,88 @@
+[
+ {
+  "n": 1,
+  "name": "Bloom Editorial",
+  "boards": 14,
+  "tally": {
+   "#7389a4": 1,
+   "#0b5030": 10,
+   "#ffffff": 3
+  }
+ },
+ {
+  "n": 2,
+  "name": "Midnight Couture",
+  "boards": 3,
+  "tally": {
+   "#5f615e": 1,
+   "#454640": 2
+  }
+ },
+ {
+  "n": 3,
+  "name": "Enchanted Diary",
+  "boards": 13,
+  "tally": {
+   "#f8f7f8": 1,
+   "#454640": 12
+  }
+ },
+ {
+  "n": 4,
+  "name": "AR Mirror",
+  "boards": 5,
+  "tally": {
+   "#f8f7f8": 1,
+   "#303436": 4
+  }
+ },
+ {
+  "n": 5,
+  "name": "Frosted Vault",
+  "boards": 3,
+  "tally": {
+   "#37c1cc": 1,
+   "#091517": 2
+  }
+ },
+ {
+  "n": 6,
+  "name": "Folio Suite",
+  "boards": 3,
+  "tally": {
+   "#37c1cc": 1,
+   "#009ca6": 2
+  }
+ },
+ {
+  "n": 7,
+  "name": "Neural SNX",
+  "boards": 3,
+  "tally": {
+   "#7389a4": 1,
+   "#b5c9e5": 1,
+   "#c5d7f0": 1
+  }
+ },
+ {
+  "n": 8,
+  "name": "Whisper Nav",
+  "boards": 9,
+  "tally": {
+   "#b4d1e3": 1,
+   "#000000": 7,
+   "#ffffff": 1
+  }
+ },
+ {
+  "n": 20,
+  "name": "Rainbow Noir",
+  "boards": 4,
+  "tally": {
+   "#cce241": 1,
+   "#ff975a": 1,
+   "#85e6ed": 1,
+   "(none)": 1
+  }
+ }
+]

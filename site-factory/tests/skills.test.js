@@ -1194,3 +1194,93 @@ test('the Opbox audit re-derives from the vendored bytes', () => {
       `${row.rule.slice(0, 40)}: a row without evidence, source and consequence is an opinion`);
   }
 });
+
+// ---------------------------------------------------------------------------
+// The GRIGOLETTO Blueprint states design-system rules in prose; the same
+// author's 39-template pack is shipped work. `blueprint-vs-pack.json` measures
+// the second against the first. This guard holds the measurement to the same
+// standard the measurement holds the pack to.
+//
+// It checks three things a write-up like this gets wrong: that the tallies
+// match the rows beneath them, that the corpus admits what it did NOT read,
+// and that a rule with no stated threshold is REPORTED rather than judged.
+test('the Blueprint measurement tallies match its own rows', () => {
+  const dir = path.join(__dirname, '..', 'vendor', 'grigoletto');
+  const doc = JSON.parse(fs.readFileSync(path.join(dir, 'blueprint-vs-pack.json'), 'utf8'));
+  const pack = JSON.parse(fs.readFileSync(path.join(dir, 'templates.json'), 'utf8'));
+  const blueprint = fs.readFileSync(path.join(dir, 'blueprint.txt'), 'utf8');
+
+  // THE RULES MUST BE IN THE SOURCE. Measuring nine files against a rule the
+  // Blueprint does not actually state would be this instrument inventing the
+  // standard and then grading against it - which is precisely what the
+  // type_scale carve-out below refuses to do.
+  assert.match(blueprint, /Choose exactly two typefaces/,
+    'the Blueprint no longer states the two-typeface rule');
+  assert.match(blueprint, /never flat/,
+    'the Blueprint no longer states the flat-white rule');
+  assert.match(blueprint, /8 \/ 16 \/ 24 \/ 32 \/ 48 \/ 64/,
+    'the Blueprint no longer states the 8-point scale');
+  // And it must still state NO maximum on font sizes, which is the whole basis
+  // for reporting type_scale instead of judging it.
+  assert.doesNotMatch(blueprint, /at most \d+ (font )?sizes|no more than \d+ sizes/i,
+    'the Blueprint now states a maximum number of sizes, so type_scale can and ' +
+    'should be judged rather than merely reported');
+
+  // A header count that disagrees with the rows is the defect that made the
+  // Base reconciliation worth guarding, and it is invisible by eye.
+  const recount = (pick) => doc.rows.filter(pick).length;
+  assert.equal(doc.rules.typefaces.holds, recount((r) => r.typefaces.holds),
+    'the typeface tally disagrees with the rows beneath it');
+  assert.equal(doc.rules.canvas.holds, recount((r) => r.canvas.holds),
+    'the canvas tally disagrees with the rows beneath it');
+  assert.equal(doc.rules.eight_point.holds, recount((r) => r.eightPoint.holds === true),
+    'the 8-point tally disagrees with the rows beneath it');
+  assert.equal(doc.rules.eight_point.not_applicable,
+    recount((r) => r.eightPoint.holds === null),
+    'the n/a count disagrees with the rows');
+
+  // Every rule must account for every row. A row that is neither hold, break
+  // nor n/a has been dropped, which is how a corpus silently shrinks.
+  for (const [name, rule] of Object.entries(doc.rules)) {
+    if (rule.holds === undefined) continue;
+    const total = rule.holds + (rule.breaks || 0) + (rule.not_applicable || 0);
+    assert.equal(total, doc.rows.length,
+      `rule ${name} accounts for ${total} templates and there are ${doc.rows.length} rows`);
+  }
+
+  // THE CORPUS MUST ADMIT ITS OWN LIMIT. Nine of 39 were read; a write-up that
+  // let "measured" quietly stand in for "the pack" would be the exact claim-
+  // wider-than-its-test failure this repo has already filed twice.
+  assert.equal(doc.corpus.templates_in_pack, pack.length,
+    'the stated pack size disagrees with the harvested template list');
+  assert.equal(doc.corpus.templates_measured, doc.rows.length,
+    'the stated measured count disagrees with the rows');
+  assert.ok(doc.corpus.templates_measured < doc.corpus.templates_in_pack,
+    'measured now equals the pack size - GOOD NEWS, and the rate-limit note in ' +
+    '_why_not_all must be rewritten rather than left standing as a stale excuse');
+  assert.ok(/rate limit|429|budget/i.test(doc.corpus._why_not_all),
+    'the corpus is short of the pack and does not say why');
+
+  // A rule the source states no threshold for must NOT carry a pass/fail tally.
+  // Inventing one would make this instrument the author of the standard it is
+  // supposed to be measuring against.
+  assert.equal(doc.rules.type_scale.holds, undefined,
+    'type_scale now has a hold/break tally, but the Blueprint states no maximum ' +
+    'number of sizes - a threshold has been invented somewhere');
+  assert.ok(doc.rules.type_scale._not_judged, 'type_scale must say why it is not judged');
+
+  // The first pass measured the wrong subject and flipped a rule from 0/9 to
+  // 7/9. That correction stays visible: it is the most useful thing here.
+  assert.ok(doc.first_pass_was_wrong && doc.first_pass_was_wrong._lesson,
+    'the record of the first measurement being aimed at the wrong subject has been dropped');
+
+  for (const r of doc.rows) {
+    assert.ok(r.typefaces.families.length === r.typefaces.count,
+      `${r.name}: the family list and the family count disagree`);
+    assert.ok(r.nodes > 0 && r.textNodes > 0, `${r.name}: an empty read is not a measurement`);
+    if (r.eightPoint.holds !== null) {
+      assert.equal(r.eightPoint.holds, r.eightPoint.offGrid === 0,
+        `${r.name}: the 8-point verdict disagrees with its own off-grid count`);
+    }
+  }
+});

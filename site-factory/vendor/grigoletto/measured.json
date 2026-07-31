@@ -1,0 +1,327 @@
+[
+ {
+  "n": 1,
+  "name": "Bloom Editorial",
+  "key": "HsilWBZpRlT5nMMuQZ5lhM",
+  "nodes": 1822,
+  "texts": 294,
+  "families": [
+   "Londrina Solid",
+   "Mali",
+   "Livvic",
+   "Kavoon"
+  ],
+  "familyCount": 4,
+  "distinctSizes": 27,
+  "topSizes": [
+   "13px x78",
+   "32px x31",
+   "14px x31",
+   "18px x29",
+   "99px x27",
+   "20px x17"
+  ],
+  "distinctFills": 30,
+  "topFills": [
+   "#ffffff x661",
+   "#c2a77c x200",
+   "#000000 x53",
+   "#d9d9d9 x22",
+   "#fdd9fd x13",
+   "#d9ead4 x11"
+  ],
+  "pureWhite": 661,
+  "pureBlack": 53,
+  "gridConsidered": 485,
+  "offGrid": 260,
+  "offGridPct": 53.6
+ },
+ {
+  "n": 2,
+  "name": "Midnight Couture",
+  "key": "t1e7kjtTICzWjZ3QstTjKq",
+  "nodes": 428,
+  "texts": 88,
+  "families": [
+   "Lexend Giga",
+   "Rozha One",
+   "Lexend",
+   "Lexend Exa"
+  ],
+  "familyCount": 4,
+  "distinctSizes": 9,
+  "topSizes": [
+   "14px x32",
+   "52px x22",
+   "16px x17",
+   "24px x8",
+   "12px x4",
+   "419px x2"
+  ],
+  "distinctFills": 10,
+  "topFills": [
+   "#ffffff x113",
+   "#454640 x74",
+   "#b2b3a7 x17",
+   "#474842 x16",
+   "#d7d8d6 x8",
+   "#000000 x4"
+  ],
+  "pureWhite": 113,
+  "pureBlack": 4,
+  "gridConsidered": 6,
+  "offGrid": 2,
+  "offGridPct": 33.3
+ },
+ {
+  "n": 3,
+  "name": "Enchanted Diary",
+  "key": "O7ZBwvNb5yAsihozzH8MTN",
+  "nodes": 2599,
+  "texts": 789,
+  "families": [
+   "Viaoda Libre",
+   "Imprima"
+  ],
+  "familyCount": 2,
+  "distinctSizes": 29,
+  "topSizes": [
+   "16px x217",
+   "32px x210",
+   "13px x72",
+   "44px x63",
+   "22px x63",
+   "19px x22"
+  ],
+  "distinctFills": 20,
+  "topFills": [
+   "#263237 x270",
+   "#ffffff x237",
+   "#c7e9f5 x180",
+   "#373326 x135",
+   "#262637 x135",
+   "#313726 x135"
+  ],
+  "pureWhite": 237,
+  "pureBlack": 6,
+  "gridConsidered": 0,
+  "offGrid": 0,
+  "offGridPct": null
+ },
+ {
+  "n": 4,
+  "name": "AR Mirror",
+  "key": "Fv20sXDJpzCfwBX4iO5GSs",
+  "nodes": 518,
+  "texts": 187,
+  "families": [
+   "Tektur",
+   "Urbanist"
+  ],
+  "familyCount": 2,
+  "distinctSizes": 13,
+  "topSizes": [
+   "12px x35",
+   "40px x30",
+   "14px x30",
+   "60px x25",
+   "80px x15",
+   "24px x12"
+  ],
+  "distinctFills": 7,
+  "topFills": [
+   "#ffffff x244",
+   "#e6eff8 x20",
+   "#323a46 x20",
+   "#323843 x10",
+   "#303436 x4",
+   "#444444 x3"
+  ],
+  "pureWhite": 244,
+  "pureBlack": 0,
+  "gridConsidered": 73,
+  "offGrid": 37,
+  "offGridPct": 50.7
+ },
+ {
+  "n": 5,
+  "name": "Frosted Vault",
+  "key": "32H6mYMMQVMsevzGMXYjEs",
+  "nodes": 518,
+  "texts": 77,
+  "families": [
+   "Ibarra Real Nova",
+   "PP Monument Extended",
+   "Trap"
+  ],
+  "familyCount": 3,
+  "distinctSizes": 10,
+  "topSizes": [
+   "88px x25",
+   "26px x16",
+   "14px x13",
+   "32px x8",
+   "15px x6",
+   "12px x4"
+  ],
+  "distinctFills": 15,
+  "topFills": [
+   "#ffffff x94",
+   "#d9d9d9 x82",
+   "#f3eee7 x56",
+   "#f1bc78 x10",
+   "#c4c1d1 x8",
+   "#000000 x6"
+  ],
+  "pureWhite": 94,
+  "pureBlack": 6,
+  "gridConsidered": 30,
+  "offGrid": 6,
+  "offGridPct": 20
+ },
+ {
+  "n": 6,
+  "name": "Folio Suite",
+  "key": "SxevwAp4OFhwLbpOsnAJN7",
+  "nodes": 564,
+  "texts": 87,
+  "families": [
+   "Thunderhouse Pro",
+   "Prompt",
+   "Quicksand"
+  ],
+  "familyCount": 3,
+  "distinctSizes": 9,
+  "topSizes": [
+   "18px x31",
+   "14px x24",
+   "199px x10",
+   "20px x8",
+   "270px x7",
+   "15px x4"
+  ],
+  "distinctFills": 14,
+  "topFills": [
+   "#ffffff x140",
+   "#000000 x60",
+   "#fefff0 x14",
+   "#ffd689 x5",
+   "#91fff2 x4",
+   "#5f5f5f x4"
+  ],
+  "pureWhite": 140,
+  "pureBlack": 60,
+  "gridConsidered": 272,
+  "offGrid": 268,
+  "offGridPct": 98.5
+ },
+ {
+  "n": 7,
+  "name": "Neural SNX",
+  "key": "quqA49aZo1Me9nCwiUJYxT",
+  "nodes": 311,
+  "texts": 74,
+  "families": [
+   "Funnel Display",
+   "Eurostile Extd",
+   "Funnel Sans",
+   "Inter"
+  ],
+  "familyCount": 4,
+  "distinctSizes": 19,
+  "topSizes": [
+   "12px x13",
+   "18px x9",
+   "21px x8",
+   "72px x8",
+   "14px x7",
+   "16px x6"
+  ],
+  "distinctFills": 10,
+  "topFills": [
+   "#ffffff x71",
+   "#273c59 x34",
+   "#9eb4d4 x9",
+   "#bbc9e5 x3",
+   "#8aa3c9 x2",
+   "#c5d7f0 x2"
+  ],
+  "pureWhite": 71,
+  "pureBlack": 0,
+  "gridConsidered": 28,
+  "offGrid": 25,
+  "offGridPct": 89.3
+ },
+ {
+  "n": 8,
+  "name": "Whisper Nav",
+  "key": "lIu8d3AxZe8Iu8P3EHCCwN",
+  "nodes": 768,
+  "texts": 205,
+  "families": [
+   "Unbounded",
+   "Wix Madefor Text",
+   "Inter"
+  ],
+  "familyCount": 3,
+  "distinctSizes": 13,
+  "topSizes": [
+   "28px x46",
+   "12px x36",
+   "24px x34",
+   "80px x28",
+   "52px x20",
+   "14px x19"
+  ],
+  "distinctFills": 10,
+  "topFills": [
+   "#ffffff x304",
+   "#000000 x18",
+   "#202327 x9",
+   "#242424 x9",
+   "#000002 x5",
+   "#6e787b x5"
+  ],
+  "pureWhite": 304,
+  "pureBlack": 18,
+  "gridConsidered": 74,
+  "offGrid": 59,
+  "offGridPct": 79.7
+ },
+ {
+  "n": 20,
+  "name": "Rainbow Noir",
+  "key": "QTfVAZ8GECnf8B55GQU0Ml",
+  "nodes": 1682,
+  "texts": 678,
+  "families": [
+   "Clash Display Variable",
+   "Inter",
+   "General Sans Variable"
+  ],
+  "familyCount": 3,
+  "distinctSizes": 16,
+  "topSizes": [
+   "15px x252",
+   "43px x90",
+   "30px x84",
+   "21px x84",
+   "84px x30",
+   "58px x30"
+  ],
+  "distinctFills": 36,
+  "topFills": [
+   "#048c3d x152",
+   "#f2675a x140",
+   "#8a79f3 x136",
+   "#03403f x120",
+   "#ffffff x119",
+   "#f27406 x68"
+  ],
+  "pureWhite": 119,
+  "pureBlack": 24,
+  "gridConsidered": 24,
+  "offGrid": 21,
+  "offGridPct": 87.5
+ }
+]

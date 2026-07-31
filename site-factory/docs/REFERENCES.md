@@ -198,3 +198,62 @@ three of the four are EMPTY in the community file. They are working surfaces, no
 That is the whole argument for building them as PROJECTIONS: `Sitemap` and `Wireframe` in this
 programme are both derived from `manifests/*.json`, verified to agree by reading the section
 lists back out of each drawing, so neither can drift from the built site.
+
+### SECOND CORRECTION: row two is wrong, and the instrument was the reason
+
+The table's second row says a file you can view but have not duplicated answers **nothing, not
+even reads**. That row was measured entirely through the Figma MCP tools, and it is a fact about
+THAT INSTRUMENT rather than about the file.
+
+Measured 2026-07-31 against the GRIGOLETTO templates pack, 39 `figma.com/proto/<key>` links
+shared for viewing and never duplicated:
+
+| Instrument | Result on the same file, same moment |
+|---|---|
+| `get_metadata` (MCP) | `Looks like you don't have edit access to this file.` |
+| `GET /v1/files/<key>` (REST, `X-Figma-Token`) | **200, the entire document** |
+
+Template 01 came back at **1,521,392 bytes: 1,822 nodes, 294 TEXT nodes with full `style`
+(family, weight, size, line height, letter spacing), 30 distinct solid fills, 111 instances.**
+Nine files were harvested this way before the rate limit stopped it, and every one is complete.
+
+The two are not the same permission. The MCP asks for **edit** access; a personal access token
+needs only **view**, which a share link already grants. So the instructions shipped with the pack
+- "Duplicate to drafts, don't Request access" - are right for a human in the Figma editor and
+unnecessary for reading the file programmatically.
+
+**What this does NOT establish.** Only link-shared files were tested. A COMMUNITY file (Glow UI,
+Material You) has not been probed through REST, and community files are a different artefact with
+different permissions - that is the exact conflation the first correction was filed for, so it is
+not going to be repeated in the opposite direction. Row two is now: *nothing through the MCP;
+REST untested for community files and PROVEN for link-shared ones.*
+
+### The ceiling that actually stops the harvest: a plan-tier cost budget
+
+Nine of the 39 templates were harvested. The remaining thirty returned `429` with:
+
+```
+x-figma-plan-tier: starter
+x-figma-rate-limit-type: low
+retry-after: 399915          <- 4.6 DAYS, not seconds-until-retry in any useful sense
+```
+
+This is a COST BUDGET over a multi-day window, not a per-minute throttle, and roughly ten
+full-document reads exhausted it. Three things follow, and the third is the one that cost time:
+
+1. It is **per endpoint class**. With `GET /v1/files/<key>` exhausted, `/v1/me`,
+   `/v1/files/<key>?depth=1` and `/v1/files/<key>/nodes?ids=` all still answered `200`.
+2. The two-call route (`?depth=1` for the canvas ids, then `/nodes?ids=` for their subtrees)
+   is **a complete read, not an approximation** - verified against a file already held in full:
+   1,822 nodes reconstructed against 1,822 nodes fetched, equal. Worth keeping, because a
+   depth-limited read that reports "no children" as a fact is a recorded failure in this
+   programme. This route is not depth-limited; it just pays for the tree in two calls.
+3. **Do not sleep on `Retry-After` unexamined.** The first harvester honoured the header and
+   parked itself until August, reporting `waiting 399941s` once and then going quiet - which
+   looks exactly like a working background job. The wait is now capped at 90 seconds and
+   anything longer is REPORTED as a stop with the number in it, because a harvester that is
+   silently asleep for four days is indistinguishable from one that is running.
+
+`vds figma pull` reads full documents and draws on the same budget, so a heavy harvest and a
+pull now compete. Neither is broken; they share a ceiling that nothing in this repo was
+measuring.

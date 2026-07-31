@@ -1,0 +1,321 @@
+[page] The Design System Blueprint
+  [quote] The Design System Blueprint — build a design system that makes any site look expensive.
+  [text] This is the exact method behind premium interfaces: the rules for symmetry, spacing (the Fibonacci/modular scale), color, typography, borders, shadows, components, and motion — each shown with a clear, worked example. No fluff. Every rule comes with the reasoning, the real values, and a Do this you apply to your own work.
+  [text] How to use it: read top to bottom once to absorb the method, then keep the final checklist open while you build your own system. Everything is tool-agnostic — the principles work in Figma, in code, or with an AI agent.
+  [divider] 
+  [sub_header] 1. Why systems look expensive
+  [text] The look you can't quite name is just constraint, applied everywhere at once.
+  [text] The rule — Premium is not more; it is fewer decisions, repeated with discipline: one small palette, one or two typefaces, one accent, one spacing scale — enforced on every screen without exception.
+  [text] Why it works — The eye reads consistency as intention, and intention as quality. When every corner radius, gap, and grey is drawn from the same tiny set, the brain stops noticing individual elements and starts perceiving a whole — that seamlessness is what "expensive" actually feels like. Amateur work looks cheap not because any single choice is wrong, but because there are too many unrelated choices fighting for attention. Constraints remove that noise; cohesion is the residue.
+  [text] Example — The same button, built two ways.
+  [code] AMATEUR — every value improvised
+  bg #3B82F6      radius 6px     padding 11px 18px
+  font Roboto     shadow 0 2px 8px rgba(0,0,0,.25)
+  hover #2563EB   (a different blue than anywhere else)
+  ...next button: radius 10px, padding 14px 20px, another blue
+
+SYSTEM — every value drawn from the set
+  bg  #2F6FED (the one accent)     radius 12px (from the radii family)
+  padding 16px 24px (8-pt scale)   font Inter (the one body sans)
+  hover #4C82FF (defined accent variant, not a new color)
+  ...next button: identical tokens. And the one after that.
+  [text] Nothing in the "system" column is fancier. It is simply the same — and sameness, held across a whole site, is the entire trick.
+  [text] Do this
+  [numbered_list] Cap your palette before you design: one warm canvas, one near-black ink, two greys, one accent with two variants. Write the hex values down; treat the list as closed.
+  [numbered_list] Choose at most two typefaces — one display, one body — and delete every other font from the file.
+  [numbered_list] Pick one accent and one accent only. Every link, focus ring, and primary button uses it; nothing else may.
+  [numbered_list] Define one spacing scale and one radii family, then forbid yourself any value that isn't on them.
+  [numbered_list] Audit an existing screen: count the distinct blues, radii, and font sizes. Every number above one per role is a decision to eliminate.
+  [text] Avoid — Adding a "just this once" exception. The first off-system value is permission for the next fifty, and the cohesion collapses the moment the pattern is broken.
+  [divider] 
+  [sub_header] 2. Grid, symmetry & the modular scale
+  [text] Whitespace is not empty; it is rhythm — and rhythm needs a beat.
+  [text] The rule — Every measurement on the page — margins, padding, gaps, offsets — snaps to a single spacing scale built on an 8-point base (or a ~1.5 modular ratio), so nothing is ever "roughly" aligned.
+  [text] Why it works — Consistent spacing creates an invisible grid the eye can feel even when it can't see it; elements that share a rhythm read as related, and related elements read as designed. An 8-point base works because it divides cleanly across screen densities and compounds into a musical progression — 8, 16, 24, 32 — rather than arbitrary 13s and 27s. Generous, scaled whitespace is the single strongest signal of premium: it tells the viewer the content is confident enough to breathe. Symmetry and optical alignment then do the finishing work — the brain rewards balance and punishes the near-miss.
+  [text] Example — The spacing scale for the example system. Everything on the page is one of these numbers, nothing between.
+  [code] Section padding : 64px top/bottom (space-6)
+Card padding    : 24px all sides  (space-3)
+Heading -> body : 16px            (space-2)
+Body -> button  : 32px            (space-4)
+Icon -> label   : 8px             (space-1)
+  [text] Optical note: mathematical centering is not always visual centering. A right-pointing arrow or a triangle looks off-center when its bounding box is centered — nudge it 1–2px toward its visual mass so it reads centered. Trust the eye over the coordinates.
+  [text] Do this
+  [numbered_list] Define the scale — 8 / 16 / 24 / 32 / 48 / 64 — as named tokens and use only those values for every gap and pad.
+  [numbered_list] Set a base unit of 8px and make all component dimensions land on multiples of it; if something needs 20px, decide between 16 and 24 rather than inventing 20.
+  [numbered_list] Establish vertical rhythm: pick one large value (64px) for the space between major sections and hold it site-wide so the page has a steady pulse.
+  [numbered_list] Increase whitespace before you increase content — when a layout feels cheap, the fix is usually more space, not more elements.
+  [numbered_list] Check symmetry on a real grid overlay, then correct by eye: align to optical edges (the visual mass) rather than bounding boxes, especially for icons, glyphs, and italic type.
+  [numbered_list] Let related items share a smaller gap and unrelated items a larger one — proximity should encode grouping, not accident.
+  [text] Avoid — Freehand nudging elements until they "look about right." Off-grid values a few pixels apart create a subtle vibration the viewer can't name but always feels as amateur.
+  [divider] 
+  [sub_header] 3. Color — the small-palette method
+  [text] One warm canvas, one confident ink, one accent used like punctuation — that's the whole palette.
+  [text] The rule — Build from a small, fixed palette: a warm off-white canvas (never flat #FFFFFF), a near-black ink, two greys, and exactly one accent with two variants — because accent is a moment, never a surface.
+  [text] Why it works — Flat pure white is the fingerprint of a default, untouched template; a subtly warm canvas reads as chosen, and "chosen" reads as crafted. Near-black ink instead of #000 softens contrast to a level the eye finds refined rather than harsh. Restraint on the accent is what makes it powerful: when blue appears only on the one link, the one primary action, the one focus ring, each use carries weight — flood a whole surface with it and the signal drops to noise. Two greys are enough to build an entire hierarchy of secondary text and borders; more greys just muddy the ladder.
+  [text] Example — The full palette for the example system. Note the vertical gradient on the canvas — warmth that moves — and how narrowly the accent is scoped.
+  [code] /* Warm canvas — the gradient is the point; flat white is not */
+background: linear-gradient(180deg, #FAFAF8 0%, #F4F3EF 100%);
+
+/* Accent as a moment, not a surface */
+.link,
+.btn-primary { color/background: #2F6FED; }   /* the one place blue lives */
+.btn-primary:hover  { background: #4C82FF; }
+.btn-primary:active { background: #1E5AD6; }
+/* Sections, cards, and heroes stay on the warm canvas — never the accent */
+  [text] Do this
+  [numbered_list] Replace every #FFFFFF with a warm off-white (#FAFAF8), and give the page background a subtle vertical gradient toward #F4F3EF so the canvas has depth, not flatness.
+  [numbered_list] Set body text to a near-black ink (#16181D), never #000000 — the small step back from pure black is what reads as considered.
+  [numbered_list] Choose one accent and give it exactly two variants — a lighter hover and a deeper pressed state — then use it only on interactive moments: links, the primary action, focus states.
+  [numbered_list] Build your entire text hierarchy from ink, ink-soft, and one grey (#8B8F98); use a low-opacity ink for borders (rgba(22,24,29,0.12)) so hairlines sit in the surface rather than on top of it.
+  [numbered_list] Reserve large color fields for a single optional dark surface (#0E0F12); let contrast between warm canvas and deep dark carry drama, not the accent.
+  [numbered_list] Test the palette in grayscale — if the hierarchy still reads with the color removed, the values are doing the work and the accent is free to be decoration, not a crutch.
+  [text] Avoid — Filling a hero, card, or full section with the accent color. The moment blue becomes a surface it stops being special, and the page tips from premium back into template.
+  [divider] 
+  [sub_header] 4. Typography — the two-family system
+  [text] One display, one workhorse — a fixed scale does the rest.
+  [text] The rule — Choose exactly two typefaces: one expressive display serif for headlines and one neutral geometric sans for everything else, then size every piece of text from a single fixed scale instead of picking numbers by feel.
+  [text] Why it works — Two families give you contrast without chaos: the serif carries personality, the sans carries information, and the eye reads the pairing as "considered." A fixed modular scale removes the dozen arbitrary font sizes that make amateur sites feel noisy — when every size is deliberate, the page reads as designed rather than assembled. The tension between a warm display serif and a cool geometric sans is exactly what expensive brands rent to look premium.
+  [text] Example — The example system pairs a display serif (e.g. Fraunces) with a geometric body sans (e.g. Inter), and locks every size to one scale:
+  [text] The governing rules: line-height tightens as size grows (body sits loose at 1.5; the 56px display collapses to ~0.95–1.0 so the headline reads as one shape). Letter-spacing moves opposite to size — small uppercase text opens up (+1 to +1.5px) so caps don't jam together, while large display text tightens (-0.5px) to close the gaps big letters create. Casing is a role, not a decoration: uppercase belongs only to tiny labels and buttons; headlines and body always stay sentence case.
+  [text] Do this
+  [numbered_list] Pick your two families — one display serif, one geometric sans — and delete every other font from the project.
+  [numbered_list] Copy the scale above as tokens (--text-body: 18px, etc.) and forbid any font-size that isn't one of them.
+  [numbered_list] Set body to 18px/1.5 as the anchor, then tighten line-height step by step as sizes climb toward the 56px display at ~0.95.
+  [numbered_list] Add +1 to +1.5px tracking to anything 14px and under that is uppercase; add -0.5px to the 56px display.
+  [numbered_list] Reserve uppercase for labels and buttons only — never headlines, never paragraphs.
+  [numbered_list] Test the pairing at hero scale first: if the serif H1 and sans lead don't feel like tension-plus-harmony, you've got the wrong two fonts, not the wrong sizes.
+  [text] Avoid — Setting big display type at body line-height (1.5). A 56px headline at 1.5 floats apart into disconnected lines; it must sit tight (~0.95–1.0) to read as a single confident statement.
+  [divider] 
+  [sub_header] 5. Borders & radii — the radius family
+  [text] Round everything — but round it by the right amount.
+  [text] The rule — Never ship a sharp 0px corner; instead define a small family of radii and match the radius to the element's size, using borders, shadows, and fills as a strict decision order rather than layering all three.
+  [text] Why it works — Sharp corners read as default, unstyled, engineering-first. Softened corners read as designed and physical, like real objects. But a single radius applied everywhere looks worse than none — a button and a full-width card need different curvature to feel proportional. Matching radius to size keeps the visual roundness consistent even though the pixel values differ, which is what makes the whole surface feel like one system.
+  [text] Example — The example system uses one radius family, scaled to element size:
+  [text] Corners are never sharp — the floor is 8px. The principle: smaller elements take smaller radii, larger elements take larger radii, so a 40px input at 8px and a 480px card at 16px look equally rounded to the eye.
+  [text] Then follow a strict decision order for separating one surface from another — pick the first that works, don't stack all three:
+  [code] 1. FILL      — separate by background color first.
+              A card is a lighter/darker surface than the page. Cheapest, calmest.
+2. SHADOW    — if fill isn't enough, lift it with elevation (see section 6).
+              Implies the card floats above the page.
+3. BORDER    — only if it must sit flush with no elevation.
+              Use a hairline, never a hard 1px solid grey.
+  [text] On dark surfaces, borders should be hairlines built from alpha, not opaque grey — this keeps them reading as a soft edge of light rather than a drawn line:
+  [code] Dark surface:    #0E0F12
+Hairline border:  1px solid rgba(255,255,255,0.10)
+  [text] Do this
+  [numbered_list] Define the five radius tokens above and ban raw 0 corners across the project.
+  [numbered_list] Assign radius by element size, not by taste: inputs 8px, cards 12–16px, buttons 24px, chips 999px.
+  [numbered_list] For every panel, ask the decision order in sequence — can fill alone separate it? Then shadow? Only then reach for a border.
+  [numbered_list] Replace all opaque grey borders on dark surfaces with rgba(255,255,255,0.10) hairlines.
+  [numbered_list] Keep hairlines at 1px — a "hairline" that's 2px or a hard grey stops being a hairline.
+  [numbered_list] Verify proportional roundness by eye: a small control and a large card should look equally soft, not identical in pixels.
+  [text] Avoid — Wrapping a card in a solid 1px grey border and a shadow and a fill change. Three separators fighting for the same edge is the surest tell of an amateur layout; pick one.
+  [divider] 
+  [sub_header] 6. Shadows & elevation
+  [text] Soft, low-opacity, and one glow — that's the whole vocabulary.
+  [text] The rule — Use no more than three shadow steps, keep them soft and low-opacity so they read as ambient light rather than drop-shadows, and spend a single colored glow as one deliberate accent moment — never as a default.
+  [text] Why it works — Cheap sites betray themselves with hard, dark, offset shadows that look like stickers peeling off the page. Real elevation is subtle: large blur, tiny offset, very low opacity, tinted toward the ink color rather than pure black. Capping the system at three steps (rest, raised, floating) keeps depth legible — the user can feel the hierarchy. The accent glow works precisely because it's rare: when everything else is a soft neutral shadow, one blue glow reads as intentional emphasis, a moment of light, not decoration.
+  [text] Example — The example system's complete elevation set, tinted toward the ink (#16181D → rgba(16,18,29,…)) so shadows feel like the surface's own shade:
+  [code] /* three-step elevation — soft, low opacity, minimal offset */
+shadow-sm:  0 1px 2px  rgba(16,18,29,0.06);   /* rest: inputs, flat cards */
+shadow-md:  0 8px 24px rgba(16,18,29,0.10);   /* raised: cards, popovers */
+shadow-lg:  0 20px 50px rgba(16,18,29,0.16);  /* floating: modals, menus */
+
+/* one accent moment — used sparingly, mostly on dark surfaces */
+glow-accent: 0 0 30px rgba(47,111,237,0.30);  /* accent blue #2F6FED @ 30% */
+  [text] Note the pattern: as elevation rises, blur and offset grow together (1px→8px→20px offset, 2px→24px→50px blur) and opacity climbs only gently (0.06→0.10→0.16). Nothing exceeds 0.16 — soft is the point.
+  [text] Light vs dark surfaces:
+  [code] Light surface (page ~#FFFFFF):
+  Elevation reads through the ink-tinted shadows above. Shadows do the work.
+
+Dark surface (#0E0F12):
+  Ink shadows nearly vanish — the eye can't see a dark shadow on a dark panel.
+  Separate with a hairline instead:  1px solid rgba(255,255,255,0.10)
+  Reserve the accent glow for the one element you want to feel lit:
+    box-shadow: 0 0 30px rgba(47,111,237,0.30);
+  [text] Do this
+  [numbered_list] Define exactly three shadow tokens (sm, md, lg) and one glow-accent; delete every ad-hoc box-shadow.
+  [numbered_list] Tint shadows toward your ink color, not pure black — pure rgba(0,0,0,…) reads colder and cheaper.
+  [numbered_list] Keep opacity low: cap ambient shadows around 0.16 and let blur, not darkness, carry the depth.
+  [numbered_list] On dark surfaces, stop relying on shadows — separate panels with the alpha hairline and let the glow be the only light.
+  [numbered_list] Spend the accent glow on one element per view maximum (a primary CTA, a featured card) — its power is its rarity.
+  [numbered_list] Map elevation to meaning: rest = sm, interactive/raised = md, overlay/floating = lg. Same z-height always gets the same shadow.
+  [text] Avoid — Hard, dark, far-offset shadows like 0 4px 8px rgba(0,0,0,0.5). High opacity plus a pure-black tint is the single most common reason a layout looks unfinished; soften it and tint it toward the ink.
+  [divider] 
+  [sub_header] 7. Components — build everything from tokens
+  [text] Components are not new decisions. They are your tokens, assembled.
+  [text] The rule — A component may only reference tokens you already defined; if a component needs a value that is not a token, you are missing a token, not a component.
+  [text] Why it works — When every button, chip, and card pulls its color, spacing, radius, and shadow from the same named variables, nothing can drift. Change the accent once and every component updates in lockstep. This is what separates a system from a pile of one-off styles: consistency stops being a discipline you enforce by hand and becomes a property of the architecture. Define a small set of core components — CTA/button, tag chip, card, input, header/nav — and define every state (rest, hover, focus, active, disabled) so nothing is left to improvisation later.
+  [text] Example — Three core components in the example system, each built only from tokens:
+  [code] /* Primary CTA — ink pill */
+.cta {
+  background: var(--ink);          /* #16181D */
+  color: #fff;
+  border-radius: var(--radius-xl); /* 24px */
+  padding: var(--space-2) var(--space-4); /* 16px 32px */
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  box-shadow: var(--shadow-sm);
+  transition: transform .3s var(--ease-signature),
+              box-shadow .3s var(--ease-signature);
+}
+.cta:hover  { box-shadow: var(--shadow-md); }
+.cta:active { transform: scale(0.97); }      /* the press */
+.cta .icon  { color: var(--accent); }        /* #2F6FED arrow */
+
+/* Tag chip — ink outline that fills on hover */
+.chip {
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-pill);   /* 999px */
+  padding: var(--space-1) var(--space-2);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: background .2s var(--ease-signature),
+              color .2s var(--ease-signature);
+}
+.chip:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* Card — the neutral container */
+.card {
+  background: var(--paper);        /* #FAFAF8 */
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md); /* 12px */
+  padding: var(--space-3);         /* 24px */
+  box-shadow: var(--shadow-sm);
+}
+.card--dark { background: var(--surface-dark); color: var(--paper); } /* #0E0F12 */
+  [text] Notice there is not a single raw hex value or pixel measurement in the component logic. Every value is a token reference.
+  [text] Do this
+  [numbered_list] List your core components: CTA/button, tag chip, card, input, header/nav. Resist adding more until these are perfect.
+  [numbered_list] Build each one using only var(--token) references — no raw hex, no magic pixel numbers.
+  [numbered_list] Define all five states for interactive components: rest, hover, focus, active, disabled.
+  [numbered_list] Give the primary CTA one signature detail (here, the accent arrow and the scale(0.97) press) so it reads as yours.
+  [numbered_list] When a component seems to need a value with no token, stop and add the token first, then reference it.
+  [numbered_list] Reuse spacing tokens for padding instead of inventing per-component numbers.
+  [text] Avoid — Copying a component's CSS and tweaking a hardcoded color for a variant. The moment a raw value lives inside a component, drift has already started.
+  [divider] 
+  [sub_header] 8. Motion — the premium differentiator
+  [text] Static design gets you polished. Motion is what makes it feel expensive.
+  [text] The rule — One signature easing curve, applied everywhere, at consistent durations — no bounces, no springs, no exceptions.
+  [text] Why it works — Cheap sites animate inconsistently: one element bounces, another snaps, a third eases differently. Expensive sites move as if a single hand controls everything. A single easing curve is the fingerprint of that hand. Restraint reads as confidence — a slow, unified fade communicates "considered" far more than a springy bounce communicates "fun." And respecting prefers-reduced-motion is not optional polish; it is the difference between a system built by an amateur and one built by a professional.
+  [text] Example — The complete motion recipe for the example system:
+  [code] :root {
+  --ease-signature: cubic-bezier(0.16, 1, 0.3, 1); /* fast-out, gentle-settle */
+  --dur-ui: .4s;        /* 0.3–0.5s for UI feedback */
+  --dur-entrance: 1.2s; /* 1.0–1.4s for section entrances */
+}
+
+/* Section reveal — fade + rise, staggered */
+.reveal {
+  opacity: 0;
+  transform: translateY(32px);          /* 24–40px */
+  transition: opacity var(--dur-entrance) var(--ease-signature),
+              transform var(--dur-entrance) var(--ease-signature);
+}
+.reveal.is-in { opacity: 1; transform: translateY(0); }
+.reveal:nth-child(2) { transition-delay: .1s; }  /* stagger 0.1–0.2s */
+.reveal:nth-child(3) { transition-delay: .2s; }
+
+/* Hover link — opacity, not color */
+.link { transition: opacity .2s var(--ease-signature); }
+.link:hover { opacity: 0.6; }
+
+/* Accessibility — always */
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition-duration: .01ms !important; }
+  .reveal { opacity: 1; transform: none; }
+}
+  [text] Do this
+  [numbered_list] Pick one easing curve and store it as --ease-signature. Use it for every transition and animation.
+  [numbered_list] Set two duration bands: fast for UI feedback (0.3–0.5s), slow for section entrances (1.0–1.4s).
+  [numbered_list] Make reveals a fade plus a small translateY (24–40px), never a slide-from-off-screen.
+  [numbered_list] Stagger grouped elements by 0.1–0.2s so they enter in sequence, not all at once.
+  [numbered_list] For hover, drop opacity to ~0.6 rather than switching colors — quieter, more expensive.
+  [numbered_list] Add a prefers-reduced-motion block that neutralizes motion and reveals content instantly.
+  [text] Avoid — Bounces and springs. They read as playful, not premium, and they break the illusion of a single controlling hand.
+  [divider] 
+  [sub_header] 9. Tokens & documentation
+  [text] If a stranger — or an AI agent — can't apply your system, you don't have a system. You have a memory.
+  [text] The rule — Every value lives as a named token in one :root block, named for what it means, so the entire system can be understood and applied without you in the room.
+  [text] Why it works — A single source of truth eliminates the "which blue was it again?" problem permanently. Semantic names (--accent, --space-3, --radius-md) survive redesigns that literal names (--blue, --px-24) do not — when the accent changes from blue to green, --accent still makes sense. And documentation is leverage: a well-named token file is a brief a teammate, a client, or an agent can execute against with zero ambiguity. The system becomes portable, teachable, and durable.
+  [text] Example — The example system's entire foundation in one block:
+  [code] :root {
+  /* Color */
+  --ink:          #16181D;
+  --paper:        #FAFAF8;
+  --accent:       #2F6FED;
+  --surface-dark: #0E0F12;
+  --hairline:     rgba(255,255,255,0.10);
+
+  /* Spacing — 8-point scale */
+  --space-1: 8px;   --space-2: 16px;  --space-3: 24px;
+  --space-4: 32px;  --space-6: 48px;  --space-8: 64px;
+
+  /* Radii */
+  --radius-sm: 8px;   --radius-md: 12px;  --radius-lg: 16px;
+  --radius-xl: 24px;  --radius-pill: 999px;
+
+  /* Type */
+  --font-display: "Fraunces", serif;
+  --font-body:    "Inter", sans-serif;
+
+  /* Shadows */
+  --shadow-sm:   0 1px 2px  rgba(16,18,29,0.06);
+  --shadow-md:   0 8px 24px rgba(16,18,29,0.10);
+  --shadow-lg:   0 20px 50px rgba(16,18,29,0.16);
+  --shadow-glow: 0 0 30px   rgba(47,111,237,0.30);
+
+  /* Motion */
+  --ease-signature: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-ui: .4s;
+  --dur-entrance: 1.2s;
+}
+  [quote] One file. Hand it to anyone — a developer, a designer, an agent — and they can build a page that looks like it came from you.
+  [text] Do this
+  [numbered_list] Collect every color, space, radius, font, shadow, and motion value into a single :root block.
+  [numbered_list] Name tokens by meaning (--accent, --space-3), never by literal appearance (--blue, --px-24).
+  [numbered_list] Keep scales numbered and ordered so relationships are obvious at a glance.
+  [numbered_list] Add a one-line comment per group so a newcomer can navigate without asking.
+  [numbered_list] Reference tokens everywhere downstream — components and pages should contain no raw values.
+  [numbered_list] Treat this file as the contract: if it's not a token, it doesn't ship.
+  [text] Avoid — Maintaining tokens in two places (a design file and the code) that drift apart. Pick one source of truth and derive everything else from it.
+  [divider] 
+  [sub_header] 10. Worked example — a system decoded
+  [text] Proof that constraints, not additions, are what make a site look expensive.
+  [text] The rule — A cohesive system is built from a handful of locked constraints; the discipline of not adding is what produces the premium result.
+  [text] Why it works — Walk through the example system end to end and you'll notice there is almost nothing in it — and that is precisely the point. Every decision is singular and deliberate. The absence of choices is what the eye reads as expensive. Cohesion is not achieved by adding polish on top; it is achieved by removing the ability to be inconsistent.
+  [text] Example — The example system, decoded piece by piece:
+  [quote] The canvas — Paper #FAFAF8, not pure white. A warm off-white already signals "considered" before a single word is read.
+  [quote] The ink — Text is #16181D, a near-black with a trace of blue-grey. Softer than #000000, so the page reads calm instead of harsh.
+  [quote] One accent, used as a moment — Blue #2F6FED appears exactly where it earns attention: the CTA's arrow, a chip's hover fill, a focus ring. Because it is rationed, it lands. A second accent would have halved its power.
+  [quote] Two fonts, two jobs — A display serif carries headlines with editorial authority; a body sans handles reading. The tension between the two is the personality — no third font is invited.
+  [quote] The 8-scale — Every gap is 8, 16, 24, 32, 48, or 64. Nothing in between. The rhythm is invisible but felt: the page breathes on a grid.
+  [quote] Soft radii — 8/12/16/24, plus a 999px pill for anything that should feel human. One radius family, applied by role, never mixed at random.
+  [quote] Three shadows — sm for resting cards, md for hover lift, lg for true elevation — plus one accent glow reserved for a single hero moment. Depth is a vocabulary of four, not an infinite gradient of guesses.
+  [quote] One signature easing — cubic-bezier(0.16, 1, 0.3, 1) moves everything. Reveals fade and rise 32px; links fade to 0.6 on hover; the CTA presses to scale(0.97). Nothing bounces. One hand controls all of it.
+  [quote] The ink-pill CTA — Ink background, white uppercase label with +1.5px tracking, a 24px radius, an accent arrow, and that quiet scale(0.97) press. It is memorable because it is restrained.
+  [text] Tie it together and the logic is unmistakable: constraints → cohesion → looks expensive. One canvas, one ink, one accent, two fonts, one spacing scale, one radius family, four shadows, one easing. The site looks expensive not because anything rare was added, but because everything arbitrary was removed. That is the whole method.
+  [text] Do this
+  [numbered_list] Audit your own system and count your decisions: how many accents, fonts, easings, spacing values?
+  [numbered_list] Wherever the count is greater than one (or your intended few), cut until it isn't.
+  [numbered_list] Assign each surviving choice a single job and never let it drift from that job.
+  [numbered_list] Ration your accent — reserve it for moments that earn attention, not decoration.
+  [numbered_list] Read the finished page and ask: could a stranger guess the rules from looking? If yes, the system is coherent.
+  [text] Avoid — Adding one more "nice" color, font, or effect to a system that already works. The addition rarely improves it and almost always dilutes the cohesion you worked to build.
+  [divider] 
+  [sub_header] Your build checklist
+  [text] Copy this into your project. Check each box only when the decision is locked.
+  [to_do] Canvas — one background chosen (warm off-white or true dark), not pure #FFFFFF
+  [to_do] Ink — one primary text color, a softened near-black, not #000000
+  [to_do] One accent + variants — a single accent with hover/pressed/subtle tints defined; rationed for moments
+  [to_do] Greys — a small neutral ramp for borders, muted text, and surfaces
+  [to_do] Spacing scale — one 8-point scale (8/16/24/32/48/64); nothing in between
+  [to_do] Two fonts — one display + one body, each with a defined job
+  [to_do] Type scale — a fixed set of sizes and weights, no ad-hoc values
+  [to_do] Radii family — one set (e.g. 8/12/16/24 + 999 pill), applied by role
+  [to_do] Shadow set — a finite depth vocabulary (sm/md/lg + one optional glow)
+  [to_do] Core components — CTA/button, tag chip, card, input, header/nav — all built from tokens, all states defined
+  [to_do] Signature easing — one curve, two duration bands, reduced-motion fallback
+  [to_do] Tokens documented — every value named in one :root source of truth, ready for a stranger or an agent to apply
+  [divider] 
+  [text] Build one system, hold the line, and everything you ship starts to look expensive. — GRIGOLETTO

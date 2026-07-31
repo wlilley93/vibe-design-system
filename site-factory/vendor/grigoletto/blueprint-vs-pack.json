@@ -1,0 +1,504 @@
+{
+  "_what": "The GRIGOLETTO inputs, measured. Four Notion pages (a design-system Blueprint, a 39-template Figma pack, an AI prompt kit and a course outline) arrived 2026-07-31. The Blueprint states rules; the template pack is the same author's shipped work. This measures the second against the first.",
+  "_why": "The Blueprint is the best-written statement of design-system discipline to enter this programme, and it is PROSE - \"cap your palette\", \"at most two typefaces\", \"snap everything to 8 points\" - with nothing checking it. That is the entire thesis of this repository, arriving from outside it. Turning those rules into numbers is the only way to know whether they are a method or a mood.",
+  "_fairness": [
+    "THE BLUEPRINT DOES NOT CLAIM THE TEMPLATES FOLLOW IT. They are separate products sold separately, and nothing in either says the pack is a worked example of the doc. Read what follows as \"here is what the rules cost when applied to real shipped work\", not as a contradiction caught.",
+    "The templates are HERO SHOWCASE PIECES - illustration-heavy single artboards (template 01 carries 497 VECTOR and 200 STAR nodes) - not component libraries. A rule about a design system's palette is not obviously a rule about a decorative illustration, and where that distinction matters it is drawn below rather than ignored."
+  ],
+  "measured_at": "2026-07-31T12:18:38Z",
+  "corpus": {
+    "templates_in_pack": 39,
+    "templates_measured": 9,
+    "_why_not_all": "Figma's free tier enforces a COST BUDGET, not a throttle: after roughly ten full-document reads it returned 429 with `x-figma-plan-tier: starter` and `retry-after: 399915` - 4.6 days. The remaining thirty are reachable, unread, and will be picked up when the window opens. Nine measured is nine measured; it is not \"the pack\".",
+    "reachability": "Every one of the 39 is readable through the REST API with a personal token and NO duplication, even though the Figma MCP refuses them for want of edit access. That correction is written up in docs/REFERENCES.md."
+  },
+  "first_pass_was_wrong": {
+    "_what": "The first run of this measurement counted EVERY solid fill in the file and reported that all nine templates use flat #FFFFFF, between 71 and 661 times each.",
+    "_why_wrong": "The rule is about the CANVAS - \"replace every #FFFFFF with a warm off-white, and give the page background a subtle vertical gradient\". A white highlight inside a vector illustration is not a page background. Counting it made a decorative choice look like a violated rule.",
+    "_what_the_right_subject_showed": "Measured against artboard backgrounds instead, the rule LARGELY HOLDS. Only two of the nine use flat white on any artboard (01 on 3 of 14, 08 on 1 of 9). Templates 03 and 04 sit on #f8f7f8 - a warm off-white, which is the prescription almost exactly.",
+    "_lesson": "The reading flipped from \"nine of nine break this\" to \"seven of nine keep it\" without a single byte of the subject changing. A measurement aimed at the wrong subject is not a weak measurement, it is a confident wrong answer."
+  },
+  "rules": {
+    "typefaces": {
+      "rule": "\"Choose exactly two typefaces - one expressive display serif and one neutral geometric sans - then delete every other font from the file.\"",
+      "holds": 2,
+      "breaks": 7,
+      "_reading": "Two of nine hold. The other seven carry three or four families, and the extra is usually a second grotesque doing the same job as the first (07 ships Funnel Sans AND Inter; 20 ships Inter AND General Sans Variable). That is the rule's own failure mode - not a deliberate third voice, but a font that arrived and never left."
+    },
+    "canvas": {
+      "rule": "\"Replace every #FFFFFF with a warm off-white (#FAFAF8) ... never flat white.\"",
+      "holds": 7,
+      "breaks": 2,
+      "_reading": "Seven of nine hold at artboard level. See first_pass_was_wrong: this is the rule the first measurement got backwards."
+    },
+    "eight_point": {
+      "rule": "\"Define the scale - 8 / 16 / 24 / 32 / 48 / 64 - and use only those values for every gap and pad.\"",
+      "holds": 0,
+      "breaks": 8,
+      "not_applicable": 1,
+      "_reading": "ZERO of nine hold, and this is the finding that does not soften on inspection. Measured only on auto-layout `itemSpacing` and `padding*` - numbers that are unambiguously spacing decisions, never a free-positioned illustration coordinate - off-grid rates run from 20% (05) to 98.5% (06, where 268 of 272 spacing values miss the scale). Template 03 declares no auto-layout spacing at all, so it is n/a rather than compliant: everything is free-positioned, which is the condition the rule exists to prevent.",
+      "_why_it_matters": "This is the one rule of the three that a machine can check cheaply and completely, and it is the one nothing was checking. The Blueprint says the off-grid vibration is what \"the viewer can't name but always feels as amateur\"; the pack ships between one-in-five and virtually-all of its spacing off the scale. The gap is not disagreement about the rule, it is that a rule with no instrument is a preference."
+    },
+    "type_scale": {
+      "rule": "\"Size every piece of text from a single fixed scale instead of picking numbers by feel.\"",
+      "_not_judged": "The Blueprint gives a scale for its own example system but states no maximum for anyone else's, so there is no threshold to fail against and none is invented here. REPORTED: the nine carry between 9 and 29 distinct font sizes (median 13). Template 03 uses 29 sizes across 1 typeface pair.",
+      "distinctSizes": {
+        "1": 27,
+        "2": 9,
+        "3": 29,
+        "4": 13,
+        "5": 10,
+        "6": 9,
+        "7": 19,
+        "8": 13,
+        "20": 16
+      }
+    }
+  },
+  "what_this_is_for": "The Blueprint's rules map onto instruments this repository already has: the palette cap and the canvas rule are token-set questions (`vds figma pull` plus the variables manifest), and the 8-point rule is exactly the `geometry` proof kind - a count of surfaces that miss a declared shape, with a bound and a direction. Nothing here needs a new proof kind. It needs the rules written as bounds.",
+  "_what_this_is_not": [
+    "A judgement on the templates as design. Off-grid spacing in a hero illustration may be the right call, and none of these numbers say the work is bad.",
+    "A measure of the pack. Nine of 39, stopped by a rate limit and not by a decision.",
+    "A check of the other four Blueprint rules (borders, shadows, motion, components), which the section headings promise and which were not measured because a static Figma document does not carry motion and because shadow discipline needs a threshold nobody stated."
+  ],
+  "rows": [
+    {
+      "n": 1,
+      "name": "Bloom Editorial",
+      "key": "HsilWBZpRlT5nMMuQZ5lhM",
+      "nodes": 1822,
+      "textNodes": 294,
+      "typefaces": {
+        "count": 4,
+        "families": [
+          "Londrina Solid",
+          "Mali",
+          "Livvic",
+          "Kavoon"
+        ],
+        "rule": "at most two",
+        "holds": false
+      },
+      "typeScale": {
+        "distinctSizes": 27,
+        "top": [
+          "13px x78",
+          "32px x31",
+          "14px x31",
+          "18px x29",
+          "99px x27",
+          "20px x17"
+        ],
+        "rule": "every size from one fixed scale",
+        "note": "no threshold is stated, so this is REPORTED and not judged"
+      },
+      "canvas": {
+        "artboards": 14,
+        "fills": {
+          "#7389a4": 1,
+          "#0b5030": 10,
+          "#ffffff": 3
+        },
+        "rule": "never flat #FFFFFF; a warm off-white",
+        "flatWhiteArtboards": 3,
+        "holds": false
+      },
+      "eightPoint": {
+        "considered": 485,
+        "offGrid": 260,
+        "offGridPct": 53.6,
+        "rule": "every gap and pad on the 8-point scale",
+        "holds": false
+      }
+    },
+    {
+      "n": 2,
+      "name": "Midnight Couture",
+      "key": "t1e7kjtTICzWjZ3QstTjKq",
+      "nodes": 428,
+      "textNodes": 88,
+      "typefaces": {
+        "count": 4,
+        "families": [
+          "Lexend Giga",
+          "Rozha One",
+          "Lexend",
+          "Lexend Exa"
+        ],
+        "rule": "at most two",
+        "holds": false
+      },
+      "typeScale": {
+        "distinctSizes": 9,
+        "top": [
+          "14px x32",
+          "52px x22",
+          "16px x17",
+          "24px x8",
+          "12px x4",
+          "419px x2"
+        ],
+        "rule": "every size from one fixed scale",
+        "note": "no threshold is stated, so this is REPORTED and not judged"
+      },
+      "canvas": {
+        "artboards": 3,
+        "fills": {
+          "#5f615e": 1,
+          "#454640": 2
+        },
+        "rule": "never flat #FFFFFF; a warm off-white",
+        "flatWhiteArtboards": 0,
+        "holds": true
+      },
+      "eightPoint": {
+        "considered": 6,
+        "offGrid": 2,
+        "offGridPct": 33.3,
+        "rule": "every gap and pad on the 8-point scale",
+        "holds": false
+      }
+    },
+    {
+      "n": 3,
+      "name": "Enchanted Diary",
+      "key": "O7ZBwvNb5yAsihozzH8MTN",
+      "nodes": 2599,
+      "textNodes": 789,
+      "typefaces": {
+        "count": 2,
+        "families": [
+          "Viaoda Libre",
+          "Imprima"
+        ],
+        "rule": "at most two",
+        "holds": true
+      },
+      "typeScale": {
+        "distinctSizes": 29,
+        "top": [
+          "16px x217",
+          "32px x210",
+          "13px x72",
+          "44px x63",
+          "22px x63",
+          "19px x22"
+        ],
+        "rule": "every size from one fixed scale",
+        "note": "no threshold is stated, so this is REPORTED and not judged"
+      },
+      "canvas": {
+        "artboards": 13,
+        "fills": {
+          "#f8f7f8": 1,
+          "#454640": 12
+        },
+        "rule": "never flat #FFFFFF; a warm off-white",
+        "flatWhiteArtboards": 0,
+        "holds": true
+      },
+      "eightPoint": {
+        "considered": 0,
+        "offGrid": 0,
+        "offGridPct": null,
+        "rule": "every gap and pad on the 8-point scale",
+        "holds": null
+      }
+    },
+    {
+      "n": 4,
+      "name": "AR Mirror",
+      "key": "Fv20sXDJpzCfwBX4iO5GSs",
+      "nodes": 518,
+      "textNodes": 187,
+      "typefaces": {
+        "count": 2,
+        "families": [
+          "Tektur",
+          "Urbanist"
+        ],
+        "rule": "at most two",
+        "holds": true
+      },
+      "typeScale": {
+        "distinctSizes": 13,
+        "top": [
+          "12px x35",
+          "40px x30",
+          "14px x30",
+          "60px x25",
+          "80px x15",
+          "24px x12"
+        ],
+        "rule": "every size from one fixed scale",
+        "note": "no threshold is stated, so this is REPORTED and not judged"
+      },
+      "canvas": {
+        "artboards": 5,
+        "fills": {
+          "#f8f7f8": 1,
+          "#303436": 4
+        },
+        "rule": "never flat #FFFFFF; a warm off-white",
+        "flatWhiteArtboards": 0,
+        "holds": true
+      },
+      "eightPoint": {
+        "considered": 73,
+        "offGrid": 37,
+        "offGridPct": 50.7,
+        "rule": "every gap and pad on the 8-point scale",
+        "holds": false
+      }
+    },
+    {
+      "n": 5,
+      "name": "Frosted Vault",
+      "key": "32H6mYMMQVMsevzGMXYjEs",
+      "nodes": 518,
+      "textNodes": 77,
+      "typefaces": {
+        "count": 3,
+        "families": [
+          "Ibarra Real Nova",
+          "PP Monument Extended",
+          "Trap"
+        ],
+        "rule": "at most two",
+        "holds": false
+      },
+      "typeScale": {
+        "distinctSizes": 10,
+        "top": [
+          "88px x25",
+          "26px x16",
+          "14px x13",
+          "32px x8",
+          "15px x6",
+          "12px x4"
+        ],
+        "rule": "every size from one fixed scale",
+        "note": "no threshold is stated, so this is REPORTED and not judged"
+      },
+      "canvas": {
+        "artboards": 3,
+        "fills": {
+          "#37c1cc": 1,
+          "#091517": 2
+        },
+        "rule": "never flat #FFFFFF; a warm off-white",
+        "flatWhiteArtboards": 0,
+        "holds": true
+      },
+      "eightPoint": {
+        "considered": 30,
+        "offGrid": 6,
+        "offGridPct": 20,
+        "rule": "every gap and pad on the 8-point scale",
+        "holds": false
+      }
+    },
+    {
+      "n": 6,
+      "name": "Folio Suite",
+      "key": "SxevwAp4OFhwLbpOsnAJN7",
+      "nodes": 564,
+      "textNodes": 87,
+      "typefaces": {
+        "count": 3,
+        "families": [
+          "Thunderhouse Pro",
+          "Prompt",
+          "Quicksand"
+        ],
+        "rule": "at most two",
+        "holds": false
+      },
+      "typeScale": {
+        "distinctSizes": 9,
+        "top": [
+          "18px x31",
+          "14px x24",
+          "199px x10",
+          "20px x8",
+          "270px x7",
+          "15px x4"
+        ],
+        "rule": "every size from one fixed scale",
+        "note": "no threshold is stated, so this is REPORTED and not judged"
+      },
+      "canvas": {
+        "artboards": 3,
+        "fills": {
+          "#37c1cc": 1,
+          "#009ca6": 2
+        },
+        "rule": "never flat #FFFFFF; a warm off-white",
+        "flatWhiteArtboards": 0,
+        "holds": true
+      },
+      "eightPoint": {
+        "considered": 272,
+        "offGrid": 268,
+        "offGridPct": 98.5,
+        "rule": "every gap and pad on the 8-point scale",
+        "holds": false
+      }
+    },
+    {
+      "n": 7,
+      "name": "Neural SNX",
+      "key": "quqA49aZo1Me9nCwiUJYxT",
+      "nodes": 311,
+      "textNodes": 74,
+      "typefaces": {
+        "count": 4,
+        "families": [
+          "Funnel Display",
+          "Eurostile Extd",
+          "Funnel Sans",
+          "Inter"
+        ],
+        "rule": "at most two",
+        "holds": false
+      },
+      "typeScale": {
+        "distinctSizes": 19,
+        "top": [
+          "12px x13",
+          "18px x9",
+          "21px x8",
+          "72px x8",
+          "14px x7",
+          "16px x6"
+        ],
+        "rule": "every size from one fixed scale",
+        "note": "no threshold is stated, so this is REPORTED and not judged"
+      },
+      "canvas": {
+        "artboards": 3,
+        "fills": {
+          "#7389a4": 1,
+          "#b5c9e5": 1,
+          "#c5d7f0": 1
+        },
+        "rule": "never flat #FFFFFF; a warm off-white",
+        "flatWhiteArtboards": 0,
+        "holds": true
+      },
+      "eightPoint": {
+        "considered": 28,
+        "offGrid": 25,
+        "offGridPct": 89.3,
+        "rule": "every gap and pad on the 8-point scale",
+        "holds": false
+      }
+    },
+    {
+      "n": 8,
+      "name": "Whisper Nav",
+      "key": "lIu8d3AxZe8Iu8P3EHCCwN",
+      "nodes": 768,
+      "textNodes": 205,
+      "typefaces": {
+        "count": 3,
+        "families": [
+          "Unbounded",
+          "Wix Madefor Text",
+          "Inter"
+        ],
+        "rule": "at most two",
+        "holds": false
+      },
+      "typeScale": {
+        "distinctSizes": 13,
+        "top": [
+          "28px x46",
+          "12px x36",
+          "24px x34",
+          "80px x28",
+          "52px x20",
+          "14px x19"
+        ],
+        "rule": "every size from one fixed scale",
+        "note": "no threshold is stated, so this is REPORTED and not judged"
+      },
+      "canvas": {
+        "artboards": 9,
+        "fills": {
+          "#b4d1e3": 1,
+          "#000000": 7,
+          "#ffffff": 1
+        },
+        "rule": "never flat #FFFFFF; a warm off-white",
+        "flatWhiteArtboards": 1,
+        "holds": false
+      },
+      "eightPoint": {
+        "considered": 74,
+        "offGrid": 59,
+        "offGridPct": 79.7,
+        "rule": "every gap and pad on the 8-point scale",
+        "holds": false
+      }
+    },
+    {
+      "n": 20,
+      "name": "Rainbow Noir",
+      "key": "QTfVAZ8GECnf8B55GQU0Ml",
+      "nodes": 1682,
+      "textNodes": 678,
+      "typefaces": {
+        "count": 3,
+        "families": [
+          "Clash Display Variable",
+          "Inter",
+          "General Sans Variable"
+        ],
+        "rule": "at most two",
+        "holds": false
+      },
+      "typeScale": {
+        "distinctSizes": 16,
+        "top": [
+          "15px x252",
+          "43px x90",
+          "30px x84",
+          "21px x84",
+          "84px x30",
+          "58px x30"
+        ],
+        "rule": "every size from one fixed scale",
+        "note": "no threshold is stated, so this is REPORTED and not judged"
+      },
+      "canvas": {
+        "artboards": 4,
+        "fills": {
+          "#cce241": 1,
+          "#ff975a": 1,
+          "#85e6ed": 1,
+          "(none)": 1
+        },
+        "rule": "never flat #FFFFFF; a warm off-white",
+        "flatWhiteArtboards": 0,
+        "holds": true
+      },
+      "eightPoint": {
+        "considered": 24,
+        "offGrid": 21,
+        "offGridPct": 87.5,
+        "rule": "every gap and pad on the 8-point scale",
+        "holds": false
+      }
+    }
+  ],
+  "vendored": {
+    "_why": "blueprint.txt is the Blueprint page copied verbatim out of Notion. Its digest is recorded here so the em-dash gate exempts it: the rule is about prose this repository AUTHORS, and rewriting somebody else's punctuation to satisfy a house style would misquote the source the whole measurement rests on. Edit it and the digest changes and the exemption lapses.",
+    "_how": "Fetched unauthenticated from Notion's own loadPageChunk API, paginated to exhaustion (225 blocks over 3 chunks). The page is public; no credential was used and none is needed.",
+    "source": "https://app.notion.com/p/The-Design-System-Blueprint-396b0fd1c010816c8314c86209b3d48d",
+    "files": {
+      "blueprint.txt": "92697d0468cb74136de24934b7fe538b14ffc929c903deff807439e8c33e8f0a"
+    },
+    "derived_not_vendored": "templates.json, measured.json and canvases.json are produced by this repository from the pack and carry no third-party prose, so they are under the house rules like any other authored file. The template NAMES in them are quoted exactly, minus the \"NN \" numbering prefix, which is presentation and is carried in the `n` field."
+  }
+}
