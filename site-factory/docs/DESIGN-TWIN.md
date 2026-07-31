@@ -73,6 +73,32 @@ wireframe cannot disagree with the build: all of it is projected from `manifests
 Put another way: the station is still there, but the traffic is one-way and automated, so nobody
 carries anything across by hand.
 
+### CORRECTION (BREACH-0010): "drawn by script" is true and "automated" is not
+
+Both sentences above overstate, and the overstatement is the load-bearing kind, because it
+describes the thing this whole file is about.
+
+Each set WAS drawn by a script. But every one of those scripts was written inside an agent turn,
+run once, and never committed. A grep for `createComponentSet`, `combineAsVariants` or
+`createComponent(` across the whole repository returns nothing. So:
+
+- the Figma file **cannot be redrawn**. Not from the register, not from the tokens, not from
+  anything. Delete a set and the only recovery is to write a new script by hand;
+- "a RENDERING OF THE CODE" describes a relationship nothing maintains. `figma-variables.json`,
+  `figma-nodes.json` and `figma-prompts.json` check that the two sides AGREE, which is real and is
+  what caught four missing inks and nine drifted values. None of them can PRODUCE either side;
+- "nobody carries anything across by hand" is exactly backwards. Every crossing so far was
+  hand-carried; what was automated was the CHECKING of what got carried.
+
+This is the same class as the generated half nothing regenerates: a projection asserted in prose,
+with the projector absent. It is worse here than in the usual case, because the paragraph above
+was the evidence offered for the claim that the outbound direction is solved - so the claim was
+resting on its own restatement.
+
+The remedy is a committed generator whose input is the register and whose output is deterministic,
+with an identity stamp on every set so a redraw amends in place instead of duplicating. Until that
+exists, read every "outbound is automated" line in this file as "outbound is CHECKED".
+
 **Figma to code: not by reading the frame** - and the correction below is why that is a
 narrower claim than it first looks.
 
@@ -183,6 +209,11 @@ Measured, not guessed:
    node "(not measured)". The worked example DOES have a pulled ledger, so this is unused
    machinery rather than missing machinery - and it is the same defect class as BREACH-0006, a
    claim read off a field instead of off the thing.
+
+   This is **unrun work, not a blocked dependency**, and the difference decides whether it sits on
+   a list or gets done. `pull` needs `FIGMA_TOKEN` and a single agreed file key; a live 45-character
+   `figd_` token is present in the environment, and every register record that carries a node
+   already names the same file. Nothing external is missing.
 3. **Variable Code Syntax is unused.** Figma can carry a per-platform code name on the variable
    itself, which would put `--color-danger` on `color/danger` inside the file rather than only in
    a manifest beside it.
@@ -193,8 +224,14 @@ Measured, not guessed:
    the register became a wrong instruction in the contract, because `impl` cannot tell a default
    from a decision.
 
-Gap 4 is a defect. Gaps 1 to 3 are work. None of the four needs a plan upgrade, and Code Connect
-- which does - would sit on top of gap 1 rather than replace it.
+5. **Nothing can redraw the library.** A grep for `createComponentSet`, `combineAsVariants` or
+   `createComponent(` across the entire repository returns **zero hits**. All 46 component sets
+   were drawn by scripts written inside agent turns and never committed. The only committed Figma
+   generator is `figma-push.js`, which draws a project RECORD page - frames and text - and creates
+   no component. See the correction below: this is BREACH-0010, and it is the largest of the five.
+
+Gaps 4 and 5 are defects. Gaps 1 to 3 are work. None of the five needs a plan upgrade, and Code
+Connect - which does - would sit on top of gap 1 rather than replace it.
 
 ## What follows for what to build
 

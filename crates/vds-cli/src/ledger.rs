@@ -17,11 +17,133 @@ pub struct Args {
 enum Which {
     /// The declared surface: every screen matching `[surface] screen_globs`.
     Screens,
+    /// Whether the workflow the lock names has ever actually concluded (BREACH-0011).
+    ///
+    /// D4 asks "is every gate invoked by CI". It read the lock's own declaration, then
+    /// the workflow FILE, and never the RUN - so it reported Met over seventeen gates
+    /// while the job had never once started. A conclusion is a network fact and
+    /// VDS S-7(2)(1) forbids a network call inside a proof, so it is recorded here and
+    /// `--from` makes the derivation reproducible from saved bytes.
+    Ci {
+        /// A saved `gh run list --json conclusion,createdAt,headSha,workflowName` response.
+        /// Without it, `gh` is invoked - which needs the credential and the network.
+        #[arg(long, value_name = "PATH")]
+        from: Option<std::path::PathBuf>,
+        /// The workflow as the LOCK spells it, because that is the key D4 looks up. The
+        /// forge reports no path at all, so the join is this path -> the `name:` inside
+        /// that file -> the forge's `workflowName`.
+        #[arg(long, default_value = ".github/workflows/vds-enforce.yml")]
+        workflow: String,
+        /// How many runs to ask for. It becomes `runs_considered`, so a narrow window is
+        /// visible in the ledger as a narrow window.
+        #[arg(long, default_value_t = 60)]
+        limit: u32,
+    },
 }
 
 pub fn run(ctx: &Context, args: &Args) -> Result<i32> {
     let project = ctx.project()?;
-    match args.which {
+    match &args.which {
+        Which::Ci {
+            from,
+            workflow,
+            limit,
+        } => {
+            let store = vds_store::Store::new(&project);
+            let fields = "conclusion,createdAt,headSha,workflowName";
+
+            // The forge names runs after the workflow's declared `name:`, and reports no
+            // path at all - `gh run list --json path` is refused by name, which is how
+            // this was found. So read the name out of the file rather than guessing it
+            // from the filename: `vds-enforce.yml` need not declare `name: vds-enforce`,
+            // and a guess that happens to be right today is a join that breaks silently.
+            let wf_path = project.root.join(workflow);
+            let declared_name: Option<String> = std::fs::read_to_string(&wf_path)
+                .ok()
+                .and_then(|t| serde_yaml::from_str::<serde_yaml::Value>(&t).ok())
+                .and_then(|d| d.get("name").and_then(|n| n.as_str()).map(str::to_owned));
+            if declared_name.is_none() {
+                println!(
+                    "note: {} declares no `name:` (or does not parse), so no name filter \
+                     will be applied and every run in the response is counted.",
+                    project.rel(&wf_path)
+                );
+            }
+            let (raw, source) = match from {
+                Some(path) => {
+                    let text = std::fs::read_to_string(path)
+                        .map_err(|e| vds_core::VdsError::io(path.display(), e))?;
+                    (text, project.rel(path))
+                }
+                None => {
+                    // Shelling out rather than speaking HTTP, for the same reason
+                    // `figma pull` shells out to curl: the credential, the retries and
+                    // the pagination are the forge CLI's problem, not the kernel's.
+                    let file = std::path::Path::new(workflow)
+                        .file_name()
+                        .and_then(|f| f.to_str())
+                        .unwrap_or(workflow.as_str());
+                    let cmd =
+                        format!("gh run list --workflow={file} --limit {limit} --json {fields}");
+                    let out = std::process::Command::new("gh")
+                        .args(["run", "list", "--workflow", file])
+                        .args(["--limit", &limit.to_string()])
+                        .args(["--json", fields])
+                        .current_dir(&project.root)
+                        .output()
+                        .map_err(|e| {
+                            vds_core::VdsError::precondition(format!(
+                                "could not run `gh`: {e}. Either install it and authenticate, \
+                                 or pass --from with a saved response - which needs no \
+                                 credential and makes the derivation reproducible."
+                            ))
+                        })?;
+                    if !out.status.success() {
+                        return Err(vds_core::VdsError::precondition(format!(
+                            "`{cmd}` failed: {}",
+                            String::from_utf8_lossy(&out.stderr).trim()
+                        )));
+                    }
+                    (String::from_utf8_lossy(&out.stdout).into_owned(), cmd)
+                }
+            };
+
+            let ledger = crate::ci::derive(
+                workflow,
+                declared_name.as_deref(),
+                &source,
+                &raw,
+                "vds ledger ci",
+            )?;
+            let path = crate::ci::write(&store, &ledger)?;
+            let row = ledger
+                .row(workflow)
+                .expect("derive always writes the row it was asked for");
+
+            println!("wrote {}", project.rel(&path));
+            println!("  workflow:         {}", row.file);
+            println!("  runs considered:  {}", row.runs_considered);
+            println!("  successes:        {}", row.successes);
+            if let Some(c) = &row.newest_conclusion {
+                println!(
+                    "  newest:           {c}{}",
+                    row.newest_at
+                        .as_deref()
+                        .map(|a| format!(" at {a}"))
+                        .unwrap_or_default()
+                );
+            }
+            for (name, n) in &row.conclusions {
+                println!("    {name}: {n}");
+            }
+            for note in &ledger.notes {
+                println!("  note: {note}");
+            }
+            // Deliberately NOT an exit code. This command records; D4 judges. A generator
+            // that also failed the build would make the record something people avoid
+            // regenerating, which is how a ledger goes stale.
+            Ok(PASSED)
+        }
         Which::Screens => {
             let (path, ledger) = vds_scan::write(&project)?;
             let components = ledger.component_references().count();

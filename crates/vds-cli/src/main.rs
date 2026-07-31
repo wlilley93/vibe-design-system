@@ -21,6 +21,7 @@ use std::process::ExitCode;
 use clap::{Parser, Subcommand};
 use vds_core::{EXIT_PASSED, EXIT_PRECONDITION, Result, VdsError};
 
+mod ci;
 mod doctor;
 mod figma;
 mod import;

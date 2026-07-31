@@ -181,18 +181,11 @@ fn add(store: &Store, args: &AddArgs) -> Result<i32> {
             "--test-path {test_path} does not exist"
         )));
     }
-    if args.proves.is_empty() {
-        return Err(VdsError::precondition(
-            "pass --proves at least once, naming a kind from the closed registry. A gate that \
-             proves nothing is not a gate, and a lock entry claiming otherwise is a pin on a \
-             file rather than on a check.",
-        ));
-    }
-
     let kind = LockKind::parse(&args.kind).ok_or_else(|| {
         VdsError::precondition(format!(
-            "--kind {:?} is not a lock kind. The five are: {}",
+            "--kind {:?} is not a lock kind. The {} are: {}",
             args.kind,
+            LockKind::ALL.len(),
             LockKind::ALL
                 .iter()
                 .map(|k| k.as_str())
@@ -200,6 +193,8 @@ fn add(store: &Store, args: &AddArgs) -> Result<i32> {
                 .join(", ")
         ))
     })?;
+
+    proves_matches_kind(kind, args.proves.len()).map_err(VdsError::precondition)?;
 
     let mut proves = Vec::new();
     for raw in &args.proves {
@@ -329,9 +324,113 @@ fn repin(store: &Store, rationale: Option<&str>) -> Result<i32> {
     Ok(PASSED)
 }
 
+/// Whether `--proves` agrees with the kind, in BOTH directions.
+///
+/// This used to be an unconditional "proves must be non-empty", and that refusal caused a
+/// breach rather than preventing one. A `criteria_grader` has no ProofKind by construction -
+/// `LockKind::CriteriaGrader`'s own doc comment says "`proves` is empty for this kind, and
+/// that emptiness is correct rather than missing" - and a `hook` INVOKES gates rather than
+/// being one. Neither could be expressed through the CLI, so the grader entry was appended
+/// to `.vds/enforcement.lock` with a shell heredoc instead. The heredoc was unquoted, bash
+/// executed the backticked commands inside the rationale, and `cargo test` wrote about a
+/// hundred lines of its own stdout into the enforcement lock. That is BREACH-0009.
+///
+/// The lesson is narrower than "be careful with heredocs": A TOOL THAT CANNOT EXPRESS A
+/// LAWFUL STATE PUSHES ITS USER OUTSIDE THE TOOL, and here the outside was a shell writing
+/// to the single most load-bearing artefact in the repository.
+///
+/// Both directions are checked, because the loose one is also a defect: a `hook` entry
+/// carrying `proves: [contrast]` would claim the hook establishes a contrast result, which
+/// it does not, and VDS S-8(5) forbids overclaiming an enforcement surface.
+fn proves_matches_kind(kind: LockKind, proves: usize) -> std::result::Result<(), String> {
+    let proves_nothing = matches!(kind, LockKind::CriteriaGrader | LockKind::Hook);
+    match (proves == 0, proves_nothing) {
+        (true, false) => Err(format!(
+            "pass --proves at least once, naming a kind from the closed registry. A {} gate \
+             that proves nothing is not a gate, and a lock entry claiming otherwise is a pin \
+             on a file rather than on a check. (`criteria_grader` and `hook` are the only \
+             kinds that may omit it: one GRADES proofs, the other INVOKES them.)",
+            kind.as_str()
+        )),
+        (false, true) => Err(format!(
+            "--kind {} must NOT pass --proves. It does not establish a proof kind: it {}. \
+             Listing one would put a claim on the entry that the file cannot support, which \
+             is the overclaim VDS S-8(5) exists to refuse.",
+            kind.as_str(),
+            match kind {
+                LockKind::CriteriaGrader => "reads the proof records and grades them",
+                _ => "invokes other gates",
+            }
+        )),
+        _ => Ok(()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The failing-direction test for `proves_matches_kind`, seeded in both directions.
+    ///
+    /// The positive arms come first and are not decoration: a predicate that refused
+    /// everything would satisfy every negative arm below, which is the check-that-cannot-pass
+    /// shape this repository has shipped twice.
+    #[test]
+    fn proves_must_agree_with_the_kind_in_both_directions() {
+        // A proving gate with a kind it proves: fine.
+        assert!(proves_matches_kind(LockKind::ProofScript, 1).is_ok());
+        // The two kinds that prove nothing, with nothing claimed: fine. This is the state
+        // the CLI could not express, which is why BREACH-0009 happened in a shell.
+        assert!(proves_matches_kind(LockKind::CriteriaGrader, 0).is_ok());
+        assert!(proves_matches_kind(LockKind::Hook, 0).is_ok());
+
+        // SEED 1: a proving gate that claims nothing is a pin on a file, not on a check.
+        let e = proves_matches_kind(LockKind::ProofScript, 0).unwrap_err();
+        assert!(
+            e.contains("proof_script") && e.contains("criteria_grader") && e.contains("hook"),
+            "the refusal must name the kind AND the two exemptions, or the author's next \
+             move is to edit the lock by hand - which is exactly what went wrong: {e}"
+        );
+
+        // SEED 2: the loose direction, which the old unconditional check could not catch at
+        // all. A hook claiming to prove a kind is an overclaim under VDS S-8(5).
+        let e = proves_matches_kind(LockKind::Hook, 1).unwrap_err();
+        assert!(
+            e.contains("must NOT pass --proves") && e.contains("invokes other gates"),
+            "a hook claiming a proof kind must be refused, and told why: {e}"
+        );
+        let e = proves_matches_kind(LockKind::CriteriaGrader, 2).unwrap_err();
+        assert!(e.contains("grades them"), "{e}");
+    }
+
+    /// The committed hook must run the WHOLE check set, not a subset.
+    ///
+    /// Tested against the file that actually ships rather than a fixture, because a guard
+    /// verified against a copy is a guard that passes while the real artefact drifts. A hook
+    /// narrowed to `make test` would still exit non-zero on a failing test and would silently
+    /// stop running every gate - which is the failure this asserts against.
+    #[test]
+    fn the_committed_pre_push_hook_runs_the_full_check_set() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../scripts/githooks/pre-push");
+        let text = std::fs::read_to_string(&path).unwrap_or_else(|e| {
+            panic!(
+                "the pre-push hook must exist at {}: {e}. It is the only surface that runs \
+                 the gates on this repository - see BREACH-0011",
+                path.display()
+            )
+        });
+        assert!(
+            text.lines().any(|l| l.trim() == "make check"),
+            "the hook must invoke `make check` as its own line. A hook that runs some of \
+             the gates teaches the reader that the others are optional."
+        );
+        assert!(
+            text.contains("not CI") || text.contains("NOT CI"),
+            "the hook must say on its face that it is not CI. VDS S-7(3) holds that a hook \
+             is not CI, and a green hook read as D4 met is the whole defect of BREACH-0011."
+        );
+    }
 
     #[test]
     fn an_invocation_defaults_to_blocking() {

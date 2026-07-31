@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+#
+# pre-push: run the same set CI declares, because CI has never run.
+#
+# BREACH-0011 measured the position: fifty-three consecutive vds-enforce runs, zero
+# successes, every one ending in three to eleven seconds with `The job was not started
+# because recent account payments have failed`. Seventeen pinned gates, and not one of
+# them had ever been executed by anything except a person deciding to. There was no
+# hook either - `.git/hooks/` held nothing but git's samples.
+#
+# So this file is the interim surface, and the word interim is load-bearing. VDS S-7(3)
+# holds that a hook is not CI, and the `InvokedBy` enum carries `githook_pre_push` as a
+# DISTINCT variant from `ci_workflow` for exactly this reason: `git push --no-verify`
+# walks straight past this file, so it records that the gates ran, never that they
+# could not have been skipped. Do not let a green hook be read as D4 met.
+#
+# It lives in the repository rather than in `.git/hooks/` on purpose. A hook under
+# `.git/` is invisible to a clone, absent from every diff, and unpinnable - which is the
+# same defect one level down: an enforcement surface nobody can review and no digest
+# covers. `make hooks` points `core.hooksPath` here, and this file is pinned in
+# `.vds/enforcement.lock` so editing it trips `vds lock verify` like any other gate.
+#
+# The set is `make check`, not a subset. A hook that runs some of the gates teaches the
+# reader that the others are optional.
+
+set -euo pipefail
+
+root="$(git rev-parse --show-toplevel)"
+cd "$root"
+
+echo "pre-push: running \`make check\` - the set CI declares and has never run (BREACH-0011)."
+echo "pre-push: this is a HOOK, not CI. \`--no-verify\` skips it, so a pass here is not D4."
+
+# One heavyweight at a time. This box has 18GB and the OOM killer takes the
+# compositor rather than the job, so `make check` must not be started alongside a
+# docker build or a many-agent fan-out. The check itself is left serial for the
+# same reason.
+free -g | awk '/^Mem:/ { if ($7 < 4) print "pre-push: WARNING only " $7 "GB available; make check may be OOM-killed" }'
+
+make check
+
+echo "pre-push: make check passed. Remember this proves the gates RAN, not that they are enforced by CI."

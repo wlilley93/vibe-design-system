@@ -179,10 +179,9 @@ fn d2(store: &Store) -> Result<Row> {
         // stays broken at the call site nobody remembered.
         let named_test = entry.is_some_and(|e| {
             let file = store.project.root.join(&e.failing_direction_test.path);
-            std::fs::read_to_string(&file)
-                .is_ok_and(|text| {
-                    vds_store::test_name_resolves(&text, &e.failing_direction_test.test_name)
-                })
+            std::fs::read_to_string(&file).is_ok_and(|text| {
+                vds_store::test_name_resolves(&text, &e.failing_direction_test.test_name)
+            })
         });
         let invoked = entry.is_some_and(|e| {
             e.has_blocking_ci()
@@ -382,6 +381,68 @@ fn resolve_ci_reference(root: &std::path::Path, reference: &str) -> Option<Strin
     }
 }
 
+/// D4's third limb: did the workflow a gate names actually CONCLUDE, and successfully?
+///
+/// Separated out and pure for the same reason `resolve_ci_reference` is: the interesting
+/// cases are all about which absences must be refused, and a function that needs a project
+/// on disk to answer that gets tested once and shallowly.
+///
+/// Returns `(problems, detail)`. A problem is fatal to D4; a detail is reported alongside a
+/// pass so the reader sees the numbers behind it rather than the word Met.
+///
+/// The five refusals are deliberately DISTINCT strings, because they want different fixes:
+/// no ledger means run the generator; no row means the ledger was generated for another
+/// workflow; zero runs means the window was empty, which is not the same as clean; zero
+/// CONCLUDED runs means everything is still in flight, which is not evidence either way;
+/// zero successes is the measured state that BREACH-0011 recorded.
+fn ci_runs_concluded(
+    workflows: &std::collections::BTreeSet<String>,
+    ledger: Option<&crate::ci::CiLedger>,
+) -> (Vec<String>, Vec<String>) {
+    let mut problems = Vec::new();
+    let mut detail = Vec::new();
+    let Some(ledger) = ledger else {
+        for file in workflows {
+            problems.push(format!(
+                "{file}: no CI run ledger, so whether this workflow has EVER run is \
+                 unmeasured. Run `vds ledger ci`. A step resolving in a file is not a step \
+                 that ran (BREACH-0011)."
+            ));
+        }
+        return (problems, detail);
+    };
+    for file in workflows {
+        match ledger.row(file) {
+            None => problems.push(format!(
+                "{file}: the CI run ledger carries no row for this workflow, so its runs \
+                 are unmeasured"
+            )),
+            Some(row) if row.runs_considered == 0 => problems.push(format!(
+                "{file}: the CI run ledger observed ZERO runs. An empty window is not a \
+                 passing window"
+            )),
+            Some(row) if row.runs_concluded == 0 => problems.push(format!(
+                "{file}: {} runs observed and NOT ONE has CONCLUDED yet. A run in flight is \
+                 not evidence either way",
+                row.runs_considered
+            )),
+            Some(row) if row.successes == 0 => problems.push(format!(
+                "{file}: {} runs concluded and NOT ONE succeeded (newest: {}). Every gate \
+                 naming this workflow is declared and unrun",
+                row.runs_concluded,
+                row.newest_conclusion.as_deref().unwrap_or("no conclusion")
+            )),
+            Some(row) => detail.push(format!(
+                "{file}: {} of {} concluded runs succeeded, newest {}",
+                row.successes,
+                row.runs_concluded,
+                row.newest_conclusion.as_deref().unwrap_or("no conclusion")
+            )),
+        }
+    }
+    (problems, detail)
+}
+
 fn d4(store: &Store) -> Result<Row> {
     let Some(lock) = store.read_lock()? else {
         return Ok(Row {
@@ -395,6 +456,9 @@ fn d4(store: &Store) -> Result<Row> {
         });
     };
     let mut problems: Vec<String> = Vec::new();
+    // Every distinct workflow file the lock leans on, so the run limb below asks about
+    // the workflows actually cited rather than a name this function chose.
+    let mut workflows: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
     for entry in &lock.entries {
         if !entry.has_blocking_ci() {
             problems.push(format!(
@@ -411,11 +475,23 @@ fn d4(store: &Store) -> Result<Row> {
             if inv.surface != vds_core::InvokedBy::CiWorkflow || !inv.blocking {
                 continue;
             }
+            if let Some(file) = inv.reference.split(" job:").next() {
+                workflows.insert(file.trim().to_owned());
+            }
             if let Some(reason) = resolve_ci_reference(&store.project.root, &inv.reference) {
                 problems.push(format!("{}: {reason}", entry.path));
             }
         }
     }
+
+    // THE THIRD LIMB, and the one BREACH-0011 exists for. A step that resolves in a
+    // workflow file is not a step that ran. This asks the CI run ledger whether the
+    // workflow ever concluded successfully, and reports the interim state honestly when
+    // nothing has measured it - because "unmeasured" and "passing" must not print the
+    // same.
+    let ledger = crate::ci::read(store)?;
+    let (run_problems, run_detail) = ci_runs_concluded(&workflows, ledger.as_ref());
+    problems.extend(run_problems);
 
     Ok(Row {
         id: "D4 ",
@@ -426,15 +502,24 @@ fn d4(store: &Store) -> Result<Row> {
             Verdict::Unmet
         },
         detail: if problems.is_empty() {
-            vec![format!(
+            let mut detail = vec![format!(
                 "{} pinned gates, every one invoked by a blocking ci_workflow whose job and \
-                 step were RESOLVED in the workflow file",
+                 step were RESOLVED in the workflow file AND whose workflow has a successful \
+                 run on record",
                 lock.entries.len()
-            )]
+            )];
+            detail.extend(run_detail);
+            detail.push(
+                "NOT established: that the successful run executed any particular gate, or \
+                 that it ran over this tree. See VDS S-8(5)."
+                    .to_owned(),
+            );
+            detail
         } else {
             problems
         },
-        settled_by: "the lock, with every blocking ci_workflow reference resolved against the workflow file it names",
+        settled_by: "the lock, with every blocking ci_workflow reference resolved against the \
+                     workflow file it names AND the workflow's runs read from .vds/ledgers/ci.yaml",
     })
 }
 
@@ -882,7 +967,8 @@ describe('design adoption gate', () => {\n\
             "generalising to vitest must not stop resolving the Rust form"
         );
 
-        let prose_only = "// exits NON-ZERO when a raw element is written where a primitive exists\n";
+        let prose_only =
+            "// exits NON-ZERO when a raw element is written where a primitive exists\n";
         assert!(
             !vds_store::test_name_resolves(
                 prose_only,
@@ -1022,6 +1108,102 @@ describe('design adoption gate', () => {\n\
                 .contains("does not name a job"),
         );
     }
+    /// The failing-direction test VDS S-7(2)(2) requires for D4's THIRD limb.
+    ///
+    /// The first two limbs were both settled and both stopped short. D4 read the lock's own
+    /// declaration (BREACH-0004), then the workflow FILE, and never the RUN - so it
+    /// reported "Met - 17 pinned gates" while `gh run list` showed fifty-three consecutive
+    /// runs and not one success, every one annotated `The job was not started because
+    /// recent account payments have failed`. The job had never started in the life of the
+    /// repository. That is BREACH-0011, and this is the test that stops it coming back.
+    ///
+    /// The positive arm comes first and is not decoration: without it, every arm below
+    /// would pass on a function that refused unconditionally, which is the exact shape of
+    /// a check that cannot pass.
+    #[test]
+    fn a_workflow_that_never_concluded_successfully_fails_d4() {
+        use crate::ci::{CiLedger, WorkflowRuns};
+        let file = ".github/workflows/vds-enforce.yml";
+        let workflows: std::collections::BTreeSet<String> = [file.to_owned()].into_iter().collect();
+
+        let row = |runs: usize, successes: usize, newest: Option<&str>| CiLedger {
+            schema_version: crate::ci::SCHEMA_VERSION,
+            generated_at: vds_core::Timestamp::now(),
+            generated_by: "test".into(),
+            source: "test".into(),
+            workflows: vec![WorkflowRuns {
+                file: file.to_owned(),
+                runs_considered: runs,
+                runs_concluded: runs,
+                successes,
+                newest_conclusion: newest.map(str::to_owned),
+                newest_at: None,
+                oldest_at: None,
+                newest_head_sha: None,
+                joined_on_name: Some("vds-enforce".into()),
+                never_succeeded: successes == 0 && runs > 0,
+                conclusions: Default::default(),
+            }],
+            notes: vec![],
+        };
+
+        // A workflow with a success passes, and the numbers are reported rather than the
+        // word Met.
+        let ok = row(53, 51, Some("success"));
+        let (problems, detail) = ci_runs_concluded(&workflows, Some(&ok));
+        assert!(
+            problems.is_empty(),
+            "a workflow with successes must pass: {problems:?}"
+        );
+        assert!(
+            detail.iter().any(|d| d.contains("51 of 53")),
+            "a pass must carry its numbers, not just its verdict: {detail:?}"
+        );
+
+        // THE SEED: the measured state. Fifty-three runs, no successes.
+        let never = row(53, 0, Some("failure"));
+        let (problems, _) = ci_runs_concluded(&workflows, Some(&never));
+        assert_eq!(problems.len(), 1, "the seeded workflow must be refused");
+        assert!(
+            problems[0].contains("53 runs concluded") && problems[0].contains("NOT ONE"),
+            "the reason must name the count, because '53 failures' is what makes it \
+             undeniable: {}",
+            problems[0]
+        );
+
+        // No ledger at all must NOT read as a pass. Unmeasured and passing are different
+        // states and the whole breach is that they printed the same.
+        let (problems, _) = ci_runs_concluded(&workflows, None);
+        assert_eq!(problems.len(), 1);
+        assert!(
+            problems[0].contains("unmeasured"),
+            "an absent ledger must say unmeasured, never nothing: {}",
+            problems[0]
+        );
+
+        // An empty window must not borrow the clean verdict. Zero observations is the
+        // vacuity rule applied to a ledger.
+        let (problems, _) = ci_runs_concluded(&workflows, Some(&row(0, 0, None)));
+        assert_eq!(problems.len(), 1);
+        assert!(
+            problems[0].contains("ZERO runs") && problems[0].contains("not a passing window"),
+            "an empty window must be refused in its own words: {}",
+            problems[0]
+        );
+
+        // A ledger generated for a DIFFERENT workflow must not vouch for this one. This is
+        // the join failing, and it has to be visible rather than absent.
+        let mut other = row(53, 53, Some("success"));
+        other.workflows[0].file = ".github/workflows/other.yml".into();
+        let (problems, _) = ci_runs_concluded(&workflows, Some(&other));
+        assert_eq!(problems.len(), 1);
+        assert!(
+            problems[0].contains("no row for this workflow"),
+            "another workflow's success must not be borrowed: {}",
+            problems[0]
+        );
+    }
+
     /// D3's whole name is "no vacuous passes", and it read the LABEL.
     ///
     /// A record saying `status: passed` over `rows_enforced: 0` is a vacuous pass. Measured

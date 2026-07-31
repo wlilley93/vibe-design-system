@@ -17,10 +17,30 @@ help:
 	@echo 'make fmt       format in place'
 	@echo 'make build     the release binary at $(VDS)'
 	@echo 'make schemas   regenerate schema/*.schema.json from the Rust types'
+	@echo 'make hooks     point core.hooksPath at the committed pre-push hook'
 	@echo 'make gates     the VDS gates alone, against this repository'
 	@echo 'make gates-example  all eleven kinds over examples/storefront, no exemption'
+	@echo 'make ci-ledger measure whether the CI workflow has EVER concluded (network)'
 	@echo 'make prune     bound the proof working set (deletes, logs what it removed)'
 	@echo 'make doctor    measure this project against the ten done criteria'
+
+# The interim enforcement surface, and the reason it exists is BREACH-0011: the
+# vds-enforce workflow has never had a successful run - fifty-three failures, zero
+# successes, every one "The job was not started because recent account payments have
+# failed" - and `.git/hooks/` held nothing but git's samples. So seventeen pinned gates
+# had never been executed by anything except a person choosing to.
+#
+# `core.hooksPath` rather than copying into `.git/hooks/`: a hook under `.git/` is
+# invisible to a clone, absent from every diff and covered by no digest, which is the
+# same defect one level down. Pointing at the committed directory makes the hook
+# reviewable and lets `.vds/enforcement.lock` pin it.
+.PHONY: hooks
+hooks:
+	git config core.hooksPath scripts/githooks
+	@chmod +x scripts/githooks/*
+	@echo 'core.hooksPath -> scripts/githooks'
+	@echo 'VDS S-7(3): a hook is NOT CI. `git push --no-verify` walks past it, so this'
+	@echo 'is an interim surface and D4 stays UNMET until a real run concludes.'
 
 .PHONY: fmt
 fmt:
@@ -125,6 +145,19 @@ gates-example: build
 	    --from examples/storefront/figma/variables-export.json \
 	    --subject "the storefront palette and spacing"
 	$(VDS) proof token_pin             --root examples/storefront --invoked-by package_script
+
+# The CI run ledger, and it is DELIBERATELY not part of `check`.
+#
+# It asks the forge whether the workflow ever concluded, which is a network call, and
+# VDS S-7(2)(1) forbids one inside a proof - the same reason `figma pull` is out of band.
+# Folding it into `check` would also make `check` fail on an aeroplane, which teaches
+# people to skip the gate.
+#
+# Regenerate it rather than trusting the committed copy: a ledger nobody regenerates is a
+# ledger that records an old answer confidently. D4 reads whatever is on disk.
+.PHONY: ci-ledger
+ci-ledger: build
+	$(VDS) ledger ci
 
 .PHONY: doctor
 doctor: build
