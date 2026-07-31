@@ -1,0 +1,36 @@
+id: SUBMISSION-VDS-011
+status: filed
+question: "What is a register record's code counterpart when one component is realised as a MODULE OF VARIANT EXPORTS rather than as a single export? `parity` R4 requires `code.exportName` to be exported by `code.sourceFile`, and a site-factory block satisfies that for no name."
+trigger: first_impression
+why_first_impression: "Measured on a freshly generated project (`node factory.js new --vds`): `parity` FAILED on 13 of 13 enforced rows, every one R4, every one the same shape - `blocks/nav.js exports nav-1, nav-2, and not \"nav\"`. The bridge writes one record per BLOCK, matching the Figma side, where `Nav` is one component set varying on `Style`. The code side has no `nav`: the module exports a registry keyed by variant, and `vds register import` reads 26 exported components across the same 13 files. So the two sides do not disagree about a value - they disagree about HOW MANY COMPONENTS THERE ARE, which is the finding already recorded three times in this programme (site-factory's 11 different_axis blocks, SDS's two sides disagreeing in BOTH directions, Opbox's icon-as-prop) now arriving as a failing proof rather than as an observation. It was invisible until W2 taught the scanner the CommonJS registry shape: before that the scanner found zero exports, R4's export limb skipped the row with a warning, and the false coordinate passed unremarked. One defect masked the next."
+citator_checked:
+  - citation: "SUBMISSION-VDS-008 (pending)"
+    why_not_on_all_fours: "Asks whether the register is canonical with the contract derived from it. Adjacent and not the same question: 008 is about which artefact governs, this is about what a single field means when the two sides count components differently. 008 could be answered either way and leave this open."
+  - citation: "VDS S-7(5) parity R4"
+    why_not_on_all_fours: "States the rule that is failing. It assumes one record names one export and does not say what to do when the realisation is a registry, which is the ordinary shape for a variant-keyed block library and for every CommonJS component module."
+  - citation: "VDS S-9(2)"
+    why_not_on_all_fours: "Governs amending a prop contract. The `variant` prop added by W1b already enumerates the export keys as a closed union, so the contract is complete - it is the COORDINATE that resolves to nothing, not the contract."
+  - citation: "[2026] VJS-CC-OPBOX 3 D1"
+    why_not_on_all_fours: "Makes the Figma file the system of record for what is decided, which is the reason the bridge writes one record per component SET. It settles which side names the component and not how the other side is addressed."
+options:
+  - option: "ONE RECORD PER VARIANT. The bridge writes 26 records, `exportName: nav-1`, and R4 resolves for every one."
+    consequence: "Every coordinate becomes true and parity goes green with no rule change. The cost is that the register stops matching the Figma side one-for-one: 26 records against 13 component sets, the `variant` prop becomes vacuous (a closed union of one), and a reader comparing register to library sees two different counts of the same system - which is the exact confusion this programme has spent its time removing."
+  - option: "THE MODULE IS THE COUNTERPART. `code.exportName` may name the module's own default export (in CommonJS, what `require()` returns), and R4 accepts it. The record stays one-per-component-set."
+    consequence: "Keeps register and Figma aligned and makes the coordinate true, because `require('./blocks/nav')` really does return the registry. Costs a change to R4 and to the scanner, which must report a module-level export, and it weakens R4: the limb currently proves a NAMED thing exists, and 'the module exists' is a much smaller claim."
+  - option: "REFUSE THE SHAPE. A component whose realisation is a registry is not registrable one-to-one, and the bridge must not emit such a record. The generated blocks change to export one component per module."
+    consequence: "Preserves R4 exactly and makes the code match the model rather than the reverse. It is the largest change - 43 block modules restructured - and it decides that VDS's model constrains how a subscriber may organise its code, which is a much bigger claim than any made so far and would want to be stated in VDS.md if it is true."
+evidence:
+  - "site-factory/scaffolds/loop-probe (gitignored, reproduce with `node factory.js new --name loop-probe --vds`): parity FAILED, rows_enforced 13, all R4"
+  - "site-factory/vds-bridge.js:499, `exportName: ${type}`, which names a block and not an export"
+  - "site-factory/blocks/nav.js, whose module.exports is a registry of 'nav-1' and 'nav-2'"
+  - "crates/vds-proof/src/parity.rs, R4 and its export-limb note on why an unreadable export style is skipped rather than failed"
+  - "crates/vds-scan/src/library.rs, commonjs_registry_exports, added by W2, which is what made this visible"
+  - "site-factory/figma-variants.json, the measured 13-versus-26 shape on the two sides"
+case_file_digest: sha256:0ea8d0bf577b8430fb548b217d42f9d438f0742bef3f0a3d89c2ea8d28a3b9c8
+reserved_clause: "S-7(5)"
+fail_closed_interim: "The case_file_digest above is derived by `scripts/case-file-digest.sh` over site-factory/vds-bridge.js, crates/vds-proof/src/parity.rs, crates/vds-scan/src/library.rs and site-factory/figma-variants.json; the schema has no field naming what a digest is over. THE INTERIM IS TO LEAVE THE GATE RED. `parity` fails 13 of 13 on every generated project and that failure is CORRECT: the coordinate really does not resolve. It would be trivial to go green by writing the first variant key into exportName, and that would be a false pass - it would decide the question by doing it, silently choosing option one for every future subscriber, and it would put a record named `Nav` over a coordinate meaning `nav-1`. A red gate that is understood and written down is worth more than a green one obtained by guessing. Nothing is papered over and no generated project is shipped as conformant while this is open."
+filed_to: vjs
+vjs_submission_id: null
+created_at: 2026-07-31T15:40:00Z
+filed_at: 2026-07-31T15:40:00Z
+answer: null
