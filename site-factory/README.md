@@ -53,7 +53,9 @@ brief ──▶ suggest.js ──▶ config (36 fields) ──▶ compose.js ─
 | `figma-variables.json` | MEASURED: the `VDS Tokens` collection, per mode, paired to the style packs |
 | `figma-prompts.json` | MEASURED: the fingerprint of every prompt written into Figma verbatim |
 | `vendor/uber-base-*.json` | The Uber Base harvest (92 sets, 3,211 variants) and each set's tier |
-| `docs/FIGMA-MASTER-FILE.md` | What is on each of the twelve Figma pages, and the traps it has sprung |
+| `docs/FIGMA-MASTER-FILE.md` | What is on each Figma page, and the traps the file has sprung |
+| `docs/REFERENCES.md` | Every external system looked at, what was taken, and the three access blockers |
+| `vendor/relume-*.json` | The Relume kit harvest (1,799 sets) and site-factory's coverage against it |
 | `tests/` | 95 tests, run by `make test-factory` |
 
 ---
