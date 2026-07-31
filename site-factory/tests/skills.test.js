@@ -760,3 +760,84 @@ test('the variant-axis measurement matches the code it pairs, and every axis is 
     'intended direction and it means figmaProperty became derivable for them - update this ' +
     'test and bind them rather than leaving the binding null.');
 });
+
+test('every block either binds figmaProperty to a real axis, or says why it cannot', () => {
+  // `PropContract.figmaProperty` was null on every record in the programme's history, and
+  // nothing in the kernel had ever set it to anything else. The reason was structural, not
+  // an omission: Figma names variants NOMINALLY and the code named them POSITIONALLY, so
+  // there was no value to compare.
+  //
+  // Measuring all 43 against the real file settled each case, and the split is the finding:
+  // 31 aligned, 1 subset, 11 where the two sides vary DIFFERENT QUESTIONS. Every one of the
+  // 11 is a control primitive, and that is coherent rather than careless - a static drawing
+  // cannot hold a runtime value, so Figma varies what a designer must SEE (state, tone,
+  // pointer, size) while the code varies COMPOSITION and takes the rest as content.
+  //
+  // So this test guards BOTH outcomes. A forced binding on a different_axis block would
+  // publish that `banner-1` means `Tone=Warning`, which is false in both directions, and a
+  // wrong binding is worse than an absent one because a wrong one gets used.
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const { listBlockVariants } = require('../compose.js');
+  const measured = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'figma-variants.json'), 'utf8'));
+  const code = listBlockVariants();
+
+  const VERDICTS = new Set(['aligned', 'subset', 'different_axis']);
+  const counts = { aligned: 0, subset: 0, different_axis: 0 };
+
+  for (const [type, rec] of Object.entries(measured.blocks)) {
+    assert.ok(VERDICTS.has(rec.axisVerdict),
+      `${type}: axisVerdict ${JSON.stringify(rec.axisVerdict)} is not one of the three. An ` +
+      'unclassified block is one nobody has looked at, and it would be silently exempt from ' +
+      'everything below.');
+    counts[rec.axisVerdict] += 1;
+
+    if (rec.axisVerdict === 'different_axis') {
+      assert.ok(!rec.bindsTo,
+        `${type} is different_axis and still carries a binding. The two sides vary different ` +
+        'questions, so any mapping is false in both directions.');
+      assert.ok(rec.noBindingBecause && rec.noBindingBecause.length > 60,
+        `${type} has no binding and no usable reason. "It does not map" is not a reason; the ` +
+        'record must say WHAT each side varies, or the next author re-derives it.');
+      continue;
+    }
+
+    // A binding must name an axis the file actually draws, and map only real values.
+    assert.ok(rec.bindsTo, `${type} is ${rec.axisVerdict} and carries no binding`);
+    const axis = rec.bindsTo.property;
+    assert.ok(rec.axes[axis],
+      `${type} binds to ${JSON.stringify(axis)}, which is not an axis measured on its set. ` +
+      `Measured: ${Object.keys(rec.axes).join(', ')}`);
+    const drawn = new Set(rec.axes[axis]);
+
+    const mapped = rec.bindsTo.values;
+    assert.deepEqual(Object.keys(mapped).sort(), [...code[type]].sort(),
+      `${type}: the binding must map EVERY code variant and no others`);
+    for (const [key, value] of Object.entries(mapped)) {
+      assert.ok(drawn.has(value),
+        `${type}: ${key} maps to ${JSON.stringify(value)}, which the set does not draw on ` +
+        `${axis}. Drawn: ${[...drawn].join(', ')}`);
+    }
+    assert.equal(new Set(Object.values(mapped)).size, Object.keys(mapped).length,
+      `${type}: two code variants map to the same Figma value, so the binding is not a pairing`);
+
+    // A subset must declare which drawn values have no code counterpart, and an aligned
+    // block must have none left over - otherwise `aligned` is claiming more than it paired.
+    const unpaired = [...drawn].filter((d) => !Object.values(mapped).includes(d));
+    if (rec.axisVerdict === 'subset') {
+      assert.deepEqual(rec.bindsTo.unpairedFigmaValues, unpaired,
+        `${type}: the declared unpaired values disagree with the measurement`);
+      assert.ok(unpaired.length > 0, `${type} is declared subset and pairs everything`);
+    } else {
+      assert.deepEqual(unpaired, [],
+        `${type} is declared aligned but the set draws ${unpaired.join(', ')} with no code ` +
+        'counterpart. That is a subset, and calling it aligned overstates the pairing.');
+    }
+  }
+
+  assert.deepEqual(measured._verdicts.counts, counts,
+    'the verdict tally in the header disagrees with the per-block verdicts beneath it');
+  assert.ok(counts.aligned > 0 && counts.different_axis > 0,
+    'both outcomes must be present, or this test is only exercising one branch and the ' +
+    'other could be broken without anything noticing');
+});

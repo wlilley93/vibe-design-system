@@ -328,6 +328,8 @@ function deriveStates(source, block, drawnMap) {
   return { required, drawn };
 }
 
+const VARIANTS = require('./figma-variants.json');
+
 function nextIdNumber(registerDir) {
   if (!fs.existsSync(registerDir)) return 1;
   let highest = 0;
@@ -405,6 +407,55 @@ function deriveA11y(source) {
   return { role, accessibleNameSource, rolesSeen: roles };
 }
 
+/*
+ * The prop contract, with `figmaProperty` BOUND where the two sides vary the same thing.
+ *
+ * It was `null` on every prop of every record, and the reason turned out to be structural
+ * rather than an omission. Figma names variants NOMINALLY (`Style=Centered`, `Tone=Negative`
+ * - twelve distinct axis names across the 46 sets); the code names them POSITIONALLY
+ * (`hero-1`, `hero-2`). A positional key carries no value, so there is nothing to compare
+ * and no derivation could ever have produced a binding.
+ *
+ * Worse, for eleven blocks the two sides do not vary the SAME QUESTION at all. `divider` is
+ * `Inset=None|Cell` in Figma and plain-versus-labelled in code, where `inset` is a content
+ * field. Every one of those eleven is a control primitive, and the split is coherent: a
+ * static drawing cannot hold a runtime value, so Figma varies the axis a designer must SEE
+ * (state, tone, pointer, size) while the code varies COMPOSITION and takes the rest as
+ * content. That is a property of the medium, not a mistake either side made.
+ *
+ * So the binding is read from `figma-variants.json`, which classified all 43 against a
+ * measured read of the file, and a block classified `different_axis` gets `null` WITH ITS
+ * REASON rather than a forced mapping. Publishing that `banner-1` means `Tone=Warning`
+ * would be false in both directions, and a wrong binding is worse than an absent one
+ * because a wrong one gets used.
+ *
+ * The `variant` prop is a REQUIREMENT (the component must accept one, and here are its
+ * lawful values), never a realisation, so it is lawful under VDS S-2(4).
+ */
+function propContract(type) {
+  const out = [
+    '- name: content',
+    '  type: object',
+    '  required: true',
+    '  figmaProperty: null',
+  ];
+  const rec = VARIANTS.blocks && VARIANTS.blocks[type];
+  if (!rec) return out;
+
+  const keys = rec.codeKeys || [];
+  out.push(
+    '- name: variant',
+    `  type: ${JSON.stringify(keys.join('|'))}`,
+    '  required: true',
+  );
+  if (rec.bindsTo && rec.bindsTo.property) {
+    out.push(`  figmaProperty: ${JSON.stringify(rec.bindsTo.property)}`);
+  } else {
+    out.push('  figmaProperty: null');
+  }
+  return out;
+}
+
 function writeRegister(outDir, blockTypes) {
   const registerDir = path.join(outDir, '.vds', 'register');
   fs.mkdirSync(registerDir, { recursive: true });
@@ -448,10 +499,7 @@ function writeRegister(outDir, blockTypes) {
       `  sourceFile: blocks/${type}.js`,
       `  exportName: ${type}`,
       'props:',
-      '- name: content',
-      '  type: object',
-      '  required: true',
-      '  figmaProperty: null',
+      ...propContract(type),
       'states:',
       '  required:' + yamlList(['default', ...st.required], '  '),
       '  drawn:' + yamlList(['default', ...st.drawn], '  '),

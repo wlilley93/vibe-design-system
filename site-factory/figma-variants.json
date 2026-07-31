@@ -37,7 +37,9 @@
         "banner-1",
         "banner-2"
       ],
-      "gap": 2
+      "gap": 2,
+      "axisVerdict": "different_axis",
+      "noBindingBecause": "Figma varies TONE (four values); the code varies full-versus-inline LAYOUT. Tone is a content field in the code, and layout is undrawn in Figma."
     },
     "card": {
       "nodeId": "39:178",
@@ -53,7 +55,15 @@
       "codeKeys": [
         "card-1",
         "card-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Kind",
+        "values": {
+          "card-1": "Record",
+          "card-2": "Metric"
+        }
+      }
     },
     "checkbox": {
       "nodeId": "47:25",
@@ -71,7 +81,9 @@
         "checkbox-1",
         "checkbox-2"
       ],
-      "gap": 1
+      "gap": 1,
+      "axisVerdict": "different_axis",
+      "noBindingBecause": "Figma varies State=Unchecked|Checked|Indeterminate; the code varies single-vs-group composition. Neither is wrong and they are not the same question."
     },
     "confirmdialog": {
       "nodeId": "37:165",
@@ -87,7 +99,15 @@
       "codeKeys": [
         "confirmdialog-1",
         "confirmdialog-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Confirm",
+        "values": {
+          "confirmdialog-1": "Acknowledge",
+          "confirmdialog-2": "Type to confirm"
+        }
+      }
     },
     "contact": {
       "nodeId": "16:107",
@@ -103,7 +123,15 @@
       "codeKeys": [
         "contact-1",
         "contact-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Style",
+        "values": {
+          "contact-1": "Form",
+          "contact-2": "Split"
+        }
+      }
     },
     "cta": {
       "nodeId": "16:35",
@@ -119,7 +147,15 @@
       "codeKeys": [
         "cta-1",
         "cta-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Style",
+        "values": {
+          "cta-1": "Banner",
+          "cta-2": "Signup"
+        }
+      }
     },
     "divider": {
       "nodeId": "47:63",
@@ -135,7 +171,9 @@
       "codeKeys": [
         "divider-1",
         "divider-2"
-      ]
+      ],
+      "axisVerdict": "different_axis",
+      "noBindingBecause": "Figma varies INSET (a spacing decision); the code varies whether the rule carries a LABEL. `inset` is a content field in the code (`content.inset === true`), not a variant, and Figma draws no labelled rule at all."
     },
     "draggablelist": {
       "nodeId": "56:150",
@@ -151,7 +189,15 @@
       "codeKeys": [
         "draggablelist-1",
         "draggablelist-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Artwork",
+        "values": {
+          "draggablelist-1": "None",
+          "draggablelist-2": "Custom"
+        }
+      }
     },
     "emptystate": {
       "nodeId": "36:204",
@@ -167,7 +213,15 @@
       "codeKeys": [
         "emptystate-1",
         "emptystate-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "State",
+        "values": {
+          "emptystate-1": "First run",
+          "emptystate-2": "No results"
+        }
+      }
     },
     "facetstrip": {
       "nodeId": "28:29",
@@ -183,7 +237,15 @@
       "codeKeys": [
         "facetstrip-1",
         "facetstrip-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Style",
+        "values": {
+          "facetstrip-1": "Chips",
+          "facetstrip-2": "Grouped"
+        }
+      }
     },
     "faq": {
       "nodeId": "16:21",
@@ -199,7 +261,15 @@
       "codeKeys": [
         "faq-1",
         "faq-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Style",
+        "values": {
+          "faq-1": "Accordion",
+          "faq-2": "Columns"
+        }
+      }
     },
     "features": {
       "nodeId": "15:107",
@@ -215,7 +285,15 @@
       "codeKeys": [
         "features-1",
         "features-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Style",
+        "values": {
+          "features-1": "Grid",
+          "features-2": "Comparison"
+        }
+      }
     },
     "footer": {
       "nodeId": "10:28",
@@ -231,7 +309,15 @@
       "codeKeys": [
         "footer-a",
         "footer-b"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Style",
+        "values": {
+          "footer-a": "Simple",
+          "footer-b": "Columns"
+        }
+      }
     },
     "formfield": {
       "nodeId": "36:189",
@@ -247,7 +333,15 @@
       "codeKeys": [
         "formfield-1",
         "formfield-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Layout",
+        "values": {
+          "formfield-1": "Stacked",
+          "formfield-2": "Two column"
+        }
+      }
     },
     "gallery": {
       "nodeId": "86:225",
@@ -263,7 +357,15 @@
       "codeKeys": [
         "gallery-1",
         "gallery-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Class",
+        "values": {
+          "gallery-1": "Gallery",
+          "gallery-2": "Portfolio"
+        }
+      }
     },
     "hero": {
       "nodeId": "9:25",
@@ -279,7 +381,15 @@
       "codeKeys": [
         "hero-1",
         "hero-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Style",
+        "values": {
+          "hero-1": "Centered",
+          "hero-2": "Split"
+        }
+      }
     },
     "inspector": {
       "nodeId": "29:79",
@@ -295,7 +405,15 @@
       "codeKeys": [
         "inspector-1",
         "inspector-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Style",
+        "values": {
+          "inspector-1": "Properties",
+          "inspector-2": "Activity"
+        }
+      }
     },
     "logolist": {
       "nodeId": "86:148",
@@ -311,7 +429,15 @@
       "codeKeys": [
         "logolist-1",
         "logolist-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Layout",
+        "values": {
+          "logolist-1": "Row",
+          "logolist-2": "Grid"
+        }
+      }
     },
     "masterdetail": {
       "nodeId": "31:138",
@@ -327,7 +453,15 @@
       "codeKeys": [
         "masterdetail-1",
         "masterdetail-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Panes",
+        "values": {
+          "masterdetail-1": "Two",
+          "masterdetail-2": "Three"
+        }
+      }
     },
     "menu": {
       "nodeId": "56:69",
@@ -343,7 +477,9 @@
       "codeKeys": [
         "menu-1",
         "menu-2"
-      ]
+      ],
+      "axisVerdict": "different_axis",
+      "noBindingBecause": "Figma varies SIZE (Small/Medium); the code varies whether items are GROUPED. Size is a token decision in the code, not a variant."
     },
     "messagecard": {
       "nodeId": "54:69",
@@ -359,7 +495,15 @@
       "codeKeys": [
         "messagecard-1",
         "messagecard-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Layout",
+        "values": {
+          "messagecard-1": "WithArtwork",
+          "messagecard-2": "TextOnly"
+        }
+      }
     },
     "nav": {
       "nodeId": "15:18",
@@ -375,7 +519,15 @@
       "codeKeys": [
         "nav-1",
         "nav-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Style",
+        "values": {
+          "nav-1": "Simple",
+          "nav-2": "Centered"
+        }
+      }
     },
     "notfound": {
       "nodeId": "16:119",
@@ -391,7 +543,15 @@
       "codeKeys": [
         "notfound-1",
         "notfound-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Style",
+        "values": {
+          "notfound-1": "Simple",
+          "notfound-2": "Search"
+        }
+      }
     },
     "notificationbadge": {
       "nodeId": "47:54",
@@ -409,7 +569,18 @@
         "notificationbadge-1",
         "notificationbadge-2"
       ],
-      "gap": 1
+      "gap": 1,
+      "axisVerdict": "subset",
+      "bindsTo": {
+        "property": "Kind",
+        "values": {
+          "notificationbadge-1": "Dot",
+          "notificationbadge-2": "Count"
+        },
+        "unpairedFigmaValues": [
+          "Overflow"
+        ]
+      }
     },
     "objecttable": {
       "nodeId": "28:71",
@@ -425,7 +596,15 @@
       "codeKeys": [
         "objecttable-1",
         "objecttable-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Style",
+        "values": {
+          "objecttable-1": "Grid",
+          "objecttable-2": "List"
+        }
+      }
     },
     "objectview": {
       "nodeId": "29:50",
@@ -441,7 +620,15 @@
       "codeKeys": [
         "objectview-1",
         "objectview-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Style",
+        "values": {
+          "objectview-1": "Header",
+          "objectview-2": "Tabbed"
+        }
+      }
     },
     "pagecontrols": {
       "nodeId": "55:106",
@@ -457,7 +644,9 @@
       "codeKeys": [
         "pagecontrols-1",
         "pagecontrols-2"
-      ]
+      ],
+      "axisVerdict": "different_axis",
+      "noBindingBecause": "Figma varies State=Enabled|Disabled; the code varies dots-versus-counted presentation."
     },
     "pagestate": {
       "nodeId": "37:143",
@@ -473,7 +662,15 @@
       "codeKeys": [
         "pagestate-1",
         "pagestate-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "State",
+        "values": {
+          "pagestate-1": "Loading",
+          "pagestate-2": "Error"
+        }
+      }
     },
     "pagination": {
       "nodeId": "57:91",
@@ -495,7 +692,9 @@
         "pagination-2"
       ],
       "gap": 2,
-      "multiAxis": true
+      "multiAxis": true,
+      "axisVerdict": "different_axis",
+      "noBindingBecause": "Two Figma axes (Layout=Compact|Full, State=Enabled|Disabled) against one code axis (numbered-versus-cursor). Neither Figma axis is the code axis, and a two-axis set cannot map onto two positional exports even if one were."
     },
     "pricing": {
       "nodeId": "15:64",
@@ -511,7 +710,15 @@
       "codeKeys": [
         "pricing-1",
         "pricing-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Style",
+        "values": {
+          "pricing-1": "Cards",
+          "pricing-2": "Table"
+        }
+      }
     },
     "progressbar": {
       "nodeId": "55:121",
@@ -533,7 +740,9 @@
         "progressbar-2"
       ],
       "gap": 2,
-      "multiAxis": true
+      "multiAxis": true,
+      "axisVerdict": "different_axis",
+      "noBindingBecause": "Two Figma axes (Size, Layout=Label|None) against one code axis (percent-versus-count). The code axis is what the bar COUNTS; neither Figma axis is."
     },
     "progresssteps": {
       "nodeId": "57:135",
@@ -549,7 +758,15 @@
       "codeKeys": [
         "progresssteps-1",
         "progresssteps-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Layout",
+        "values": {
+          "progresssteps-1": "Horizontal",
+          "progresssteps-2": "Vertical"
+        }
+      }
     },
     "radio": {
       "nodeId": "47:33",
@@ -565,7 +782,9 @@
       "codeKeys": [
         "radio-1",
         "radio-2"
-      ]
+      ],
+      "axisVerdict": "different_axis",
+      "noBindingBecause": "Same as `switch`: Figma varies State=Unselected|Selected, the code varies stacked-vs-card composition."
     },
     "segmentedcontrol": {
       "nodeId": "39:161",
@@ -581,7 +800,15 @@
       "codeKeys": [
         "segmentedcontrol-1",
         "segmentedcontrol-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Kind",
+        "values": {
+          "segmentedcontrol-1": "View switch",
+          "segmentedcontrol-2": "Filter"
+        }
+      }
     },
     "sidebar": {
       "nodeId": "16:54",
@@ -597,7 +824,15 @@
       "codeKeys": [
         "sidebar-1",
         "sidebar-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Style",
+        "values": {
+          "sidebar-1": "Simple",
+          "sidebar-2": "Grouped"
+        }
+      }
     },
     "stats": {
       "nodeId": "86:189",
@@ -613,7 +848,15 @@
       "codeKeys": [
         "stats-1",
         "stats-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Layout",
+        "values": {
+          "stats-1": "Row",
+          "stats-2": "WithClaim"
+        }
+      }
     },
     "switch": {
       "nodeId": "47:13",
@@ -629,7 +872,9 @@
       "codeKeys": [
         "switch-1",
         "switch-2"
-      ]
+      ],
+      "axisVerdict": "different_axis",
+      "noBindingBecause": "Figma varies the control STATE (Off/On); the code varies the COMPOSITION it sits in (a bare row, or a labelled setting). State is runtime and a static drawing cannot have it, so Figma must draw as a variant what the code takes as a prop."
     },
     "systembanner": {
       "nodeId": "54:26",
@@ -648,7 +893,9 @@
         "systembanner-1",
         "systembanner-2"
       ],
-      "gap": 2
+      "gap": 2,
+      "axisVerdict": "different_axis",
+      "noBindingBecause": "Same as `banner`: Figma varies Tone across four values, the code varies dismiss-versus-action affordance."
     },
     "team": {
       "nodeId": "16:82",
@@ -664,7 +911,15 @@
       "codeKeys": [
         "team-1",
         "team-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Style",
+        "values": {
+          "team-1": "Grid",
+          "team-2": "List"
+        }
+      }
     },
     "testimonials": {
       "nodeId": "15:80",
@@ -680,7 +935,15 @@
       "codeKeys": [
         "testimonials-1",
         "testimonials-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Style",
+        "values": {
+          "testimonials-1": "Grid",
+          "testimonials-2": "Featured"
+        }
+      }
     },
     "timeline": {
       "nodeId": "86:271",
@@ -696,7 +959,15 @@
       "codeKeys": [
         "timeline-1",
         "timeline-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Layout",
+        "values": {
+          "timeline-1": "Vertical",
+          "timeline-2": "Horizontal"
+        }
+      }
     },
     "toast": {
       "nodeId": "39:139",
@@ -712,7 +983,15 @@
       "codeKeys": [
         "toast-1",
         "toast-2"
-      ]
+      ],
+      "axisVerdict": "aligned",
+      "bindsTo": {
+        "property": "Kind",
+        "values": {
+          "toast-1": "Confirmation",
+          "toast-2": "Undoable"
+        }
+      }
     },
     "tooltip": {
       "nodeId": "47:42",
@@ -728,7 +1007,19 @@
       "codeKeys": [
         "tooltip-1",
         "tooltip-2"
-      ]
+      ],
+      "axisVerdict": "different_axis",
+      "noBindingBecause": "Figma varies POINTER placement (Bottom/Top); the code varies CONTENT richness (a bare label, or a rich body). Placement is not modelled in the code at all."
+    }
+  },
+  "_verdicts": {
+    "_what": "Whether each block's CODE variant axis is the same question its FIGMA axis asks.",
+    "_why": "`figmaProperty` can only be bound where the two sides vary the SAME thing. Where they do not, the honest record is a stated reason and a null binding - a forced mapping would publish that `banner-1` means `Tone=Warning`, which is false in both directions.",
+    "_pattern": "Every different_axis block is a CONTROL primitive, and the split is coherent rather than careless: Figma varies the axis a designer needs to see (STATE, TONE, POINTER, SIZE) because a static drawing cannot hold a runtime value, while the code varies COMPOSITION and takes the rest as content. The mismatch is a property of the medium, not a mistake either side made.",
+    "counts": {
+      "aligned": 31,
+      "subset": 1,
+      "different_axis": 11
     }
   }
 }
