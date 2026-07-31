@@ -2004,3 +2004,47 @@ test('the Figma block prompts still match what the generator emits', () => {
   assert.ok(rec._what_this_is_not.some((l) => /second source of truth/i.test(l)),
     'the record no longer says the generator is the source and this is a rendering');
 });
+
+// ---------------------------------------------------------------------------
+// The composition graph, and the cycle nothing checked. VDS S-7(5) composition
+// checks MEMBERSHIP of may_use: it can tell you a block used something
+// unregistered, and not that a block used itself. Borrowed with attribution
+// from ds-contracts-poc's emit-react, which refuses a part whose component
+// reference creates a cycle - "a contract cannot compose itself".
+test('no block composes itself, directly or through another', () => {
+  const { edges, cycles, summary } = require('../block-graph.js');
+  const graph = edges();
+  const s = summary(graph);
+
+  // NOT VACUOUS, and this is the assertion that proves it. A cycle check over a
+  // graph with no edges passes trivially and forever. `masterdetail` really
+  // does compose four blocks, so the graph has something to be acyclic ABOUT.
+  assert.ok(Object.keys(s.composers).length > 0,
+    'no block composes any other, so this cycle check is over an empty graph and cannot fail');
+  assert.ok(graph.masterdetail && graph.masterdetail.length >= 4,
+    'masterdetail no longer composes the four blocks it assembles; if composition moved, ' +
+    'this check needs re-pointing rather than deleting');
+
+  const found = cycles(graph);
+  assert.deepEqual(found.map((c) => c.join(' -> ')), [],
+    'a block composes itself. A circular require in CommonJS does NOT throw - Node hands ' +
+    'the second requirer a HALF-BUILT exports object - so this surfaces as a variant that ' +
+    'is silently undefined, a long way from the two files that disagree.');
+
+  // Every edge must point at a block that exists. A require of a deleted block
+  // is a different defect and would otherwise read as a clean acyclic graph.
+  for (const [type, deps] of Object.entries(graph)) {
+    for (const d of deps) {
+      assert.ok(graph[d], `${type} requires ./${d}.js, which is not a block`);
+    }
+  }
+
+  // The detector must actually detect. Driven on fixtures, because the real
+  // graph is acyclic and a cycle cannot be seeded in it without breaking the
+  // build - so the failing direction is unreachable through the artefacts.
+  assert.equal(cycles({ a: ['b'], b: ['a'] }).length, 1, 'a two-block cycle is not found');
+  assert.equal(cycles({ a: ['a'] }).length, 1, 'a self-require is not found');
+  assert.equal(cycles({ a: ['b'], b: ['c'], c: ['a'] }).length, 1, 'a three-block cycle is not found');
+  assert.equal(cycles({ a: ['b', 'c'], b: ['c'], c: [] }).length, 0,
+    'a diamond is not a cycle, and reporting one would make this check cry wolf');
+});
