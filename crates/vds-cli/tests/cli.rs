@@ -1381,38 +1381,33 @@ fn the_documents_and_the_enum_agree_on_how_many_proof_kinds_there_are() {
     }
 }
 
-/// SUBMISSION-VDS-007's fail-closed interim, enforced instead of asserted.
+/// [2026] VJS-CC-VIBE-DESIGN-SYSTEM 6 D3: prune never runs unattended.
 ///
-/// The submission promises that `vds prune` - the largest un-statuted power in
-/// the build, a delete over committed governance records - "stays out of every
-/// automated path and is run only by a human who typed it". That promise was
-/// prose in a YAML field, which is the exact shape this repository keeps filing
-/// against other people's work: a rule written down, with nothing checking it.
-/// Adding `$(MAKE) prune` to `check` tomorrow would make the submission's
-/// guarantee false and nothing would say so.
-///
-/// The guard is CONDITIONAL on the submission being unanswered. When the bench
-/// rules, this fails and says to revisit - because an interim that outlives its
-/// question is its own defect, and a guard that silently keeps enforcing a
-/// withdrawn interim is how a temporary measure becomes permanent by accident.
+/// This began as SUBMISSION-VDS-007's fail-closed interim, built to EXPIRE: it
+/// panicked the moment the submission was answered, so an interim could not
+/// outlive its question by nobody looking. It fired on 2026-07-31, exactly as
+/// designed, when the bench answered - and the ruling made the interim's rule
+/// PERMANENT: deletion is an act a person initiates with the keep-rules in
+/// front of them (VDS.md S-4(5)). So the expiry tripwire is gone and the
+/// enforcement remains, now citing the order instead of awaiting one. The
+/// ruling names this very test as the gate that holds the rule.
 #[test]
-fn prune_stays_out_of_every_automated_path_while_its_authority_is_unsettled() {
+fn prune_stays_out_of_every_automated_path_by_order() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .and_then(|p| p.parent())
         .expect("workspace root")
         .to_path_buf();
 
-    let submission =
-        std::fs::read_to_string(root.join(".vds/submissions/filed/SUBMISSION-VDS-007.yaml"))
-            .expect("SUBMISSION-VDS-007 must exist; the interim below is its promise");
-    let doc: serde_yaml::Value = serde_yaml::from_str(&submission).expect("it parses");
-    let answered = !matches!(doc.get("answer"), None | Some(serde_yaml::Value::Null));
+    // The authority this test now enforces must itself exist: a gate citing a
+    // ruling that was never recorded would be enforcing its author's memory.
+    let order =
+        std::fs::read_to_string(root.join(".vjs/orders/2026-VJS-CC-VDS-PRUNE-AUTHORITY-006.yaml"))
+            .expect("the order this gate enforces must be on the record");
     assert!(
-        !answered,
-        "SUBMISSION-VDS-007 has been ANSWERED. Read the ruling and decide what happens to \
-         the fail-closed interim this test enforces - it must be lifted, narrowed or \
-         legislated, not left running because nobody looked."
+        order.contains("keep_prune_out_of_every_automated_path"),
+        "the order no longer carries the directive this test enforces - if it was \
+         superseded, change this test under the superseding ruling, not silently"
     );
 
     // The three automated paths. `make check` is what the pre-push hook runs and
