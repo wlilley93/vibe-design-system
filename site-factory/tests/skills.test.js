@@ -1426,3 +1426,64 @@ test('the Opbox kit references three tokens neither of its token sets declares',
     '--action is the token that started this: defined to carry "ink acts, blue selects" ' +
     'and consumed by nothing');
 });
+
+// ---------------------------------------------------------------------------
+// A prompt per block type, DERIVED. The guard's job is to stop "43 of 43"
+// becoming a count of structurally-present, empty entries - which is exactly
+// what the first version produced for seventeen blocks that document
+// themselves in `//` runs rather than `/* */` blocks.
+test('every block type has a prompt that is not hollow', () => {
+  const { buildAll, STYLE } = require('../block-prompts.js');
+  const variants = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'figma-variants.json'), 'utf8'));
+  const manifest = variants.blocks || variants;
+  const all = buildAll();
+
+  assert.deepEqual(Object.keys(all).sort(), Object.keys(manifest).sort(),
+    'the prompt set and the measured block set are not the same set');
+
+  let variantCount = 0;
+  let noted = 0;
+  for (const [type, b] of Object.entries(all)) {
+    // NOT HOLLOW. A prompt with no purpose AND no variant note is a heading.
+    assert.ok(b.hasPurpose || b.notedVariants.length > 0,
+      `${type}: the prompt carries neither a purpose nor a single variant note, so it ` +
+      'names the block and says nothing about it');
+    assert.ok(b.variants.length > 0, `${type}: no variants read from the module`);
+    variantCount += b.variants.length;
+    noted += b.notedVariants.length;
+
+    // The prompt must name the block's REAL variants. This is what stops it
+    // drifting: add a variant to the module and the prompt gains it, or this
+    // fails.
+    for (const v of b.variants) {
+      assert.ok(b.prompt.includes(v), `${type}: the prompt does not name variant ${v}`);
+    }
+    assert.ok(b.prompt.includes(STYLE), `${type}: the shared style block is missing`);
+
+    // NO DESIGN VALUE may reach a prompt. A prompt naming a hex or a px is a
+    // fourth design authority - the thing [2026] VJS-CC-OPBOX 3 D1 forbids -
+    // and it would be one nobody could see, because prompts are prose.
+    // The token NAMES (--radius-sm, --text-*) are references, not values.
+    const body = b.prompt.replace(/--[a-z][\w-]*/g, '');
+    assert.doesNotMatch(body, /#[0-9a-fA-F]{3,8}\b/,
+      `${type}: the prompt contains a hex colour, which is a design realisation`);
+  }
+
+  // Every variant carries a note, and the number is asserted rather than
+  // described: 86 of 86 today, and a new variant with no comment fails here
+  // rather than silently lowering the rate.
+  assert.equal(noted, variantCount,
+    `${noted} of ${variantCount} variants carry a note. A variant with no comment beside ` +
+    'it produces a prompt that lists its name and explains nothing.');
+  assert.ok(variantCount >= 86, `only ${variantCount} variants covered`);
+
+  // The eleven divergent blocks must SAY they diverge. Telling a generator the
+  // two sides correspond, where measurement says they do not, is worse than
+  // saying nothing: it invents a mapping.
+  const divergent = Object.entries(manifest).filter(([, m]) => m.axisVerdict === 'different_axis');
+  assert.ok(divergent.length >= 11, `${divergent.length} divergent blocks, expected at least 11`);
+  for (const [type] of divergent) {
+    assert.match(all[type].prompt, /VARY DIFFERENT THINGS/,
+      `${type}: Figma and the code vary different things and the prompt does not say so`);
+  }
+});
