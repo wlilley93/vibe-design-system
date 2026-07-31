@@ -1063,3 +1063,59 @@ test('the generated library covers every block type, with a stable identity per 
     'specsFor must refuse an id that is not the block type\'s canonical one',
   );
 });
+
+test('the Base axis reconciliation states a verdict per block and never flatters the match', () => {
+  // REFERENCES.md records Uber Base as "the control and messaging baseline" and lists what
+  // came from it: the palette, the role-based type ramp, 16 redrawn sets. The VARIANT AXIS
+  // VOCABULARY is not on that list, and until Base's real contracts were harvested nothing
+  // could check whether it came from Base either.
+  //
+  // It largely did not: 1 of 14 matches in both name and values. This test exists so the
+  // count cannot quietly improve without the underlying axes actually changing - the
+  // failure mode being an author who edits a verdict rather than an axis.
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const rec = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'vendor', 'base-axis-reconciliation.json'), 'utf8'));
+  const mine = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'figma-variants.json'), 'utf8'));
+
+  const VERDICTS = new Set(['exact', 'renamed', 'same_name_different_values', 'invented']);
+  const tally = {};
+  for (const row of rec.rows) {
+    assert.ok(VERDICTS.has(row.verdict), `${row.block}: ${row.verdict} is not a verdict`);
+    tally[row.verdict] = (tally[row.verdict] || 0) + 1;
+
+    // Every row must name a block that exists, and quote MY axis as the measurement has it.
+    const block = mine.blocks[row.block];
+    assert.ok(block, `${row.block} is reconciled and is not a block type`);
+    const myAxis = Object.keys(block.axes)[0];
+    assert.equal(row.myAxis, myAxis,
+      `${row.block}: the reconciliation says my axis is ${row.myAxis} and figma-variants.json ` +
+      `says ${myAxis}. A reconciliation that misquotes one side settles nothing.`);
+    assert.deepEqual(row.myValues, block.axes[myAxis],
+      `${row.block}: the reconciliation misquotes my axis values`);
+
+    // A verdict of `renamed` is a real claim - the VALUE SET matches a Base axis exactly -
+    // so it must name which one. Without that it is an opinion.
+    if (row.verdict === 'renamed' || row.verdict === 'exact') {
+      assert.ok(row.sameValuesAsBaseAxis,
+        `${row.block} is ${row.verdict} and names no Base axis whose values it matches`);
+    }
+    if (row.verdict === 'invented') {
+      assert.equal(row.sameValuesAsBaseAxis, null,
+        `${row.block} is called invented and its values match Base's ${row.sameValuesAsBaseAxis}`);
+    }
+    // Every paired Base set carries MORE axes than mine. If that ever stops being true the
+    // collapse claim needs re-checking rather than restating.
+    assert.ok(row.baseAxisCount >= 1, `${row.block}: no Base axes recorded`);
+  }
+
+  assert.deepEqual(rec.verdicts, tally,
+    'the verdict tally in the header disagrees with the rows beneath it');
+  assert.equal(rec.paired, rec.rows.length, 'the paired count disagrees with the rows');
+  assert.ok(rec.verdicts.exact <= 1,
+    `${rec.verdicts.exact} blocks now match Base exactly, up from 1. That is good news and ` +
+    'this test must be re-read rather than edited: confirm the AXES changed, not the verdicts.');
+  assert.ok((rec.verdicts.invented || 0) + (rec.verdicts.same_name_different_values || 0) > 0,
+    'no block diverges from Base at all, which would mean the vocabulary was inherited after ' +
+    'all - re-measure before believing it');
+});

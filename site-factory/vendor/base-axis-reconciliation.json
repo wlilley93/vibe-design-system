@@ -1,0 +1,248 @@
+{
+  "_what": "Every site-factory block that pairs to a real Uber Base component set, with MY variant axis set beside BASE’s, and a verdict on whether the axis was taken from Base or invented.",
+  "_why": "REFERENCES.md records Base as \"the control and messaging baseline\" and says the palette, the type ramp and 16 redrawn sets came from it. The VARIANT AXIS VOCABULARY is not in that list, and until Base’s real contracts were harvested nothing could check whether it came from Base either. It largely did not.",
+  "_how": "Base axes read via getMainComponentAsync on the Gallery duplicate 2026-07-31; my axes from figma-variants.json. A verdict of `renamed` means the VALUE SET matches a Base axis exactly and the NAME does not.",
+  "_finding": "THE AXIS VOCABULARY WAS INVENTED, not inherited. Only one of fourteen matches Base in both name and values. Two carry Base’s exact value set under a different name - `banner` and `systembanner` both use `Tone` for the four values Base calls `Style` (Accent/Positive/Warning/Negative). The rest neither match nor rename: they are a different question from any axis Base asks.",
+  "_the_sharper_half": "MY BLOCKS COLLAPSE MULTI-AXIS SETS INTO ONE AXIS, and the arithmetic says how much: these fourteen Base sets carry 2 to 7 axes each and mine carry one. `pagination` is 7 axes and 423 variants in Base against 1 axis and 2 variants here. That is not drift, it is a deliberately smaller component - but nothing had written it down, so \"built from Base\" read as a stronger claim than the evidence supports.",
+  "_the_one_that_matches": "`progresssteps`: Layout[Horizontal,Vertical] against Base Layout[Vertical,Horizontal]. Same name, same values, different order. It is the only exact match in fourteen.",
+  "_worst_disagreement": "`radio`. Base carries State[Enabled,Disabled] AND Selected Unselected[Selected,Unselected] - two separate axes. Mine carries one axis named `State` holding [Unselected,Selected], which is Base’s SECOND axis under Base’s FIRST axis’s name. A reader who knows Base would read my `State=Selected` as an enabled/disabled value.",
+  "measured_at": "2026-07-31T11:51:13Z",
+  "paired": 14,
+  "unpaired": 29,
+  "verdicts": {
+    "renamed": 3,
+    "invented": 4,
+    "same_name_different_values": 6,
+    "exact": 1
+  },
+  "rows": [
+    {
+      "block": "banner",
+      "myAxis": "Tone",
+      "myValues": [
+        "Warning",
+        "Negative",
+        "Accent",
+        "Positive"
+      ],
+      "baseAxes": [
+        "Hierarchy",
+        "Layout",
+        "Artwork",
+        "Style"
+      ],
+      "verdict": "renamed",
+      "sameValuesAsBaseAxis": "Style",
+      "baseAxisCount": 4
+    },
+    {
+      "block": "divider",
+      "myAxis": "Inset",
+      "myValues": [
+        "None",
+        "Cell"
+      ],
+      "baseAxes": [
+        "Class"
+      ],
+      "verdict": "invented",
+      "sameValuesAsBaseAxis": null,
+      "baseAxisCount": 1
+    },
+    {
+      "block": "draggablelist",
+      "myAxis": "Artwork",
+      "myValues": [
+        "Custom",
+        "None"
+      ],
+      "baseAxes": [
+        "Artwork",
+        "State"
+      ],
+      "verdict": "same_name_different_values",
+      "sameValuesAsBaseAxis": null,
+      "baseAxisCount": 2
+    },
+    {
+      "block": "emptystate",
+      "myAxis": "State",
+      "myValues": [
+        "First run",
+        "No results"
+      ],
+      "baseAxes": [
+        "Class"
+      ],
+      "verdict": "invented",
+      "sameValuesAsBaseAxis": null,
+      "baseAxisCount": 1
+    },
+    {
+      "block": "menu",
+      "myAxis": "Size",
+      "myValues": [
+        "Small",
+        "Medium"
+      ],
+      "baseAxes": [
+        "Class",
+        "Size"
+      ],
+      "verdict": "same_name_different_values",
+      "sameValuesAsBaseAxis": null,
+      "baseAxisCount": 2
+    },
+    {
+      "block": "messagecard",
+      "myAxis": "Layout",
+      "myValues": [
+        "WithArtwork",
+        "TextOnly"
+      ],
+      "baseAxes": [
+        "Layout",
+        "Sub layout",
+        "Style",
+        "Artwork",
+        "State"
+      ],
+      "verdict": "same_name_different_values",
+      "sameValuesAsBaseAxis": null,
+      "baseAxisCount": 5
+    },
+    {
+      "block": "notificationbadge",
+      "myAxis": "Kind",
+      "myValues": [
+        "Dot",
+        "Count",
+        "Overflow"
+      ],
+      "baseAxes": [
+        "Layout",
+        "Style",
+        "Size"
+      ],
+      "verdict": "invented",
+      "sameValuesAsBaseAxis": null,
+      "baseAxisCount": 3
+    },
+    {
+      "block": "pagecontrols",
+      "myAxis": "State",
+      "myValues": [
+        "Enabled",
+        "Disabled"
+      ],
+      "baseAxes": [
+        "Layout",
+        "Selected index",
+        "State"
+      ],
+      "verdict": "same_name_different_values",
+      "sameValuesAsBaseAxis": null,
+      "baseAxisCount": 3
+    },
+    {
+      "block": "pagination",
+      "myAxis": "Layout",
+      "myValues": [
+        "Compact",
+        "Full"
+      ],
+      "baseAxes": [
+        "Class",
+        "Size",
+        "Layout",
+        "Selected index",
+        "Display",
+        "State",
+        "Substate"
+      ],
+      "verdict": "same_name_different_values",
+      "sameValuesAsBaseAxis": null,
+      "baseAxisCount": 7
+    },
+    {
+      "block": "progresssteps",
+      "myAxis": "Layout",
+      "myValues": [
+        "Horizontal",
+        "Vertical"
+      ],
+      "baseAxes": [
+        "Layout",
+        "Sublayout"
+      ],
+      "verdict": "exact",
+      "sameValuesAsBaseAxis": "Layout",
+      "baseAxisCount": 2
+    },
+    {
+      "block": "radio",
+      "myAxis": "State",
+      "myValues": [
+        "Unselected",
+        "Selected"
+      ],
+      "baseAxes": [
+        "State",
+        "Selected Unselected"
+      ],
+      "verdict": "renamed",
+      "sameValuesAsBaseAxis": "Selected Unselected",
+      "baseAxisCount": 2
+    },
+    {
+      "block": "switch",
+      "myAxis": "State",
+      "myValues": [
+        "Off",
+        "On"
+      ],
+      "baseAxes": [
+        "Platform / Device",
+        "State",
+        "Behavior"
+      ],
+      "verdict": "same_name_different_values",
+      "sameValuesAsBaseAxis": null,
+      "baseAxisCount": 3
+    },
+    {
+      "block": "systembanner",
+      "myAxis": "Tone",
+      "myValues": [
+        "Warning",
+        "Negative",
+        "Accent",
+        "Positive"
+      ],
+      "baseAxes": [
+        "Device",
+        "Layout",
+        "Artwork",
+        "Style"
+      ],
+      "verdict": "renamed",
+      "sameValuesAsBaseAxis": "Style",
+      "baseAxisCount": 4
+    },
+    {
+      "block": "tooltip",
+      "myAxis": "Pointer",
+      "myValues": [
+        "Bottom",
+        "Top"
+      ],
+      "baseAxes": [
+        "Layout",
+        "Sub layout"
+      ],
+      "verdict": "invented",
+      "sameValuesAsBaseAxis": null,
+      "baseAxisCount": 2
+    }
+  ]
+}

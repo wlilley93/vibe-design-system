@@ -1,6 +1,6 @@
 {
   "_what": "ONE coverage record against four reference libraries, with THREE SEPARATE NUMBERS per library and no single score.",
-  "_why": "Every previous coverage answer in this programme was a fraction, and a fraction hides which of three different things went wrong. Borrowed from ds-contracts-poc’s own census, whose headline was 100% clean over 1,618 sets and whose caveat is the point: \"Refusal-free is not pixel-right.\" It scored perfectly while naming 3,316 capture degradations, because CLEAN and COMPLETE are different questions and one number cannot answer both.",
+  "_why": "Every previous coverage answer in this programme was a fraction, and a fraction hides which of three different things went wrong. Borrowed from ds-contracts-poc\u2019s own census, whose headline was 100% clean over 1,618 sets and whose caveat is the point: \"Refusal-free is not pixel-right.\" It scored perfectly while naming 3,316 capture degradations, because CLEAN and COMPLETE are different questions and one number cannot answer both.",
   "_the_three_numbers": {
     "denominator": "How many units the reference library HAS. Hand-authored from a measurement of the library itself, never derived from what site-factory happens to cover - an instrument that computes its own denominator cannot be surprised.",
     "answered": "How many of those units site-factory has a counterpart for. A pairing, not a judgement of quality.",
@@ -12,20 +12,24 @@
     "uber-base": {
       "what": "Uber Base, the product design system. Harvested from the Gallery file.",
       "denominator": {
-        "sets": 92,
-        "variants": 3211,
-        "source": "vendor/uber-base-tiers.json, a measured read of the Gallery"
+        "sets": 126,
+        "variants": 4280,
+        "bare_components": 222,
+        "source": "vendor/uber-base-contracts.json, harvested through the Gallery duplicate 2026-07-31. SUPERSEDES the 92/3,211 in vendor/uber-base-tiers.json, which counted what a top-level page walk could see rather than what is referenced."
       },
       "answered": {
-        "sets": 43,
-        "how": "a block type exists for the set, per the tier assignment"
+        "sets": 14,
+        "how": "a site-factory block pairs to a Base component set by name; see vendor/base-axis-reconciliation.json"
       },
       "facts_carried": {
-        "note": "NOT MEASURED per set. The tier assignment records WHETHER a set is answered, never how much of its contract came across.",
-        "known_loss": "Base variant axes were never harvested at all - only names, counts and tiers - so no Base set contributes a single axis value to any register record."
+        "axes": "MEASURED at last, and the answer is poor. Of 14 paired blocks, ONE matches Base in both axis name and values (progresssteps). Three carry Base\u2019s exact value set under a different name. Six reuse a Base axis NAME for different values. Four ask a question no Base axis asks.",
+        "multi_axis_collapse": "Every one of the 14 collapses a multi-axis Base set into a single axis. Base carries 2 to 7 axes per set; site-factory carries 1. pagination is 7 axes and 423 variants there against 1 axis and 2 variants here.",
+        "note": "The earlier entry read \"NOT MEASURED per set\" with a known_loss that Base axes \"were never harvested at all\". They are now, and the loss was larger than the placeholder implied."
       },
       "degradations": [
-        "IMPORT still blocked: the library is not subscribed on the master file, so its 92 keys do not resolve. A duplicate exists in drafts and is not reachable from here."
+        "The axis VOCABULARY was invented rather than inherited, while REFERENCES.md records Base as the baseline. What actually came from Base is the palette, the type ramp and 16 redrawn sets - not the variant grammar.",
+        "radio is the sharpest: Base carries State[Enabled,Disabled] AND Selected Unselected[Selected,Unselected]; mine carries one axis named State holding Base\u2019s SECOND axis\u2019s values, so a reader who knows Base misreads it.",
+        "IMPORT is still blocked - the library is not subscribed and its keys do not resolve. Reading a contract needed no subscription; placing an instance still does."
       ]
     },
     "relume": {
@@ -40,7 +44,7 @@
         "sets": 1515
       },
       "facts_carried": {
-        "note": "NOT MEASURED. Coverage here is CATEGORY-level: it says a category is answered, never that any particular set’s contract was carried.",
+        "note": "NOT MEASURED. Coverage here is CATEGORY-level: it says a category is answered, never that any particular set\u2019s contract was carried.",
         "known_loss": "No Relume set contributes an axis, a property or a state to any register record. The kit informed which SECTIONS to build and nothing about their contracts."
       },
       "degradations": [
@@ -48,7 +52,7 @@
       ]
     },
     "simple-design-system": {
-      "what": "Figma’s own Simple Design System. The extraction test subject, because both twins are published and neither is mine.",
+      "what": "Figma\u2019s own Simple Design System. The extraction test subject, because both twins are published and neither is mine.",
       "denominator": {
         "sets": null,
         "source": "UNMEASURED. The kit advertises \"400+ components\" and an advertisement is not a measurement. Only a search for \"button\" has been run against it."
@@ -70,7 +74,7 @@
       ]
     },
     "material-3": {
-      "what": "Google’s Material 3 Design Kit, subscribed as a library.",
+      "what": "Google\u2019s Material 3 Design Kit, subscribed as a library.",
       "denominator": {
         "sets": null,
         "source": "UNMEASURED. One search returned 20 button and toggle sets; nothing has enumerated the kit."
@@ -88,7 +92,7 @@
     }
   },
   "_own_library": {
-    "note": "site-factory’s OWN surface, recorded here for scale rather than as coverage of anything.",
+    "note": "site-factory\u2019s OWN surface, recorded here for scale rather than as coverage of anything.",
     "block_types": 43,
     "component_sets": 46,
     "axis_verdicts": "31 aligned, 1 subset, 11 different_axis - see figma-variants.json"
