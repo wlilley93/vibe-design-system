@@ -2,7 +2,7 @@
 
 Every external system this programme has looked at, what was taken from it, and whether it is
 actually reachable. Kept because a reference nobody wrote down is a reference somebody
-re-derives, and because three of these are blocked on an access grant rather than on work.
+re-derives, and because several are blocked on an access grant rather than on work.
 
 Access states are MEASURED, not assumed. Each was probed and the error recorded verbatim.
 
@@ -13,6 +13,7 @@ Access states are MEASURED, not assumed. Each was probed and the error recorded 
 | **Uber Base** ([Gallery `l2llhOXNz1bM4aoLKKb5qi`](https://www.figma.com/design/l2llhOXNz1bM4aoLKKb5qi)) | Uber's product design system. 92 component sets, 3,211 variants | READ ok, IMPORT blocked | The control and messaging baseline. Palette, the role-based type ramp, 16 sets redrawn |
 | **Relume Figma Kit v3.7** ([`NV8SrzLfRBiPfcwGyDGHJd`](https://www.figma.com/design/NV8SrzLfRBiPfcwGyDGHJd)) | Marketing section library. 74 pages, 1,799 sets, 3,634 variants, 58 categories | READ ok | The MARKETING SECTION baseline, and the four-view workspace pattern. Four sections built from its gaps |
 | **Material You UI Kit** ([`iOwtVorRqWd8UlTDNTWxPf`](https://www.figma.com/design/iOwtVorRqWd8UlTDNTWxPf)) | Material 3 kit advertising tokens + preview | **BLOCKED** | Nothing yet |
+| **Glow UI Preview 1.8** ([`Jx78qVnHi73p1yTuoAtBYb`](https://www.figma.com/design/Jx78qVnHi73p1yTuoAtBYb)) | A UI kit | **BLOCKED**, same reason | Nothing yet |
 | **Relume UI** (`@relume_io/relume-ui@1.3.1`) | React component library on Radix. 136 exports, ~30 distinct components | npm, public | Nothing yet. It is the PRIMITIVE layer; the sections are in the paid library |
 | **Relume Tailwind preset** (`@relume_io/relume-tailwind@1.3.0`) | Their token preset | npm, public | Nothing yet |
 | **Park UI** (park-ui.com) | Components on Ark UI + Panda CSS. React, Solid, Vue | public | Nothing yet |
@@ -22,7 +23,7 @@ Access states are MEASURED, not assumed. Each was probed and the error recorded 
 | **Opbox marketing** (own repo) | "Will Style", authored in oklch | local | Documented as a system page |
 | **Jellytot** (own repos) | Brand system with three disagreeing sources of truth | local | Documented as a system page; style pack |
 
-### The three blockers, each with its measured error
+### The blockers, each with its measured error
 
 **Uber Base import.** `importComponentSetByKeyAsync` returns
 `Component set with key "..." not found` for a genuine harvested key AND for an impossible
@@ -35,9 +36,23 @@ The first version of that test used keys I had reconstructed rather than copied,
 established only that invented keys do not resolve, which nobody doubted. Recorded because a
 control that does not control produces a confident answer to a question it never asked.
 
-**Material You kit.** Every tool refuses:
-`Looks like you don't have edit access to this file.` - `use_figma`, `get_metadata` and
-`get_variable_defs` alike, so it cannot even be READ. FIX: duplicate it to your own drafts.
+**Every community Figma file, unless it has been duplicated first.** Both the Material You kit
+and Glow UI refuse every tool with the same line:
+`Looks like you don't have edit access to this file.` That includes the READ tools - `get_metadata`
+and `get_variable_defs` fail exactly as `use_figma` does - so such a file cannot be inspected at
+all, only viewed in a browser by a human.
+
+This is a PATTERN rather than two incidents, and naming it saves probing each new link:
+
+| State of the file | What works |
+|---|---|
+| Duplicated into your drafts | everything. This is why the Relume kit could be harvested in full: 74 pages, 1,799 sets |
+| A library you can view but have not duplicated | nothing, not even reads. Material You, Glow UI |
+| Readable but its LIBRARY not subscribed | reads work, `importComponentSetByKeyAsync` does not. Uber Base's Gallery |
+
+FIX, and it is one action that unblocks every case: **duplicate the file to your own drafts**
+(and for Base, duplicate the LIBRARY file rather than the Gallery, then enable it). Until then a
+community link is a link I can be sent and cannot open.
 
 **Figma Code Connect.** `get_code_connect_map` returns
 `You need a Dev or Full seat on an Organization or Enterprise plan to use Code Connect.`
