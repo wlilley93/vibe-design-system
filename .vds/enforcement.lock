@@ -1,5 +1,5 @@
 schema_version: 1
-generated_at: 2026-07-31T15:48:00Z
+generated_at: 2026-07-31T16:00:10Z
 entries:
 - path: crates/vds-cli/src/doctor.rs
   digest: sha256:994f575215d16c415ba1fac437c57ee0c2f750ee76738611804caa6432e9ce83
@@ -375,7 +375,7 @@ entries:
   pinned_at: 2026-07-31T09:23:43Z
   pinned_by: jellytot
 - path: site-factory/tests/floors.js
-  digest: sha256:d7a333c87955acbee5c147569656c1093ea4456dc90c14bbf2929bd0988ac5f4
+  digest: sha256:9eaeadae65f6ff1b13cdc3062c054df1344c5aa83b7a1385f6dd686848f43a11
   kind: hook
   invoked_by:
   - surface: ci_workflow
@@ -386,10 +386,10 @@ entries:
     path: site-factory/tests/skills.test.js
     test_name: every declared site-factory gate is pinned, at its current digest
     seeds: MIN_TESTS lowered without a re-pin, so deleting tests stops being detectable by the count
-  pinned_at: 2026-07-31T15:19:07Z
+  pinned_at: 2026-07-31T16:00:10Z
   pinned_by: jellytot
-  supersedes_digest: sha256:6ecd6f42233790d8af5d82b45152024b12a1659f98ef9b83b86a16fc2ab322af
-  relock_rationale: MIN_TESTS 113 -> 114 for the ds-contracts harvest guard. A floor rising.
+  supersedes_digest: sha256:d7a333c87955acbee5c147569656c1093ea4456dc90c14bbf2929bd0988ac5f4
+  relock_rationale: MIN_TESTS 114 -> 115 for the real-Base harvest guard. A floor rising.
 - path: site-factory/tests/gate.js
   digest: sha256:89e019eb675d8ed565de16940252769ed5829f5482568ddadcb5d9bb5f9e75e9
   kind: hook

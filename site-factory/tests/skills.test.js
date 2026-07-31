@@ -1854,3 +1854,49 @@ test('the ds-contracts harvest is internally consistent', () => {
   assert.ok(h._what_this_is_not.some((l) => /still unread|Exhaustive/i.test(l)),
     'the harvest no longer states what it has still not read');
 });
+
+// ---------------------------------------------------------------------------
+// Uber Base, harvested from the Principal's own duplicate. This replaces two
+// weaker readings, and the guard's job is to stop either coming back as the
+// authority: 16 hand-drawn sets and a 72-of-a-guessed-126 instance walk.
+test('the real Base harvest is complete and self-consistent', () => {
+  const dir = path.join(__dirname, '..', 'vendor');
+  const b = JSON.parse(fs.readFileSync(path.join(dir, 'uber-base-real.json'), 'utf8'));
+  const rec = JSON.parse(fs.readFileSync(path.join(dir, 'base-axis-reconciliation.json'), 'utf8'));
+
+  assert.equal(b.totals.componentSets, b.sets.length,
+    'the stated set count disagrees with the rows');
+  assert.equal(b.totals.variants, b.sets.reduce((n, s) => n + s.variants, 0),
+    'the stated variant total disagrees with the rows');
+  assert.ok(b.totals.componentSets > 120,
+    `only ${b.totals.componentSets} sets - this reading is partial and must not be called the library`);
+
+  // EVERY set carries a key and at least one axis. A set with neither is a row
+  // that cannot be looked up or compared, and counting it flatters the total.
+  for (const s of b.sets) {
+    assert.ok(s.key && s.key.length > 8, `${s.name}: no component key, so it cannot be resolved`);
+    assert.ok(Object.keys(s.axes).length > 0, `${s.name}: no variant axis was derived`);
+    assert.ok(s.variants > 0, `${s.name}: zero variants`);
+  }
+
+  // THE RECONCILIATION SURVIVES, and this is what proves it. Its rows were
+  // recorded against a PARTIAL view of Base; every one must still name an axis
+  // set that exists verbatim in the full library. If that ever breaks, the
+  // reconciliation was accurate about a library that is not this one.
+  const axisSets = new Set(b.sets.map((s) => Object.keys(s.axes).sort().join('|')));
+  const orphaned = rec.rows.filter((r) => !axisSets.has([...r.baseAxes].sort().join('|')));
+  assert.deepEqual(orphaned.map((r) => r.block), [],
+    'a reconciliation row records a Base axis set that does not exist in the full library, so ' +
+    'it was measured against something else. Re-derive it against uber-base-real.json.');
+
+  // The corrections must stay named. Both superseded readings are still on
+  // disk and still look authoritative; the harvest is the only thing saying
+  // which of the three to believe.
+  assert.ok(b.what_it_corrects.base_redrawn_page && b.what_it_corrects.uber_base_contracts_json,
+    'the harvest no longer says which readings it supersedes, so three Base sources sit ' +
+    'side by side with nothing ranking them');
+  assert.match(b.what_it_corrects.and_what_survives, /SOUND|sound/,
+    'the harvest must also say what SURVIVED; a correction that only demolishes teaches nothing');
+  assert.ok(b._what_this_is_not.some((l) => /Principal action|not subscribed/i.test(l)),
+    'the harvest must state that it draws nothing and cannot place an instance');
+});

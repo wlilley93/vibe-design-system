@@ -1,0 +1,2681 @@
+{
+  "_what": "Uber Base, harvested from the Principal's OWN duplicate of the Base Gallery. The authoritative catalogue: 131 component sets, 3,425 variants, every set carrying its real variant axes and its component key.",
+  "_why_this_replaces_what_came_before": "Everything this programme has said about Base until now rested on two weaker things. `Base (redrawn)` in the master Figma file is SIXTEEN sets I drew by hand in Base's idiom - an approximation of a 131-set library, and the Principal's words for it were \"not right at all\", which the numbers agree with. `uber-base-contracts.json` reached 72 of a believed 126 sets by walking Gallery instances one at a time. This is the whole library in one read.",
+  "_how": "The Gallery copy holds ZERO components and 74 frames of instances - duplicating a remote library copies instances, not components, which this repository had already recorded. But an instance still NAMES its source: the REST response carries a `components` map of 3,516 entries and a `componentSets` map of 131, every one with its key. So the library is fully addressable through a file that contains none of it.",
+  "_access": "GET /v1/files/4mz4UC3nacI6UFEXnyzFJc/nodes?ids=3:4200&depth=4 - 31.7MB, HTTP 200. The file is OWNED by this account, so the plan-tier budget that blocks third-party files does not apply.",
+  "measured_at": "2026-07-31T15:59:48Z",
+  "source": {
+    "file": "4mz4UC3nacI6UFEXnyzFJc",
+    "name": "Base Gallery (Community) (Copy)",
+    "role": "owner",
+    "lastModified": "2026-07-31T11:19:07Z"
+  },
+  "totals": {
+    "componentSets": 131,
+    "variants": 3425,
+    "componentsInMap": 3516,
+    "distinctSetKeys": 118,
+    "setsWithAtLeastOneAxis": 131
+  },
+  "what_it_corrects": {
+    "base_redrawn_page": "16 sets, hand-drawn, against a real 131. It is a STYLE STUDY and must not be read as Base. The register cites it for 15 block types.",
+    "uber_base_contracts_json": "reached 72 sets by walking instances; the denominator it used (126) was itself a guess. The real number is 131.",
+    "and_what_survives": "base-axis-reconciliation.json is SOUND. All 14 of its rows record a Base axis set that exists VERBATIM in the real library - checked by comparing sorted axis-name sets. It saw a partial library and was accurate about the part it saw."
+  },
+  "the_vocabulary": {
+    "_what": "Every axis name Base uses, ranked. This is the vocabulary a system inherits or diverges from, and it is the thing the reconciliation measures against.",
+    "distinctAxisNames": 64,
+    "ranked": {
+      "Size": 67,
+      "State": 51,
+      "Layout": 37,
+      "Behavior": 15,
+      "Class": 13,
+      "Artwork": 9,
+      "Hierarchy": 9,
+      "Color": 7,
+      "Shape": 6,
+      "Style": 5,
+      "Top line": 4,
+      "Bottom line": 4,
+      "Selected index": 4,
+      "Badge": 4,
+      "Platform / Device": 3,
+      "Secure": 3,
+      "Display": 3,
+      "Content": 2,
+      "Preloading": 2,
+      "Aspect ratio": 2
+    }
+  },
+  "sets": [
+    {
+      "name": "_Elements/Rating Star",
+      "key": "6dd2dcf168ba08921685f644c2343c6cee2818ee",
+      "variants": 6,
+      "axes": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "active",
+          "inactive"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "_Input element / Content",
+      "key": "fd5e1b27dbdb683d27575bc2c6e4240290b64c06",
+      "variants": 6,
+      "axes": {
+        "Class": [
+          "Text"
+        ],
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ],
+        "Behavior": [
+          "Default",
+          "Masked"
+        ],
+        "Platform / Device": [
+          "Mobile"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "_Input element / Content / Text",
+      "key": "4badc0924c2335e0c12cec31c5886e249e072aed",
+      "variants": 3,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ],
+        "Secure": [
+          "Off"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "_Input element / Progress circle",
+      "key": "e9723117eda48f45ee87e3afd57620efdba38531",
+      "variants": 3,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "_Input element / Stepper",
+      "key": "992bd158c28be9335393b5ee144f7e3bf2feac0d",
+      "variants": 3,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "_Page controls elements / Indicator",
+      "key": "51e088f4616e19c73208fce9d748d178413aac97",
+      "variants": 4,
+      "axes": {
+        "Behavior": [
+          "Off",
+          "On",
+          "Overflow end",
+          "Overflow mid"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "_Pagination elements / Row selector",
+      "key": "d3d1b49144d7b8ffeaef8d8923e442ac2cdd0882",
+      "variants": 6,
+      "axes": {
+        "State": [
+          "Disabled",
+          "Enabled"
+        ],
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "_Path / Artwork large",
+      "key": "b37f1e3b17e98345cad3c91e57438fa0fb426477",
+      "variants": 1,
+      "axes": {
+        "Top line": [
+          "On"
+        ],
+        "Bottom line": [
+          "On"
+        ],
+        "Content": [
+          "Text"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "_Path / Artwork medium",
+      "key": "35492973cccbbaf802be1b6019df41a7e6a9cf51",
+      "variants": 1,
+      "axes": {
+        "Top line": [
+          "On"
+        ],
+        "Bottom line": [
+          "On"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "_Path / Artwork small",
+      "key": "13bedfba55925d7800128313bca6aca3aa4e18f2",
+      "variants": 1,
+      "axes": {
+        "Top line": [
+          "On"
+        ],
+        "Bottom line": [
+          "On"
+        ],
+        "Background": [
+          "Off"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "_Path / Artwork x small",
+      "key": "b04285f926748b3ee449cb92ce2c1e570dccf62b",
+      "variants": 1,
+      "axes": {
+        "Top line": [
+          "On"
+        ],
+        "Bottom line": [
+          "On"
+        ],
+        "Shape": [
+          "Circle"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Accordion",
+      "key": "5826dedab9cb8404361cdd6d3b0c59aecd9ae260",
+      "variants": 16,
+      "axes": {
+        "Size": [
+          "Compact",
+          "Standard"
+        ],
+        "Artwork": [
+          "Custom",
+          "Large",
+          "Medium",
+          "None",
+          "Small"
+        ],
+        "Behavior": [
+          "Collapsed",
+          "Expanded"
+        ]
+      },
+      "description": "List item - Accordion, arrow toggle, collapse, collapsible sections, collapsible, details, disclosure, expandable, expander, showy hidey thing"
+    },
+    {
+      "name": "Artwork container",
+      "key": "36d0835a869af21797ac948571483287c5c4b692",
+      "variants": 1,
+      "axes": {
+        "Preloading": [
+          "False"
+        ],
+        "Aspect ratio": [
+          "None"
+        ],
+        "Size": [
+          "48 (badge)"
+        ],
+        "Inset": [
+          "False"
+        ]
+      },
+      "description": "Artwork placeholder, artwork slot, image, media"
+    },
+    {
+      "name": "Artwork container",
+      "key": "36d0835a869af21797ac948571483287c5c4b692",
+      "variants": 1,
+      "axes": {
+        "Preloading": [
+          "False"
+        ],
+        "Aspect ratio": [
+          "None"
+        ],
+        "Size": [
+          "48 (badge)"
+        ],
+        "Inset": [
+          "False"
+        ]
+      },
+      "description": "Artwork placeholder, artwork slot, image, media"
+    },
+    {
+      "name": "Avatar",
+      "key": "fbd527b07cebcd87353764270df8c6bcf27d53f8",
+      "variants": 162,
+      "axes": {
+        "Artwork": [
+          "Generic letters",
+          "Generic person",
+          "Man01",
+          "Man02",
+          "Man03",
+          "Man04",
+          "Man05",
+          "Man06",
+          "Man07",
+          "Man08",
+          "Man09",
+          "Man10",
+          "Man11",
+          "Man12",
+          "Man13",
+          "Man14",
+          "Man15",
+          "Man16",
+          "Man17",
+          "Man18",
+          "Man19",
+          "Woman01",
+          "Woman02",
+          "Woman03",
+          "Woman04",
+          "Woman05",
+          "Woman06",
+          "Woman07",
+          "Woman08",
+          "Woman09",
+          "Woman10",
+          "Woman11",
+          "Woman12",
+          "Woman13",
+          "Woman14",
+          "Woman15",
+          "Woman16",
+          "Woman17",
+          "Woman18",
+          "Woman19"
+        ],
+        "Size": [
+          "Large",
+          "Medium",
+          "Small",
+          "XLarge",
+          "XSmall",
+          "XXLarge"
+        ]
+      },
+      "description": "Profile photo, actor, persona, face, person"
+    },
+    {
+      "name": "Banner",
+      "key": "ed7cc974227df5161fac0ec62a6b945801107074",
+      "variants": 72,
+      "axes": {
+        "Hierarchy": [
+          "High",
+          "Low"
+        ],
+        "Layout": [
+          "Icon button",
+          "Simple",
+          "Text button"
+        ],
+        "Artwork": [
+          "Badge",
+          "Icon",
+          "None"
+        ],
+        "Style": [
+          "Accent",
+          "Negative",
+          "Positive",
+          "Warning"
+        ]
+      },
+      "description": "Notification, callout box, banner ad, contextual message, feedback, message"
+    },
+    {
+      "name": "Bottom navigation",
+      "key": "d6c5211e667568f31b0cb300d22dcf1df2c45e96",
+      "variants": 10,
+      "axes": {
+        "Display": [
+          "Narrow",
+          "Wide"
+        ],
+        "Selected index": [
+          "Tab 1",
+          "Tab 2",
+          "Tab 3",
+          "Tab 4",
+          "Tab 5"
+        ]
+      },
+      "description": "Bottom tabs, bottom bar, tab bar, navigation bottom"
+    },
+    {
+      "name": "Breadcrumbs element - link",
+      "key": "fa7455fbbce4688c1b84df247c458c8de1309716",
+      "variants": 2,
+      "axes": {
+        "Class": [
+          "Last",
+          "Parent"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Button",
+      "key": "b29c4a9498d22857b8abf0491654fbef88ce0f9d",
+      "variants": 248,
+      "axes": {
+        "Shape": [
+          "Circle",
+          "Pill",
+          "Rect",
+          "Square"
+        ],
+        "Size": [
+          "Large",
+          "Medium",
+          "Small",
+          "XSmall [Web only]"
+        ],
+        "Hierarchy": [
+          "Primary",
+          "Secondary",
+          "Tertiary"
+        ],
+        "Layout": [
+          "Icon only",
+          "Label only",
+          "Labeled"
+        ],
+        "State": [
+          "Active",
+          "Disabled",
+          "Enabled",
+          "Loading",
+          "Pressed"
+        ],
+        "Behavior": [
+          "Fixed width",
+          "Intrinsic width"
+        ]
+      },
+      "description": "Action, call to action, CTA"
+    },
+    {
+      "name": "Button",
+      "key": "b29c4a9498d22857b8abf0491654fbef88ce0f9d",
+      "variants": 1,
+      "axes": {
+        "Shape": [
+          "Rect"
+        ],
+        "Size": [
+          "Medium"
+        ],
+        "Hierarchy": [
+          "Tertiary"
+        ],
+        "Layout": [
+          "Labeled"
+        ],
+        "State": [
+          "Enabled"
+        ]
+      },
+      "description": "Action, call to action, CTA"
+    },
+    {
+      "name": "Button",
+      "key": "b29c4a9498d22857b8abf0491654fbef88ce0f9d",
+      "variants": 1,
+      "axes": {
+        "Shape": [
+          "Square"
+        ],
+        "Size": [
+          "Medium"
+        ],
+        "Hierarchy": [
+          "Tertiary"
+        ],
+        "Layout": [
+          "Label only"
+        ],
+        "State": [
+          "Active"
+        ]
+      },
+      "description": "Action, call to action, CTA"
+    },
+    {
+      "name": "Button",
+      "key": "b29c4a9498d22857b8abf0491654fbef88ce0f9d",
+      "variants": 1,
+      "axes": {
+        "Shape": [
+          "Pill"
+        ],
+        "Size": [
+          "Small"
+        ],
+        "Hierarchy": [
+          "Secondary"
+        ],
+        "Layout": [
+          "Labeled"
+        ],
+        "State": [
+          "Enabled"
+        ],
+        "Behavior": [
+          "Intrinsic width"
+        ]
+      },
+      "description": "Action, call to action, CTA"
+    },
+    {
+      "name": "Button dock",
+      "key": "345d33babd2d37eb206cbbf3f0c5e333ce2c8547",
+      "variants": 16,
+      "axes": {
+        "Display": [
+          "Narrow",
+          "Wide"
+        ],
+        "Accessory view": [
+          "False",
+          "True"
+        ],
+        "Overflow": [
+          "False",
+          "True"
+        ],
+        "Home indicator": [
+          "False",
+          "True"
+        ]
+      },
+      "description": "Sticky button, fixed button, floating button, button footer, button drawer"
+    },
+    {
+      "name": "Button group",
+      "key": "bfd0ce5ce4069814565c4c95feb11aed16d510ed",
+      "variants": 4,
+      "axes": {
+        "Shape": [
+          "Pill",
+          "Rect"
+        ],
+        "Size": [
+          "Medium",
+          "Small"
+        ]
+      },
+      "description": "Filters, choice, chips, radio chips, check chips"
+    },
+    {
+      "name": "Card element - Button item",
+      "key": "edfb5c9ce24a61294374e1569a7124ffb6efa7a5",
+      "variants": 6,
+      "axes": {
+        "Layout": [
+          "Center",
+          "Full width",
+          "Left"
+        ],
+        "State": [
+          "Enabled",
+          "Loading"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Card element - Line item",
+      "key": "0d6ad8288e47f77d0d68626f3d9aea08db39dd5c",
+      "variants": 10,
+      "axes": {
+        "Class": [
+          "Compact lists",
+          "Currency",
+          "Eyebrow",
+          "Heading",
+          "Paragraph",
+          "Progress bar",
+          "Tags"
+        ],
+        "State": [
+          "Enabled",
+          "Loading"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Card element - Media item",
+      "key": "ddbf240277a7fe495b214d93360d58def701fe8a",
+      "variants": 34,
+      "axes": {
+        "Layout": [
+          "Bleed",
+          "Inset"
+        ],
+        "Media": [
+          "Carousel",
+          "Illustration",
+          "Logo",
+          "Photo",
+          "Video"
+        ],
+        "Size": [
+          "Large",
+          "None",
+          "Small"
+        ],
+        "State": [
+          "Enabled",
+          "Loading"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Check",
+      "key": "2ce7a7a8ca37b7dae7f5f727cbb98385dd18d163",
+      "variants": 8,
+      "axes": {
+        "State": [
+          "Disabled",
+          "Enabled"
+        ],
+        "Behavior": [
+          "Indeterminate",
+          "Preselected",
+          "Selected",
+          "Unselected"
+        ]
+      },
+      "description": "Checkbox, checkmark, tick mark"
+    },
+    {
+      "name": "circle_check",
+      "key": "8868ba090370409da83dcc3bce9da3fbc4c8f4b0",
+      "variants": 1,
+      "axes": {
+        "Color": [
+          "green"
+        ]
+      },
+      "description": "badge, check mark, status, confirmed, checked, ok, approved, done"
+    },
+    {
+      "name": "circle_exclamation_mark",
+      "key": "e0b49b1061889851d4687565afc89dfad3a9422e",
+      "variants": 1,
+      "axes": {
+        "Color": [
+          "red"
+        ]
+      },
+      "description": "badge, exclamation mark, bang, surprise, warning, stop sign, status, error"
+    },
+    {
+      "name": "Country field",
+      "key": "de8a1965f7d9c1dbe45f6f3c42a12c1ea6eb020d",
+      "variants": 3,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Date picker / Mobile",
+      "key": "2e49da2005080fccc135c6f0acda304014953402",
+      "variants": 4,
+      "axes": {
+        "Layout": [
+          "Month",
+          "Week"
+        ],
+        "Size": [
+          "Medium",
+          "Small"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Date picker / Web",
+      "key": "be4511a5c603a1246b29c60074012ae28951c962",
+      "variants": 20,
+      "axes": {
+        "Size": [
+          "Date picker",
+          "Medium",
+          "Small"
+        ],
+        "State": [
+          "Disabled",
+          "Enabled",
+          "Web"
+        ],
+        "Second input": [
+          "False",
+          "Small",
+          "True"
+        ],
+        "Input active": [
+          "Enabled",
+          "False",
+          "True"
+        ],
+        "Input 2 active": [
+          "False",
+          "True"
+        ],
+        "Calendar active": [
+          "False",
+          "True"
+        ],
+        "Second calendar": [
+          "False",
+          "True"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Date picker element - Calendar Date",
+      "key": "36adcec6e839014e9724d18557b37ae99f79517c",
+      "variants": 40,
+      "axes": {
+        "Layout": [
+          "Date + Label",
+          "Date only"
+        ],
+        "Size": [
+          "Medium",
+          "Small"
+        ],
+        "State": [
+          "Active",
+          "Disabled",
+          "Empty",
+          "Enabled",
+          "Hover",
+          "Pressed",
+          "Range empty",
+          "Range enabled",
+          "Range end",
+          "Range start"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Date picker element - Calendar Date label",
+      "key": "f98ddb940779c0e9aacd2be51944ec0d9dbdb3d1",
+      "variants": 2,
+      "axes": {
+        "Size": [
+          "Medium",
+          "Small"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Date picker element - Calendar modules / Mobile / Medium",
+      "key": "5d08b0330031c2529bbc48c83a3d30a697905449",
+      "variants": 4,
+      "axes": {
+        "View": [
+          "Month",
+          "Week"
+        ],
+        "Layout": [
+          "Date + label",
+          "Label only"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Date picker element - Calendar modules / Mobile / Small",
+      "key": "3c71ab3dde3bc92b5f57f947db4594afe73663cc",
+      "variants": 4,
+      "axes": {
+        "View": [
+          "Month",
+          "Week"
+        ],
+        "Label": [
+          "Date + label",
+          "Label only"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Date picker element - Calendar modules / Web / Medium",
+      "key": "ec60e4145d5d7311b80d2c5e35753161bdf2dda5",
+      "variants": 2,
+      "axes": {
+        "Labels": [
+          "False",
+          "True"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Date picker element - Calendar modules / Web / Small",
+      "key": "f2002cec1a577a456f3f329a9568ec7ee62b0719",
+      "variants": 2,
+      "axes": {
+        "Labels": [
+          "False",
+          "True"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Date picker element - Month Year selector / Medium",
+      "key": "ae2358dc7ffacd51104a96c4939a0c124513e6a0",
+      "variants": 2,
+      "axes": {
+        "Menu": [
+          "False",
+          "True"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Date picker element - Month Year selector / Small",
+      "key": "7d972e420c4948b764164572e8d7776d59c50c5e",
+      "variants": 2,
+      "axes": {
+        "Menu": [
+          "False",
+          "True"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Dialog",
+      "key": "097dc1b2bc2879507b213df72a9bd7f5720534a8",
+      "variants": 3,
+      "axes": {
+        "Layout": [
+          "Artwork none",
+          "Artwork top",
+          "Artwork trailing"
+        ]
+      },
+      "description": "Alert, popup, modal, interstitial, overlay, dialog box, modal window, lightbox, popup, subscribe email box"
+    },
+    {
+      "name": "Divider",
+      "key": "c464e72237ab3bfe5007412a0657c95336de527f",
+      "variants": 3,
+      "axes": {
+        "Class": [
+          "Cell",
+          "Module",
+          "Section"
+        ]
+      },
+      "description": "Border, hr, separator"
+    },
+    {
+      "name": "Draggable list",
+      "key": "7ebe9e797a12601e5f5b5b443a4f27ffba7a5e27",
+      "variants": 10,
+      "axes": {
+        "Artwork": [
+          "Custom",
+          "Large",
+          "Medium",
+          "None",
+          "Small"
+        ],
+        "State": [
+          "Disabled",
+          "Enabled"
+        ]
+      },
+      "description": "List item - grabber, drag and drop list, reorder list"
+    },
+    {
+      "name": "Empty state",
+      "key": "3b27a780a93b5777c8ea75957004b434917fbf93",
+      "variants": 5,
+      "axes": {
+        "Class": [
+          "Failure",
+          "First time use",
+          "Progress",
+          "Success",
+          "Warning"
+        ]
+      },
+      "description": "Zero-data state, Zero state, First use state. Blank slate, Cleared State, Missing state, loading state, success state, warning state, error state"
+    },
+    {
+      "name": "Field group",
+      "key": "ed6b0a8b4c67b519b4c382fcca6869582d137c02",
+      "variants": 2,
+      "axes": {
+        "Size": [
+          "Medium",
+          "Small"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Field group",
+      "key": "ed6b0a8b4c67b519b4c382fcca6869582d137c02",
+      "variants": 3,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "File drop",
+      "key": "2db76a9bad5cbba70af3082021cdb6b25f6ef8e2",
+      "variants": 5,
+      "axes": {
+        "State": [
+          "Complete",
+          "Enabled",
+          "Hover",
+          "Incomplete",
+          "Processing"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Grabber - List",
+      "key": "e996320c525e616884b79b916da013c2e7cde19b",
+      "variants": 2,
+      "axes": {
+        "State": [
+          "Disabled",
+          "Enabled"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Hint badge",
+      "key": "9aee7ee1b0d2dbec377cc6040746c9bc4ea81e91",
+      "variants": 4,
+      "axes": {
+        "Style": [
+          "Accent",
+          "Negative",
+          "Positive",
+          "Warning"
+        ]
+      },
+      "description": "Notification, bullet badge, status badge"
+    },
+    {
+      "name": "Home indicator",
+      "key": "323cf4829deb4107d69f1970412ed3d4d429c075",
+      "variants": 1,
+      "axes": {
+        "Color": [
+          "Light"
+        ]
+      },
+      "description": "iOS, home"
+    },
+    {
+      "name": "Input element / Hint",
+      "key": "f1821527635f2684e3b374876e09c689e0e6d898",
+      "variants": 1,
+      "axes": {
+        "Size": [
+          "Default"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Input element / Label",
+      "key": "0839d6ea8a38df2e1ac39e4e743132f7dc24f2e9",
+      "variants": 3,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Input element / Label",
+      "key": "0839d6ea8a38df2e1ac39e4e743132f7dc24f2e9",
+      "variants": 3,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Input element / PIN slot",
+      "key": "62b9f60ede840b5d73cc1bc67eb943988d522b07",
+      "variants": 31,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ],
+        "State": [
+          "Active - Typing",
+          "Complete",
+          "Disabled",
+          "Enabled",
+          "Error",
+          "Focus",
+          "Pressed",
+          "Read only",
+          "Success"
+        ],
+        "Secure": [
+          "Off",
+          "On"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Input element / Select",
+      "key": "e698dd9b32730a8977787445cb6d0838ad928cac",
+      "variants": 34,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium",
+          "Small",
+          "XSmall [Web]"
+        ],
+        "Select": [
+          "Single"
+        ],
+        "Behavior": [
+          "Default"
+        ],
+        "State": [
+          "Active",
+          "Complete",
+          "Disabled",
+          "Enabled",
+          "Error",
+          "Focus",
+          "Incomplete",
+          "Loading",
+          "Pressed",
+          "Read only",
+          "Success"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Input element / Text field",
+      "key": "f517fa5b2e6c683b2825fd6383611abf2fefa161",
+      "variants": 38,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium",
+          "Small",
+          "XSmall [Web]"
+        ],
+        "State": [
+          "Active",
+          "Active - Typing",
+          "Complete",
+          "Disabled",
+          "Enabled",
+          "Error",
+          "Focus",
+          "Incomplete",
+          "Loading",
+          "Pressed",
+          "Read only",
+          "Success"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Input element / Text field",
+      "key": "f517fa5b2e6c683b2825fd6383611abf2fefa161",
+      "variants": 36,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ],
+        "State": [
+          "Active",
+          "Active - Typing",
+          "Complete",
+          "Disabled",
+          "Enabled",
+          "Error",
+          "Focus",
+          "Incomplete",
+          "Loading",
+          "Pressed",
+          "Read only",
+          "Success"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Item / Large / Controls / Group",
+      "key": "66cd3e238d1d29bbfaca537966033ac87026e0c2",
+      "variants": 1,
+      "axes": {
+        "Expanded": [
+          "False"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Item / Medium / Controls / Expanded",
+      "key": "67ec7d1f755d10f14b2b9b54b1c11ed9fb047a95",
+      "variants": 1,
+      "axes": {
+        "Expanded": [
+          "False"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Lifestyle photos",
+      "key": "d40509282508072e83a0f7ead190c816940d72c0",
+      "variants": 1,
+      "axes": {
+        "Content": [
+          "Man09"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "List item",
+      "key": "b4fea80421ccbc4ddfffc2628882e789279ad757",
+      "variants": 108,
+      "axes": {
+        "Size": [
+          "Compact",
+          "Standard"
+        ],
+        "Artwork": [
+          "Custom",
+          "Large",
+          "Medium",
+          "None",
+          "Small"
+        ],
+        "Layout": [
+          "Badge",
+          "Button",
+          "Check",
+          "Chevron",
+          "Chevron + Label trailing",
+          "Label trailing",
+          "Radio",
+          "Simple",
+          "Stepper",
+          "Switch",
+          "Two buttons"
+        ],
+        "Platform Device": [
+          "All",
+          "Android + web",
+          "iOS"
+        ],
+        "State": [
+          "Disabled",
+          "Enabled",
+          "Loading"
+        ]
+      },
+      "description": "List, list cells, list view"
+    },
+    {
+      "name": "Menu",
+      "key": "a47fb86e6fc08ef0d16c46a5df4fa56d8effa41b",
+      "variants": 12,
+      "axes": {
+        "Class": [
+          "Grouped list",
+          "List",
+          "No results",
+          "Profile list"
+        ],
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ]
+      },
+      "description": "dropdown"
+    },
+    {
+      "name": "Menu item",
+      "key": "a1fa854e8586376b8c4cb45f0df6cbed1f8d577c",
+      "variants": 57,
+      "axes": {
+        "Class": [
+          "Divider",
+          "Header",
+          "Option",
+          "Paragraph",
+          "Search"
+        ],
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ],
+        "Layout": [
+          "Chevron",
+          "Grabber",
+          "None",
+          "Standard"
+        ],
+        "State": [
+          "Active",
+          "Disabled",
+          "Enabled",
+          "Focus",
+          "Hover"
+        ]
+      },
+      "description": "Menu, dropdown"
+    },
+    {
+      "name": "Message card",
+      "key": "14371b4d0b76f83be0734e85dc9e4c43de46c643",
+      "variants": 60,
+      "axes": {
+        "Layout": [
+          "Headline",
+          "Headline + paragraph"
+        ],
+        "Sub layout": [
+          "Button none",
+          "Button pill",
+          "Button tertiary"
+        ],
+        "Style": [
+          "Dark",
+          "Light",
+          "White"
+        ],
+        "Artwork": [
+          "Artwork top",
+          "Artwork trailing"
+        ],
+        "State": [
+          "Enabled",
+          "Loading"
+        ]
+      },
+      "description": "Banner ad, Campaign card, Special content"
+    },
+    {
+      "name": "Message card - Carousel",
+      "key": "4c0da07403cf5672fd054ca0f4d26e0ed8c5a8f3",
+      "variants": 2,
+      "axes": {
+        "Artwork": [
+          "Artwork top",
+          "Artwork trailing"
+        ]
+      },
+      "description": "Carousel, banner ad, Campaign card, Special content"
+    },
+    {
+      "name": "Modal full screen",
+      "key": "b7a6f56cae2a376ea7c6b0c1e1d866c9ca4a6552",
+      "variants": 5,
+      "axes": {
+        "Platform": [
+          "Android",
+          "iOS",
+          "iOS X"
+        ],
+        "Layout": [
+          "Immersive",
+          "Stacked sheet"
+        ]
+      },
+      "description": "Stacked sheet modal, stacked card modal, interstitial, view controller, iOS 13 Presentation style (card)"
+    },
+    {
+      "name": "Modal sheet",
+      "key": "9f7a37adca780bf7eeb9e3f3537a292a3705ac03",
+      "variants": 3,
+      "axes": {
+        "Layout": [
+          "Artwork none",
+          "Artwork top",
+          "Artwork trailing"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Navigation header",
+      "key": "a8642c77005c177c9a163c2f1ab849780562fed9",
+      "variants": 15,
+      "axes": {
+        "Behavior": [
+          "Fixed",
+          "Floating"
+        ],
+        "Device": [
+          "Android",
+          "iOS"
+        ],
+        "State": [
+          "Collapsed",
+          "Expanded"
+        ],
+        "Layout": [
+          "Icon leading + actions",
+          "Icon leading + text button trailing",
+          "Text button leading + trailing"
+        ]
+      },
+      "description": "Navigation controller bar, nav bar, header, top navigation bar, toolbar"
+    },
+    {
+      "name": "Notification badge",
+      "key": "ea205d082310aa6c22859ba51aef1f9407c1297c",
+      "variants": 16,
+      "axes": {
+        "Layout": [
+          "Icon only",
+          "Label only"
+        ],
+        "Style": [
+          "Accent",
+          "Negative",
+          "Positive",
+          "Warning"
+        ],
+        "Size": [
+          "Medium",
+          "Small"
+        ]
+      },
+      "description": "Notification, badge, circle, numeric badge, lozenge, pill, counter badge, status badge, tag"
+    },
+    {
+      "name": "Page controls",
+      "key": "08c93685786ba4404361e29a4330b24419ff664d",
+      "variants": 162,
+      "axes": {
+        "Layout": [
+          "10",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9"
+        ],
+        "Selected index": [
+          "Page 1",
+          "Page 10 Active",
+          "Page 2",
+          "Page 3",
+          "Page 4",
+          "Page 5",
+          "Page 6",
+          "Page 7",
+          "Page 8",
+          "Page 9"
+        ],
+        "State": [
+          "Disabled",
+          "Enabled",
+          "Pressed"
+        ]
+      },
+      "description": "Pagination dots, paging, pagination, carousel dots"
+    },
+    {
+      "name": "Pagination",
+      "key": "e4b7d94628640533bab702f4b304cd8c12cd3b09",
+      "variants": 423,
+      "axes": {
+        "Class": [
+          "Numbered",
+          "Overflow"
+        ],
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ],
+        "Layout": [
+          "10+",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9"
+        ],
+        "Selected index": [
+          "None",
+          "Page 1",
+          "Page 2",
+          "Page 3",
+          "Page 4",
+          "Page 5",
+          "Page 6",
+          "Page 7",
+          "Page 8",
+          "Page 9"
+        ],
+        "Display": [
+          "Narrow",
+          "Wide"
+        ],
+        "State": [
+          "Active",
+          "Disabled",
+          "Enabled"
+        ],
+        "Substate": [
+          "First",
+          "Last",
+          "Middle",
+          "None"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Password field",
+      "key": "f70ee1aff60e8246a10bd6189eed7d3360004e4b",
+      "variants": 72,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ],
+        "Behavior": [
+          "Default",
+          "Masked"
+        ],
+        "State": [
+          "Active",
+          "Active - Typing",
+          "Complete",
+          "Disabled",
+          "Enabled",
+          "Error",
+          "Focus",
+          "Incomplete",
+          "Loading",
+          "Pressed",
+          "Read only",
+          "Success"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "PIN code",
+      "key": "196a256df19a543b1c01a5a86b9985655c6635a1",
+      "variants": 27,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ],
+        "State": [
+          "Active - Typing",
+          "Complete",
+          "Disabled",
+          "Enabled",
+          "Error",
+          "Focus",
+          "Pressed",
+          "Read only",
+          "Success"
+        ],
+        "Secure": [
+          "Default",
+          "Off",
+          "On"
+        ]
+      },
+      "description": "PIN, pass code"
+    },
+    {
+      "name": "Progress bar - Determinate",
+      "key": "548ce99e44d07250f4bbdf6feb4ede8e37eb017c",
+      "variants": 6,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ],
+        "Layout": [
+          "Label",
+          "Label none"
+        ]
+      },
+      "description": "loading bar, activity, linear progress, progress loader, progress indicator"
+    },
+    {
+      "name": "Progress bar - Indeterminate",
+      "key": "2c791a7f4827bf493f5d73f1ef921017b3c62718",
+      "variants": 6,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ],
+        "Layout": [
+          "Label",
+          "Label none"
+        ]
+      },
+      "description": "Loading bar, activity, linear progress, progress loader, progress indicator, pulsing progress, infinite progress"
+    },
+    {
+      "name": "Progress bar - Stepped",
+      "key": "b1a5f1530ff709abe0d8f949b9e025c2619046ff",
+      "variants": 4,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium"
+        ],
+        "Layout": [
+          "Label",
+          "Label none"
+        ]
+      },
+      "description": "Loading bar, activity, linear progress, progress loader, progress indicator, segmented progress, steps left, loading"
+    },
+    {
+      "name": "Progress circle",
+      "key": "f0e6d6d93b8fb085faba6cb198498eab240f6d2d",
+      "variants": 8,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium",
+          "Small",
+          "X large"
+        ],
+        "Layout": [
+          "Label none",
+          "Label outside"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Progress pill - Determinate",
+      "key": "37dc24b3b6201d0667695da2d16a015fcd7c017c",
+      "variants": 3,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ]
+      },
+      "description": "progress spinner"
+    },
+    {
+      "name": "Progress steps",
+      "key": "707fe84a20ad32fe1a0fcec93082017915edb475",
+      "variants": 3,
+      "axes": {
+        "Layout": [
+          "Horizontal",
+          "Vertical"
+        ],
+        "Sublayout": [
+          "Bullets",
+          "Numbered"
+        ]
+      },
+      "description": "Progress list, itinerary, progress steps,"
+    },
+    {
+      "name": "Progress steps element - horizontal",
+      "key": "9c75193f29e7f6908724c8ac1157311df8634d01",
+      "variants": 6,
+      "axes": {
+        "Layout": [
+          "Leading",
+          "Trailing"
+        ],
+        "Progress": [
+          "Completed",
+          "In progress"
+        ],
+        "Active": [
+          "False"
+        ],
+        "Enabled": [
+          "False",
+          "True"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Progress steps element - horizontal",
+      "key": "9c75193f29e7f6908724c8ac1157311df8634d01",
+      "variants": 4,
+      "axes": {
+        "Sub state": [
+          "Completed",
+          "In progress"
+        ],
+        "State": [
+          "Active"
+        ],
+        "Layout": [
+          "Leading",
+          "Trailing"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Progress steps element - vertical",
+      "key": "77a1d6758d314783f2c42a280bf0c20756efa0a1",
+      "variants": 46,
+      "axes": {
+        "Size": [
+          "Compact",
+          "Standard"
+        ],
+        "Artwork": [
+          "Artwork large",
+          "Artwork medium",
+          "Artwork none",
+          "Artwork small",
+          "Artwork x small"
+        ],
+        "Layout": [
+          "Chevron",
+          "Chevron + Label trailing",
+          "Icon buttons",
+          "Label trailing",
+          "Simple",
+          "Text button"
+        ]
+      },
+      "description": "itinerary, progress, list item"
+    },
+    {
+      "name": "question",
+      "key": "e3d99067b0811a1e6627bff3e9827e36c30cca08",
+      "variants": 1,
+      "axes": {
+        "Color": [
+          "black"
+        ]
+      },
+      "description": "badge, question mark, question, interrogative, answer, sign"
+    },
+    {
+      "name": "Radio",
+      "key": "93a70a9778f3fa7925d77a0a0e9fed76973c076f",
+      "variants": 4,
+      "axes": {
+        "State": [
+          "Disabled",
+          "Enabled"
+        ],
+        "Selected Unselected": [
+          "Selected",
+          "Unselected"
+        ]
+      },
+      "description": "Radio button, radio group, option button"
+    },
+    {
+      "name": "Rich text_Beta",
+      "key": "fd6e2481dd3c2609f37b0cc17e65fa410fdf27a2",
+      "variants": 3,
+      "axes": {
+        "Size": [
+          "Medium",
+          "Small",
+          "XSmall"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Search field",
+      "key": "9ce0bb11feaf70e3932cb8a91d986935d2998d82",
+      "variants": 24,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ],
+        "State": [
+          "Active",
+          "Active - Typing",
+          "Complete",
+          "Disabled",
+          "Enabled",
+          "Focus",
+          "Loading",
+          "Pressed"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Section heading",
+      "key": "a42d43ac0aa8b611c55e0646f682daaaafff487f",
+      "variants": 1,
+      "axes": {
+        "Lines": [
+          "1 line"
+        ],
+        "Layout": [
+          "Simple"
+        ],
+        "State": [
+          "Enabled"
+        ]
+      },
+      "description": "List header, heading, list title, sub heading, typography, text"
+    },
+    {
+      "name": "Section heading",
+      "key": "a42d43ac0aa8b611c55e0646f682daaaafff487f",
+      "variants": 12,
+      "axes": {
+        "Lines": [
+          "1 line",
+          "2 lines"
+        ],
+        "Layout": [
+          "Icon button",
+          "Label trailing",
+          "Simple",
+          "Text button"
+        ],
+        "State": [
+          "Enabled",
+          "Loading"
+        ]
+      },
+      "description": "List header, heading, list title, sub heading, typography, text"
+    },
+    {
+      "name": "Segmented slider - Beta",
+      "key": "61ed8d03fc7d3f73ce823a52298246f9b505feb5",
+      "variants": 22,
+      "axes": {
+        "Layout": [
+          "1 segment active",
+          "10 segments active",
+          "2 segments active",
+          "3 segments active",
+          "4 segments active",
+          "5 segments active",
+          "6 segments active",
+          "7 segments active",
+          "8 segments active",
+          "9 segments active",
+          "No segment active"
+        ],
+        "State": [
+          "Disabled",
+          "Enabled"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Select",
+      "key": "fafe2a1f6992d2c50942bed7b5e1f718ec267d04",
+      "variants": 2,
+      "axes": {
+        "Size": [
+          "Medium",
+          "Small"
+        ],
+        "State": [
+          "Enabled"
+        ]
+      },
+      "description": "Select box, select input, dropdown, dropdown list, menu"
+    },
+    {
+      "name": "Select",
+      "key": "fafe2a1f6992d2c50942bed7b5e1f718ec267d04",
+      "variants": 33,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ],
+        "State": [
+          "Active",
+          "Complete",
+          "Disabled",
+          "Enabled",
+          "Error",
+          "Focus",
+          "Incomplete",
+          "Loading",
+          "Pressed",
+          "Read only",
+          "Success"
+        ]
+      },
+      "description": "Select box, select input, dropdown, dropdown list, menu"
+    },
+    {
+      "name": "Sheet header",
+      "key": "7c60fcdaace8c16469245025d8f6c4b08b1d8d26",
+      "variants": 36,
+      "axes": {
+        "Layout": [
+          "Hint only",
+          "Title + description",
+          "Title only"
+        ],
+        "Behavior": [
+          "Draggable",
+          "Fixed"
+        ],
+        "State": [
+          "Default",
+          "Defined progress",
+          "Indefinite progress"
+        ],
+        "Buttons": [
+          "False",
+          "True"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Side navigation item",
+      "key": "66400c73d3e9a6ffdb188c19c0ec1540e127e1fb",
+      "variants": 36,
+      "axes": {
+        "Layout": [
+          "Icon only",
+          "Icon trailing",
+          "Label trailing",
+          "Simple"
+        ],
+        "Behavior": [
+          "Hover",
+          "Selected",
+          "Unselected"
+        ],
+        "Hierarchy": [
+          "Primary",
+          "Secondary",
+          "Tertiary"
+        ],
+        "State": [
+          "Disabled",
+          "Enabled"
+        ]
+      },
+      "description": "Sidebar menu, sidebar, in-page nav, vertical nav, side navigation, sub nav, left nav"
+    },
+    {
+      "name": "Slider - Beta",
+      "key": "88ed61582a52394245546d4463043ed3765e0075",
+      "variants": 4,
+      "axes": {
+        "Layout": [
+          "Range",
+          "Simple"
+        ],
+        "State": [
+          "Disabled",
+          "Enabled"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Sliding button",
+      "key": "e49b8c1a49928c78db1e8c1b99c9829324902b52",
+      "variants": 5,
+      "axes": {
+        "State": [
+          "Complete",
+          "Disabled",
+          "Enabled",
+          "Loading",
+          "On drag"
+        ]
+      },
+      "description": "Swipe button, draggable button"
+    },
+    {
+      "name": "Snackbar",
+      "key": "2636ede481d4bd9f86058d1f3b274adcdd3c76aa",
+      "variants": 6,
+      "axes": {
+        "Leading content": [
+          "False",
+          "True"
+        ],
+        "Leading content type": [
+          "Icon",
+          "N/A",
+          "Progress"
+        ],
+        "Button": [
+          "False",
+          "True"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Spacer",
+      "key": "f546e8c0276078d709e7b7a380c7b8b57501977e",
+      "variants": 14,
+      "axes": {
+        "Size": [
+          "004 pt",
+          "012 pt",
+          "016 pt",
+          "020 pt",
+          "024 pt",
+          "028 pt",
+          "032 pt",
+          "036 pt",
+          "040 pt",
+          "048 pt",
+          "056 pt",
+          "064 pt",
+          "096 pt",
+          "128 pt"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Star rating",
+      "key": "72a5912cc410fc0b872852fb067755fa9fa4813b",
+      "variants": 18,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ],
+        "Layout": [
+          "0 Stars",
+          "1 Star",
+          "2 Stars",
+          "3 Stars",
+          "4 Stars",
+          "5 Stars",
+          "Label leading",
+          "Label leading + trailing"
+        ]
+      },
+      "description": "Stars, reviews, feedback, 5 star rating"
+    },
+    {
+      "name": "Status bar",
+      "key": "e42040e1b66b5501dded46f4b081db4c3111cf9a",
+      "variants": 6,
+      "axes": {
+        "Platform": [
+          "Android",
+          "iOS"
+        ],
+        "Phone": [
+          "All",
+          "iPhone",
+          "iPhone X"
+        ],
+        "Color": [
+          "Dark",
+          "Light"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Stepper",
+      "key": "022c14b78f62bf0628f6a04c9c69105a297904ce",
+      "variants": 1,
+      "axes": {
+        "State": [
+          "Enabled"
+        ]
+      },
+      "description": "Nudger, spin button, input stepper, numeric stepper"
+    },
+    {
+      "name": "Stepper field",
+      "key": "3e5070b0883ef49c84670a669469dc7da7b46668",
+      "variants": 36,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ],
+        "State": [
+          "Active",
+          "Active - Typing",
+          "Complete",
+          "Disabled",
+          "Enabled",
+          "Error",
+          "Focus",
+          "Incomplete",
+          "Loading",
+          "Pressed",
+          "Read only",
+          "Success"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Switch",
+      "key": "bb4524a40f0913c93447f1eb3d804b8c5c8e1046",
+      "variants": 8,
+      "axes": {
+        "Platform / Device": [
+          "Android + web",
+          "iOS"
+        ],
+        "State": [
+          "Disabled",
+          "Enabled"
+        ],
+        "Behavior": [
+          "Off",
+          "On"
+        ]
+      },
+      "description": "Toggle, light switch, toggle button, toggle, toggle round"
+    },
+    {
+      "name": "System banner",
+      "key": "d3dd5cb3d754e4b8d0eebf970c920df6b97ab491",
+      "variants": 64,
+      "axes": {
+        "Device": [
+          "Android",
+          "Web",
+          "iOS",
+          "iOS X"
+        ],
+        "Layout": [
+          "Icon button",
+          "Simple"
+        ],
+        "Artwork": [
+          "Artwork icon",
+          "Artwork none"
+        ],
+        "Style": [
+          "Accent",
+          "Negative",
+          "Positive",
+          "Warning"
+        ]
+      },
+      "description": "System notification, system alert, system maintenance, global message"
+    },
+    {
+      "name": "Tab element / Nerrow / Selected",
+      "key": "a6e907056ca6a20d47816522cabe484f10fb1605",
+      "variants": 3,
+      "axes": {
+        "Badge": [
+          "Circle",
+          "Dot",
+          "none"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Tab element / Nerrow / Unselected",
+      "key": "7b0654ab4b66889f2556ad920d2a4819a4652f2f",
+      "variants": 3,
+      "axes": {
+        "Badge": [
+          "Circle",
+          "Dot",
+          "none"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Tab element / Wide / Selected",
+      "key": "db0d845e4a2e71794e171e04bf986e6211d2ef56",
+      "variants": 3,
+      "axes": {
+        "Badge": [
+          "Circle",
+          "Dot",
+          "none"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Tab element / Wide / Unselected",
+      "key": "a3e45b76cfad7031d399172e2d5023c9a5bc926e",
+      "variants": 3,
+      "axes": {
+        "Badge": [
+          "Circle",
+          "Dot",
+          "none"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Tabs",
+      "key": "70bf3d69c61bb1834bf16fe698cef858366b86a8",
+      "variants": 11,
+      "axes": {
+        "Width": [
+          "Fixed",
+          "Intrinsic"
+        ],
+        "Selected index": [
+          "Tab 1",
+          "Tab 2",
+          "Tab 3",
+          "Tab 4",
+          "Tab 5",
+          "Tab 6",
+          "Tab 7"
+        ]
+      },
+      "description": "Tabs, sections, folders, tab group, tab navigation"
+    },
+    {
+      "name": "Tag",
+      "key": "3ec52f38cd367867879f80175f764465a5478d35",
+      "variants": 448,
+      "axes": {
+        "Behavior": [
+          "Selection"
+        ],
+        "Hierarchy": [
+          "Primary",
+          "Secondary"
+        ],
+        "Color style": [
+          "Blue",
+          "Gray",
+          "Green",
+          "Magenta",
+          "Orange",
+          "Purple",
+          "Red",
+          "Yellow"
+        ],
+        "Size": [
+          "Large",
+          "Medium",
+          "Small",
+          "XSmall"
+        ],
+        "State": [
+          "Disabled",
+          "Enabled",
+          "Hover",
+          "Pressed"
+        ],
+        "Selected": [
+          "False",
+          "True"
+        ]
+      },
+      "description": "Promotion, Badge"
+    },
+    {
+      "name": "Tag",
+      "key": "3ec52f38cd367867879f80175f764465a5478d35",
+      "variants": 29,
+      "axes": {
+        "Hierarchy": [
+          "Tertiary"
+        ],
+        "Color": [
+          "Blue",
+          "Gray",
+          "Green",
+          "Magenta",
+          "Orange",
+          "Purple",
+          "Red",
+          "Yellow"
+        ],
+        "Size": [
+          "Large",
+          "Medium",
+          "Small",
+          "XSmall"
+        ],
+        "Behavior": [
+          "Unselected"
+        ],
+        "State": [
+          "Enabled"
+        ]
+      },
+      "description": "Promotion, Badge"
+    },
+    {
+      "name": "Text area",
+      "key": "9afdc59100dd32e4f6863475f2c744cf96f113fb",
+      "variants": 84,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ],
+        "Platform Device": [
+          "Mobile",
+          "Web"
+        ],
+        "State": [
+          "Active",
+          "Active - Typing",
+          "Complete",
+          "Disabled",
+          "Enabled",
+          "Error",
+          "Error - Char",
+          "Focus",
+          "Incomplete",
+          "Loading",
+          "Pressed",
+          "Read only",
+          "Success",
+          "Success - Char"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Text field",
+      "key": "e81d0eec8943b366ff2820bae8f49bdb9e4d0abf",
+      "variants": 36,
+      "axes": {
+        "Size": [
+          "Large",
+          "Medium",
+          "Small"
+        ],
+        "State": [
+          "Active",
+          "Active - Typing",
+          "Complete",
+          "Disabled",
+          "Enabled",
+          "Error",
+          "Focus",
+          "Incomplete",
+          "Loading",
+          "Pressed",
+          "Read only",
+          "Success"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Tile",
+      "key": "d99ea5a3b5639b1633cdd7822bcc360fa1959b3c",
+      "variants": 380,
+      "axes": {
+        "Behavior": [
+          "Action",
+          "Selection"
+        ],
+        "Leading content": [
+          "Artwork custom",
+          "Artwork large",
+          "Artwork medium",
+          "Label",
+          "None"
+        ],
+        "Trailing content": [
+          "Badge",
+          "Check",
+          "Chevron",
+          "Chevron + Label",
+          "Label",
+          "None",
+          "Radio",
+          "Switch"
+        ],
+        "Platform / Device": [
+          "All",
+          "Android + web",
+          "iOS"
+        ],
+        "State": [
+          "Disabled",
+          "Enabled",
+          "Focus",
+          "Loading"
+        ],
+        "Selected": [
+          "Off",
+          "On"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Time picker / Mobile / Pinwheel",
+      "key": "f267013f8b3881fc8f61ae1a313ad7ab63531281",
+      "variants": 4,
+      "axes": {
+        "Class": [
+          "Date + Time",
+          "Time only"
+        ],
+        "Size": [
+          "Medium",
+          "Small"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Time picker / Mobile / Stepper",
+      "key": "07d1daf725eed147e456fb9ae9ea4ecba7846100",
+      "variants": 2,
+      "axes": {
+        "Size": [
+          "Medium",
+          "Small"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Time picker / Web / Select",
+      "key": "9af109f29c004e1f40646f34f4c8b0afeb8231fc",
+      "variants": 20,
+      "axes": {
+        "Class": [
+          "Time",
+          "Timezone"
+        ],
+        "Size": [
+          "Medium",
+          "Small"
+        ],
+        "State": [
+          "Active",
+          "Complete",
+          "Disabled",
+          "Enabled",
+          "Pressed"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Time picker element - Pinwheel / Overlay",
+      "key": "99a21274dd98d87757c6d3254f63bf5ffab3c4c4",
+      "variants": 2,
+      "axes": {
+        "Size": [
+          "Medium",
+          "Small"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Time picker element - Pinwheel / Scroller",
+      "key": "99e7441d7e9168fd2d84ab220458d54bb51d4572",
+      "variants": 8,
+      "axes": {
+        "Time unit": [
+          "Date",
+          "Hour",
+          "Minute",
+          "Period"
+        ],
+        "Size": [
+          "Medium",
+          "Small"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Time picker element - Pinwheel / Unit",
+      "key": "061b0b9e592bc02ade31cf979a0316ca69758a4a",
+      "variants": 2,
+      "axes": {
+        "Size": [
+          "Medium",
+          "Small"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Time picker element - Select / Delimiter",
+      "key": "08b35544c372fc05d1fb19bffeb08372ab92dea7",
+      "variants": 16,
+      "axes": {
+        "Type": [
+          "Date",
+          "Time"
+        ],
+        "Size": [
+          "Medium",
+          "Small"
+        ],
+        "State": [
+          "Active",
+          "Complete",
+          "Disabled",
+          "Enabled"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Time picker element - Select / Input",
+      "key": "5c60d9803f5e9ea2d50abdedfa4e0817ad06db72",
+      "variants": 8,
+      "axes": {
+        "Size": [
+          "Medium",
+          "Small"
+        ],
+        "State": [
+          "Active",
+          "Complete",
+          "Disabled",
+          "Enabled"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Time picker element - Select / Option",
+      "key": "1a1f33882ba62b41a445a3cc47ddc7c4ca07d52d",
+      "variants": 8,
+      "axes": {
+        "Size": [
+          "Medium",
+          "Small"
+        ],
+        "State": [
+          "Active",
+          "Disabled",
+          "Enabled",
+          "Pressed"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Time picker element - Select / Period",
+      "key": "174628dccaddb88a9a1357fd31f3b805e0ab66b8",
+      "variants": 16,
+      "axes": {
+        "Period": [
+          "AM",
+          "PM"
+        ],
+        "Size": [
+          "Medium",
+          "Small"
+        ],
+        "State": [
+          "Active",
+          "Complete",
+          "Disabled",
+          "Enabled"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Time picker element - Select / Spacer",
+      "key": "b233c43e40d0dd3820c8fe23d965525ecca0ddd4",
+      "variants": 2,
+      "axes": {
+        "Size": [
+          "Medium",
+          "Small"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Timed button",
+      "key": "51484346d4e17bdae3f2b3d3fcbe36f5d2e1b6ec",
+      "variants": 4,
+      "axes": {
+        "Hierarchy": [
+          "Primary"
+        ],
+        "States": [
+          "Disabled",
+          "Enabled",
+          "Loading",
+          "Pressed"
+        ]
+      },
+      "description": "button timed, timer button, countdown button, offer button, auto-advance timer"
+    },
+    {
+      "name": "Tooltip",
+      "key": "f5d9ddb5adb5e081caf0294f81a8f04719130c9d",
+      "variants": 8,
+      "axes": {
+        "Layout": [
+          "Icon button",
+          "Simple"
+        ],
+        "Sub layout": [
+          "Bottom pointer",
+          "Left pointer",
+          "Right pointer",
+          "Top pointer"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Typography",
+      "key": "8aa601349e7d32f799601b14ae6fa237050cbaa5",
+      "variants": 36,
+      "axes": {
+        "Class": [
+          "Display",
+          "Heading",
+          "Label",
+          "Mono display",
+          "Mono heading",
+          "Mono label",
+          "Mono paragraph",
+          "Paragraph"
+        ],
+        "Size": [
+          "Large",
+          "Medium",
+          "Small",
+          "X large",
+          "X small",
+          "XX large"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Typography",
+      "key": "8aa601349e7d32f799601b14ae6fa237050cbaa5",
+      "variants": 1,
+      "axes": {
+        "Class": [
+          "Label"
+        ],
+        "Size": [
+          "Medium"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "Typography",
+      "key": "8aa601349e7d32f799601b14ae6fa237050cbaa5",
+      "variants": 1,
+      "axes": {
+        "Class": [
+          "Paragraph"
+        ],
+        "Size": [
+          "Small"
+        ]
+      },
+      "description": ""
+    },
+    {
+      "name": "warning",
+      "key": "25c8eb031de3a84d474d9af81b34fc7d7af7aa19",
+      "variants": 1,
+      "axes": {
+        "Color": [
+          "yellow"
+        ]
+      },
+      "description": "badge, alert, error"
+    }
+  ],
+  "_what_this_is_not": [
+    "A copy of Base into the master file. The components live in the Base LIBRARY file, which is not subscribed here; this reads their names, keys, axes and variant counts and draws nothing.",
+    "Enough to place a real Base instance. That needs the library enabled on the target file, which is a Principal action - `libraries_available_to_add` is empty.",
+    "A reading of what any of them LOOKS like. No fill, radius, type or spacing is read: this is the contract surface, not the pixels."
+  ]
+}
