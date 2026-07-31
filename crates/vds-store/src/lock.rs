@@ -53,7 +53,12 @@ impl LockVerdict {
 /// Rigour matches the Rust form this generalises: a substring of the named test, anchored to
 /// a call site rather than a comment. A description that appears only in prose does not, in
 /// either language, name a test that runs.
-fn test_name_resolves(text: &str, name: &str) -> bool {
+/// PUBLIC because the same question is asked in TWO places and was only answered in one.
+/// `vds doctor` D2's "named failing-direction test" limb carried its own copy of the retired
+/// `fn <name>(` check, so the fix below landed for `vds lock verify` and D2 went on reporting
+/// every vitest host UNTESTED. Two implementations of one rule is how a repaired defect stays
+/// live at the other call site, so there is now one function and both callers use it.
+pub fn test_name_resolves(text: &str, name: &str) -> bool {
     if name.is_empty() {
         return false;
     }

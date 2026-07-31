@@ -164,11 +164,25 @@ fn d2(store: &Store) -> Result<Row> {
          * must resolve in its file, and the invocation must be a blocking ci_workflow whose
          * job and step resolve in the workflow.
          */
+        // ONE RESOLVER, SHARED WITH `vds lock verify`, and that is the whole point of this
+        // change. This limb carried its own copy of the retired `fn <name>(` matcher, which
+        // recognises a Rust `#[test]` and nothing else. `vds lock verify` had the identical
+        // defect and it was fixed (vds-store::test_name_resolves, which also reads vitest
+        // `it('description')` and jest `test("...")`). D2 was not, so for every host whose
+        // failing-direction tests are vitest - which is every JS/TS subscriber, including
+        // opbox - this limb could NOT go green, and reported all eleven kinds invalid on a
+        // ground the host had actually satisfied.
+        //
+        // That is the check-that-cannot-pass defect, and it hid behind a real one: the
+        // ci_workflow limb was also failing, so the output looked like two problems and was
+        // one problem plus an unfixable assertion. A rule implemented twice is a rule that
+        // stays broken at the call site nobody remembered.
         let named_test = entry.is_some_and(|e| {
             let file = store.project.root.join(&e.failing_direction_test.path);
-            std::fs::read_to_string(&file).is_ok_and(|text| {
-                text.contains(&format!("fn {}(", e.failing_direction_test.test_name))
-            })
+            std::fs::read_to_string(&file)
+                .is_ok_and(|text| {
+                    vds_store::test_name_resolves(&text, &e.failing_direction_test.test_name)
+                })
         });
         let invoked = entry.is_some_and(|e| {
             e.has_blocking_ci()
@@ -833,6 +847,51 @@ fn d10_as_the_jurisdiction(store: &Store) -> Result<Row> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// D2's failing-direction limb must resolve the test framework the HOST uses.
+    ///
+    /// This limb carried its own copy of a `fn <name>(` matcher, which recognises a Rust
+    /// `#[test]` and nothing else. `vds lock verify` had the identical defect and it was
+    /// fixed; D2 was not. So for every host whose failing-direction tests are vitest, which
+    /// is every JS/TS subscriber, this limb could not go green however correct the host's
+    /// lock was, and `doctor` reported all eleven proof kinds invalid on a ground already
+    /// satisfied. A check that cannot pass is the twin of one that cannot fail, and it is
+    /// harder to spot because its output looks like real work outstanding.
+    ///
+    /// Both directions are asserted. The green case is a vitest description exactly as a
+    /// lock cites it; the red case is a name that appears in the file only as PROSE, which
+    /// must not resolve in either language, or the limb would go green on a comment
+    /// mentioning a test that does not exist.
+    #[test]
+    fn d2_resolves_a_vitest_failing_direction_test_and_refuses_prose() {
+        let vitest = "\
+describe('design adoption gate', () => {\n\
+  it('exits NON-ZERO when a raw element is written where a primitive exists', () => {})\n\
+})\n";
+        assert!(
+            vds_store::test_name_resolves(
+                vitest,
+                "exits NON-ZERO when a raw element is written where a primitive exists"
+            ),
+            "a vitest it('description') names a test that runs, and D2 must resolve it"
+        );
+
+        let rust = "    fn exits_non_zero_on_drift() {}\n";
+        assert!(
+            vds_store::test_name_resolves(rust, "exits_non_zero_on_drift"),
+            "generalising to vitest must not stop resolving the Rust form"
+        );
+
+        let prose_only = "// exits NON-ZERO when a raw element is written where a primitive exists\n";
+        assert!(
+            !vds_store::test_name_resolves(
+                prose_only,
+                "exits NON-ZERO when a raw element is written where a primitive exists"
+            ),
+            "a description in a COMMENT names no test; resolving it would let a lock cite \
+             a test nobody wrote"
+        );
+    }
 
     /// The list D10 checks is the specification's, not a copy of it.
     ///

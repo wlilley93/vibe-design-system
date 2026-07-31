@@ -378,3 +378,60 @@ test('every field the schema declares reaches the spec sheet as a real specimen'
     }
   }
 });
+
+test('the accessibility contract is derived from the markup, not defaulted', () => {
+  // Every register record used to be written with `role: null` and
+  // `accessibleNameSource: none_decorative`, and the record's own note admitted "role and
+  // keyboard are decisions nobody has made yet". That was honest IN THE REGISTER and became a
+  // lie in the artefact derived from it: `vds impl` turns the field into a requirement, so it
+  // printed "take its accessible name from none_decorative" for a NAV.
+  //
+  // The lesson generalises past this field. AN HONEST PLACEHOLDER IN ONE ARTEFACT IS A FALSE
+  // INSTRUCTION IN THE ARTEFACT DERIVED FROM IT, because the deriving tool cannot tell a
+  // default from a decision. So either the value is derived, or the derived artefact has to be
+  // told it is a placeholder.
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const { deriveA11y } = require('../vds-bridge.js');
+
+  const blocksDir = path.join(__dirname, '..', 'blocks');
+  const types = fs.readdirSync(blocksDir).filter((f) => f.endsWith('.js')).map((f) => f.replace(/\.js$/, ''));
+
+  const results = types.map((t) => ({
+    type: t,
+    ...deriveA11y(fs.readFileSync(path.join(blocksDir, `${t}.js`), 'utf8')),
+  }));
+
+  // The whole point: it must not come back as the old default for everything.
+  const decorative = results.filter((r) => r.accessibleNameSource === 'none_decorative');
+  assert.ok(decorative.length < types.length / 2,
+    `${decorative.length} of ${types.length} blocks derived as none_decorative, which is the ` +
+    'default this check exists to prevent coming back');
+
+  // Named cases, chosen because each exercises a different arm of the ARIA precedence and each
+  // would be WRONG under the old default.
+  const by = Object.fromEntries(results.map((r) => [r.type, r]));
+  assert.equal(by.nav.accessibleNameSource, 'aria_label', 'a nav carries aria-label and is not decorative');
+  assert.equal(by.checkbox.accessibleNameSource, 'label', 'a checkbox is named by its <label for>');
+  assert.equal(by.confirmdialog.accessibleNameSource, 'aria_labelledby',
+    'aria-labelledby must win over aria-label where both are present');
+  assert.equal(by.features.accessibleNameSource, 'children', 'a section with a heading is named by it');
+
+  // Every value must be one the schema allows, or the record will not validate.
+  const ALLOWED = new Set(['children', 'aria_label', 'aria_labelledby', 'title', 'alt', 'none_decorative', 'label']);
+  const bad = results.filter((r) => !ALLOWED.has(r.accessibleNameSource))
+    .map((r) => `${r.type}: ${r.accessibleNameSource}`);
+  assert.deepEqual(bad, [], `these are not in the schema's NameSource enum: ${bad.join(', ')}`);
+
+  // A block drawing several roles has no single root role, so null is the honest answer and
+  // picking one would be arbitrary. Check that is what happens rather than assuming it.
+  const multi = results.filter((r) => r.rolesSeen.length > 1);
+  assert.ok(multi.length > 0, 'expected at least one block to draw more than one role');
+  for (const r of multi) {
+    assert.equal(r.role, null, `${r.type} draws roles ${r.rolesSeen.join(',')} and must record none`);
+  }
+  // And a block drawing exactly one role must record it.
+  for (const r of results.filter((x) => x.rolesSeen.length === 1)) {
+    assert.equal(r.role, r.rolesSeen[0], `${r.type} draws one role and must record it`);
+  }
+});

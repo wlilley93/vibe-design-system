@@ -361,6 +361,37 @@ function yamlList(items, indent) {
  * value, which is what `no_stored_values` requires (VDS S-2(2)). It is recorded as
  * an amendment with its basis so a reviewer can contest it.
  */
+/*
+ * The ARIA role and the accessible-name mechanism, DERIVED from the block's own markup.
+ *
+ * These were written as `role: null` and `accessibleNameSource: none_decorative` for every
+ * block, with the record's own note admitting "role and keyboard are decisions nobody has made
+ * yet". That was honest in the register and became a LIE in the contract: `vds impl` turns the
+ * field into a requirement, so it printed "take its accessible name from none_decorative" for a
+ * NAV. An honest placeholder in one artefact is a false instruction in the artefact derived from
+ * it, because the deriving tool cannot tell a default from a decision.
+ *
+ * So it is read out of the same text Node executes, the way deriveStates and scaffold's
+ * dependency walk already are. The order of the checks is the ARIA precedence that actually
+ * applies: aria-labelledby beats aria-label, which beats a <label for>, and a section whose name
+ * comes from its own heading is `children`.
+ */
+function deriveA11y(source) {
+  const roles = [...new Set([...source.matchAll(/role="([a-z]+)"/g)].map((m) => m[1]))];
+  let accessibleNameSource = 'none_decorative';
+  if (/aria-labelledby=/.test(source)) accessibleNameSource = 'aria_labelledby';
+  else if (/aria-label=/.test(source)) accessibleNameSource = 'aria_label';
+  else if (/<label[^>]*\bfor=/.test(source)) accessibleNameSource = 'label';
+  else if (/<h[1-3]\b/.test(source)) accessibleNameSource = 'children';
+  else if (/\balt=/.test(source)) accessibleNameSource = 'alt';
+
+  // A block that draws several roles has no single root role, so recording one would pick a
+  // winner arbitrarily. Null is the honest answer and the schema allows it for exactly this:
+  // "a layout container with none".
+  const role = roles.length === 1 ? roles[0] : null;
+  return { role, accessibleNameSource, rolesSeen: roles };
+}
+
 function writeRegister(outDir, blockTypes) {
   const registerDir = path.join(outDir, '.vds', 'register');
   fs.mkdirSync(registerDir, { recursive: true });
@@ -383,6 +414,7 @@ function writeRegister(outDir, blockTypes) {
     const node = FIGMA_NODES[type];
     const blockSrc = fs.readFileSync(path.join(outDir, 'blocks', `${type}.js`), 'utf8');
     const st = deriveStates(blockSrc, type, drawnMap);
+    const a11y = deriveA11y(blockSrc);
     const figmaBlock = node
       ? [
           'figma:',
@@ -412,8 +444,8 @@ function writeRegister(outDir, blockTypes) {
       '  drawn:' + yamlList(['default', ...st.drawn], '  '),
       '  built:' + yamlList(['default', ...st.required], '  '),
       'a11y:',
-      '  role: null',
-      '  accessibleNameSource: none_decorative',
+      `  role: ${a11y.role === null ? 'null' : a11y.role}`,
+      `  accessibleNameSource: ${a11y.accessibleNameSource}`,
       '  keyboard: []',
       '  contrastFloors:',
       '  - boundary: color-ink',
@@ -509,6 +541,6 @@ function bridge(outDir, blockTypes, opts = {}) {
 module.exports = {
   deriveStates,
   bridge, writeConfig, writeRegister, measureDemand, advanceToBuilt, refreshLedger,
-  resolveVdsBin, SURFACE, FIGMA_NODES, FIGMA_FILE_KEY,
+  resolveVdsBin, SURFACE, FIGMA_NODES, FIGMA_FILE_KEY, deriveA11y,
   FIGMA_VARIABLE_MODES, FIGMA_UNBOUND_PACKS, FIGMA_VARIABLE_PREFIXES,
 };

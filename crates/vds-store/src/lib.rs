@@ -27,7 +27,7 @@ use vds_core::{
 
 pub mod lock;
 
-pub use lock::{repin_lock, verify_lock, write_lock};
+pub use lock::{repin_lock, test_name_resolves, verify_lock, write_lock};
 
 /// A typed view over one project's record directories.
 pub struct Store<'a> {

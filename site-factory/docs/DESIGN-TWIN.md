@@ -129,6 +129,73 @@ Opbox's `statusMeaning` is the same idea as VDS's `basis` arriving independently
 strongest evidence that the concept is right rather than invented: a token is under a contract,
 and the contract says whether the VALUE or the RATIO is the thing that must hold.
 
+## Prior art: the idea has a name, and someone published it this month
+
+The problem is called **design system parity**, and the closest published relative to VDS
+appeared in July 2026: Christine Vallaure's *"Design system contracts: the component lives in
+neither Figma nor code"*, with a proof of concept at
+[southleft/ds-contracts-poc](https://github.com/southleft/ds-contracts-poc) and a browser
+playground.
+
+Its central sentence is the design twin arrived at independently: *"Whichever you crown, the
+other becomes a copy that someone has to keep updating."* And its resolution is the same -
+*"Neither becomes the original; both are printouts of the same recipe."* Their contract is a
+plain JSON/YAML file holding variants, colour tokens, allowed content and behaviour, with **no
+visuals and no code** - which is close to word for word what `vds brief` and `vds impl` each say
+about themselves.
+
+Where it is AHEAD of VDS:
+
+- **It generates both sides.** Code files are written out directly; the Figma side is a set of
+  instructions a small plugin runs inside the file to build the components. VDS generates
+  neither - it emits `impl` as a contract a human or agent implements, then proves the result.
+  site-factory generates its Figma side by script, so it has half of this already, but the
+  kernel does not offer it.
+- **It has a three-way checker**, comparing contract against Figma against code.
+- **It has an on-ramp.** Contracts were EXTRACTED from libraries that already exist, and run
+  against Shoelace, Mantine, Carbon and Polaris. VDS has no importer for a foreign library; its
+  own `vds register import` cannot even read a site-factory block, which is why vds-bridge
+  writes the records instead.
+
+Where VDS is ahead:
+
+- **Governance rather than sync.** Warrants that gate design on a complete register, breach
+  records, decision logs, an enforcement lock over the gate SOURCE, a criteria grader that is
+  itself pinned, and a refusal to count a vacuous pass. The contracts PoC checks parity; VDS
+  makes a failure answerable and records who answered.
+- **It states its own blind spots unprompted** - `figma status` volunteers "whether any node
+  LOOKS right" as something it cannot say.
+
+Their stated limitation is VDS's too, and worth quoting because it bounds both: contracts
+specify composition, *not* implementation quality - they do not address "drag, typeahead,
+focus-trapping, motion, and good CSS."
+
+## Does this make maximum use of Figma's dev functionality? No, and here are the four gaps
+
+Measured, not guessed:
+
+1. **`PropContract.figmaProperty` is null on every record.** The schema field exists and is
+   described as "the corresponding Figma variant property, or null where the prop has no visual
+   counterpart". That IS the prop-level binding Code Connect sells, available with no plan tier,
+   and site-factory writes `null` for all 43 blocks.
+2. **`vds figma pull` has never been run for a site-factory project.** So `brief` reports
+   "States drawn measured from: the register's own claim (NOT measured)" and `impl` marks every
+   node "(not measured)". The worked example DOES have a pulled ledger, so this is unused
+   machinery rather than missing machinery - and it is the same defect class as BREACH-0006, a
+   claim read off a field instead of off the thing.
+3. **Variable Code Syntax is unused.** Figma can carry a per-platform code name on the variable
+   itself, which would put `--color-danger` on `color/danger` inside the file rather than only in
+   a manifest beside it.
+4. **The a11y contract is a placeholder that has become a FALSE requirement.** Every record is
+   written with `role: null` and `accessibleNameSource: none_decorative`, and the record's own
+   note admits "role and keyboard are decisions nobody has made yet". But `vds impl CMP-0001` now
+   prints, for a NAV: "take its accessible name from none_decorative". An honest placeholder in
+   the register became a wrong instruction in the contract, because `impl` cannot tell a default
+   from a decision.
+
+Gap 4 is a defect. Gaps 1 to 3 are work. None of the four needs a plan upgrade, and Code Connect
+- which does - would sit on top of gap 1 rather than replace it.
+
 ## What follows for what to build
 
 - Keep generating the Figma side from code, and keep extending the projections. That is the

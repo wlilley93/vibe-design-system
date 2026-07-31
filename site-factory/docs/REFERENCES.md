@@ -74,6 +74,13 @@ that already exists here:
 Each states what it is blind to. That is the bridge, it needs no plan tier, and Code Connect
 would make it nicer rather than make it possible.
 
+## Prior art on the station itself
+
+| Reference | What it is | Access | Relevance |
+|---|---|---|---|
+| [southleft/ds-contracts-poc](https://github.com/southleft/ds-contracts-poc) + [playground](https://ds-contracts-playground.pages.dev) | Design-system CONTRACTS proof of concept, July 2026. A JSON/YAML contract with no visuals and no code; generates code files directly and the Figma side via a plugin; three-way checker over contract, Figma and code. Run against Shoelace, Mantine, Carbon and Polaris | public | The closest published relative to VDS. Ahead on generation and on having an on-ramp for existing libraries; behind on governance. See `DESIGN-TWIN.md` |
+| [Christine Vallaure, "Design system contracts"](https://christinevallaure.substack.com/p/design-system-contracts-the-component) | The article. "Whichever you crown, the other becomes a copy that someone has to keep updating"; "Neither becomes the original; both are printouts of the same recipe" | public | The design twin, arrived at independently. The problem's name in the wild is **design system parity** |
+
 ## Reference sites
 
 | Site | Why | Read |
