@@ -12,6 +12,9 @@
 //! in this module, and `no_stored_values` re-checks that claim against the bytes
 //! on disk rather than trusting it (VDS S-2(8)).
 
+/// Public and NAMED (not glob-exported like its siblings): it exports `derive`
+/// and `parse`, names that would shadow at a glob boundary.
+pub mod ci;
 mod component;
 mod geometry;
 mod lock;

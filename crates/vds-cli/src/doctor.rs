@@ -1122,12 +1122,12 @@ describe('design adoption gate', () => {\n\
     /// a check that cannot pass.
     #[test]
     fn a_workflow_that_never_concluded_successfully_fails_d4() {
-        use crate::ci::{CiLedger, WorkflowRuns};
+        use vds_core::types::ci::{CiLedger, WorkflowRuns};
         let file = ".github/workflows/vds-enforce.yml";
         let workflows: std::collections::BTreeSet<String> = [file.to_owned()].into_iter().collect();
 
         let row = |runs: usize, successes: usize, newest: Option<&str>| CiLedger {
-            schema_version: crate::ci::SCHEMA_VERSION,
+            schema_version: vds_core::types::ci::SCHEMA_VERSION,
             generated_at: vds_core::Timestamp::now(),
             generated_by: "test".into(),
             source: "test".into(),

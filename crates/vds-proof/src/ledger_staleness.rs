@@ -54,6 +54,8 @@ const RULE_GEOMETRY_READING: &str =
     "VDS S-4(2) ledger_staleness R5: the geometry reading witnesses its own content";
 const RULE_FRAME_LEDGER: &str = "VDS S-4(2) ledger_staleness R4: the frame ledger is self-consistent, agrees with the file \
      the screen register names, and is not older than the screen records that read it";
+const RULE_CI_LEDGER: &str = "VDS S-4(2) ledger_staleness R6: the CI run ledger's own numbers agree with each other, \
+     because a hand-edit flips one field and derive() builds them together";
 
 /// What the figma ledger's staleness test can and cannot establish.
 ///
@@ -109,10 +111,20 @@ pub const GEOMETRY_LEDGER_NOTE: &str = "[geometry-reading] the geometry reading'
      clock: a reading nobody regenerated reports the shape as it WAS, and the proof reading it \
      should conclude what was true then, not what is true now.";
 
+pub const CI_LEDGER_NOTE: &str = "[ci-ledger] the CI run ledger's source is `gh run list`, a network fact, so no gate can \
+     regenerate it offline - the same settlement as the figma (R3) and frame (R4) ledgers. \
+     What IS checked: every internal cross-total (histogram vs runs_concluded, successes vs \
+     the success bucket, the never_succeeded flag vs the numbers beside it, window ordering), \
+     because those are what a hand-edit breaks - an editor flipping `successes` to make D4 \
+     read better does not also rebuild the histogram derive() builds with it. What is NOT \
+     checked: currency. A stale-but-consistent ledger passes; `generated_at` is the reader's \
+     signal, and D4's own text says a ledger is evidence of the runs it recorded, not of runs \
+     since.";
+
 pub const REACH_NOTE: &str = "what this run does NOT reach: this build holds one REGENERATING staleness test, the screens \
-     ledger's. The figma ledger (R3) and the frame ledger (R4) have self-consistency tests \
-     instead, because their source is behind a network call and there is no generator here to \
-     re-run against it. For every other file in the ledgers directory it establishes only that \
+     ledger's. The figma ledger (R3), the frame ledger (R4) and the CI run ledger (R6) \
+     have self-consistency tests instead, because their source is behind a network call and \
+     there is no generator here to re-run against it. For every other file in the ledgers directory it establishes only that \
      no staleness test exists, never that the file is current. It reaches nothing outside the \
      configured ledgers directory. And where the declared screens ledger is absent the run is a \
      precondition failure at exit 2, so the other files in that directory go unexamined rather \
@@ -210,6 +222,7 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
     let figma_rel = project.rel(&vds_figma::pull::ledger_path(&ctx.store()));
     let frame_rel = project.rel(&vds_figma::frames::ledger_path(project));
     let geometry_rel = project.rel(&vds_core::reading_path(project));
+    let ci_rel = project.rel(&project.path(vds_core::PathRole::Ledgers).join("ci.yaml"));
 
     for rel in &ledgers {
         run.row(Verdict::Enforced);
@@ -244,6 +257,17 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
         if rel == &geometry_rel {
             run.note(GEOMETRY_LEDGER_NOTE);
             report_geometry_reading(&mut run, ctx, rel)?;
+            continue;
+        }
+
+        // R6. The CI run ledger, BREACH-0011's remedy. D4 reads it, so an edited
+        // copy claiming a success that never happened flips the one criterion
+        // whose whole subject is whether the gates actually run. Its source is a
+        // network fact, so this is the self-consistency settlement, not a
+        // regeneration - the note says exactly what that does and does not prove.
+        if rel == &ci_rel {
+            run.note(CI_LEDGER_NOTE);
+            report_ci_ledger(&mut run, ctx, rel)?;
             continue;
         }
 
@@ -469,6 +493,52 @@ fn report_geometry_reading(run: &mut ProofRun, ctx: &ProofContext, rel: &str) ->
                 newer.len(),
                 newer.join(", ")
             ),
+        ));
+    }
+    Ok(())
+}
+
+fn report_ci_ledger(run: &mut ProofRun, ctx: &ProofContext, rel: &str) -> Result<()> {
+    let project = ctx.project;
+    let path = project.path(vds_core::PathRole::Ledgers).join("ci.yaml");
+    let text = match std::fs::read_to_string(&path) {
+        Ok(text) => text,
+        // Listed and then unreadable is an IO fault, not staleness; surface it
+        // as the violation it is rather than letting the row pass silently.
+        Err(error) => {
+            run.fail(Violation::fatal(
+                rel.to_owned(),
+                RULE_CI_LEDGER,
+                "a readable CI run ledger",
+                format!("could not be read: {error}"),
+            ));
+            return Ok(());
+        }
+    };
+    // Parse + schema check are the TYPE's (vds_core::types::ci), the same
+    // implementation `vds ledger ci` writes through - one copy of the rule, per
+    // the two-copies failure this repo's sibling measured the same day this arm
+    // was written. A parse failure is a failure here, not a skip: a ledger that
+    // stopped parsing is a ledger something edited.
+    let ledger = match vds_core::types::ci::CiLedger::parse(&text) {
+        Ok(ledger) => ledger,
+        Err(why) => {
+            run.fail(Violation::fatal(
+                rel.to_owned(),
+                RULE_CI_LEDGER,
+                "a CI run ledger this build's schema reads",
+                why,
+            ));
+            return Ok(());
+        }
+    };
+    for finding in ledger.self_check() {
+        run.fail(Violation::fatal(
+            rel.to_owned(),
+            RULE_CI_LEDGER,
+            "a ledger whose summary fields follow from the histogram beside them, as \
+             derive() constructs them",
+            finding,
         ));
     }
     Ok(())
@@ -952,6 +1022,71 @@ mod tests {
         assert_eq!(outcome.rows_enforced, 2, "one row per ledger: {text}");
         assert!(text.contains("[frame-ledger]"), "{text}");
         assert!(text.contains("[frame-ledger-age]"), "{text}");
+    }
+
+    /// R6, both directions, driven through the REAL gate over a REAL derive()
+    /// output - not the self_check function alone, because a defect between the
+    /// gate and the type (a wrong path, a skipped parse) is invisible to a
+    /// unit test of the type.
+    #[test]
+    fn a_consistent_ci_ledger_passes_and_a_hand_edited_one_is_refused_by_name() {
+        let h = seeded();
+        let raw = r#"[
+          {"conclusion":"failure","createdAt":"2026-07-31T07:38:23Z","headSha":"abc","workflowName":"vds-enforce"},
+          {"conclusion":"failure","createdAt":"2026-07-25T14:06:34Z","headSha":"def","workflowName":"vds-enforce"}
+        ]"#;
+        let ledger = vds_core::types::ci::derive(
+            ".github/workflows/vds-enforce.yml",
+            Some("vds-enforce"),
+            "test",
+            raw,
+            "test",
+        )
+        .unwrap();
+        let path = h.root().join(".vds/ledgers/ci.yaml");
+        std::fs::write(&path, serde_yaml::to_string(&ledger).unwrap()).unwrap();
+
+        let (outcome, text) = run_kind(&h, ProofKind::LedgerStaleness);
+        assert_eq!(outcome.exit_code, EXIT_PASSED, "{text}");
+        assert!(
+            text.contains("[ci-ledger]"),
+            "the note must say what a pass proves: {text}"
+        );
+
+        // SEED: flip the one field an editor wanting D4 green would flip, and
+        // assert the seed LANDED before reading the verdict - a seed that
+        // silently missed reads exactly like a dead gate.
+        let text_before = std::fs::read_to_string(&path).unwrap();
+        let seeded_text = text_before.replace("successes: 0", "successes: 1");
+        assert_ne!(seeded_text, text_before, "the seed did not land");
+        std::fs::write(&path, seeded_text).unwrap();
+
+        let (outcome, text) = run_kind(&h, ProofKind::LedgerStaleness);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("R6"), "{text}");
+        assert!(
+            text.contains("the summary and the evidence disagree")
+                || text.contains("does not follow from the numbers"),
+            "the refusal must name the contradiction, not just count it: {text}"
+        );
+    }
+
+    /// A ledger from a FUTURE schema must fail, not skip: an unreadable file in
+    /// the ledgers directory is a file something edited or something newer
+    /// wrote, and neither is a pass.
+    #[test]
+    fn a_ci_ledger_from_an_unknown_schema_is_a_violation_not_a_skip() {
+        let h = seeded();
+        let path = h.root().join(".vds/ledgers/ci.yaml");
+        std::fs::write(
+            &path,
+            "schema_version: 999\ngenerated_at: 2026-07-31T00:00:00Z\ngenerated_by: t\nsource: t\nworkflows: []\nnotes: []\n",
+        )
+        .unwrap();
+
+        let (outcome, text) = run_kind(&h, ProofKind::LedgerStaleness);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("schema_version 999"), "{text}");
     }
 
     #[test]

@@ -1,8 +1,8 @@
 schema_version: 1
-generated_at: 2026-07-31T17:13:04Z
+generated_at: 2026-07-31T18:18:07Z
 entries:
 - path: crates/vds-cli/src/doctor.rs
-  digest: sha256:994f575215d16c415ba1fac437c57ee0c2f750ee76738611804caa6432e9ce83
+  digest: sha256:5d5d4ae45f4937a1d141fac6b8419e74653972d50e2d8453c50c8ad1df14d68c
   kind: criteria_grader
   invoked_by:
   - surface: ci_workflow
@@ -19,10 +19,10 @@ entries:
     path: crates/vds-cli/src/doctor.rs
     test_name: a_pass_over_zero_rows_is_still_a_vacuous_pass
     seeds: a proof record labelled passed over rows_enforced 0, which D3 once agreed was a pass
-  pinned_at: 2026-07-31T09:26:16Z
+  pinned_at: 2026-07-31T18:18:07Z
   pinned_by: jellytot
-  supersedes_digest: sha256:a2b74f6820c79fe331b6d35270277b462bbfa13a711253bbf0a2aaf63df7ccf7
-  relock_rationale: 'cargo fmt --all reflowed doctor.rs after the D4 third-limb change in this same commit. No logic moved: the only diff against the digest pinned moments earlier is whitespace and line wrapping applied by the formatter, which `make check` runs as its first step and which therefore reaches every pinned Rust gate. Recorded rather than folded silently into the previous rationale, because a re-pin whose reason is "the formatter touched it" is a different fact from a re-pin whose reason is "the gate changed", and a reader who cannot tell them apart cannot audit the lock. Part of BREACH-0011 remediation.'
+  supersedes_digest: sha256:994f575215d16c415ba1fac437c57ee0c2f750ee76738611804caa6432e9ce83
+  relock_rationale: 'ledger_staleness gains R6, a self-consistency arm for the CI run ledger (BREACH-0011 remedy): the parse and cross-total rules live once, on vds_core::types::ci::CiLedger, the same type vds ledger ci writes through. doctor.rs moved its test imports to that type after the CiLedger/WorkflowRuns definitions were consolidated out of vds-cli - the same two-copies defect the sibling VJS repo measured today ([2026] VJS-CC-VJS 12), fixed here before it bit.'
 - path: crates/vds-cli/src/lock.rs
   digest: sha256:c5ae0f9bade970f4caddbcbcf156d0701486858db46a611714cff328a0adc7e0
   kind: hook
@@ -99,7 +99,7 @@ entries:
   supersedes_digest: sha256:6ec91decb1aab9af2367baf7735d15e062ea84fe234f7d2df98f13b753bae359
   relock_rationale: 'R10 was added: the reading must match its own content digest. The gate was pinned before the reading carried one, so a bound being exceeded could be brought back inside it by editing an integer in a YAML file and this proof would report a pass. STRENGTHENS: no rule removed, no threshold relaxed, one refusal added, and the named failing-direction test is unchanged and still passes. Re-pinned in the commit that changed the gate, per VDS S-8(4).'
 - path: crates/vds-proof/src/ledger_staleness.rs
-  digest: sha256:f46c8cd8d46e9118767da2a52fefc8e2d91aac1a485b0356da5285e3e3047758
+  digest: sha256:ac8bcfe5bc40a170db00dcf26d360657616d2fc0ec398c08f4c6fa3b38d03cf2
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -114,10 +114,10 @@ entries:
     path: crates/vds-proof/src/ledger_staleness.rs
     test_name: ledger_staleness_fails_on_a_stale_screens_ledger
     seeds: a screen edited after the ledger was generated
-  pinned_at: 2026-07-31T10:22:00Z
+  pinned_at: 2026-07-31T18:18:07Z
   pinned_by: jellytot
-  supersedes_digest: sha256:72a23125c57768a7580dbbaef3480d12a86668992454b31d0e6ecae2a0774c03
-  relock_rationale: 'R5 was added for the geometry reading, the ledger the twelfth proof kind reads as its sole measurement. Without the arm the reading falls through to R2 and fails as a ledger with no staleness test, which was the correct answer until it had one. STRENGTHENS in both directions: the reading must witness its own content, and it must not be older than a bound measured against it. No existing arm was touched and the named failing-direction test is unchanged.'
+  supersedes_digest: sha256:f46c8cd8d46e9118767da2a52fefc8e2d91aac1a485b0356da5285e3e3047758
+  relock_rationale: 'ledger_staleness gains R6, a self-consistency arm for the CI run ledger (BREACH-0011 remedy): the parse and cross-total rules live once, on vds_core::types::ci::CiLedger, the same type vds ledger ci writes through. doctor.rs moved its test imports to that type after the CiLedger/WorkflowRuns definitions were consolidated out of vds-cli - the same two-copies defect the sibling VJS repo measured today ([2026] VJS-CC-VJS 12), fixed here before it bit.'
 - path: crates/vds-proof/src/no_stored_values.rs
   digest: sha256:09d3675cb7df56e57e39fce8f1f76b7becdc4280c56725fe350bba6924574d85
   kind: proof_script
