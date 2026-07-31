@@ -3,7 +3,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use clap::{Args as ClapArgs, Subcommand};
-use vds_core::Result;
+use vds_core::{Result, VdsError};
 
 use crate::{Context, PASSED};
 
@@ -24,7 +24,26 @@ enum Which {
     /// edit for the reason VDS S-4(2) gives: the reading is this proof's SOLE
     /// measurement, so a hand-written one is a number nobody derived, and a
     /// hand-EDITED one turns a bound being exceeded into a bound being met.
-    Geometry,
+    Geometry {
+        /// A measurement produced by the SUBJECT's own reader, as JSON.
+        ///
+        /// Without it, VDS's built-in stylesheet reader runs. With it, VDS takes
+        /// the counts and owns only the ledger format and the digest.
+        ///
+        /// This seam exists because VDS must not decide what compliance MEANS.
+        /// A project composing shape from utility classes in its markup
+        /// (`rounded-lg`, `p-4`) puts it somewhere no stylesheet reader can see,
+        /// and the built-in reader says so on every run rather than reporting a
+        /// confident floor. That project writes its own reader; VDS still refuses
+        /// a reading that does not witness its own content, which is the half
+        /// that has to be uniform.
+        ///
+        /// Same shape as `vds pin generate --from` and `vds ledger ci --from`:
+        /// derive from saved bytes, so the derivation is reproducible and the
+        /// network call stays outside the proof (VDS S-7(2)(1)).
+        #[arg(long, value_name = "PATH")]
+        from: Option<std::path::PathBuf>,
+    },
     /// Whether the workflow the lock names has ever actually concluded (BREACH-0011).
     ///
     /// D4 asks "is every gate invoked by CI". It read the lock's own declaration, then
@@ -152,10 +171,32 @@ pub fn run(ctx: &Context, args: &Args) -> Result<i32> {
             // regenerating, which is how a ledger goes stale.
             Ok(PASSED)
         }
-        Which::Geometry => {
-            let reading = vds_scan::geometry::build(&project, vds_core::Timestamp::now())?;
+        Which::Geometry { from } => {
+            let mut reading = match from {
+                None => vds_scan::geometry::build(&project, vds_core::Timestamp::now())?,
+                Some(path) => {
+                    let text = std::fs::read_to_string(path)
+                        .map_err(|e| VdsError::io(path.display(), e))?;
+                    let mut supplied: vds_core::GeometryReading = serde_json::from_str(&text)
+                        .map_err(|e| VdsError::Artefact {
+                            path: project.rel(path),
+                            message: format!("is not a geometry reading: {e}"),
+                        })?;
+                    // The DIGEST is computed here and never taken from the file.
+                    // A subject that supplied its own could supply a wrong one,
+                    // and the whole value of the field is that it was computed
+                    // from the content by something other than the hand that
+                    // wrote the content.
+                    supplied.content_digest = supplied.compute_content_digest()?;
+                    supplied
+                }
+            };
+            // Recomputed unconditionally, so both paths leave the file in a state
+            // `geometry` R10 and `ledger_staleness` R5 accept.
+            reading.content_digest = reading.compute_content_digest()?;
             let path = vds_core::write_reading(&project, &reading)?;
             println!("wrote {}", project.rel(&path));
+            println!("  by:        {}", reading.generated_by);
             println!("  read:      {}", reading.sources.join(", "));
             println!("  taken at:  {}", reading.taken_at);
             println!("  from:      {}", reading.read_from);
