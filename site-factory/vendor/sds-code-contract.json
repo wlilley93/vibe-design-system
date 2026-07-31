@@ -1,0 +1,58 @@
+{
+  "_what": "The CODE half of the Simple Design System extraction, and the COMPARISON against the Figma half in sds-figma-contract.json. This is the artefact the whole subject was chosen for.",
+  "_why": "An extractor tested only against its own output cannot be surprised. SDS is a real Figma library and a real MIT codebase (github.com/figma/sds, main @ 335befd6), and neither side is mine, so a disagreement between the two halves is evidence about the MODEL rather than about my blocks.",
+  "_how": "The Figma half was imported by key through the Plugin API. The code half was read independently from GitHub without reference to it. Only then were they compared.",
+  "findings": [
+    {
+      "id": "F1",
+      "claim": "THE SAME FIGMA SHAPE MAPS TO TWO DIFFERENT CODE SHAPES, and nothing in Figma records which.",
+      "evidence": "Button and NavigationButton BOTH carry `Has Icon` (BOOLEAN) + `Icon` (INSTANCE_SWAP) in Figma - structurally identical. In code, Button has NO icon prop at all and takes icons as positional CHILDREN (`<Button><IconArrowLeft/>{children}<IconActivity/></Button>`), while NavigationButton has a real `icon?: ReactNode` PROP rendered before children. Figma models both the same way; only the code differs.",
+      "consequence": "A binding that records only a Figma property NAME cannot express this, and neither can one that adds a KIND. The code side of the binding is not derivable from the Figma side - it has to be stated. This is the strongest single argument for ds-contracts-poc’s `bindings: { figma: {...}, code: { prop } }` shape over a bare `figmaProperty` string."
+    },
+    {
+      "id": "F2",
+      "claim": "A FIGMA STATE AXIS MAPS ASYMMETRICALLY: some values are props, some are nothing.",
+      "evidence": "Button’s Figma `State` is Default|Hover|Disabled. In code, Disabled is the PROP `isDisabled`; Hover is NOT a prop at all - it is `[data-hovered]`, written at runtime by react-aria-components and consumed by CSS. Figma’s own Code Connect proves the asymmetry by mapping only one member: `getEnum(\"State\", { Disabled: true })`. Default and Hover produce undefined.",
+      "consequence": "This is the different_axis finding sharpened. It is not merely that the two sides pick different axes - it is that ONE Figma axis can be partly a prop, partly a runtime attribute and partly nothing, all at once. A one-to-one value map cannot say that."
+    },
+    {
+      "id": "F3",
+      "claim": "PARTIAL MAPPING IS DELIBERATE, not an omission.",
+      "evidence": "Code Connect maps `Size` only for `Small`. `Medium` is left unmapped ON PURPOSE so it falls through to the code default and the generated snippet does not emit `size=\"medium\"`. Button Danger does the same with `Variant`, mapping only `Subtle`.",
+      "consequence": "A binding must be able to map a SUBSET of an axis’s values and have that read as complete. My guard currently requires every code variant to be mapped and no others; against a foreign library that rule would reject a correct binding."
+    },
+    {
+      "id": "F4",
+      "claim": "A FIGMA SLOT IS THREE UNTYPED THINGS IN CODE.",
+      "evidence": "Figma’s `Navigation Button List` carries a SLOT property. The code component (`Navigation`) has no slot prop, no slot attribute and no constraint on children - `children` arrives implicitly through a `{...props}` spread onto a `<nav>`. The constraint lives in THREE other places: a layer-name allowlist in the Code Connect template (`figma.properties.children([\"Navigation Button\"])`), a CSS descendant contract (`> .navigation-button`), and nothing type-checked at all.",
+      "consequence": "SLOT has no counterpart in PropContract and cannot be given one honestly as a prop, because in the code it is not a prop."
+    },
+    {
+      "id": "F5",
+      "claim": "THE TWO SIDES DISAGREE ABOUT HOW MANY COMPONENTS THERE ARE, in both directions.",
+      "evidence": "`Calendar Button` exists in Figma with a 7-value State axis and DOES NOT EXIST IN CODE - no source, no CSS, no Code Connect, no story; the only calendar artefact in the repo is an SVG icon. And in the other direction, ONE code component (`Navigation`) backs TWO Figma components (Navigation Button List and Navigation Pill List), which differ only by their child allowlist.",
+      "consequence": "A reconciliation that assumes a bijection is wrong on a real library in both directions at once. Figma’s own system has an unimplemented component and a component implemented twice."
+    }
+  ],
+  "what_this_says_about_my_schema": {
+    "figmaProperty is a bare name": "Insufficient, and F1 shows adding a KIND is also insufficient. The binding needs a code side.",
+    "PropContract has no INSTANCE_SWAP or SLOT": "Correct to have neither as a prop KIND, per F4 - in the code they are children, not props. What is missing is a way to record a CHILD contract at all.",
+    "the aligned/subset/different_axis verdict": "Confirmed as the right three-way split, and F2 shows a fourth state exists: an axis that is PARTLY bindable.",
+    "my binding guard requires a total mapping": "Wrong against a foreign library. F3 is a correct partial mapping and my rule would reject it."
+  },
+  "code_syntax_recipe": {
+    "_why": "DESIGN-TWIN gap 3: Figma variables can carry a per-platform code name and mine carry none. This is the reference implementation, read from the repo rather than guessed.",
+    "api": "variable.setVariableCodeSyntax(\"WEB\", syntax) on a Variable from await figma.variables.getVariableByIdAsync(id). Platform keys are the literal strings WEB, ANDROID, iOS.",
+    "value_shape": "the FULL css call, \"var(--sds-color-background-neutral-default)\", not the bare property name - so a Dev Mode copy yields working CSS.",
+    "per_variable_not_per_mode": "Code Syntax is per-variable, so light and dark collapse to one. SDS takes the FIRST mode by key order, arbitrarily.",
+    "destructive": "the same pass writes variable.description, and an empty string OVERWRITES a hand-written one.",
+    "plugin_only": "setVariableCodeSyntax is Plugin-API only. The Variables REST API can read code syntax and not write it, which is why SDS ships a console snippet rather than a REST script.",
+    "stale_doc": "the README points at scripts/tokens/tokensCodeSyntaxes.js and that file DOES NOT EXIST - it was renamed to tokenVariableSyntaxAndDescriptionSnippet.js. A reference this programme cited from their README was already rotten."
+  },
+  "licence": {
+    "code": "MIT, one LICENSE file at the repo root covering src/, scripts/ and the checked-in token JSON. package.json is private:true with NO license field.",
+    "kit": "NOT STATED IN THE REPO. The Figma Community file is governed by Community terms chosen by the publisher, and the README links it without naming a licence. An earlier note here recorded the kit as CC BY 4.0; that came from the library description rather than from the repo, and the repo does not corroborate it."
+  },
+  "_correction": "sds-figma-contract.json records the licence as \"kit CC BY 4.0; code MIT\". The code half is confirmed MIT. The kit half is NOT confirmed by the repository and should be read off the Community file page before it is relied on.",
+  "_not_done": "7 of 400+ components, and the comparison is of contracts rather than of behaviour. Nothing here says the two sides LOOK the same."
+}

@@ -920,3 +920,84 @@ test('the library generator is deterministic, refuses rather than guesses, and h
   assert.ok(!/throw new Error/.test(a),
     'the script must not throw: a throw rolls back every set it had already drawn');
 });
+
+test('coverage reports three separate numbers per library and never invents a denominator', () => {
+  // THE INSTRUMENT MUST NOT COMPUTE ITS OWN DENOMINATOR. Every coverage answer this
+  // programme has given was a single fraction, and a fraction hides which of three
+  // different things went wrong: how many units the reference library HAS, how many are
+  // answered, and how much of the contract actually survived into a record.
+  //
+  // Borrowed from ds-contracts-poc's census, whose headline was 100% clean over 1,618 sets
+  // and whose own caveat is the point - "Refusal-free is not pixel-right" - because it
+  // scored perfectly while naming 3,316 degradations. CLEAN and COMPLETE are different
+  // questions and one number cannot answer both.
+  //
+  // This test deliberately does NOT require compose.js. Deriving the denominator from the
+  // block registry would make the instrument a function of the thing it measures, and
+  // `conformance/README.md` states the consequence exactly: "An instrument built that way
+  // cannot be surprised."
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const src = fs.readFileSync(__filename, 'utf8');
+  const thisTest = src.slice(src.indexOf("test('coverage reports three separate numbers"));
+  assert.ok(!/require\(['"]\.\.\/compose\.js['"]\)/.test(thisTest),
+    'this test must not import the block registry: a denominator derived from what is ' +
+    'covered can never report a gap');
+
+  const cov = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'vendor', 'coverage.json'), 'utf8'));
+  const libs = Object.entries(cov.libraries);
+  assert.ok(libs.length >= 4, `expected at least four libraries, got ${libs.length}`);
+
+  let unmeasured = 0;
+  for (const [name, lib] of libs) {
+    assert.ok(lib.denominator && 'sets' in lib.denominator,
+      `${name}: no denominator field at all`);
+    assert.ok(lib.answered && typeof lib.answered.sets === 'number',
+      `${name}: answered.sets must be a number`);
+    assert.ok(lib.facts_carried, `${name}: no facts_carried. "Answered" without it is a ` +
+      'pairing presented as a contract');
+    assert.ok(Array.isArray(lib.degradations), `${name}: degradations must be a list, ` +
+      'even an empty one - a library with no known losses should say so rather than omit it');
+
+    const d = lib.denominator.sets;
+    if (d === null) {
+      // AN UNMEASURED DENOMINATOR MUST SAY SO IN WORDS, not be quietly absent, and must
+      // not be back-filled with an advertised figure. SDS advertises "400+ components";
+      // writing 400 here would turn marketing into a statistic.
+      unmeasured += 1;
+      assert.match(lib.denominator.source, /UNMEASURED/,
+        `${name}: a null denominator must be labelled UNMEASURED with the reason`);
+      continue;
+    }
+    assert.ok(Number.isInteger(d) && d > 0, `${name}: denominator ${d} is not a count`);
+
+    // A MEASURED DENOMINATOR MUST NAME A FILE THAT EXISTS. This arm was added because the
+    // seed found the hole: writing SDS's advertised "400+" in as a real denominator, with
+    // "the kit advertises 400+ components" as its source, PASSED every assertion here.
+    // The null branch above was guarded and the non-null branch was not, so the check
+    // caught the honest absence and waved through the dishonest presence - which is the
+    // wrong way round, and is the defect the whole file exists to prevent.
+    //
+    // Requiring a real path is what distinguishes a measurement from a claim: an
+    // advertisement has no artefact behind it, and a source naming a file a reader can
+    // open is one they can disagree with.
+    const cited = (lib.denominator.source || '').match(/[\w./-]+\.(json|md|yaml|yml)/);
+    assert.ok(cited,
+      `${name}: the denominator is ${d} and its source names no file - "${lib.denominator.source}". ` +
+      'A measured denominator cites an artefact; anything else is a claim and belongs in ' +
+      'the UNMEASURED branch.');
+    assert.ok(fs.existsSync(path.join(__dirname, '..', cited[0])),
+      `${name}: the denominator cites ${cited[0]}, which does not exist`);
+    assert.ok(lib.answered.sets <= d,
+      `${name}: answered ${lib.answered.sets} exceeds the denominator ${d}, so one of the ` +
+      'two is measuring something the other is not');
+  }
+
+  assert.ok(unmeasured > 0,
+    'at least one denominator is genuinely unknown today, and a run where all four are ' +
+    'measured means this file was filled in rather than measured - check it');
+
+  // No single score anywhere. The whole point is that there is not one.
+  assert.ok(!('score' in cov) && !('coverage' in cov),
+    'coverage.json must not carry a single score: three numbers per library, or none');
+});

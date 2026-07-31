@@ -6,7 +6,7 @@
   "_second_finding": "A VARIANT AXIS IS NOT THE WHOLE CONTRACT, and this is the bigger gap. These sets carry component PROPERTIES as well as axes: TEXT (a label), BOOLEAN (has-icon-start), INSTANCE_SWAP (which icon) and SLOT (arbitrary content). Those are PROPS, not axes. A register that recorded only the axes would miss Label, Has Icon Start and the slot entirely - which is most of what a developer actually implements. site-factory records one variant prop and one content object; SDS distinguishes seven properties on Button alone. INSTANCE_SWAP and SLOT are the two with no counterpart in the site-factory contract at all.",
   "measured_at": "2026-07-31T11:22:11Z",
   "source": "Simple Design System (Figma), subscribed as a library on 4pPUFvaPdqYzPquBusSfWl",
-  "licence": "kit CC BY 4.0; code MIT at github.com/figma/sds",
+  "licence": "code MIT (confirmed at github.com/figma/sds). KIT LICENCE NOT CONFIRMED: an earlier draft of this file said CC BY 4.0, taken from the library description rather than from the repository, and the repo does not corroborate it. See sds-code-contract.json _correction.",
   "harvested": 7,
   "propertyTypeTally": {
     "TEXT": 4,
@@ -274,5 +274,6 @@
       ]
     }
   },
-  "_notHarvested": "7 of the 400+ components SDS advertises. This is a SLICE and says nothing about the rest: the button family was chosen because search_design_system surfaced it for the query \"button\", not because it is representative. The CODE half, from github.com/figma/sds, is not yet read - and comparing the two is the whole point of choosing this subject."
+  "_notHarvested": "7 of the 400+ components SDS advertises. This is a SLICE and says nothing about the rest: the button family was chosen because search_design_system surfaced it for the query \"button\", not because it is representative. The CODE half, from github.com/figma/sds, is not yet read - and comparing the two is the whole point of choosing this subject.",
+  "_code_half": "Read independently and compared in vendor/sds-code-contract.json. Five findings, and the sharpest is that the SAME Figma shape (BOOLEAN + INSTANCE_SWAP) becomes positional CHILDREN on Button and an `icon` ReactNode PROP on NavigationButton - so the code side of a binding is not derivable from the Figma side."
 }

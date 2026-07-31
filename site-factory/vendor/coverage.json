@@ -1,0 +1,101 @@
+{
+  "_what": "ONE coverage record against four reference libraries, with THREE SEPARATE NUMBERS per library and no single score.",
+  "_why": "Every previous coverage answer in this programme was a fraction, and a fraction hides which of three different things went wrong. Borrowed from ds-contracts-poc’s own census, whose headline was 100% clean over 1,618 sets and whose caveat is the point: \"Refusal-free is not pixel-right.\" It scored perfectly while naming 3,316 capture degradations, because CLEAN and COMPLETE are different questions and one number cannot answer both.",
+  "_the_three_numbers": {
+    "denominator": "How many units the reference library HAS. Hand-authored from a measurement of the library itself, never derived from what site-factory happens to cover - an instrument that computes its own denominator cannot be surprised.",
+    "answered": "How many of those units site-factory has a counterpart for. A pairing, not a judgement of quality.",
+    "facts_carried": "Of the units answered, how much of the CONTRACT actually survived into a record: axes, property kinds, states. This is the number that says whether \"answered\" means anything."
+  },
+  "_honesty_rule": "A denominator nobody measured is recorded as UNMEASURED and NOT as a large round number. Two of the four are unmeasured, and writing \"400+\" for one of them would turn an advertisement into a statistic.",
+  "measured_at": "2026-07-31T11:28:42Z",
+  "libraries": {
+    "uber-base": {
+      "what": "Uber Base, the product design system. Harvested from the Gallery file.",
+      "denominator": {
+        "sets": 92,
+        "variants": 3211,
+        "source": "vendor/uber-base-tiers.json, a measured read of the Gallery"
+      },
+      "answered": {
+        "sets": 43,
+        "how": "a block type exists for the set, per the tier assignment"
+      },
+      "facts_carried": {
+        "note": "NOT MEASURED per set. The tier assignment records WHETHER a set is answered, never how much of its contract came across.",
+        "known_loss": "Base variant axes were never harvested at all - only names, counts and tiers - so no Base set contributes a single axis value to any register record."
+      },
+      "degradations": [
+        "IMPORT still blocked: the library is not subscribed on the master file, so its 92 keys do not resolve. A duplicate exists in drafts and is not reachable from here."
+      ]
+    },
+    "relume": {
+      "what": "Relume Figma Kit v3.7, the marketing section library.",
+      "denominator": {
+        "categories": 50,
+        "sets": 1757,
+        "source": "vendor/relume-coverage.json, a measured read of the duplicated kit"
+      },
+      "answered": {
+        "categories": 36,
+        "sets": 1515
+      },
+      "facts_carried": {
+        "note": "NOT MEASURED. Coverage here is CATEGORY-level: it says a category is answered, never that any particular set’s contract was carried.",
+        "known_loss": "No Relume set contributes an axis, a property or a state to any register record. The kit informed which SECTIONS to build and nothing about their contracts."
+      },
+      "degradations": [
+        "14 categories unanswered, named in vendor/relume-coverage.json rather than counted only"
+      ]
+    },
+    "simple-design-system": {
+      "what": "Figma’s own Simple Design System. The extraction test subject, because both twins are published and neither is mine.",
+      "denominator": {
+        "sets": null,
+        "source": "UNMEASURED. The kit advertises \"400+ components\" and an advertisement is not a measurement. Only a search for \"button\" has been run against it."
+      },
+      "answered": {
+        "sets": 7,
+        "how": "imported by key and the full Figma-side contract recorded"
+      },
+      "facts_carried": {
+        "axes": "YES, all 7 sets, with every value",
+        "component_properties": "YES: {\"TEXT\":4,\"INSTANCE_SWAP\":6,\"BOOLEAN\":13,\"SLOT\":1}",
+        "descriptions": "partial - 3 of 7 carry one",
+        "note": "This is the only library where facts_carried is a real number rather than a note, because it is the only one where the contract was actually read."
+      },
+      "degradations": [
+        "INSTANCE_SWAP and SLOT have NO counterpart in PropContract, so 6 instance swaps and 1 slot were read and cannot be recorded.",
+        "PropContract.figmaProperty is a bare NAME with no KIND, so a recorded binding cannot say whether it is a variant axis, a text prop or an icon swap.",
+        "The CODE half has not been compared yet, which is the entire reason this subject was chosen."
+      ]
+    },
+    "material-3": {
+      "what": "Google’s Material 3 Design Kit, subscribed as a library.",
+      "denominator": {
+        "sets": null,
+        "source": "UNMEASURED. One search returned 20 button and toggle sets; nothing has enumerated the kit."
+      },
+      "answered": {
+        "sets": 0,
+        "how": "nothing harvested"
+      },
+      "facts_carried": {
+        "note": "nothing carried"
+      },
+      "degradations": [
+        "Its set DESCRIPTIONS carry the semantic contract in prose (\"Five color options: elevated, filled, tonal, outlined, and text\"), which is a contract source nothing here reads."
+      ]
+    }
+  },
+  "_own_library": {
+    "note": "site-factory’s OWN surface, recorded here for scale rather than as coverage of anything.",
+    "block_types": 43,
+    "component_sets": 46,
+    "axis_verdicts": "31 aligned, 1 subset, 11 different_axis - see figma-variants.json"
+  },
+  "_what_this_cannot_say": [
+    "Whether any answered unit is any GOOD. Every number here is a pairing or a count.",
+    "Whether the two unmeasured denominators are large or small. They are unknown, and unknown is not zero and not four hundred.",
+    "Anything about a library not listed. Four were chosen; the absence of a fifth is not evidence about it."
+  ]
+}
