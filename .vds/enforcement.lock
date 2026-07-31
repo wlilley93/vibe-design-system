@@ -1,5 +1,5 @@
 schema_version: 1
-generated_at: 2026-07-31T16:00:10Z
+generated_at: 2026-07-31T16:36:16Z
 entries:
 - path: crates/vds-cli/src/doctor.rs
   digest: sha256:994f575215d16c415ba1fac437c57ee0c2f750ee76738611804caa6432e9ce83
@@ -375,7 +375,7 @@ entries:
   pinned_at: 2026-07-31T09:23:43Z
   pinned_by: jellytot
 - path: site-factory/tests/floors.js
-  digest: sha256:9eaeadae65f6ff1b13cdc3062c054df1344c5aa83b7a1385f6dd686848f43a11
+  digest: sha256:64d3d48349d729ca02e5197cf0275f5e7c560d0cfc01a376ce8cea4584e63f9f
   kind: hook
   invoked_by:
   - surface: ci_workflow
@@ -386,10 +386,10 @@ entries:
     path: site-factory/tests/skills.test.js
     test_name: every declared site-factory gate is pinned, at its current digest
     seeds: MIN_TESTS lowered without a re-pin, so deleting tests stops being detectable by the count
-  pinned_at: 2026-07-31T16:00:10Z
+  pinned_at: 2026-07-31T16:36:16Z
   pinned_by: jellytot
-  supersedes_digest: sha256:d7a333c87955acbee5c147569656c1093ea4456dc90c14bbf2929bd0988ac5f4
-  relock_rationale: MIN_TESTS 114 -> 115 for the real-Base harvest guard. A floor rising.
+  supersedes_digest: sha256:c678734dbd19486693d013475d45a10c6edf78523bcd9d3c03e62e1329d7577f
+  relock_rationale: MIN_TESTS 116 -> 117 for the Figma block-prompt drift guard. A floor rising.
 - path: site-factory/tests/gate.js
   digest: sha256:89e019eb675d8ed565de16940252769ed5829f5482568ddadcb5d9bb5f9e75e9
   kind: hook

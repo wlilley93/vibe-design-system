@@ -35,6 +35,87 @@ const SKILL_ROOT = 'skill-library';
 // Which skill writes which block. A block with no entry is one no skill in the pack
 // speaks for; it keeps its neutral placeholder rather than being assigned to a skill
 // that would be guessing.
+/*
+ * EVERY BLOCK TYPE, DISPOSED OF. Silence was the defect.
+ *
+ * `BLOCK_SKILLS` below names six. The library holds 2,930 skills and the other
+ * THIRTY-SEVEN block types had no entry and no explanation, which reads as
+ * coverage: a reader sees a map from blocks to skills and assumes the blocks
+ * that are missing are blocks that do not need one. Some are. Fifteen are not.
+ *
+ * Searching the library by name for the rest returns junk - `nav` matches a
+ * weather-routing voyage skill, `banner` matches Bannerbear automation - and
+ * `revenue/skills/landing-page-writer`, the one real near-miss, writes
+ * lead-capture opt-in pages and reads a different pack's config.json. So the
+ * honest finding is that NO SKILL IN THE LIBRARY WRITES THESE, and assigning
+ * one that nearly fits would send a block to a skill that would be guessing -
+ * which is the failure `BLOCK_SKILLS`'s own comment already warns about.
+ *
+ * Three dispositions, and the third is a stated gap rather than an absence:
+ *
+ *   written    a named skill writes it. Six.
+ *   uncovered  it carries copy somebody has to AUTHOR, and no skill in the
+ *              library writes that copy. Fifteen. These keep their `CONFIRM:`
+ *              markers and the marker is the work queue, as designed.
+ *   data       its text is a label, a value or a caption supplied by the site
+ *              structure or by the row being rendered, not brand copy. A
+ *              writing skill would have nothing to write. Twenty-two.
+ *
+ * THE LINE IS A JUDGEMENT and is recorded as one. It is "would a writer author
+ * this string, or does it arrive from data", and the debatable ones are called
+ * out in their reason rather than filed quietly on the convenient side.
+ */
+const BLOCK_DISPOSITION = {
+  // written - see BLOCK_SKILLS
+  hero: ['written', 'headline-lab'],
+  cta: ['written', 'cta-and-close-writer'],
+  faq: ['written', 'objection-and-faq-engine'],
+  pricing: ['written', 'pricing-section-designer'],
+  testimonials: ['written', 'proof-and-testimonial-engine'],
+  features: ['written', 'offer-stack-builder'],
+
+  // uncovered - real authored copy, no skill writes it
+  banner: ['uncovered', 'a headline and a body somebody writes, per tone'],
+  contact: ['uncovered', 'the invitation to get in touch is persuasion, not a form label'],
+  footer: ['uncovered', 'the tagline and the legal line are both authored'],
+  notfound: ['uncovered', 'a 404 that says something is written; one that says 404 is not'],
+  stats: ['uncovered', 'the numbers are data and the line that frames them is copy'],
+  team: ['uncovered', 'bios. DEBATABLE: often supplied per person rather than authored centrally'],
+  timeline: ['uncovered', 'each entry is a sentence somebody writes'],
+  logolist: ['uncovered', 'the caption that says what the logos prove'],
+  gallery: ['uncovered', 'captions, where the work does not speak for itself'],
+  messagecard: ['uncovered', 'product writing rather than marketing copy, and still authored'],
+  systembanner: ['uncovered', 'the same, and the one people write worst'],
+  emptystate: ['uncovered', 'the highest-value copy in any app and almost never written'],
+  toast: ['uncovered', 'short, authored, and easy to mistake for a label'],
+  confirmdialog: ['uncovered', 'the sentence that says what is about to happen'],
+  card: ['uncovered', 'DEBATABLE: a card body is authored on a marketing page and data in an app'],
+
+  // data - the text arrives from structure or from the row
+  nav: ['data', 'link labels come from the site structure'],
+  sidebar: ['data', 'the same, plus workspace names'],
+  menu: ['data', 'the same'],
+  objecttable: ['data', 'every cell is a field of the row'],
+  objectview: ['data', 'the same, arranged differently'],
+  inspector: ['data', 'the same, in a rail'],
+  masterdetail: ['data', 'an arrangement of the two above'],
+  pagestate: ['data', 'a skeleton has no words'],
+  formfield: ['data', 'the label names the field it collects'],
+  checkbox: ['data', 'the label names the option'],
+  radio: ['data', 'the same'],
+  switch: ['data', 'the same'],
+  segmentedcontrol: ['data', 'the same'],
+  facetstrip: ['data', 'facet names come from the data being filtered'],
+  pagination: ['data', 'a page count'],
+  pagecontrols: ['data', 'the same'],
+  progressbar: ['data', 'a percentage'],
+  progresssteps: ['data', 'step names come from the process'],
+  notificationbadge: ['data', 'a count'],
+  tooltip: ['data', 'DEBATABLE: authored, but one phrase, and no skill writes at that size'],
+  divider: ['data', 'an optional label naming what follows'],
+  draggablelist: ['data', 'the items are the data'],
+};
+
 const BLOCK_SKILLS = {
   hero: { skill: 'revenue/skills/headline-lab', writes: 'the headline, pre-headline and subhead' },
   cta: { skill: 'revenue/skills/cta-and-close-writer', writes: 'the button copy and the closing argument' },
@@ -352,4 +433,4 @@ function briefMarkdown(config, manifest, gaps) {
   return lines.join('\n');
 }
 
-module.exports = { packConfig, blankFields, unsettledFields, extractFromBrief, assignments, briefMarkdown, BLOCK_SKILLS, RUN_ORDER, SKILL_ROOT };
+module.exports = { BLOCK_DISPOSITION, packConfig, blankFields, unsettledFields, extractFromBrief, assignments, briefMarkdown, BLOCK_SKILLS, RUN_ORDER, SKILL_ROOT };

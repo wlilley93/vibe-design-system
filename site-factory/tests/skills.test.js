@@ -1900,3 +1900,107 @@ test('the real Base harvest is complete and self-consistent', () => {
   assert.ok(b._what_this_is_not.some((l) => /Principal action|not subscribed/i.test(l)),
     'the harvest must state that it draws nothing and cannot place an instance');
 });
+
+// ---------------------------------------------------------------------------
+// Every block type disposed of. SILENCE WAS THE DEFECT: `BLOCK_SKILLS` named
+// six and the other 37 had no entry and no explanation, which reads as
+// coverage - a reader sees a map and assumes the missing ones do not need one.
+// Some do not. Fifteen do, and nothing said so.
+test('every block type has a stated writing disposition', () => {
+  const { BLOCK_DISPOSITION, BLOCK_SKILLS } = require('../skills.js');
+  const blocks = Object.keys(JSON.parse(
+    fs.readFileSync(path.join(__dirname, '..', 'figma-variants.json'), 'utf8')).blocks);
+
+  // THE WHOLE POINT: no block may be absent. A new block type added without a
+  // disposition fails here rather than joining the silent 37.
+  const missing = blocks.filter((b) => !BLOCK_DISPOSITION[b]);
+  assert.deepEqual(missing, [],
+    `${missing.length} block type(s) have no stated disposition, so their absence from ` +
+    'BLOCK_SKILLS reads as "needs no writer" when nobody decided that: ' + missing.join(', '));
+  const extra = Object.keys(BLOCK_DISPOSITION).filter((b) => !blocks.includes(b));
+  assert.deepEqual(extra, [], `disposition names a block that does not exist: ${extra.join(', ')}`);
+
+  // Every row must carry a REASON, and the three dispositions are closed.
+  for (const [block, row] of Object.entries(BLOCK_DISPOSITION)) {
+    const [disposition, reason] = row;
+    assert.ok(['written', 'uncovered', 'data'].includes(disposition),
+      `${block}: "${disposition}" is not one of the three dispositions`);
+    assert.ok(reason && reason.length > 3,
+      `${block}: disposed as ${disposition} with no reason, which is the silence this replaces`);
+  }
+
+  // `written` must agree with BLOCK_SKILLS exactly. Two lists that can disagree
+  // will, and then one of them is decoration.
+  const written = Object.entries(BLOCK_DISPOSITION)
+    .filter(([, [d]]) => d === 'written').map(([b]) => b).sort();
+  assert.deepEqual(written, Object.keys(BLOCK_SKILLS).sort(),
+    'the blocks disposed as `written` and the blocks BLOCK_SKILLS actually assigns are ' +
+    'different sets, so one of the two is lying about coverage');
+
+  // AND THE GAP MUST STAY VISIBLE. `uncovered` is the finding: real authored
+  // copy that no skill in a 2,930-skill library writes. If it ever reaches
+  // zero, either skills were written or blocks were quietly reclassified as
+  // data, and those must not look the same.
+  //
+  // THE COUNT IS PINNED, not merely non-zero. A `> 0` check was written first
+  // and SEEDED: moving one block from `uncovered` to `data` left fourteen and
+  // passed. The realistic failure is not somebody emptying the list, it is the
+  // list eroding one block at a time until the gap is gone and nobody decided
+  // it. Fifteen is a claim about the library and every change to it is a
+  // decision that should have to be made deliberately.
+  const uncovered = Object.entries(BLOCK_DISPOSITION).filter(([, [d]]) => d === 'uncovered');
+  assert.equal(uncovered.length, 15,
+    `${uncovered.length} blocks are uncovered, not 15. If a skill was WRITTEN for one, move ` +
+    'it to `written` and add it to BLOCK_SKILLS. If one was reclassified as `data`, that is ' +
+    'a judgement somebody should have to defend, not a number that drifted: ' +
+    uncovered.map(([b]) => b).join(', '));
+  assert.ok(written.length + uncovered.length + 
+    Object.entries(BLOCK_DISPOSITION).filter(([, [d]]) => d === 'data').length === blocks.length,
+    'the three dispositions do not partition the block types');
+});
+
+// ---------------------------------------------------------------------------
+// The 43 block prompts written into Figma. A page of prompts that quietly stops
+// matching the generator is worse than no page, because it reads as current -
+// which is exactly the stale-census defect found earlier in this file's history.
+test('the Figma block prompts still match what the generator emits', () => {
+  const { buildAll } = require('../block-prompts.js');
+  const rec = JSON.parse(fs.readFileSync(
+    path.join(__dirname, '..', 'vendor', 'figma-block-prompts.json'), 'utf8'));
+  const all = buildAll();
+
+  const checksum = (s) => {
+    let n = 0;
+    for (let i = 0; i < s.length; i += 1) n = (n + s.charCodeAt(i) * ((i % 7) + 1)) % 2147483647;
+    return n;
+  };
+
+  assert.equal(rec.figma.frames, Object.keys(all).length,
+    'the page holds a different number of frames than there are block types');
+  assert.deepEqual(Object.keys(rec.prompts).sort(), Object.keys(all).sort(),
+    'the fingerprint set and the block set are different sets');
+
+  // THE DRIFT THAT ACTUALLY HAPPENS: a block module is edited, its prompt
+  // changes, and the Figma frame keeps the old text. Re-derive and compare.
+  const drifted = [];
+  for (const [type, entry] of Object.entries(rec.prompts)) {
+    const now = all[type].prompt;
+    if (now.length !== entry.chars || checksum(now) !== entry.checksum) {
+      drifted.push(`${type}: generator now ${now.length} chars / ${checksum(now)}, ` +
+        `Figma was written from ${entry.chars} / ${entry.checksum}`);
+    }
+    // And what was DRAWN must match what was generated at write time. If these
+    // ever differ, the page was written from something other than the generator.
+    assert.equal(entry.drawnChars, entry.chars,
+      `${type}: the drawn length and the generated length disagree, so the frame was ` +
+      'not written from the generator output');
+  }
+  assert.deepEqual(drifted, [],
+    'a block changed and the Figma page still shows the old prompt. Redraw the affected ' +
+    'frames (they amend in place by their vdsblockprompt stamp) and re-record the ' +
+    `fingerprints:\n  ${drifted.join('\n  ')}`);
+
+  // It must keep saying it is a rendering, not a second source.
+  assert.ok(rec._what_this_is_not.some((l) => /second source of truth/i.test(l)),
+    'the record no longer says the generator is the source and this is a rendering');
+});

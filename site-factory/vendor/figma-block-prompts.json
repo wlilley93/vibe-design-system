@@ -1,0 +1,324 @@
+{
+  "_what": "The 43 derived block prompts, as written into the `Prompts - blocks (derived)` page of the Figma file, fingerprinted so the page cannot go stale in silence.",
+  "_why": "The other prompts page holds seven writing-skill prompts copied word for word from SKILL.md files, and it is guarded by exactly this kind of fingerprint. These 43 are BUILT from the block modules, so they can drift the moment a block changes - and a page of prompts that quietly stops matching the generator is worse than no page, because it reads as current.",
+  "_how": "Each frame carries `setSharedPluginData(\"vdsblockprompt\",\"blockType\")` so a redraw amends in place rather than duplicating. The body text is the exact `block-prompts.js` output, verified by character count against the generator at write time, 43 of 43.",
+  "measured_at": "2026-07-31T16:35:56Z",
+  "figma": {
+    "file": "4pPUFvaPdqYzPquBusSfWl",
+    "page": "Prompts - blocks (derived)",
+    "frames": 43,
+    "headerFrames": 1
+  },
+  "totals": {
+    "blocks": 43,
+    "drawn": 43,
+    "chars": 80579
+  },
+  "prompts": {
+    "banner": {
+      "chars": 2775,
+      "lines": 40,
+      "checksum": 970977,
+      "variants": 2,
+      "drawnChars": 2775
+    },
+    "card": {
+      "chars": 2088,
+      "lines": 33,
+      "checksum": 715341,
+      "variants": 2,
+      "drawnChars": 2088
+    },
+    "checkbox": {
+      "chars": 2537,
+      "lines": 35,
+      "checksum": 896506,
+      "variants": 2,
+      "drawnChars": 2537
+    },
+    "confirmdialog": {
+      "chars": 1735,
+      "lines": 25,
+      "checksum": 616939,
+      "variants": 2,
+      "drawnChars": 1735
+    },
+    "contact": {
+      "chars": 968,
+      "lines": 15,
+      "checksum": 332756,
+      "variants": 2,
+      "drawnChars": 968
+    },
+    "cta": {
+      "chars": 981,
+      "lines": 15,
+      "checksum": 340690,
+      "variants": 2,
+      "drawnChars": 981
+    },
+    "divider": {
+      "chars": 2468,
+      "lines": 35,
+      "checksum": 859857,
+      "variants": 2,
+      "drawnChars": 2468
+    },
+    "draggablelist": {
+      "chars": 2432,
+      "lines": 37,
+      "checksum": 847026,
+      "variants": 2,
+      "drawnChars": 2432
+    },
+    "emptystate": {
+      "chars": 1757,
+      "lines": 25,
+      "checksum": 619549,
+      "variants": 2,
+      "drawnChars": 1757
+    },
+    "facetstrip": {
+      "chars": 1615,
+      "lines": 23,
+      "checksum": 578887,
+      "variants": 2,
+      "drawnChars": 1615
+    },
+    "faq": {
+      "chars": 954,
+      "lines": 15,
+      "checksum": 328406,
+      "variants": 2,
+      "drawnChars": 954
+    },
+    "features": {
+      "chars": 994,
+      "lines": 15,
+      "checksum": 351049,
+      "variants": 2,
+      "drawnChars": 994
+    },
+    "footer": {
+      "chars": 1001,
+      "lines": 15,
+      "checksum": 355377,
+      "variants": 2,
+      "drawnChars": 1001
+    },
+    "formfield": {
+      "chars": 1548,
+      "lines": 22,
+      "checksum": 538215,
+      "variants": 2,
+      "drawnChars": 1548
+    },
+    "gallery": {
+      "chars": 2071,
+      "lines": 31,
+      "checksum": 722517,
+      "variants": 2,
+      "drawnChars": 2071
+    },
+    "hero": {
+      "chars": 1390,
+      "lines": 21,
+      "checksum": 483924,
+      "variants": 2,
+      "drawnChars": 1390
+    },
+    "inspector": {
+      "chars": 1401,
+      "lines": 22,
+      "checksum": 492582,
+      "variants": 2,
+      "drawnChars": 1401
+    },
+    "logolist": {
+      "chars": 2369,
+      "lines": 35,
+      "checksum": 830315,
+      "variants": 2,
+      "drawnChars": 2369
+    },
+    "masterdetail": {
+      "chars": 1550,
+      "lines": 22,
+      "checksum": 545789,
+      "variants": 2,
+      "drawnChars": 1550
+    },
+    "menu": {
+      "chars": 2959,
+      "lines": 42,
+      "checksum": 1034348,
+      "variants": 2,
+      "drawnChars": 2959
+    },
+    "messagecard": {
+      "chars": 2349,
+      "lines": 35,
+      "checksum": 815015,
+      "variants": 2,
+      "drawnChars": 2349
+    },
+    "nav": {
+      "chars": 977,
+      "lines": 15,
+      "checksum": 337978,
+      "variants": 2,
+      "drawnChars": 977
+    },
+    "notfound": {
+      "chars": 1041,
+      "lines": 15,
+      "checksum": 366056,
+      "variants": 2,
+      "drawnChars": 1041
+    },
+    "notificationbadge": {
+      "chars": 2230,
+      "lines": 32,
+      "checksum": 781488,
+      "variants": 2,
+      "drawnChars": 2230
+    },
+    "objecttable": {
+      "chars": 1580,
+      "lines": 23,
+      "checksum": 559681,
+      "variants": 2,
+      "drawnChars": 1580
+    },
+    "objectview": {
+      "chars": 1598,
+      "lines": 23,
+      "checksum": 558103,
+      "variants": 2,
+      "drawnChars": 1598
+    },
+    "pagecontrols": {
+      "chars": 2264,
+      "lines": 32,
+      "checksum": 791978,
+      "variants": 2,
+      "drawnChars": 2264
+    },
+    "pagestate": {
+      "chars": 1614,
+      "lines": 25,
+      "checksum": 560551,
+      "variants": 2,
+      "drawnChars": 1614
+    },
+    "pagination": {
+      "chars": 3103,
+      "lines": 42,
+      "checksum": 1080234,
+      "variants": 2,
+      "drawnChars": 3103
+    },
+    "pricing": {
+      "chars": 979,
+      "lines": 15,
+      "checksum": 344402,
+      "variants": 2,
+      "drawnChars": 979
+    },
+    "progressbar": {
+      "chars": 2830,
+      "lines": 38,
+      "checksum": 990528,
+      "variants": 2,
+      "drawnChars": 2830
+    },
+    "progresssteps": {
+      "chars": 2368,
+      "lines": 35,
+      "checksum": 831445,
+      "variants": 2,
+      "drawnChars": 2368
+    },
+    "radio": {
+      "chars": 2431,
+      "lines": 34,
+      "checksum": 852291,
+      "variants": 2,
+      "drawnChars": 2431
+    },
+    "segmentedcontrol": {
+      "chars": 2101,
+      "lines": 33,
+      "checksum": 735940,
+      "variants": 2,
+      "drawnChars": 2101
+    },
+    "sidebar": {
+      "chars": 952,
+      "lines": 15,
+      "checksum": 332693,
+      "variants": 2,
+      "drawnChars": 952
+    },
+    "stats": {
+      "chars": 2172,
+      "lines": 32,
+      "checksum": 756762,
+      "variants": 2,
+      "drawnChars": 2172
+    },
+    "switch": {
+      "chars": 2520,
+      "lines": 34,
+      "checksum": 881067,
+      "variants": 2,
+      "drawnChars": 2520
+    },
+    "systembanner": {
+      "chars": 2775,
+      "lines": 39,
+      "checksum": 969860,
+      "variants": 2,
+      "drawnChars": 2775
+    },
+    "team": {
+      "chars": 925,
+      "lines": 15,
+      "checksum": 319925,
+      "variants": 2,
+      "drawnChars": 925
+    },
+    "testimonials": {
+      "chars": 974,
+      "lines": 15,
+      "checksum": 343954,
+      "variants": 2,
+      "drawnChars": 974
+    },
+    "timeline": {
+      "chars": 2459,
+      "lines": 35,
+      "checksum": 858750,
+      "variants": 2,
+      "drawnChars": 2459
+    },
+    "toast": {
+      "chars": 2262,
+      "lines": 35,
+      "checksum": 796731,
+      "variants": 2,
+      "drawnChars": 2262
+    },
+    "tooltip": {
+      "chars": 2482,
+      "lines": 36,
+      "checksum": 868489,
+      "variants": 2,
+      "drawnChars": 2482
+    }
+  },
+  "_what_this_is_not": [
+    "A guarantee the Figma text is byte-identical today. It was verified at WRITE time by length; the guard below re-derives the generator side and fails when a block changes, which is the drift that actually happens.",
+    "A second source of truth. The generator is the source; this page is a rendering of it, and `node site-factory/block-prompts.js <type>` reproduces any frame."
+  ]
+}
