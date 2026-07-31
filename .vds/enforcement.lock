@@ -1,5 +1,5 @@
 schema_version: 1
-generated_at: 2026-07-31T12:44:38Z
+generated_at: 2026-07-31T13:07:41Z
 entries:
 - path: crates/vds-cli/src/doctor.rs
   digest: sha256:994f575215d16c415ba1fac437c57ee0c2f750ee76738611804caa6432e9ce83
@@ -373,4 +373,48 @@ entries:
     test_name: the_committed_pre_push_hook_runs_the_full_check_set
     seeds: the hook narrowed from `make check` to `make test`, so it still exits non-zero on a failing test while silently no longer running any gate
   pinned_at: 2026-07-31T09:23:43Z
+  pinned_by: jellytot
+- path: site-factory/tests/floors.js
+  digest: sha256:67a15890fcb2ebb9b7c56f2306bd5d392d683d327014baf3ffac1cbbeafe1e84
+  kind: hook
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:site-factory gate
+    blocking: true
+  proves: []
+  failing_direction_test:
+    path: site-factory/tests/skills.test.js
+    test_name: the_declared_gate_surface_is_pinned
+    seeds: MIN_TESTS lowered, so deleting tests stops being detectable by the count
+  pinned_at: 2026-07-31T13:07:41Z
+  pinned_by: jellytot
+  supersedes_digest: sha256:bd41ebef5b9eaa3b96404ac7ce29651faee2190220dbf2f46a22b535fd9f4134
+  relock_rationale: 'floors.js gains lockFindings(), the pure form of the declared-gate check. Extracted because the UNPINNED branch was unreachable through the real artefacts: adding a gate to the list edits this file, so its own digest drifts and the drift assertion fires first, and that branch had never once run. MIN_TESTS is unchanged at 111 - the new assertions went into an existing test rather than a new one, and the floor said so rather than being nudged to match.'
+- path: site-factory/tests/gate.js
+  digest: sha256:89e019eb675d8ed565de16940252769ed5829f5482568ddadcb5d9bb5f9e75e9
+  kind: hook
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:site-factory gate
+    blocking: true
+  proves: []
+  failing_direction_test:
+    path: site-factory/tests/skills.test.js
+    test_name: the_declared_gate_surface_is_pinned
+    seeds: MIN_FILES lowered so the runner reports a pass over a suite that has lost files
+  pinned_at: 2026-07-31T13:06:08Z
+  pinned_by: jellytot
+- path: site-factory/token-reach.js
+  digest: sha256:ef972edd227d182d6c86e2f87332f59d0226c29e87501b4f9ae48528863acb93
+  kind: hook
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:site-factory gate
+    blocking: true
+  proves: []
+  failing_direction_test:
+    path: site-factory/tests/skills.test.js
+    test_name: token_reach_finds_both_directions
+    seeds: an emitted token nothing reads, and a var() nothing declares
+  pinned_at: 2026-07-31T13:06:08Z
   pinned_by: jellytot

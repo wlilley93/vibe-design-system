@@ -1556,3 +1556,73 @@ test('the four projections agree about what is on the page', () => {
   bad.page[0].variant = 'no-such-variant';
   assert.throws(() => project('sitemap', bad, tokens), /do not exist|NO SUCH/i);
 });
+
+// ---------------------------------------------------------------------------
+// The JS half, witnessed. Measured 2026-07-31: NOT ONE site-factory file was in
+// `.vds/enforcement.lock`. `vds_proof::GATE_PATHS` - the list the lock's
+// UNPINNED report walks - is one path per PROOF KIND, so it is blind to this
+// half by construction and could never have nagged about it. 110 tests, a
+// runner and the floors, none of them witnessed.
+//
+// This test checks the pins from the JS side, so the JS half does not depend on
+// the Rust binary having been built to know whether it is protected.
+test('every declared site-factory gate is pinned, at its current digest', () => {
+  const crypto = require('node:crypto');
+  const { GATES, lockFindings } = require('./floors.js');
+  const repoRoot = path.join(__dirname, '..', '..');
+  const lockPath = path.join(repoRoot, '.vds', 'enforcement.lock');
+  const lockText = fs.readFileSync(lockPath, 'utf8');
+
+  assert.ok(GATES.length >= 3, 'the declared gate surface has shrunk below three');
+
+  for (const gate of GATES) {
+    const file = path.join(repoRoot, gate);
+    assert.ok(fs.existsSync(file), `${gate} is declared a gate and does not exist`);
+
+    // Pinned at all.
+    assert.ok(lockText.includes(`path: ${gate}\n`),
+      `${gate} decides a pass or a fail and is in no enforcement lock entry. Pin it:\n` +
+      `  vds lock add ${gate} --kind hook --invoked-by ... --test-path ... --test-name ...`);
+
+    // AND at the digest it currently has. Pinning without this is a check that
+    // the file was pinned ONCE, which is not what the lock is for: the whole
+    // point is catching an edit that was never re-pinned.
+    const digest = crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+    assert.ok(lockText.includes(`sha256:${digest}`),
+      `${gate} has drifted from its pinned digest. Its current content hashes to\n` +
+      `  sha256:${digest}\n` +
+      'which appears nowhere in the lock. Re-pin it with a rationale:\n' +
+      `  vds lock repin --rationale "..."`);
+  }
+
+  // THE NEGATIVE CONTROL. Everything above passes trivially if GATES is empty
+  // or if the lock file is empty, and both are silent failures.
+  assert.match(lockText, /^entries:/m, 'the lock has no entries block');
+  assert.ok(lockText.split('\n- path:').length > 10,
+    'the lock looks nearly empty; the assertions above would pass over nothing');
+
+  // BOTH BRANCHES, ON A FIXTURE. Seeding the UNPINNED branch through the real
+  // artefacts is impossible: adding a gate to the list edits floors.js, so its
+  // own digest drifts and the drift assertion fires first. That branch had
+  // never run. Driving the pure function directly is the only way to know it
+  // works, and a branch nothing reaches is untested however green the suite is.
+  // c/drifted.js must be IN the lock with a DIFFERENT digest. My first fixture
+  // left it out entirely, which makes it unpinned rather than drifted - so the
+  // drift branch went untested on the very attempt to test it.
+  const lock = 'entries:\n- path: a/pinned.js\n  digest: sha256:aaa\n' +
+    '- path: c/drifted.js\n  digest: sha256:old\n';
+  const found = lockFindings(
+    ['a/pinned.js', 'b/unpinned.js', 'c/drifted.js', 'd/gone.js'],
+    lock,
+    (g) => ({ 'a/pinned.js': 'aaa', 'c/drifted.js': 'ccc' }[g] ?? (g === 'd/gone.js' ? null : 'bbb')),
+  );
+  assert.deepEqual(found.unpinned, ['b/unpinned.js'], 'the unpinned branch does not fire');
+  assert.deepEqual(found.drifted.map((d) => d.gate), ['c/drifted.js'],
+    'the drifted branch does not fire');
+  assert.deepEqual(found.missingFile, ['d/gone.js'], 'a declared gate that is gone must be named');
+  // And clean when everything is in order, so it is not a function that always finds fault.
+  assert.deepEqual(
+    lockFindings(['a/pinned.js'], lock, () => 'aaa'),
+    { missingFile: [], unpinned: [], drifted: [] },
+  );
+});
