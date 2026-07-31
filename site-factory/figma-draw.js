@@ -77,6 +77,24 @@ const GAP = 48;
 const COLS = 4;
 
 /*
+ * The stable identity for a block type: its 1-based position in the FULL sorted list of
+ * every block the measurement knows about.
+ *
+ * Stable under batching, which is the whole point, and stable under a block being ADDED
+ * only if the addition sorts after it - which it will not always. That is a real limit and
+ * it is stated rather than hidden: adding `accordion` would shift every id after it, and
+ * the correct response is to re-stamp the file, not to renumber quietly. A register that
+ * allocated ids once and stored them would not have the problem at all, and that is what
+ * VDS's own `ComponentId::allocate` does; this function exists because site-factory mints
+ * a register per project rather than keeping one.
+ */
+function canonicalId(blockType, variants) {
+  const all = Object.keys(variants.blocks).sort();
+  const i = all.indexOf(blockType);
+  return i < 0 ? null : `CMP-${String(i + 1).padStart(4, '0')}`;
+}
+
+/*
  * One drawable spec per registered block: what to draw, and which variables to bind.
  *
  * `bindings` names Figma variables, never values. A name that does not resolve in the
@@ -84,6 +102,33 @@ const COLS = 4;
  * lesson as the tones filter that drew one variant of four and reported success.
  */
 function specsFor(register, variants) {
+  // THE IDENTITY MUST BE DERIVED FROM THE THING, NOT FROM ITS POSITION IN A CALL.
+  //
+  // This is checked here rather than trusted, because the first sweep got it wrong and the
+  // consequence was severe. A caller minted ids from each record's index in whatever list
+  // it happened to pass, so a three-block slice made hero=CMP-0001, divider=CMP-0002,
+  // banner=CMP-0003, and the next batch - indexing a forty-block list - made card=CMP-0002
+  // and checkbox=CMP-0003. Two components inherited two other components' identities.
+  //
+  // The amend path refused both by name and nothing was overwritten, which is the guard
+  // doing exactly its job. But a guard is the last line, not the fix: the ids should never
+  // have collided. `canonicalId` derives one from the block type's position in the FULL
+  // sorted block list, so the same block yields the same id from any call, in any batch,
+  // in any order.
+  const known = Object.keys(variants.blocks).sort();
+  for (const record of register) {
+    const want = canonicalId(record.blockType, variants);
+    if (want && record.id !== want) {
+      throw new Error(
+        `${record.blockType} was passed as ${record.id} and its canonical id is ${want}. ` +
+        'A component id derived from a position in a call is not an identity: the same ' +
+        'block gets a different id in a different batch, and the stamp then names another ' +
+        "component's set. Use canonicalId().",
+      );
+    }
+  }
+  void known;
+
   const specs = [];
   for (const record of register) {
     const type = record.blockType;
@@ -139,14 +184,20 @@ function specsFor(register, variants) {
  *     rather than thrown: a partial redraw that reported success would be the worst
  *     outcome available.
  */
-function buildLibraryScript(register, variants) {
+function buildLibraryScript(register, variants, opts = {}) {
   const specs = specsFor(register, variants);
+  // The grid index this batch STARTS at. Without it every batch computes its column and
+  // row from its own 0, so batch two draws on top of batch one - which the amend path
+  // would then not even notice, because amend matches on the identity stamp and never on
+  // position. A sweep in batches needs the grid to continue, not restart.
+  const startIndex = opts.startIndex || 0;
   const data = JSON.stringify({
     pageName: LIBRARY_PAGE,
     cellW: CELL_W,
     cellH: CELL_H,
     gap: GAP,
     cols: COLS,
+    startIndex,
     specs,
   });
 
@@ -242,8 +293,9 @@ await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
 
 for (let i = 0; i < D.specs.length; i++) {
   const spec = D.specs[i];
-  const col = i % D.cols;
-  const row = Math.floor(i / D.cols);
+  const g = D.startIndex + i;
+  const col = g % D.cols;
+  const row = Math.floor(g / D.cols);
   const originX = col * (D.cellW + D.gap) * 2;
   const originY = row * (D.cellH + D.gap) * 3;
   const prior = stamped.get(spec.componentId);
@@ -303,4 +355,4 @@ return {
 `;
 }
 
-module.exports = { buildLibraryScript, specsFor, FIGMA_FILE_KEY, LIBRARY_PAGE };
+module.exports = { buildLibraryScript, specsFor, canonicalId, FIGMA_FILE_KEY, LIBRARY_PAGE };

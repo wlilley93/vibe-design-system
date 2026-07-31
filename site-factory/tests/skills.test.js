@@ -1001,3 +1001,65 @@ test('coverage reports three separate numbers per library and never invents a de
   assert.ok(!('score' in cov) && !('coverage' in cov),
     'coverage.json must not carry a single score: three numbers per library, or none');
 });
+
+test('the generated library covers every block type, with a stable identity per block', () => {
+  // BREACH-0010 was that nothing could redraw the library. `figma-generated.json` is the
+  // census read back OUT of the file after the sweep, so this checks a measurement rather
+  // than a claim about what was sent.
+  //
+  // The identity assertions carry the weight, and they exist because of a real bug. The
+  // first sweep batch minted ids from each record's POSITION IN THE CALL, so a three-block
+  // slice made hero=CMP-0001 and the next batch made card=CMP-0002 - which was already
+  // divider's stamp. Two components inherited two others' identities. The amend guard
+  // refused both by name and nothing was overwritten, which is exactly what it is for; but
+  // a guard is the last line, not the fix. `canonicalId()` derives the id from the block
+  // type, and `specsFor` throws on a mismatch rather than trusting its caller.
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const { canonicalId, specsFor } = require('../figma-draw.js');
+  const variants = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'figma-variants.json'), 'utf8'));
+  const gen = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'figma-generated.json'), 'utf8'));
+
+  // COVERAGE, both directions. A block with no drawing is the gap; a drawing for no block
+  // is a set nothing owns.
+  const drawn = new Set(gen.sets.map((s) => s.blockType));
+  const known = Object.keys(variants.blocks);
+  assert.deepEqual(known.filter((b) => !drawn.has(b)), [],
+    'these block types were never drawn by the generator');
+  assert.deepEqual([...drawn].filter((b) => !variants.blocks[b]), [],
+    'these drawn sets name a block type that does not exist');
+
+  // IDENTITY. Every id canonical, and every id and block type unique.
+  const ids = gen.sets.map((s) => s.componentId);
+  const types = gen.sets.map((s) => s.blockType);
+  assert.deepEqual(ids.filter((v, i) => ids.indexOf(v) !== i), [],
+    'two sets carry the same component id, so one is stamped as the other');
+  assert.deepEqual(types.filter((v, i) => types.indexOf(v) !== i), [],
+    'two sets claim the same block type');
+  for (const s of gen.sets) {
+    assert.equal(s.componentId, canonicalId(s.blockType, variants),
+      `${s.blockType} is stamped ${s.componentId} and its canonical id is ` +
+      `${canonicalId(s.blockType, variants)}. An id derived from a position in a call is ` +
+      'not an identity.');
+    assert.ok(/^\d+:\d+$/.test(s.nodeId), `${s.blockType}: ${s.nodeId} is not a node id`);
+  }
+
+  // The variant count per set must match the axis the measurement recorded, or the drawing
+  // is of a different component from the one the register describes.
+  for (const s of gen.sets) {
+    const axis = Object.keys(variants.blocks[s.blockType].axes)[0];
+    assert.equal(s.variants, variants.blocks[s.blockType].axes[axis].length,
+      `${s.blockType}: drew ${s.variants} variants and the measured ${axis} axis has ` +
+      `${variants.blocks[s.blockType].axes[axis].length}`);
+  }
+  assert.equal(gen.totals.sets, gen.sets.length, 'the totals disagree with the rows beneath them');
+  assert.equal(gen.totals.variants, gen.sets.reduce((t, s) => t + s.variants, 0),
+    'the variant total disagrees with the rows beneath it');
+
+  // And the refusal itself, seeded here rather than trusted: passing a wrong id must throw.
+  assert.throws(
+    () => specsFor([{ id: 'CMP-9999', name: 'Hero', blockType: 'hero' }], variants),
+    /canonical id/,
+    'specsFor must refuse an id that is not the block type\'s canonical one',
+  );
+});

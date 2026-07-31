@@ -1,0 +1,285 @@
+{
+  "_what": "A measured read of the `Library (generated)` page after the full sweep: every component set the generator drew, with its canonical component id, block type, node id and variant count.",
+  "_why": "BREACH-0010 was that nothing could redraw the library. The generator existed and was proven on 3 blocks; this is the record that it ran over all 43. Evidence, not a claim - the census was read back OUT of the file after the last batch rather than assembled from what was sent to it.",
+  "_how": "Five use_figma calls of eight blocks each, then a final read of page.children. The Figma skill caps a call at roughly ten logical operations, so 43 blocks x 2-4 variants had to be batched; the grid index continues across batches via startIndex so a batch does not draw on top of its predecessor.",
+  "_the_bug_the_guard_caught": "The first sweep batch minted component ids from each record POSITION IN THE CALL, so a three-block slice made hero=CMP-0001, divider=CMP-0002, banner=CMP-0003, and the next batch - indexing the full forty-block list - made card=CMP-0002 and checkbox=CMP-0003. Two components inherited two other components identities. THE AMEND GUARD REFUSED BOTH BY NAME and nothing was overwritten, which is precisely what it was built for. But a guard is the last line rather than the fix: `canonicalId()` now derives the id from the block type position in the FULL sorted list, so the same block yields the same id from any call in any order, and specsFor THROWS on a mismatch rather than trusting the caller.",
+  "measured_at": "2026-07-31T11:44:18Z",
+  "file_key": "4pPUFvaPdqYzPquBusSfWl",
+  "page": "Library (generated)",
+  "totals": {
+    "sets": 43,
+    "variants": 92,
+    "blockTypes": 43
+  },
+  "integrity": {
+    "duplicateIds": 0,
+    "duplicateBlockTypes": 0,
+    "unstamped": 0,
+    "skipped": 0,
+    "refusals": 0
+  },
+  "_what_this_cannot_say": [
+    "Whether any set LOOKS right. The generator draws a named, typed placeholder per variant and deliberately not an approximation of the block markup - [2026] VJS-CC-OPBOX 3 D1 makes the file the system of record for what is decided, and a generator inventing visual decisions would be the fourth authority that order forbids.",
+    "That these node ids match FIGMA_NODES. They do NOT: the generated sets are new components on their own page, and the hand-drawn sets the register points at are still where they were. Reconciling the two is a separate decision nobody has taken."
+  ],
+  "sets": [
+    {
+      "blockType": "banner",
+      "componentId": "CMP-0001",
+      "nodeId": "90:29",
+      "variants": 4
+    },
+    {
+      "blockType": "card",
+      "componentId": "CMP-0002",
+      "nodeId": "96:8",
+      "variants": 2
+    },
+    {
+      "blockType": "checkbox",
+      "componentId": "CMP-0003",
+      "nodeId": "96:18",
+      "variants": 3
+    },
+    {
+      "blockType": "confirmdialog",
+      "componentId": "CMP-0004",
+      "nodeId": "94:8",
+      "variants": 2
+    },
+    {
+      "blockType": "contact",
+      "componentId": "CMP-0005",
+      "nodeId": "94:15",
+      "variants": 2
+    },
+    {
+      "blockType": "cta",
+      "componentId": "CMP-0006",
+      "nodeId": "94:22",
+      "variants": 2
+    },
+    {
+      "blockType": "divider",
+      "componentId": "CMP-0007",
+      "nodeId": "90:16",
+      "variants": 2
+    },
+    {
+      "blockType": "draggablelist",
+      "componentId": "CMP-0008",
+      "nodeId": "94:29",
+      "variants": 2
+    },
+    {
+      "blockType": "emptystate",
+      "componentId": "CMP-0009",
+      "nodeId": "94:36",
+      "variants": 2
+    },
+    {
+      "blockType": "facetstrip",
+      "componentId": "CMP-0010",
+      "nodeId": "94:43",
+      "variants": 2
+    },
+    {
+      "blockType": "faq",
+      "componentId": "CMP-0011",
+      "nodeId": "96:25",
+      "variants": 2
+    },
+    {
+      "blockType": "features",
+      "componentId": "CMP-0012",
+      "nodeId": "96:32",
+      "variants": 2
+    },
+    {
+      "blockType": "footer",
+      "componentId": "CMP-0013",
+      "nodeId": "96:39",
+      "variants": 2
+    },
+    {
+      "blockType": "formfield",
+      "componentId": "CMP-0014",
+      "nodeId": "96:46",
+      "variants": 2
+    },
+    {
+      "blockType": "gallery",
+      "componentId": "CMP-0015",
+      "nodeId": "96:53",
+      "variants": 2
+    },
+    {
+      "blockType": "hero",
+      "componentId": "CMP-0016",
+      "nodeId": "90:9",
+      "variants": 2
+    },
+    {
+      "blockType": "inspector",
+      "componentId": "CMP-0017",
+      "nodeId": "96:60",
+      "variants": 2
+    },
+    {
+      "blockType": "logolist",
+      "componentId": "CMP-0018",
+      "nodeId": "96:67",
+      "variants": 2
+    },
+    {
+      "blockType": "masterdetail",
+      "componentId": "CMP-0019",
+      "nodeId": "96:74",
+      "variants": 2
+    },
+    {
+      "blockType": "menu",
+      "componentId": "CMP-0020",
+      "nodeId": "96:81",
+      "variants": 2
+    },
+    {
+      "blockType": "messagecard",
+      "componentId": "CMP-0021",
+      "nodeId": "96:88",
+      "variants": 2
+    },
+    {
+      "blockType": "nav",
+      "componentId": "CMP-0022",
+      "nodeId": "96:95",
+      "variants": 2
+    },
+    {
+      "blockType": "notfound",
+      "componentId": "CMP-0023",
+      "nodeId": "96:102",
+      "variants": 2
+    },
+    {
+      "blockType": "notificationbadge",
+      "componentId": "CMP-0024",
+      "nodeId": "96:112",
+      "variants": 3
+    },
+    {
+      "blockType": "objecttable",
+      "componentId": "CMP-0025",
+      "nodeId": "96:119",
+      "variants": 2
+    },
+    {
+      "blockType": "objectview",
+      "componentId": "CMP-0026",
+      "nodeId": "96:126",
+      "variants": 2
+    },
+    {
+      "blockType": "pagecontrols",
+      "componentId": "CMP-0027",
+      "nodeId": "96:133",
+      "variants": 2
+    },
+    {
+      "blockType": "pagestate",
+      "componentId": "CMP-0028",
+      "nodeId": "96:140",
+      "variants": 2
+    },
+    {
+      "blockType": "pagination",
+      "componentId": "CMP-0029",
+      "nodeId": "96:147",
+      "variants": 2
+    },
+    {
+      "blockType": "pricing",
+      "componentId": "CMP-0030",
+      "nodeId": "96:154",
+      "variants": 2
+    },
+    {
+      "blockType": "progressbar",
+      "componentId": "CMP-0031",
+      "nodeId": "96:161",
+      "variants": 2
+    },
+    {
+      "blockType": "progresssteps",
+      "componentId": "CMP-0032",
+      "nodeId": "96:168",
+      "variants": 2
+    },
+    {
+      "blockType": "radio",
+      "componentId": "CMP-0033",
+      "nodeId": "96:175",
+      "variants": 2
+    },
+    {
+      "blockType": "segmentedcontrol",
+      "componentId": "CMP-0034",
+      "nodeId": "97:8",
+      "variants": 2
+    },
+    {
+      "blockType": "sidebar",
+      "componentId": "CMP-0035",
+      "nodeId": "97:15",
+      "variants": 2
+    },
+    {
+      "blockType": "stats",
+      "componentId": "CMP-0036",
+      "nodeId": "97:22",
+      "variants": 2
+    },
+    {
+      "blockType": "switch",
+      "componentId": "CMP-0037",
+      "nodeId": "97:29",
+      "variants": 2
+    },
+    {
+      "blockType": "systembanner",
+      "componentId": "CMP-0038",
+      "nodeId": "97:42",
+      "variants": 4
+    },
+    {
+      "blockType": "team",
+      "componentId": "CMP-0039",
+      "nodeId": "97:49",
+      "variants": 2
+    },
+    {
+      "blockType": "testimonials",
+      "componentId": "CMP-0040",
+      "nodeId": "97:56",
+      "variants": 2
+    },
+    {
+      "blockType": "timeline",
+      "componentId": "CMP-0041",
+      "nodeId": "97:63",
+      "variants": 2
+    },
+    {
+      "blockType": "toast",
+      "componentId": "CMP-0042",
+      "nodeId": "97:70",
+      "variants": 2
+    },
+    {
+      "blockType": "tooltip",
+      "componentId": "CMP-0043",
+      "nodeId": "97:77",
+      "variants": 2
+    }
+  ]
+}
