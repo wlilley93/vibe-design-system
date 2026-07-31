@@ -1487,3 +1487,72 @@ test('every block type has a prompt that is not hollow', () => {
       `${type}: Figma and the code vary different things and the prompt does not say so`);
   }
 });
+
+// ---------------------------------------------------------------------------
+// Four projections of ONE manifest. The property under test is not that each
+// renders - it is that they cannot DISAGREE, which is the only reason to call
+// them projections rather than four builders.
+test('the four projections agree about what is on the page', () => {
+  const { project, projectAll, KINDS } = require('../projections.js');
+  const dir = path.join(__dirname, '..');
+  const manifest = JSON.parse(fs.readFileSync(path.join(dir, 'manifests', 'kitchen-sink.json'), 'utf8'));
+  const pack = JSON.parse(fs.readFileSync(path.join(dir, 'tokens', `${manifest.stylePack}.json`), 'utf8'));
+  const tokens = pack.tokens || pack;
+
+  assert.deepEqual(KINDS, ['sitemap', 'wireframe', 'branded', 'output']);
+  const all = projectAll(manifest, tokens);
+  for (const k of KINDS) assert.ok(!all[k].refused, `${k} refused on a clean manifest: ${all[k].refused}`);
+
+  // THE AGREEMENT. The wireframe labels every block from the manifest, in
+  // order, and the sitemap lists the same ones. A wireframe drawn separately
+  // from the page is a drawing of a page that may not exist - that was the
+  // defect, and this is the assertion that closes it.
+  const expected = manifest.page.map((e) => `${e.block}/${e.variant}`);
+  const labelled = [...all.wireframe.html.matchAll(/data-block="([^"]+)" data-variant="([^"]+)"/g)]
+    .map((m) => `${m[1]}/${m[2]}`);
+  assert.deepEqual(labelled, expected,
+    'the wireframe does not label the manifest blocks in manifest order');
+  assert.deepEqual(all.sitemap.rows.map((r) => `${r.block}/${r.variant}`), expected,
+    'the sitemap and the manifest disagree');
+
+  // branded and output are the SAME BYTES. If they ever differ, `output` has
+  // become a second renderer and the refusal is no longer about the page that
+  // ships.
+  assert.equal(all.output.html, all.branded.html,
+    'output and branded produced different markup - output is meant to be branded ' +
+    'plus a refusal, not a different build');
+
+  // The wireframe keeps every byte of markup and only overrides the token
+  // layer. Same length modulo the labels it adds.
+  const unlabelled = all.wireframe.html.replace(/ data-block="[^"]*" data-variant="[^"]*"/g, '');
+  assert.equal(unlabelled, all.branded.html,
+    'the wireframe changed the markup. It must re-paint by redefining tokens, never ' +
+    'by rewriting the page, or it stops being a projection of it.');
+  assert.match(all.wireframe.css, /--color-accent:\s*#71717a/,
+    'the wireframe stylesheet no longer neutralises the accent');
+
+  // THE REFUSAL, seeded. `branded` renders a placeholder and notes it, because
+  // that is what you want while writing; `output` refuses, because eleven
+  // CONFIRM markers once reached a live client site in running body copy.
+  const seeded = JSON.parse(JSON.stringify(manifest));
+  const target = seeded.page.find((e) => e.content && typeof e.content.h1 === 'string')
+    || seeded.page[0];
+  const key = Object.keys(target.content).find((k) => typeof target.content[k] === 'string');
+  assert.ok(key, 'no string content to seed - the seed must land or this proves nothing');
+  target.content[key] = 'CONFIRM: seeded';
+
+  const after = projectAll(seeded, tokens);
+  assert.ok(!after.branded.refused, 'branded must still render while copy is unwritten');
+  assert.ok(after.branded.gaps.length > 0, 'branded must NOTE the placeholder it renders');
+  assert.ok(after.output.refused, 'output rendered a page carrying a CONFIRM placeholder');
+  assert.match(after.output.refused, /placeholder/i);
+  // And the other three survive the refusal, which is why projectAll returns it.
+  assert.ok(after.sitemap.rows.length > 0 && after.wireframe.html,
+    'one projection refusing must not lose the other three');
+
+  // A manifest naming a block that does not exist fails at the SITEMAP, which
+  // is the cheapest projection, rather than three projections later.
+  const bad = JSON.parse(JSON.stringify(manifest));
+  bad.page[0].variant = 'no-such-variant';
+  assert.throws(() => project('sitemap', bad, tokens), /do not exist|NO SUCH/i);
+});
