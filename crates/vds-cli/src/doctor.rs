@@ -891,6 +891,22 @@ describe('design adoption gate', () => {\n\
             "a description in a COMMENT names no test; resolving it would let a lock cite \
              a test nobody wrote"
         );
+
+        // AND THAT D2 ACTUALLY CALLS IT. The three assertions above prove the shared
+        // resolver handles both frameworks; they would all stay green if this file went
+        // back to its own inline `fn <name>(` matcher, which is exactly how the defect
+        // survived being fixed once already. So the source is asserted not to carry a
+        // second implementation of the rule.
+        let this_file = include_str!("doctor.rs");
+        assert!(
+            !this_file.contains("format!(\"fn {}(\""),
+            "doctor.rs has reintroduced its own failing-direction matcher; there must be \
+             ONE resolver (vds_store::test_name_resolves) or the vitest fix dies here again"
+        );
+        assert!(
+            this_file.contains("vds_store::test_name_resolves"),
+            "D2 must resolve failing-direction test names through the shared resolver"
+        );
     }
 
     /// The list D10 checks is the specification's, not a copy of it.
