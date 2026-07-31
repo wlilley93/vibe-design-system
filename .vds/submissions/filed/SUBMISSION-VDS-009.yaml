@@ -26,15 +26,8 @@ evidence:
   - "site-factory/vendor/grigoletto/blueprint-vs-pack.json, where 0 of 9 measured templates hold the 8-point rule their own author states, off-grid 20% to 98.5%"
   - "site-factory/vendor/opbox-rules-audit.json, the same class in code: a rule stated in a README and broken by the CSS beside it"
 case_file_digest: sha256:6379baeedbb3d9a143c0d1a63766ec07175f06617dcf9f212d94cf28753c8310
-case_file:
-  _how: "scripts/case-file-digest.sh crates/vds-core/src/types/geometry.rs crates/vds-cli/src/ledger.rs site-factory/vendor/grigoletto/blueprint-vs-pack.json site-factory/vendor/opbox-rules-audit.json"
-  files:
-  - crates/vds-core/src/types/geometry.rs
-  - crates/vds-cli/src/ledger.rs
-  - site-factory/vendor/grigoletto/blueprint-vs-pack.json
-  - site-factory/vendor/opbox-rules-audit.json
 reserved_clause: "S-7A(4)"
-fail_closed_interim: "No Figma-derived reading is written to `.vds/ledgers/` and none is passed to `vds ledger geometry --from`. The measurements taken of the Figma side live in `site-factory/vendor/` as vendored measurements with their own guards, outside the proof surface entirely, so nothing in the governance record currently rests on one."
+fail_closed_interim: "The case_file_digest above is derived by `scripts/case-file-digest.sh` over crates/vds-core/src/types/geometry.rs, crates/vds-cli/src/ledger.rs, site-factory/vendor/grigoletto/blueprint-vs-pack.json and site-factory/vendor/opbox-rules-audit.json; the schema has no field naming what a digest is over, so it is recorded here. THE INTERIM: No Figma-derived reading is written to `.vds/ledgers/` and none is passed to `vds ledger geometry --from`. The measurements taken of the Figma side live in `site-factory/vendor/` as vendored measurements with their own guards, outside the proof surface entirely, so nothing in the governance record currently rests on one."
 filed_to: vjs
 vjs_submission_id: null
 created_at: 2026-07-31T13:40:00Z

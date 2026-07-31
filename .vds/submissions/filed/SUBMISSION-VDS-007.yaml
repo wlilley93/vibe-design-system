@@ -27,22 +27,8 @@ evidence:
   - "crates/vds-cli/src/schema.rs, which asserts exactly 7 schemas, so a hand-edited retention log is undetectable"
   - ".vds/logs/breaches/BREACH-0004.yaml, filed the same day, for the sibling defect: a criterion that reads a self-declaration instead of the thing declared"
 case_file_digest: sha256:fb8e097f22aef508fff675ee0704783687e3ea28f6f7d675071c5f5cbafba995
-case_file:
-  _how: "scripts/case-file-digest.sh crates/vds-cli/src/prune.rs VDS.md .vds/logs/retention/RETENTION-0001.yaml crates/vds-cli/src/schema.rs .vds/logs/breaches/BREACH-0004.yaml Makefile"
-  _why: "This field carried sixty-four zeros, which reads exactly like a computed digest and pins nothing. A bench ruling on an unpinned case file is ruling on a record that can move under it while the question is open - the same defect the geometry reading carries a digest to prevent. The digest is now DERIVED by a committed script, so it is reproducible and was never typed by hand."
-  files:
-  - crates/vds-cli/src/prune.rs
-  - VDS.md
-  - .vds/logs/retention/RETENTION-0001.yaml
-  - crates/vds-cli/src/schema.rs
-  - .vds/logs/breaches/BREACH-0004.yaml
-  - Makefile
 reserved_clause: "S-4(1)"
-fail_closed_interim: "`vds prune` is NOT part of `make check` - the Makefile already says why, at its own target: 'a delete that runs as a side effect of a test command is a delete nobody chose'. Until this is answered it stays out of every automated path and is run only by a human who typed it, and the 31 retention records already on disk stay committed rather than being tidied away by the command whose authority is in question."
-interim_enforced_by:
-  test: crates/vds-cli/tests/cli.rs::prune_stays_out_of_every_automated_path_while_its_authority_is_unsettled
-  _what: "The fail-closed interim above was PROSE IN A YAML FIELD - a rule written down with nothing checking it, which is the shape this repository files against other people's work. Adding `$(MAKE) prune` to `check` would have made the promise false in silence. The test now asserts prune reaches neither `make check`, nor CI, nor the pre-push hook, and carries a negative control so it cannot pass over a command that was renamed away."
-  _and_it_expires: "The test FAILS once `answer` is non-null, and says to revisit. An interim that outlives its question is its own defect, and a guard that silently keeps enforcing a withdrawn interim is how a temporary measure becomes permanent by accident."
+fail_closed_interim: "ENFORCED, not asserted: crates/vds-cli/tests/cli.rs::prune_stays_out_of_every_automated_path_while_its_authority_is_unsettled. That test was added because this field was PROSE - a rule written down with nothing checking it - so adding `$(MAKE) prune` to `check` would have made the promise below false in silence. It asserts prune reaches neither `make check`, nor CI, nor the pre-push hook, carries a negative control so it cannot pass over a command renamed away, and FAILS once `answer` stops being null, because an interim that outlives its question is its own defect. The case_file_digest above is derived by `scripts/case-file-digest.sh` over crates/vds-cli/src/prune.rs, VDS.md, .vds/logs/retention/RETENTION-0001.yaml, crates/vds-cli/src/schema.rs, .vds/logs/breaches/BREACH-0004.yaml and Makefile - it previously carried sixty-four zeros, which reads exactly like a computed digest and pinned nothing. NOTE FOR THE BENCH: the submission schema has `case_file_digest` and no field naming what it is OVER, so this derivation is recorded here for want of anywhere better. THE ORIGINAL INTERIM: `vds prune` is NOT part of `make check` - the Makefile already says why, at its own target: 'a delete that runs as a side effect of a test command is a delete nobody chose'. Until this is answered it stays out of every automated path and is run only by a human who typed it, and the 31 retention records already on disk stay committed rather than being tidied away by the command whose authority is in question."
 filed_to: vjs
 vjs_submission_id: null
 created_at: 2026-07-30T17:50:00Z

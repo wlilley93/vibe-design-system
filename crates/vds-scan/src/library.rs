@@ -533,7 +533,10 @@ fn prop_types_in(code: &str, source: &str) -> Vec<(String, Vec<LibraryProp>, Opt
 /// `exports_in` need no change, and appended AFTER the named ones so a real
 /// `interface FooProps` always wins - a component with both is declaring the
 /// named one as its contract.
-fn inline_prop_types_in(code: &str, source: &str) -> Vec<(String, Vec<LibraryProp>, Option<String>)> {
+fn inline_prop_types_in(
+    code: &str,
+    source: &str,
+) -> Vec<(String, Vec<LibraryProp>, Option<String>)> {
     let chars: Vec<char> = code.chars().collect();
     let original: Vec<char> = source.chars().collect();
     let mut out = Vec::new();
@@ -608,7 +611,11 @@ fn inline_prop_types_in(code: &str, source: &str) -> Vec<(String, Vec<LibraryPro
         // Tab both have one, so a reader that ignored it would present a subset
         // as the whole contract.
         let tail: String = chars[close + 1..close_paren].iter().collect();
-        out.push((format!("{name}Props"), props_in_body(&body), inheritance_in(&tail)));
+        out.push((
+            format!("{name}Props"),
+            props_in_body(&body),
+            inheritance_in(&tail),
+        ));
         search = close_paren;
     }
     out
@@ -1212,9 +1219,16 @@ mod inline_props_tests {
                       { return <div />; }\n";
         let exports = exports_in(source, "ui.tsx");
 
-        let field = exports.iter().find(|e| e.export_name == "Field").expect("Field");
+        let field = exports
+            .iter()
+            .find(|e| e.export_name == "Field")
+            .expect("Field");
         assert_eq!(
-            field.props.iter().map(|p| p.name.as_str()).collect::<Vec<_>>(),
+            field
+                .props
+                .iter()
+                .map(|p| p.name.as_str())
+                .collect::<Vec<_>>(),
             ["label", "required"],
             "an inline type literal is a prop contract and must be read as one"
         );
@@ -1225,7 +1239,10 @@ mod inline_props_tests {
 
         // THE HALF THAT MATTERS. A non-empty list that is still a SUBSET is
         // worse than an empty one, because it looks complete.
-        let panel = exports.iter().find(|e| e.export_name == "Panel").expect("Panel");
+        let panel = exports
+            .iter()
+            .find(|e| e.export_name == "Panel")
+            .expect("Panel");
         assert_eq!(panel.props.len(), 1);
         let because = panel
             .props_incomplete_because
@@ -1244,10 +1261,17 @@ mod inline_props_tests {
                       {\n  variant?: 'a' | 'b';\n}\n\
                       export function Button({ variant }: ButtonProps) { return <button />; }\n";
         let exports = exports_in(source, "ui.tsx");
-        let button = exports.iter().find(|e| e.export_name == "Button").expect("Button");
+        let button = exports
+            .iter()
+            .find(|e| e.export_name == "Button")
+            .expect("Button");
         assert_eq!(button.props.len(), 1);
         assert!(
-            button.props_incomplete_because.as_deref().unwrap_or("").contains("extends"),
+            button
+                .props_incomplete_because
+                .as_deref()
+                .unwrap_or("")
+                .contains("extends"),
             "an `extends` clause must be declared as making the list a subset"
         );
     }
