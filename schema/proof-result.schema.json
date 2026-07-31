@@ -131,6 +131,39 @@
         "automatic"
       ]
     },
+    "Drift": {
+      "description": "WHICH SIDE MOVED, where the direction is knowable.\n\nA finding that says only `expected` and `actual` names a disagreement and not a JOB. \"The contract requires a prop the code lacks\" and \"the code accepts a prop no contract names\" are the same disagreement pointing opposite ways, and they are owed by different people: the first is usually an implementation, the second is usually an AMENDMENT. Reading a wall of findings and sorting them by hand is work the proof already did and threw away.\n\nBorrowed, with attribution, from `southleft/ds-contracts-poc` (`parity/diff.ts`), where every finding carries `classification: ahead | behind | mismatch` against a surface. Their model is always contract-versus-surface and never surface-to-surface, which is the half that makes the direction meaningful, and it is the same discipline VDS already applies by making the register the record.\n\nDerivable here WITHOUT history, which is why it can be added at all: the direction follows from which side is missing the thing, not from what changed. `Undetermined` is the honest default and is what every finding carries until its emitter has an opinion - guessing a direction would be worse than leaving it blank, because a wrong direction sends the work to the wrong person with a proof's authority behind it.",
+      "oneOf": [
+        {
+          "description": "The surface carries something the contract does not name. An amendment is usually owed, not a fix.",
+          "type": "string",
+          "enum": [
+            "ahead"
+          ]
+        },
+        {
+          "description": "The contract requires something the surface does not have. An implementation is usually owed.",
+          "type": "string",
+          "enum": [
+            "behind"
+          ]
+        },
+        {
+          "description": "Both sides name it and they disagree about it.",
+          "type": "string",
+          "enum": [
+            "mismatch"
+          ]
+        },
+        {
+          "description": "This emitter has no opinion about the direction, and says so rather than choosing one.",
+          "type": "string",
+          "enum": [
+            "undetermined"
+          ]
+        }
+      ]
+    },
     "InvokedBy": {
       "description": "What invoked the run. VDS S-7(2)(3) requires something other than the author choosing to run it, and VDS S-7(3) holds that a hook is not CI.",
       "type": "string",
@@ -272,6 +305,11 @@
       "properties": {
         "actual": {
           "type": "string"
+        },
+        "drift": {
+          "description": "Which side moved. `#[serde(default)]` so every proof record already on disk still parses, and reads as `undetermined` - which is true of them.",
+          "default": "undetermined",
+          "$ref": "#/definitions/Drift"
         },
         "expected": {
           "type": "string"

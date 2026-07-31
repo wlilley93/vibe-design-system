@@ -47,6 +47,18 @@ enum Action {
     Add(AddArgs),
     /// Lower an existing bound. There is deliberately no way to raise one.
     Lower(LowerArgs),
+    /// Deprecate a bound, so a new baseline may be registered for its kind.
+    ///
+    /// The ONLY lawful route to a higher bound, and it exists because `lower`
+    /// refused to raise one and then named a route this tool did not offer. An
+    /// interface that tells the caller what to do next and provides no way to do
+    /// it leaves them hand-editing a record, which is how a governed artefact
+    /// stops being governed.
+    ///
+    /// The record is DEPRECATED and never deleted. A bound with no history
+    /// cannot be shown to have fallen, and the history is the only evidence any
+    /// of this ever worked.
+    Deprecate(DeprecateArgs),
     /// Every bound, what is in force, and whether it is falling.
     List,
 }
@@ -99,12 +111,23 @@ pub struct LowerArgs {
     because: String,
 }
 
+#[derive(ClapArgs)]
+pub struct DeprecateArgs {
+    #[arg(long)]
+    id: String,
+    /// Why this bound is being retired. Printed by `list` beside the record, so
+    /// a reader meeting a deprecated bound learns why without opening it.
+    #[arg(long)]
+    because: String,
+}
+
 pub fn run(ctx: &Context, args: &Args) -> Result<i32> {
     let project = ctx.project()?;
     let store = Store::new(&project);
     match &args.action {
         Action::Add(a) => add(&store, a),
         Action::Lower(a) => lower(&store, a),
+        Action::Deprecate(a) => deprecate(&store, a),
         Action::List => list(&store),
     }
 }
@@ -243,6 +266,39 @@ fn lower(store: &Store, args: &LowerArgs) -> Result<i32> {
     println!(
         "  next:    the window is {} days from now (VDS S-7A(2))",
         record.declared_window_days
+    );
+    Ok(PASSED)
+}
+
+fn deprecate(store: &Store, args: &DeprecateArgs) -> Result<i32> {
+    let id = GeometryId::parse(&args.id)?;
+    let path = store.geometry_path(&id);
+    if !path.is_file() {
+        return Err(VdsError::precondition(format!(
+            "no geometry bound at {}",
+            store.project.rel(&path)
+        )));
+    }
+    let mut record: GeometryBound = store.read(&path)?;
+    if record.status == Status::Deprecated {
+        return Err(VdsError::precondition(format!(
+            "{id} is already deprecated"
+        )));
+    }
+    record.status = Status::Deprecated;
+    record.notes = Some(match record.notes.take() {
+        Some(existing) => format!("{existing}\n\nDEPRECATED: {}", args.because),
+        None => format!("DEPRECATED: {}", args.because),
+    });
+    store.replace(&path, &record)?;
+    println!("{id} [{}] deprecated", record.surface_kind);
+    println!("  because: {}", args.because);
+    println!();
+    println!(
+        "The record is KEPT. Its history is the only evidence the count ever fell, and a \
+         deprecated bound with that history is worth more than a deleted one. A new baseline \
+         for {} may now be registered.",
+        record.surface_kind
     );
     Ok(PASSED)
 }

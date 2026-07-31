@@ -33,8 +33,8 @@ use std::path::Path;
 
 use serde::Serialize;
 use vds_core::{
-    CaptureMode, Digest, EXIT_PASSED, EXIT_VACUOUS, EXIT_VIOLATION, InvokedBy, Project, ProofId,
-    ProofKind, ProofResult, ProofStatus, Result, Severity, Timestamp, VdsError, Violation,
+    CaptureMode, Digest, Drift, EXIT_PASSED, EXIT_VACUOUS, EXIT_VIOLATION, InvokedBy, Project,
+    ProofId, ProofKind, ProofResult, ProofStatus, Result, Severity, Timestamp, VdsError, Violation,
 };
 use vds_store::Store;
 
@@ -332,6 +332,42 @@ impl<'a> ProofRun<'a> {
                 writeln!(out, "      rule:     {}", violation.rule).ok();
                 writeln!(out, "      expected: {}", violation.expected).ok();
                 writeln!(out, "      actual:   {}", violation.actual).ok();
+                // WHICH SIDE MOVED, printed only where the emitter has an
+                // opinion. `undetermined` is deliberately silent: a line saying
+                // "drift: undetermined" on most findings would train the reader
+                // to skip the field on the ones that carry it.
+                if violation.drift.is_determined() {
+                    let hint = match violation.drift {
+                        Drift::Ahead => {
+                            "the surface has something the contract does not name; an AMENDMENT is usually owed, not a fix"
+                        }
+                        Drift::Behind => {
+                            "the contract requires something the surface lacks; an IMPLEMENTATION is usually owed"
+                        }
+                        Drift::Mismatch => "both sides name it and disagree about it",
+                        Drift::Undetermined => "",
+                    };
+                    writeln!(out, "      drift:    {} ({hint})", violation.drift).ok();
+                }
+            }
+            // The tally, so a reader sees the SHAPE of the work before reading
+            // fifty findings. Thirteen behinds is one job and thirteen aheads is
+            // a different one; an undifferentiated wall hides which it is.
+            let mut counts: std::collections::BTreeMap<&str, usize> = Default::default();
+            for v in &fatal {
+                if v.drift.is_determined() {
+                    *counts.entry(v.drift.as_str()).or_default() += 1;
+                }
+            }
+            if !counts.is_empty() {
+                let undetermined = fatal.iter().filter(|v| !v.drift.is_determined()).count();
+                let mut line: Vec<String> =
+                    counts.iter().map(|(k, n)| format!("{n} {k}")).collect();
+                if undetermined > 0 {
+                    line.push(format!("{undetermined} undetermined"));
+                }
+                writeln!(out).ok();
+                writeln!(out, "  direction: {}", line.join(", ")).ok();
             }
         } else if status == ProofStatus::Vacuous {
             // VDS S-7(2)(4). No PASS is printed beside these words, because a

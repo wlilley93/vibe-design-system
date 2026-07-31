@@ -152,7 +152,8 @@
     {
       "name": "FINDINGS CLASSIFIED ahead / behind / mismatch, per SURFACE",
       "what": "parity/diff.ts: every finding carries {surface: code|figma|figma-tokens, classification: ahead|behind|mismatch, subject, detail, remedy, proposedPatch?}. Always contract-versus-surface, never surface-to-surface.",
-      "why": "VDS parity findings say expected and actual. They do not say WHICH SIDE MOVED. \"The code is ahead of the contract\" and \"the code is behind it\" are different jobs for different people, and one of them is usually an amendment rather than a fix. Cheap to adopt and it costs no design value."
+      "why": "VDS parity findings say expected and actual. They do not say WHICH SIDE MOVED. \"The code is ahead of the contract\" and \"the code is behind it\" are different jobs for different people, and one of them is usually an amendment rather than a fix. Cheap to adopt and it costs no design value.",
+      "adopted": "ADOPTED 2026-07-31. `vds_core::Drift` (ahead/behind/mismatch/undetermined) on every Violation, set at the six parity emit sites that know the direction. Derivable here WITHOUT history, which is why it could be added at all: the direction follows from which side is MISSING the thing. R5 (the contract names a prop the code lacks) is BEHIND and an implementation is owed; R6 (the code accepts a prop no contract names) is AHEAD and an amendment is owed. `undetermined` is the default and prints nothing, because a line reading \"drift: undetermined\" on most findings would train a reader to skip the field on the ones that carry it. Proven on the real 13 findings from SUBMISSION-VDS-011: `direction: 13 behind`."
     },
     {
       "name": "GOLDEN BYTES PER EMITTED FILE",

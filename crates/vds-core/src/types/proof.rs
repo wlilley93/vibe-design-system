@@ -301,6 +301,81 @@ impl Severity {
     }
 }
 
+/// WHICH SIDE MOVED, where the direction is knowable.
+///
+/// A finding that says only `expected` and `actual` names a disagreement and
+/// not a JOB. "The contract requires a prop the code lacks" and "the code
+/// accepts a prop no contract names" are the same disagreement pointing
+/// opposite ways, and they are owed by different people: the first is usually an
+/// implementation, the second is usually an AMENDMENT. Reading a wall of
+/// findings and sorting them by hand is work the proof already did and threw
+/// away.
+///
+/// Borrowed, with attribution, from `southleft/ds-contracts-poc`
+/// (`parity/diff.ts`), where every finding carries
+/// `classification: ahead | behind | mismatch` against a surface. Their model
+/// is always contract-versus-surface and never surface-to-surface, which is the
+/// half that makes the direction meaningful, and it is the same discipline VDS
+/// already applies by making the register the record.
+///
+/// Derivable here WITHOUT history, which is why it can be added at all: the
+/// direction follows from which side is missing the thing, not from what
+/// changed. `Undetermined` is the honest default and is what every finding
+/// carries until its emitter has an opinion - guessing a direction would be
+/// worse than leaving it blank, because a wrong direction sends the work to the
+/// wrong person with a proof's authority behind it.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Default,
+    Serialize,
+    Deserialize,
+    JsonSchema,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum Drift {
+    /// The surface carries something the contract does not name. An amendment
+    /// is usually owed, not a fix.
+    Ahead,
+    /// The contract requires something the surface does not have. An
+    /// implementation is usually owed.
+    Behind,
+    /// Both sides name it and they disagree about it.
+    Mismatch,
+    /// This emitter has no opinion about the direction, and says so rather than
+    /// choosing one.
+    #[default]
+    Undetermined,
+}
+
+impl Drift {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Drift::Ahead => "ahead",
+            Drift::Behind => "behind",
+            Drift::Mismatch => "mismatch",
+            Drift::Undetermined => "undetermined",
+        }
+    }
+
+    /// Whether the direction says anything at all.
+    pub fn is_determined(self) -> bool {
+        !matches!(self, Drift::Undetermined)
+    }
+}
+
+impl std::fmt::Display for Drift {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 /// One finding. `expected` and `actual` are both required and both non-empty,
 /// because a finding that says only what is wrong makes the reader guess at what
 /// right would have been.
@@ -315,6 +390,10 @@ pub struct Violation {
     pub actual: String,
     #[serde(default)]
     pub severity: Severity,
+    /// Which side moved. `#[serde(default)]` so every proof record already on
+    /// disk still parses, and reads as `undetermined` - which is true of them.
+    #[serde(default)]
+    pub drift: Drift,
 }
 
 impl Violation {
@@ -330,7 +409,15 @@ impl Violation {
             expected: expected.into(),
             actual: actual.into(),
             severity: Severity::Fatal,
+            drift: Drift::Undetermined,
         }
+    }
+
+    /// The same finding, with the direction it points recorded.
+    #[must_use]
+    pub fn with_drift(mut self, drift: Drift) -> Self {
+        self.drift = drift;
+        self
     }
 
     pub fn with_severity(mut self, severity: Severity) -> Self {

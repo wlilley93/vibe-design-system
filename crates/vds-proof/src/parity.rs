@@ -92,7 +92,8 @@ use std::io::Write;
 use std::path::{Component, Path};
 
 use vds_core::{
-    ComponentRecord, Project, ProofKind, PropContract, Result, State, Status, VdsError, Violation,
+    ComponentRecord, Drift, Project, ProofKind, PropContract, Result, State, Status, VdsError,
+    Violation,
 };
 use vds_scan::library::{LibraryExport, LibraryProp, scan_library};
 
@@ -656,7 +657,9 @@ fn resolve<'a>(
                     code.export_name
                 ),
             },
-        ));
+        )
+            // the record names an export the file does not have, so the CODE is behind the coordinate
+            .with_drift(Drift::Behind));
         return Ok(None);
     };
 
@@ -1044,20 +1047,24 @@ fn compare_props(
 
     for (name, prop) in &contract {
         let Some(actual) = code.get(name) else {
-            run.fail(Violation::fatal(
-                format!("{location} prop {name}"),
-                RULE_PROP_NOT_IN_CODE,
-                format!(
-                    "{} accepts prop {name}, which the contract of {} names",
-                    export.source_file, record.id
-                ),
-                format!(
-                    "{} does not accept it. Either the component dropped the prop or the \
+            run.fail(
+                Violation::fatal(
+                    format!("{location} prop {name}"),
+                    RULE_PROP_NOT_IN_CODE,
+                    format!(
+                        "{} accepts prop {name}, which the contract of {} names",
+                        export.source_file, record.id
+                    ),
+                    format!(
+                        "{} does not accept it. Either the component dropped the prop or the \
                      contract names one it never had, and a contract nothing implements binds \
                      nobody",
-                    export.source_file
-                ),
-            ));
+                        export.source_file
+                    ),
+                )
+                // the contract names a prop the component does not accept, so the CODE is behind: an implementation is owed
+                .with_drift(Drift::Behind),
+            );
             continue;
         };
 
@@ -1081,7 +1088,9 @@ fn compare_props(
                      it",
                     record.id, export.source_file
                 ),
-            ));
+            )
+                // both sides name the prop and disagree about requiredness
+                .with_drift(Drift::Mismatch));
         }
 
         match compare_types(&prop.type_expr, &actual.type_expr) {
@@ -1100,7 +1109,9 @@ fn compare_props(
                          them",
                         record.id, export.source_file
                     ),
-                ));
+                )
+                    // both sides name the prop and disagree about its type
+                    .with_drift(Drift::Mismatch));
             }
             TypeVerdict::Differs { shape } => {
                 run.fail(Violation::fatal(
@@ -1131,20 +1142,24 @@ fn compare_props(
         // is deliberately no carve-out list of "common" props here: a list that
         // exempted className, children or style would be a hole a real prop
         // walks through by being called one of those.
-        run.fail(Violation::fatal(
-            format!("{location} prop {name}"),
-            RULE_PROP_NOT_CONTRACTED,
-            format!(
-                "{} names prop {name}, which {} accepts",
-                record.id, export.source_file
-            ),
-            format!(
-                "{} accepts it and the contract does not name it. A prop nobody contracted is \
+        run.fail(
+            Violation::fatal(
+                format!("{location} prop {name}"),
+                RULE_PROP_NOT_CONTRACTED,
+                format!(
+                    "{} names prop {name}, which {} accepts",
+                    record.id, export.source_file
+                ),
+                format!(
+                    "{} accepts it and the contract does not name it. A prop nobody contracted is \
                  exactly how a component drifts, and letting it pass would make the register a \
                  subset of the component rather than a contract over it",
-                export.source_file
-            ),
-        ));
+                    export.source_file
+                ),
+            )
+            // the component accepts a prop no contract names, so the CODE is ahead: an amendment is owed, not a fix
+            .with_drift(Drift::Ahead),
+        );
     }
 }
 
@@ -1170,7 +1185,9 @@ fn compare_states(run: &mut ProofRun<'_>, record: &ComponentRecord, location: &s
             record.status,
             named(&not_built)
         ),
-    ));
+    )
+        // the contract requires a state states.built does not carry
+        .with_drift(Drift::Behind));
 }
 
 /// The states, named and never counted. A count sends an author to go and look;
@@ -2383,5 +2400,72 @@ mod figma_variant_tests {
         let (outcome, text) = run_kind(&h, ProofKind::Parity);
         assert!(!text.contains("figma-limb"), "{text}");
         assert_eq!(outcome.status, ProofStatus::Passed, "{text}");
+    }
+}
+
+#[cfg(test)]
+mod drift_direction_tests {
+    use vds_core::Drift;
+
+    /// The direction must follow from WHICH SIDE IS MISSING THE THING, and the
+    /// two prop rules must point OPPOSITE ways. Asserting them together is the
+    /// point: if a later edit gave both the same direction the classification
+    /// would still be present, still populated, and useless.
+    #[test]
+    fn the_two_prop_rules_point_in_opposite_directions() {
+        let source = include_str!("parity.rs");
+        // R5: the contract names a prop the code lacks. The CODE is behind.
+        let r5 = source
+            .find("RULE_PROP_NOT_IN_CODE,")
+            .expect("R5 is emitted somewhere");
+        let after_r5 = &source[r5..r5 + 900];
+        assert!(
+            after_r5.contains("Drift::Behind"),
+            "R5 fires when the contract names a prop the component does not accept. That is \
+             the CODE being behind, and an implementation is owed. It no longer says so."
+        );
+
+        // R6: the code accepts a prop no contract names. The CODE is ahead.
+        let r6 = source
+            .find("RULE_PROP_NOT_CONTRACTED,")
+            .expect("R6 is emitted somewhere");
+        let after_r6 = &source[r6..r6 + 900];
+        assert!(
+            after_r6.contains("Drift::Ahead"),
+            "R6 fires when the component accepts a prop no contract names. That is the CODE \
+             being ahead, and an AMENDMENT is owed rather than a fix - which is a different \
+             job for a different person. It no longer says so."
+        );
+
+        // And they must not be the same. A classification where every finding
+        // points one way carries no information at all.
+        assert_ne!(
+            Drift::Behind,
+            Drift::Ahead,
+            "the two directions have collapsed into one"
+        );
+    }
+
+    /// `Undetermined` is the default and must stay silent rather than guessing.
+    #[test]
+    fn an_unclassified_finding_says_nothing_rather_than_guessing() {
+        let plain = vds_core::Violation::fatal("l", "r", "e", "a");
+        assert_eq!(plain.drift, Drift::Undetermined);
+        assert!(
+            !plain.drift.is_determined(),
+            "a finding whose emitter has no opinion must not read as having one: a wrong \
+             direction sends the work to the wrong person with a proof's authority behind it"
+        );
+        assert!(
+            plain
+                .clone()
+                .with_drift(Drift::Mismatch)
+                .drift
+                .is_determined()
+        );
+        // The three real directions are all determined, or the printer drops them.
+        for d in [Drift::Ahead, Drift::Behind, Drift::Mismatch] {
+            assert!(d.is_determined(), "{d} would be printed as nothing");
+        }
     }
 }
