@@ -226,3 +226,34 @@ fn no_filed_submission_carries_a_placeholder_digest() {
          over nearly nothing"
     );
 }
+
+/// The ceiling's D2 claim is BOUND TO THE RECORD, because this exact claim
+/// went stale once already: CEILING.md kept calling the subscriber-D2 question
+/// "an open question ... not on the citator" for hours after
+/// [2026] VJS-CC-VIBE-DESIGN-SYSTEM 1 decided it, and no test tripped - the
+/// document's own header calls that state "an excuse". Now the doc must cite
+/// the citation the submission's answer carries, so re-deciding or withdrawing
+/// the ruling re-fails the claim.
+#[test]
+fn the_ceiling_cites_the_ruling_that_decided_the_subscriber_d2_question() {
+    let submission = read(".vds/submissions/filed/SUBMISSION-VDS-010.yaml");
+    let doc: serde_yaml::Value = serde_yaml::from_str(&submission).unwrap();
+    let citation = doc
+        .get("answer")
+        .and_then(|a| a.get("citation"))
+        .and_then(|c| c.as_str())
+        .expect(
+            "SUBMISSION-VDS-010 carries no answer.citation - if the ruling was withdrawn, \
+             CEILING.md's D2 row is claiming law that no longer exists",
+        );
+    let ceiling = read("docs/CEILING.md");
+    assert!(
+        ceiling.contains(citation),
+        "docs/CEILING.md does not cite {citation}, the ruling its D2 claims rest on. \
+         Either the doc drifted or the citation moved; reconcile them."
+    );
+    assert!(
+        !ceiling.contains("open question rather than a task"),
+        "the pre-ruling framing is back in CEILING.md; the question is decided"
+    );
+}

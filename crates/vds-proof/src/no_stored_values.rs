@@ -715,6 +715,24 @@ fn recovered_in(line: &str, patterns: &Patterns) -> Vec<Hit> {
         if !token.len().is_multiple_of(2) || token.len() > MAX_ENCODED_TOKEN {
             continue;
         }
+        // A run that is a SEGMENT of a hyphenated or underscored identifier is
+        // an id, not an encoding. The incident: this gate failed the build on
+        // `PROOF-20260731-213153` - its own capture clock - because
+        // hex("213153") is "!1S" and "1S" reads as a duration. A scan that can
+        // fire on its own timestamp is the cry-wolf failure, and generated ids
+        // put digit runs after a `-` on every governed line.
+        //
+        // The first fix skipped ALL-DIGIT tokens, and the seeded R8 test
+        // killed it in one run: hex("#ebebeb") is `23656265626562`, pure
+        // digits, because `#` and the letters a-e all encode to digit-only
+        // pairs. Purity of digits does not separate numbers from encodings;
+        // POSITION does. The residue that remains is an author hiding a value
+        // directly behind a hyphen ("x-23656265626562"), which is deliberate
+        // concealment, and S-8(5) already concedes no lock binds a determined
+        // author.
+        if found.start() > 0 && matches!(line.as_bytes()[found.start() - 1], b'-' | b'_') {
+            continue;
+        }
         if let Some(decoded) = decode_hex(token).and_then(printable)
             && let Some(inner) = literals_in(&decoded, patterns).into_iter().next()
         {
@@ -1120,6 +1138,18 @@ mod tests {
                 "realisation_named_field",
             );
         }
+    }
+
+    /// The incident of 2026-07-31: the gate failed the build on its own
+    /// capture clock, because hex("213153") is "!1S" and "1S" reads as a
+    /// duration. An id segment after a hyphen is a number in identifier
+    /// position, never an encoding - and the R8 test below is what keeps this
+    /// carve-out honest, because hex("#ebebeb") is pure digits too and MUST
+    /// still be recovered when it stands alone.
+    #[test]
+    fn r8_an_id_segment_that_decodes_to_a_duration_is_not_an_encoding() {
+        passes("id: PROOF-20260731-213153\n");
+        passes("captured: RETENTION-0002_213153\n");
     }
 
     #[test]

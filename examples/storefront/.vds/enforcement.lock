@@ -1,8 +1,8 @@
 schema_version: 1
-generated_at: 2026-07-31T18:46:38Z
+generated_at: 2026-07-31T21:28:53Z
 entries:
 - path: ../../target/release/vds
-  digest: sha256:b54fbaf4ba40d3c52c5df2880f085a3ea3d46ba7893911e1eaca42f67a65d4e0
+  digest: sha256:136e2dae9fbe39a0d02623065e9c8cb718460c09f52ca2b5ffce45f0d2da3388
   kind: released_binary
   invoked_by:
   - surface: package_script
@@ -13,6 +13,8 @@ entries:
     path: ../../crates/vds-cli/src/doctor.rs
     test_name: a_replaced_binary_fails_the_subscriber_seat_by_digest
     seeds: the pinned binary replaced by different bytes, which must read UNMET, the one D2 failure that is the subscriber own to fix
-  pinned_at: 2026-07-31T18:46:38Z
+  pinned_at: 2026-07-31T21:28:53Z
   pinned_by: jellytot
-  provenance: 0e54cc75770bfc41884c35eda8c7e1a9b825ff44
+  supersedes_digest: sha256:b54fbaf4ba40d3c52c5df2880f085a3ea3d46ba7893911e1eaca42f67a65d4e0
+  relock_rationale: The kernel was rebuilt (the registry arm, the subscriber seat, the primitive floor and the INFORMATIONAL printer all landed today), so the binary that judges this surface changed. Re-pinned at the new digest with provenance updated to the current kernel commit - the subscriber post-upgrade act [2026] VJS-CC-VIBE-DESIGN-SYSTEM 1 contemplates.
+  provenance: eb60db98db472c8896949c0c2dd94640b2f25939

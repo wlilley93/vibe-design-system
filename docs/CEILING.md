@@ -1,6 +1,6 @@
 # The ceiling: which criteria cannot move from inside this repository
 
-`vds doctor` reports 5 of 10 here and 6 of 10 on the worked example. This file
+`vds doctor` reports 5 of 10 here and 7 of 10 on the worked example. This file
 records WHY the remainder cannot be closed by work, so nobody spends another
 session grinding at a criterion that is waiting on an act only somebody else can
 perform.
@@ -87,25 +87,30 @@ therefore see its own reserved clauses.
 | criterion | this repo | storefront | blocked on |
 |---|---|---|---|
 | D1 reconciles | vacuous by design | **MET** | nothing |
-| D2 five limbs | vacuous by design | needs a lock | see below |
-| D3 no vacuous passes | **MET** | **MET** | nothing |
+| D2 five limbs | vacuous by design | **MET** (subscriber seat) | nothing |
+| D3 no vacuous passes | vacuous by design | **MET** | nothing |
 | D4 CI invokes every gate | UNMET | UNMET | GitHub billing |
 | D5 zero drift | **MET** | **MET** | nothing |
-| D6 warrant chain | UNMET | UNMET | court + Principal |
+| D6 warrant chain | UNMET | UNMET | the bench (procedure now enacted at S-6(5)/(6)) + Principal |
 | D7 no design value | **MET** | **MET** | nothing |
 | D8 ledgers current | **MET** | **MET** | nothing |
 | D9 proofs keep pace | **MET** | **MET** | nothing |
 | D10 reserved clauses | **MET** | UNMET | an assent event |
 
-**The one row that is neither structural nor externally blocked is D2 on the
-worked example**, and it is an open question rather than a task: a subscriber
-runs a RELEASED `vds` binary and does not hold the proof scripts' source, so it
-has nothing of its own to pin, and D2's limb asks for "a lock entry whose named
-failing-direction test resolves". Whether a subscriber pins the vendored
-designpack instead, or whether D2 is a criterion only the kernel can satisfy, is
-not settled by anything written down. It is not on the citator and it is not in
-VDS.md.
+**The D2 question is DECIDED**: [2026] VJS-CC-VIBE-DESIGN-SYSTEM 1 (answering
+SUBMISSION-VDS-010) gave D2 two seats. The kernel seat is five limbs over gate
+source; the subscriber seat pins the RELEASED BINARY (digest + version) and
+resolves the rest transitively through the release's kernel-commit provenance,
+with NOT CHECKED and the missing link named where the chain is absent. The
+worked example now carries exactly that lock and reads MET (subscriber seat) -
+and the pin's first week demonstrated its own failing direction twice: the
+kernel was rebuilt, D2 and D5 correctly reported the replaced binary, and the
+re-pin with rationale was the subscriber's ordinary post-upgrade act.
 
-That is the next thing worth a submission, and it is deliberately NOT resolved
-here by a decisive call: it decides what conformance means for every future
-subscriber, which is exactly the size of question S-11 sends to the court.
+So this document's earlier closing - "the next thing worth a submission" - is
+history, kept in git rather than here. Every remaining unmet row above is
+structural (this repository ships no screens) or waits on an act only the
+Principal can perform: the Actions billing (D4), warrant grants through the
+bench procedure S-6(5) and S-6(6) now enact (D6), and the assent event that
+lets a designpack exist at all (D10 on the worked example, which gates D6's
+W4 downstream).

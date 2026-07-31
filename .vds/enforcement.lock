@@ -1,5 +1,5 @@
 schema_version: 1
-generated_at: 2026-07-31T19:53:23Z
+generated_at: 2026-07-31T21:35:13Z
 entries:
 - path: crates/vds-cli/src/doctor.rs
   digest: sha256:d5e64c61ce271e43cd53f01e3a702d61df371a05a1fea610149b4b23a2a3ce52
@@ -123,7 +123,7 @@ entries:
   supersedes_digest: sha256:f46c8cd8d46e9118767da2a52fefc8e2d91aac1a485b0356da5285e3e3047758
   relock_rationale: 'ledger_staleness gains R6, a self-consistency arm for the CI run ledger (BREACH-0011 remedy): the parse and cross-total rules live once, on vds_core::types::ci::CiLedger, the same type vds ledger ci writes through. doctor.rs moved its test imports to that type after the CiLedger/WorkflowRuns definitions were consolidated out of vds-cli - the same two-copies defect the sibling VJS repo measured today ([2026] VJS-CC-VJS 12), fixed here before it bit.'
 - path: crates/vds-proof/src/no_stored_values.rs
-  digest: sha256:09d3675cb7df56e57e39fce8f1f76b7becdc4280c56725fe350bba6924574d85
+  digest: sha256:5628df4003d75f42e828f4980b812bd7d182b087c0ba0faf23bd3f847293a988
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -138,10 +138,10 @@ entries:
     path: crates/vds-proof/src/no_stored_values.rs
     test_name: no_stored_values_fails_on_a_hex_colour_in_a_register_record
     seeds: a hex colour literal written into a register record
-  pinned_at: 2026-07-25T17:10:40Z
+  pinned_at: 2026-07-31T21:35:13Z
   pinned_by: jellytot
-  supersedes_digest: sha256:3436e78174fd5dceb6241756eb8fc8117cd52959595c7d825f81893085cf1fd5
-  relock_rationale: 'Adversarial review found all three new gates unsound; four criticals and five highs are closed. contrast: unclassified_palette_scopes returned empty on a sheet with no :root, so R6 was structurally dead and a palette nothing measured passed at exit 0 (the founding defect through the gate written to catch it); the redactor covered three of six realisation shapes and redacted only a colour function''s head; two findings named the default stylesheet rather than the one read. parity: an extends/intersection props type reported a SUBSET as complete, so R6 fired on inherited props or credited the row as enforced. token_pin: the redaction screen closed hex and left base64 open, the locator was never screened, the evidence digest was keyed on pin.id (which carries generated_at), coverage was reported before the currency check, and Store::read_pins never refused an unreadable entry.'
+  supersedes_digest: sha256:09d3675cb7df56e57e39fce8f1f76b7becdc4280c56725fe350bba6924574d85
+  relock_rationale: 'no_stored_values R8: a hex candidate that is a segment of a hyphenated or underscored identifier is skipped - the gate failed the build on its own capture clock (a six-digit HHMMSS time, hex-decoded, read as a one-character duration). The first fix (skip all-digit tokens) was killed by the seeded R8 test in one run: the hex encoding of the seeded grey colour literal is pure digits (the hash mark and the letters a to e all encode to digit-only pairs), so position, not digit purity, is the discriminator. The incident is seeded as its own passing test beside the colour test that keeps the carve-out honest. Also the ceiling gains a test binding its D2 claim to SUBMISSION-VDS-010 answer.citation, after the doc kept calling a decided question open with no test tripping.'
 - path: crates/vds-proof/src/parity.rs
   digest: sha256:82a48217eee317b1cee3389c2c26e4f3aeccb7fe1f1b6261874ff17b0b118862
   kind: proof_script
