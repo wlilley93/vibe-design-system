@@ -230,8 +230,29 @@ Measured, not guessed:
    generator is `figma-push.js`, which draws a project RECORD page - frames and text - and creates
    no component. See the correction below: this is BREACH-0010, and it is the largest of the five.
 
-Gaps 4 and 5 are defects. Gaps 1 to 3 are work. None of the five needs a plan upgrade, and Code
-Connect - which does - would sit on top of gap 1 rather than replace it.
+### CLOSED, measured 2026-07-31
+
+**Gap 1 is closed.** `figmaProperty` is bound wherever the two sides vary the same thing. It
+could not be derived, and the reason is the interesting part: Figma names variants NOMINALLY
+(twelve axis names across the 46 sets) and the code named them POSITIONALLY (`hero-1`), so
+there was no value to compare. Classifying all 43 against a measured read of the file gives 31
+aligned, 1 subset and **11 where the two sides vary different questions** - every one a control
+primitive, because a static drawing cannot hold a runtime value, so Figma varies STATE, TONE,
+POINTER or SIZE while the code varies COMPOSITION. Those eleven carry `null` and a stated
+reason; a forced mapping would be false in both directions. See `figma-variants.json`.
+
+**Gap 2 is closed.** `vds figma pull` has now run for a site-factory project against the real
+file: 13 of 13 nodes resolved, 33 unclaimed sets named.
+
+**And the seam stopped being blind.** This file and `docs/PROGRAMME-GOAL.md` both describe a
+`.vds/` that was "present but blind" - three proofs precondition-failing and the rest returning
+`rows_considered: 0`. On a project generated today, `vds doctor` reports **5 of 10 criteria met**
+and `reconciliation` **39 enforced rows, 0 violations**, with limb (c) of VDS S-5(6) - whether
+each register entry's node resolves in the pinned file - actually REACHED rather than skipped,
+because the ledger is now there for it to read.
+
+Gaps 4 and 5 remain. Gap 3 (variable Code Syntax) remains. Code Connect - which does need a plan
+upgrade - would sit on top of gap 1 rather than replace it.
 
 ## What follows for what to build
 
