@@ -1,6 +1,6 @@
 # The Figma master file
 
-File key `4pPUFvaPdqYzPquBusSfWl`. One file, fifteen pages, 42 component sets and 23
+File key `4pPUFvaPdqYzPquBusSfWl`. One file, sixteen pages, 42 component sets and 25
 documentation frames. It is the design half of site-factory: the code half is `blocks/`,
 and three measured manifests hold the two together.
 
@@ -33,6 +33,16 @@ measured out of the Base Gallery rather than eyeballed. See `BASELINE.md`.
 **Uber Base - full catalogue** (1 frame) - all 92 Base component sets and 3,211 variants,
 with each set's tier, the site-factory block that answers it, and its import key in full.
 The import path is blocked on a user action and the page says exactly which one.
+
+**Styles (applied)** - the layer on top of everything else, and the one page that has to SHOW
+rather than assert. The same specimen set - swatches, card, field, tone chips, buttons, table -
+rendered in all four style packs side by side. Identical structure in every column, verified by
+measurement: 57 nodes each, and a script that refuses to finish if the counts diverge or if
+anything overflows its column. The only differences are palette, radius and typeface, because
+the space unit is 4px and the border weight 1px in all four and every padding is a multiple of
+the unit. Balmoral is the column that proves the point: radius 0 on both steps, so every card,
+input, chip and table in it is square, which is the client's own binding decision expressed as
+a token rather than typed into each component.
 
 **Prompts (verbatim)** (8 frames) - the seven skill prompts the writing run invokes, in run
 order, reproduced in full: 42,486 characters, nothing summarised. A prompt is the one part

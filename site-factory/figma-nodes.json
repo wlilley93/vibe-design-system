@@ -5,9 +5,9 @@
   "measured_at": "2026-07-30 (re-measured with loadAsync after the three system pages landed)",
   "file_key": "4pPUFvaPdqYzPquBusSfWl",
   "pageTotals": {
-    "pages": 15,
+    "pages": 16,
     "componentSets": 42,
-    "frames": 24,
+    "frames": 25,
     "emptyPages": 0
   },
   "pages": {
@@ -66,6 +66,9 @@
     ],
     "System: Opbox design": [
       "Opbox design \u2014 product system"
+    ],
+    "Styles (applied)": [
+      "Styles applied \u2014 one component set, four packs"
     ]
   },
   "variantAxes": {
