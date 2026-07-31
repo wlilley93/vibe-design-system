@@ -653,13 +653,15 @@ consumes it, on a forced-drain deadline ordered rather than measured, is unsettl
 Referred as `SUBMISSION-VDS-004`. Until answered, S-9(6)(2) is absolute and no deadline
 overrides a non-zero demand.
 
-**S-9(10) RESERVED.** Where the primitive floor sits is unsettled: whether a bare HTML
-element in a screen counts as an unregistered component for the `composition` proof, or
-whether some enumerated set of elements is below the register's floor. The answer changes
-how much of the codebase the anti-drift proof reaches, so it must not be settled by
-whichever choice makes the first run pass. Referred as `SUBMISSION-VDS-005`. Until
-answered, `composition` reports bare elements as informational rows, counted in
-`rows_considered` and excluded from `rows_enforced`, and any warrant relying on it says so.
+**S-9(10)** The primitive floor, settled by [2026] VJS-CC-VIBE-DESIGN-SYSTEM 5 (answering
+`SUBMISSION-VDS-005`): an ENUMERATED SET of elements is below the register's floor, held in
+the composition gate's own source where the enforcement lock pins it - so a change to the
+set is a re-pin with a rationale, an ordinary governed edit a diff can show. Elements in
+the set are informational rows, counted and excluded from `rows_enforced`. A bare element
+OUTSIDE the set - the interactive tags a design system exists to govern - is an
+unregistered component wearing an element's name and fails the proof, unless it appears in
+the project's named carve-out list, where every use is counted and reported by site.
+Failing bare elements wholesale is forbidden: a gate that cries wolf gets disabled.
 
 ---
 
@@ -750,7 +752,7 @@ any of them.
 | S-6(6) | who may grant W2, given composition is fully machine-checkable | `SUBMISSION-VDS-002` |
 | S-3(6) | does a designpack bind one project, a tenant, or the realm | `SUBMISSION-VDS-003` |
 | S-9(9) | may a component be retired against a forced-drain deadline while consumers remain | `SUBMISSION-VDS-004` |
-| S-9(10) | where the primitive floor sits for the composition proof | `SUBMISSION-VDS-005` |
+| S-9(10), SETTLED by [2026] VJS-CC-VIBE-DESIGN-SYSTEM 5 | where the primitive floor sits for the composition proof | `SUBMISSION-VDS-005` |
 
 ---
 

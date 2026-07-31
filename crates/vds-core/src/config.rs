@@ -109,6 +109,14 @@ pub struct SurfaceConfig {
     /// File extensions the library scan treats as a component module.
     #[serde(default = "default_component_extensions")]
     pub component_extensions: Vec<String>,
+    /// Bare elements ABOVE the primitive floor this project nonetheless uses
+    /// directly, each one a named exception ([2026] VJS-CC-VIBE-DESIGN-SYSTEM 5).
+    /// Every use is counted and reported by site, mirroring
+    /// `governed_import_prefixes`: a carve-out working as intended and one being
+    /// used as an escape hatch produce the same count, and only visibility tells
+    /// them apart.
+    #[serde(default)]
+    pub element_carveouts: Vec<String>,
     /// The shipped stylesheet: the record VDS S-2(3) fixes as the system of
     /// record for what a token resolves to. The `contrast` proof measures every
     /// floor against it.
@@ -142,6 +150,7 @@ impl Default for SurfaceConfig {
             library_dirs: vec!["src/components/ui".into()],
             screens_ledger: ".vds/ledgers/screens.yaml".into(),
             component_extensions: default_component_extensions(),
+            element_carveouts: Vec::new(),
             stylesheet: default_stylesheet(),
         }
     }

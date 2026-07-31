@@ -1,8 +1,8 @@
 schema_version: 1
-generated_at: 2026-07-31T19:03:48Z
+generated_at: 2026-07-31T19:49:31Z
 entries:
 - path: crates/vds-cli/src/doctor.rs
-  digest: sha256:810d5634a364a5db5c63dc4ecdd8746b7a448ac2d4bcf43f82864cec69fb393b
+  digest: sha256:91e6c44eb8b9a25b0474ae801918511ab67ad28abaeeb0ea0bf27fce5fbc1461
   kind: criteria_grader
   invoked_by:
   - surface: ci_workflow
@@ -19,10 +19,10 @@ entries:
     path: crates/vds-cli/src/doctor.rs
     test_name: a_pass_over_zero_rows_is_still_a_vacuous_pass
     seeds: a proof record labelled passed over rows_enforced 0, which D3 once agreed was a pass
-  pinned_at: 2026-07-31T18:47:59Z
+  pinned_at: 2026-07-31T19:49:31Z
   pinned_by: jellytot
-  supersedes_digest: sha256:5d5d4ae45f4937a1d141fac6b8419e74653972d50e2d8453c50c8ad1df14d68c
-  relock_rationale: 'Implement [2026] VJS-CC-VIBE-DESIGN-SYSTEM 1: D2 evaluates by seat. doctor.rs gains the subscriber seat (released_binary pin verified by digest, provenance required, NOT CHECKED with the missing link named when absent); lock.rs admits kind released_binary with empty proves (it runs all kinds, it is not one) and a --provenance flag; the lock schema gains the optional provenance field. The failing direction (a replaced binary reads UNMET) is proven with green-first plus a landed-seed assertion.'
+  supersedes_digest: sha256:810d5634a364a5db5c63dc4ecdd8746b7a448ac2d4bcf43f82864cec69fb393b
+  relock_rationale: 'The reserved-clause census in doctor.rs moves from five to four: S-9(10) was enacted from RESERVED by [2026] VJS-CC-VIBE-DESIGN-SYSTEM 5 and its statute text rewritten, so the parser correctly no longer reports it. The four remaining reserved clauses keep their markers; enacting them from their rulings is task #53.'
 - path: crates/vds-cli/src/lock.rs
   digest: sha256:056a937bdacc8b2539624a618c39ca5bb6ec8b67d3119925cf417a185daefdcc
   kind: hook
@@ -43,7 +43,7 @@ entries:
   supersedes_digest: sha256:c5ae0f9bade970f4caddbcbcf156d0701486858db46a611714cff328a0adc7e0
   relock_rationale: 'Implement [2026] VJS-CC-VIBE-DESIGN-SYSTEM 1: D2 evaluates by seat. doctor.rs gains the subscriber seat (released_binary pin verified by digest, provenance required, NOT CHECKED with the missing link named when absent); lock.rs admits kind released_binary with empty proves (it runs all kinds, it is not one) and a --provenance flag; the lock schema gains the optional provenance field. The failing direction (a replaced binary reads UNMET) is proven with green-first plus a landed-seed assertion.'
 - path: crates/vds-proof/src/composition.rs
-  digest: sha256:f0265e72bed6a05c7f524a93e2aad3990739fd48208699032ccb0413d323a078
+  digest: sha256:20bf333373f07d872632d50c67a66cc43794ae8ac88a4d397b78b43c6c7fe328
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -58,8 +58,10 @@ entries:
     path: crates/vds-proof/src/composition.rs
     test_name: composition_fails_on_an_unregistered_component
     seeds: a screen importing a governed component with no register record
-  pinned_at: 2026-07-25T13:58:22Z
+  pinned_at: 2026-07-31T19:46:24Z
   pinned_by: jellytot
+  supersedes_digest: sha256:f0265e72bed6a05c7f524a93e2aad3990739fd48208699032ccb0413d323a078
+  relock_rationale: 'Implement [2026] VJS-CC-VIBE-DESIGN-SYSTEM 5 D2 (task #49): composition gains R4 and the enumerated primitive floor BELOW_THE_FLOOR, held in this gate source so a change to the set is itself a re-pin. Interactive elements above the floor fail by name unless named in [surface] element_carveouts, every carve-out use counted and reported per site. The run printer gains the INFORMATIONAL section that inform() call sites always promised - recorded findings were never printed. Both failing directions, the carve-out path and the below-floor negative control are seeded in the gate tests.'
 - path: crates/vds-proof/src/contrast.rs
   digest: sha256:1f445750337175697720222d6ec78afed41ac5f637589fd11fc38ca9a7422ae9
   kind: proof_script

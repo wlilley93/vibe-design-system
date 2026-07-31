@@ -313,6 +313,33 @@ impl<'a> ProofRun<'a> {
             .filter(|v| v.severity == Severity::Warning)
             .collect();
 
+        // Informational findings PRINT. They were recorded and never shown,
+        // which broke the promise half this codebase's inform() call sites make
+        // in their own comments - "counted AND named per site" - while the
+        // console showed only the count. A carve-out visible only as a number
+        // in a skip tally is a carve-out nobody can act on; found when the
+        // element-carveout test asserted the naming and the naming was not
+        // there ([2026] VJS-CC-VIBE-DESIGN-SYSTEM 5 implementation).
+        let informational: Vec<&Violation> = self
+            .violations
+            .iter()
+            .filter(|v| v.severity == Severity::Informational)
+            .collect();
+        if !informational.is_empty() {
+            writeln!(out).ok();
+            writeln!(
+                out,
+                "INFORMATIONAL ({}), counted and named, failing nothing:",
+                informational.len()
+            )
+            .ok();
+            for (i, violation) in informational.iter().enumerate() {
+                writeln!(out, "  [{}] {}", i + 1, violation.location).ok();
+                writeln!(out, "      rule:     {}", violation.rule).ok();
+                writeln!(out, "      actual:   {}", violation.actual).ok();
+            }
+        }
+
         if !warnings.is_empty() {
             writeln!(out).ok();
             writeln!(out, "WARNINGS ({}), each named in full:", warnings.len()).ok();

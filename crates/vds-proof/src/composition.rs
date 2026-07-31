@@ -19,8 +19,11 @@
 //!       component never passes silently. It is captured as a warning-severity
 //!       violation, counted and printed, and it does not fail the gate.
 //!
-//! Bare HTML elements are informational rows, counted in `rows_considered` and
-//! excluded from `rows_enforced`, per VDS S-9(10) RESERVED (SUBMISSION-VDS-005).
+//!   R4  a bare element ABOVE the primitive floor. S-9(10), settled by
+//!       [2026] VJS-CC-VIBE-DESIGN-SYSTEM 5: the interactive tags a design
+//!       system exists to govern are unregistered components wearing an
+//!       element's name. Elements in [`BELOW_THE_FLOOR`] stay informational;
+//!       carve-outs in `[surface] element_carveouts` are counted and named.
 //!
 //! This proof reads component NAMES, import PATHS and lifecycle STATUSES. It
 //! reads no design value (VDS S-2(2)).
@@ -42,10 +45,111 @@ const RULE_RETIRED: &str =
     "VDS S-9(8) composition R3: after retirement the code being there is the defect";
 const RULE_DEPRECATED: &str =
     "VDS S-9(6)(1) composition W1: a deprecated component never passes silently";
+const RULE_ABOVE_FLOOR: &str = "VDS S-9(10) composition R4 ([2026] VJS-CC-VIBE-DESIGN-SYSTEM 5): a bare element above \
+     the primitive floor is an unregistered component wearing an element's name";
 
-pub const RESERVED_NOTE: &str = "relies on VDS S-9(10) RESERVED (SUBMISSION-VDS-005): bare HTML elements are informational \
-     rows only, excluded from rows_enforced. Any warrant citing this proof must record that \
-     reliance in its `reserved` array.";
+/// The enumerated primitive floor (S-9(10)). Elements here are structure and
+/// prose - the vocabulary HTML gives every page - and no design system
+/// registers them as components. Everything else, above all the INTERACTIVE
+/// tags, is what a design system exists to govern: a bare `<button>` in a
+/// screen is the hand-rolled control the anti-drift proof was built to catch.
+///
+/// HELD HERE, in the gate's own source, deliberately: the enforcement lock pins
+/// this file, so a change to the set is a re-pin with a rationale - the
+/// "ordinary governed edit a diff can show" the order describes, in this
+/// repository's strongest form. A per-project floor would let a subscriber
+/// quietly widen it; a per-project CARVE-OUT (`[surface] element_carveouts`)
+/// is the lawful pressure valve, and every use of one is counted by site.
+pub const BELOW_THE_FLOOR: &[&str] = &[
+    // Document structure.
+    "div",
+    "span",
+    "main",
+    "section",
+    "article",
+    "header",
+    "footer",
+    "nav",
+    "aside",
+    // Prose.
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "p",
+    "blockquote",
+    "pre",
+    "code",
+    "small",
+    "strong",
+    "em",
+    "b",
+    "i",
+    "u",
+    "s",
+    "sup",
+    "sub",
+    "mark",
+    "abbr",
+    "cite",
+    "q",
+    "time",
+    "br",
+    "wbr",
+    "hr",
+    // Lists and definition lists.
+    "ul",
+    "ol",
+    "li",
+    "dl",
+    "dt",
+    "dd",
+    // Tables as structure (a governed data table is a COMPONENT; the tags are not).
+    "table",
+    "thead",
+    "tbody",
+    "tfoot",
+    "tr",
+    "td",
+    "th",
+    "caption",
+    "colgroup",
+    "col",
+    // Media and figures.
+    "img",
+    "picture",
+    "source",
+    "figure",
+    "figcaption",
+    "svg",
+    "path",
+    "circle",
+    "rect",
+    "line",
+    "polyline",
+    "polygon",
+    "g",
+    "defs",
+    "use",
+    "title",
+    "desc",
+    // The anchor: a plain hyperlink is prose. A Button-styled anchor is a
+    // component, and that distinction is exactly what a registered Link or
+    // Button component encodes - but the bare tag itself is below the floor
+    // because forbidding `<a>` forbids writing a paragraph with a link in it.
+    "a",
+    // Plain labels and captions for forms are structure; the CONTROLS are not.
+    "label",
+    "legend",
+    "fieldset",
+    "form",
+];
+
+pub const RESERVED_NOTE: &str = "S-9(10) is SETTLED ([2026] VJS-CC-VIBE-DESIGN-SYSTEM 5, answering SUBMISSION-VDS-005): \
+     elements in the enumerated floor are informational; a bare element above it fails R4 \
+     unless named in [surface] element_carveouts, where every use is counted by site.";
 
 pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
     let project = ctx.project;
@@ -78,7 +182,52 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
             let location = format!("{}:{} <{}>", screen.route, reference.line, reference.name);
 
             if reference.kind != vds_scan::ReferenceKind::Component {
-                run.row(Verdict::Skipped("bare_element_informational_vds_s9_10"));
+                // Case-insensitive on the tag: JSX lower-cases intrinsics, but a
+                // scanner that ever reported `IMG` must not push the tag above
+                // the floor on spelling.
+                let tag = reference.name.to_ascii_lowercase();
+                if BELOW_THE_FLOOR.contains(&tag.as_str()) {
+                    run.row(Verdict::Skipped("bare_element_below_the_floor_vds_s9_10"));
+                    continue;
+                }
+                if project
+                    .config
+                    .surface
+                    .element_carveouts
+                    .iter()
+                    .any(|c| c.eq_ignore_ascii_case(&tag))
+                {
+                    run.row(Verdict::Skipped("element_carveout_named_in_config"));
+                    // Counted AND named per site, like the import carve-out
+                    // above: a carve-out working as intended and one being used
+                    // as an escape hatch produce the same count.
+                    run.inform(Violation::fatal(
+                        location.clone(),
+                        RULE_ABOVE_FLOOR,
+                        "a registered component, or this named carve-out",
+                        format!(
+                            "<{tag}> is above the primitive floor and carved out by \
+                             [surface] element_carveouts. Nothing about it is governed"
+                        ),
+                    ));
+                    continue;
+                }
+                run.row(Verdict::Enforced);
+                run.fail(Violation::fatal(
+                    location.clone(),
+                    RULE_ABOVE_FLOOR,
+                    format!(
+                        "a registered component in place of the bare <{tag}>, or a named \
+                         carve-out in [surface] element_carveouts"
+                    ),
+                    format!(
+                        "<{tag}> is an interactive element above the primitive floor, used \
+                         bare. A hand-rolled control is exactly the drift this proof exists \
+                         to catch: nothing governs its states, its contrast or its keyboard \
+                         contract, and every proof about the registered equivalent stays \
+                         green while users get this instead"
+                    ),
+                ));
                 continue;
             }
 
@@ -289,8 +438,69 @@ mod tests {
         let (outcome, text) = run_kind(&h, ProofKind::Composition);
         assert_eq!(outcome.status, ProofStatus::Vacuous, "{text}");
         assert!(
-            text.contains("bare_element_informational_vds_s9_10"),
+            text.contains("bare_element_below_the_floor_vds_s9_10"),
             "{text}"
+        );
+    }
+
+    /// R4, both failing directions and both lawful exits, in one screen
+    /// ([2026] VJS-CC-VIBE-DESIGN-SYSTEM 5 and task #49's seeded directions).
+    #[test]
+    fn a_bare_interactive_element_above_the_floor_fails_by_name() {
+        let h = Harness::new();
+        h.write(
+            "app/settings/page.tsx",
+            "export default function P(){ return <div><button>Save</button></div>; }\n",
+        );
+        h.ledger();
+        let (outcome, text) = run_kind(&h, ProofKind::Composition);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("R4"), "{text}");
+        assert!(
+            text.contains("<button> is an interactive element above the primitive floor"),
+            "the tag must be named, not counted: {text}"
+        );
+        assert!(
+            text.contains("element_carveouts"),
+            "the finding must name the lawful exit: {text}"
+        );
+        // The negative control inside the same screen: the <div> stayed below
+        // the floor and produced no finding.
+        assert!(
+            !text.contains("<div> is an interactive"),
+            "a below-floor element must never trip R4: {text}"
+        );
+    }
+
+    /// A carve-out is a lawful exit that stays VISIBLE: skipped, counted, and
+    /// reported by site - never a silent pass.
+    #[test]
+    fn a_carved_out_element_is_skipped_counted_and_named_by_site() {
+        let h = Harness::new();
+        let config = std::fs::read_to_string(h.root().join(".vds/config.toml")).unwrap();
+        std::fs::write(
+            h.root().join(".vds/config.toml"),
+            config.replace("[surface]", "[surface]\nelement_carveouts = [\"button\"]"),
+        )
+        .unwrap();
+        h.reload();
+        // A registered component alongside the carve-out, so the run has an
+        // enforceable row and the verdict is a PASS rather than vacuous - which
+        // is also the shape of a real screen: mostly governed, one exception.
+        h.register("Button", Status::Registered);
+        h.write(
+            "app/settings/page.tsx",
+            "import { Button } from '@/components/ui';\n\
+             export default function P(){ return <div><Button /><button>Save</button></div>; }\n",
+        );
+        h.ledger();
+        let (outcome, text) = run_kind(&h, ProofKind::Composition);
+        assert_eq!(outcome.exit_code, EXIT_PASSED, "{text}");
+        assert!(text.contains("element_carveout_named_in_config"), "{text}");
+        assert!(
+            text.contains("carved out by"),
+            "every carve-out use is reported by site, or an escape hatch and an \
+             intended exception read identically: {text}"
         );
     }
 
