@@ -203,9 +203,17 @@ const DEFAULT_PAGES = [
 // others carry the frame (nav, footer) plus what the page is actually for, so an
 // "about" page is not a second copy of the pitch.
 const PAGE_BLOCKS = {
-  about: ['team-1', 'features-1', 'cta-1'],
+  about: ['team-1', 'timeline-1', 'stats-1', 'cta-1'],
   contact: ['contact-1'],
   404: ['notfound-1'],
+  // A page slug with no entry here falls through to ['features-1'], which is why `work`
+  // and `pricing` used to generate as a features grid and nothing said so. A fallback
+  // that renders something plausible is the worst kind: the page looks built.
+  work: ['gallery-2', 'logolist-1', 'cta-1'],
+  portfolio: ['gallery-2', 'logolist-1', 'cta-1'],
+  pricing: ['pricing-1', 'faq-1', 'cta-1'],
+  services: ['features-1', 'stats-1', 'cta-1'],
+  gallery: ['gallery-1', 'cta-1'],
 };
 
 const FRAME_BEFORE = 'nav';
@@ -242,11 +250,19 @@ function configToManifest(config, pageSlug = 'home') {
   const cta = contact ? contact.href : null;
   let blocks = config.strategy.sitemap.slice();
 
+  // Recorded on the manifest when a page's section list was a FALLBACK rather than a
+  // decision, so a page nobody designed cannot read as a page somebody did. Same principle
+  // as counting unwritten copy instead of inventing it: the generator may produce something,
+  // and it may not be quiet about having guessed.
+  let undesigned = false;
+
   if (pageSlug !== 'home') {
     // A secondary page keeps the frame the home page uses - the same nav variant, the
     // same footer variant - so the site does not change shape when you click a link.
     const frame = (which) => blocks.find((b) => b.startsWith(`${which}-`));
-    const body = PAGE_BLOCKS[pageSlug] || ['features-1'];
+    const designed = PAGE_BLOCKS[pageSlug];
+    undesigned = !designed;
+    const body = designed || ['features-1'];
     blocks = [frame(FRAME_BEFORE), ...body, frame(FRAME_AFTER)].filter(Boolean);
   }
   if (isSaas) {
@@ -315,6 +331,9 @@ function configToManifest(config, pageSlug = 'home') {
       : `${pageMeta.title} - ${config.identity.name}`,
     slug: pageSlug,
     stylePack: config.palette.basePack,
+    // Present ONLY when true, so a designed page's manifest is byte-identical to what it
+    // was before this field existed.
+    ...(undesigned ? { undesignedPage: true } : {}),
     page,
   };
   /*
@@ -354,4 +373,4 @@ function configToSite(config) {
   }));
 }
 
-module.exports = { configToTokens, configToManifest, configToSite, pagesOf, navLinks, radiusPx, listStylePacks, listBlockVariants, RADIUS, SAAS_BLOCKS, BASE_BLOCKS, RELUME_BLOCKS, APP_BLOCKS, SAAS_CATALOG_TOTAL };
+module.exports = { configToTokens, configToManifest, configToSite, pagesOf, navLinks, radiusPx, listStylePacks, listBlockVariants, RADIUS, PAGE_BLOCKS, SAAS_BLOCKS, BASE_BLOCKS, RELUME_BLOCKS, APP_BLOCKS, SAAS_CATALOG_TOTAL };

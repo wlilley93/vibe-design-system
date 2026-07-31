@@ -341,3 +341,40 @@ test('every tone clears WCAG AA against the ink chosen for it, in every pack', (
   }
   assert.deepEqual(failures, [], `tone pairs below WCAG AA ${AA}:1:\n  ${failures.join('\n  ')}`);
 });
+
+test('a page built from the fallback section list says so, and a designed one does not', () => {
+  // PAGE_BLOCKS has an entry per page slug, and a slug with no entry falls through to
+  // ['features-1']. That fallback is deliberate - an arbitrary slug should still produce a
+  // page rather than an error - but it was SILENT, so `work` and `pricing` generated as a
+  // features grid and read exactly like pages somebody had designed. A fallback that renders
+  // something plausible is the worst kind, because the output carries no trace of the guess.
+  //
+  // This is the same principle the copy layer already runs on: count what you do not know
+  // rather than inventing it. The generator may produce something; it may not be quiet.
+  const { configToManifest, PAGE_BLOCKS } = require('../compose.js');
+  const { suggest } = require('../suggest.js');
+
+  const identity = { name: 'T', tagline: 't', category: 'marketing-site', description: 'a studio' };
+  const config = suggest(identity);
+  config.identity = identity;
+
+  // A slug nobody has designed for.
+  const guessed = configToManifest(config, 'a-slug-with-no-entry');
+  assert.equal(guessed.undesignedPage, true,
+    'a page built from the fallback list must be marked, or it reads as designed');
+
+  // Home is never a fallback: it uses the whole sitemap.
+  assert.equal(configToManifest(config, 'home').undesignedPage, undefined);
+
+  // And every slug PAGE_BLOCKS names must come back unmarked, in both directions - a flag
+  // that fires on a designed page is as useless as one that never fires.
+  const wrongly = Object.keys(PAGE_BLOCKS)
+    .filter((slug) => configToManifest(config, slug).undesignedPage);
+  assert.deepEqual(wrongly, [],
+    `these slugs have a designed section list and were marked undesigned anyway: ${wrongly.join(', ')}`);
+
+  // The field must be ABSENT rather than false on a designed page, so adding it changed no
+  // existing manifest on disk.
+  assert.ok(!('undesignedPage' in configToManifest(config, 'about')),
+    'undesignedPage must be absent on a designed page, not false');
+});

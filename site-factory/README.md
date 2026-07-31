@@ -54,7 +54,7 @@ brief ──▶ suggest.js ──▶ config (36 fields) ──▶ compose.js ─
 | `figma-prompts.json` | MEASURED: the fingerprint of every prompt written into Figma verbatim |
 | `vendor/uber-base-*.json` | The Uber Base harvest (92 sets, 3,211 variants) and each set's tier |
 | `docs/FIGMA-MASTER-FILE.md` | What is on each of the twelve Figma pages, and the traps it has sprung |
-| `tests/` | 94 tests, run by `make test-factory` |
+| `tests/` | 95 tests, run by `make test-factory` |
 
 ---
 

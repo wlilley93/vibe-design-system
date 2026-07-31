@@ -5,9 +5,9 @@
   "measured_at": "2026-07-31 (re-measured with loadAsync after the four Relume-derived sections landed)",
   "file_key": "4pPUFvaPdqYzPquBusSfWl",
   "pageTotals": {
-    "pages": 16,
+    "pages": 18,
     "componentSets": 46,
-    "frames": 25,
+    "frames": 27,
     "emptyPages": 0
   },
   "pages": {
@@ -69,6 +69,12 @@
     ],
     "Styles (applied)": [
       "Styles applied \u2014 one component set, four packs"
+    ],
+    "Sitemap": [
+      "Sitemap \u2014 Jellytot"
+    ],
+    "Wireframe": [
+      "Wireframe \u2014 Jellytot"
     ]
   },
   "variantAxes": {
