@@ -513,5 +513,24 @@
       ],
       "agrees": true
     }
-  ]
+  ],
+  "vendored": {
+    "_why": "figma-nodes.json quotes page and frame names MEASURED from the Figma file verbatim - \"Uber Base - full catalogue\", \"Index - all 39 block types\" - and two of them contain an em dash. The house rule is about prose this repository AUTHORS; rewriting a measured name to suit a style guide would make the manifest disagree with the file it is a census of, and pairing is done BY NAME.",
+    "_why_here_and_not_in_that_file:": "A file cannot vouch for its own digest: editing it changes the content and the recorded digest together, so the check always passes. The voucher lives in the artefact that VERIFIES the census instead, which couples the two - editing the census breaks the voucher until this verification is re-run, which is the behaviour wanted.",
+    "files": {
+      "figma-nodes.json": "dad954bbf43a166739f620b091ea510b7f87de7ae15c3f6e76386129f17dc3f6"
+    }
+  },
+  "second_finding": {
+    "claim": "EVERY BLOCK TYPE NOW HAS TWO COMPONENT SETS IN THE FILE, and the register cites the older one.",
+    "measured": "The live file holds 89 component sets across 19 pages: 46 hand-built (30 on `Components`, 16 on `Base (redrawn)`) plus the 43 the generator drew on `Library (generated)`. FIGMA_NODES in vds-bridge.js points at the hand-built id for all 43 block types, so `vds impl` sends an implementer to the original while the generator maintains a parallel drawing nobody cites.",
+    "why_it_matters": "BREACH-0010's remedy made the library reproducible, and reproducible turned out to mean \"drawn a second time beside the first\" rather than \"the one that is there\". Neither drawing is wrong. What is wrong is that nothing said there were two, and `figma-generated.json` reported `duplicateBlockTypes: 0` truthfully - it counts duplicates WITHIN the generated page and cannot see the file.",
+    "recorded_as": "All 43 are now declared in figma-nodes.json `unpaired`, each naming the hand-built id the register cites instead. The existing pairing gate found them the moment the census stopped being stale, which is the gate working.",
+    "not_resolved_here": "Which drawing should be canonical is a real question and is NOT settled by adding a census row. It bears on SUBMISSION-VDS-011 (what a register row's counterpart is) and is left for the same bench rather than decided by whoever next runs the generator."
+  },
+  "staleness_found": {
+    "claim": "THE CENSUS WAS STALE BY ONE PAGE AND 43 SETS, AND NOTHING COULD TELL.",
+    "why": "`measured_at` was a sentence, not a timestamp, so no instrument could compare it to anything while a reader saw a date and a reason. It is now an ISO instant with the reading command beside it.",
+    "how_found": "By pointing a SECOND instrument at the same subject. The plugin-side census could not have found this about itself."
+  }
 }

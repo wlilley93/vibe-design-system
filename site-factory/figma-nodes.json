@@ -2,33 +2,33 @@
   "_what": "A measured read of the Figma file named by FIGMA_FILE_KEY: every page with its top-level contents, and every COMPONENT_SET keyed by node id. EVIDENCE, not intent. FIGMA_NODES in vds-bridge.js pairs a block type to an id, and until this file existed the only test on that pairing checked the id's SHAPE (/^\\d+:\\d+$/) and never that anything was there, so a deleted component set failed nothing.",
   "_correction": "This file was first written on the strength of a finding that was WRONG, and the mistake is worth more than the file. A survey walked figma.root.children and read p.children on each page, and reported SEVEN OF TEN PAGES EMPTY - Examples, Playbook, Glossary, SaaS Components and the three project/spec pages - all of which the task log records as built. I reported that as a probable concurrent-writer wipe. It was not. This file runs in Figma's dynamic-page mode, where a page's children are NOT available until the page has been loaded, and the survey never loaded them: the three pages that reported content were simply the ones already loaded in that session. Re-measured with `await p.loadAsync()` on every page, there are 12 pages, 42 component sets, 20 frames and ZERO empty pages. Every page holds exactly the work the task log claims, under sensible names. Nothing was lost. THE LESSON: an empty collection returned by an API that loads lazily is not evidence of absence, it is the absence of evidence, and reading it as fact manufactured a data-loss incident out of a missing await.",
   "_how": "Re-derive with the Figma MCP: for every page in figma.root.children call `await page.loadAsync()` FIRST, then record its top-level children and every child of type COMPONENT_SET as id -> {name, page, variants}. Do not use setCurrentPageAsync for a survey and do not read page.children without loading - see _correction.",
-  "measured_at": "2026-07-31 (re-measured with loadAsync after the four Relume-derived sections landed)",
+  "measured_at": "2026-07-31T14:41:34Z",
   "file_key": "4pPUFvaPdqYzPquBusSfWl",
   "pageTotals": {
-    "pages": 18,
-    "componentSets": 46,
+    "pages": 19,
+    "componentSets": 89,
     "frames": 27,
     "emptyPages": 0
   },
   "pages": {
     "Skills": [
-      "Skills \u2014 agents-final survey"
+      "Skills — agents-final survey"
     ],
     "Examples": [
       "Design & creative-agency references"
     ],
     "Playbook": [
-      "Product Design Playbook \u2014 full catalog"
+      "Product Design Playbook — full catalog"
     ],
     "Components": {
       "sets": 30,
       "frames": [
-        "Index \u2014 all 39 block types"
+        "Index — all 39 block types"
       ]
     },
     "Glossary": [
-      "Glossary \u2014 Framer design vocabulary (1/2)",
-      "Glossary \u2014 Framer design vocabulary (2/2)"
+      "Glossary — Framer design vocabulary (1/2)",
+      "Glossary — Framer design vocabulary (2/2)"
     ],
     "SaaS Components": [
       "SaaS component taxonomy (1/3)",
@@ -36,20 +36,20 @@
       "SaaS component taxonomy (3/3)"
     ],
     "Project: Oneshot": [
-      "Oneshot \u2014 project record"
+      "Oneshot — project record"
     ],
     "Project: Meridian Labs": [
-      "Meridian Labs \u2014 project record"
+      "Meridian Labs — project record"
     ],
     "Spec: Balmoral & Co": [
-      "Balmoral & Co \u2014 spec sheet"
+      "Balmoral & Co — spec sheet"
     ],
     "Base (redrawn)": 16,
-    "Uber Base \u2014 full catalogue": [
-      "Uber Base \u2014 92 sets, 3,211 variants"
+    "Uber Base — full catalogue": [
+      "Uber Base — 92 sets, 3,211 variants"
     ],
     "Prompts (verbatim)": [
-      "Prompts \u2014 what the writing actually runs on",
+      "Prompts — what the writing actually runs on",
       "1. offer-clarifier",
       "2. headline-lab",
       "3. offer-stack-builder",
@@ -59,23 +59,27 @@
       "7. cta-and-close-writer"
     ],
     "System: Jellytot": [
-      "Jellytot \u2014 brand system"
+      "Jellytot — brand system"
     ],
     "System: Opbox marketing": [
-      "Opbox marketing \u2014 Will Style"
+      "Opbox marketing — Will Style"
     ],
     "System: Opbox design": [
-      "Opbox design \u2014 product system"
+      "Opbox design — product system"
     ],
     "Styles (applied)": [
-      "Styles applied \u2014 one component set, four packs"
+      "Styles applied — one component set, four packs"
     ],
     "Sitemap": [
-      "Sitemap \u2014 Jellytot"
+      "Sitemap — Jellytot"
     ],
     "Wireframe": [
-      "Wireframe \u2014 Jellytot"
-    ]
+      "Wireframe — Jellytot"
+    ],
+    "Library (generated)": {
+      "sets": 43,
+      "frames": []
+    }
   },
   "variantAxes": {
     "_what": "Where a component set draws MORE variants than the block exports render functions, and why. Every block type exports exactly two variants; six Figma sets draw three to six. That is not a gap, it is a modelling difference, and it has to be written down because someone comparing the two counts would otherwise read it as four missing variants. The rule: an axis the CODE takes as content is an axis FIGMA draws as a variant, because a static drawing cannot take a prop and a design system that only draws one tone has not shown the component.",
@@ -316,11 +320,283 @@
       "name": "Timeline",
       "page": "Components",
       "variants": 2
+    },
+    "90:29": {
+      "name": "banner",
+      "page": "Library (generated)",
+      "variants": 4
+    },
+    "96:8": {
+      "name": "card",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "96:18": {
+      "name": "checkbox",
+      "page": "Library (generated)",
+      "variants": 3
+    },
+    "94:8": {
+      "name": "confirmdialog",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "94:15": {
+      "name": "contact",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "94:22": {
+      "name": "cta",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "90:16": {
+      "name": "divider",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "94:29": {
+      "name": "draggablelist",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "94:36": {
+      "name": "emptystate",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "94:43": {
+      "name": "facetstrip",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "96:25": {
+      "name": "faq",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "96:32": {
+      "name": "features",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "96:39": {
+      "name": "footer",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "96:46": {
+      "name": "formfield",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "96:53": {
+      "name": "gallery",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "90:9": {
+      "name": "hero",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "96:60": {
+      "name": "inspector",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "96:67": {
+      "name": "logolist",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "96:74": {
+      "name": "masterdetail",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "96:81": {
+      "name": "menu",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "96:88": {
+      "name": "messagecard",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "96:95": {
+      "name": "nav",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "96:102": {
+      "name": "notfound",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "96:112": {
+      "name": "notificationbadge",
+      "page": "Library (generated)",
+      "variants": 3
+    },
+    "96:119": {
+      "name": "objecttable",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "96:126": {
+      "name": "objectview",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "96:133": {
+      "name": "pagecontrols",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "96:140": {
+      "name": "pagestate",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "96:147": {
+      "name": "pagination",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "96:154": {
+      "name": "pricing",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "96:161": {
+      "name": "progressbar",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "96:168": {
+      "name": "progresssteps",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "96:175": {
+      "name": "radio",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "97:8": {
+      "name": "segmentedcontrol",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "97:15": {
+      "name": "sidebar",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "97:22": {
+      "name": "stats",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "97:29": {
+      "name": "switch",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "97:42": {
+      "name": "systembanner",
+      "page": "Library (generated)",
+      "variants": 4
+    },
+    "97:49": {
+      "name": "team",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "97:56": {
+      "name": "testimonials",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "97:63": {
+      "name": "timeline",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "97:70": {
+      "name": "toast",
+      "page": "Library (generated)",
+      "variants": 2
+    },
+    "97:77": {
+      "name": "tooltip",
+      "page": "Library (generated)",
+      "variants": 2
     }
   },
   "unpaired": {
     "20:12": "Gated Action Button - drawn early in the programme, no block type ever built for it",
     "20:35": "StatusBadge - superseded by notificationbadge and facetstrip's tag; kept as a drawing",
-    "56:36": "Base/Menu item - Base declares it as its own set; folded into the `menu` block type, because a menu item outside a menu is not a thing a page places"
-  }
+    "56:36": "Base/Menu item - Base declares it as its own set; folded into the `menu` block type, because a menu item outside a menu is not a thing a page places",
+    "90:29": "banner on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 54:55, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:8": "card on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 39:178, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:18": "checkbox on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 47:25, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "94:8": "confirmdialog on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 37:165, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "94:15": "contact on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 16:107, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "94:22": "cta on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 16:35, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "90:16": "divider on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 47:63, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "94:29": "draggablelist on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 56:150, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "94:36": "emptystate on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 36:204, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "94:43": "facetstrip on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 28:29, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:25": "faq on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 16:21, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:32": "features on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 15:107, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:39": "footer on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 10:28, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:46": "formfield on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 36:189, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:53": "gallery on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 86:225, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "90:9": "hero on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 9:25, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:60": "inspector on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 29:79, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:67": "logolist on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 86:148, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:74": "masterdetail on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 31:138, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:81": "menu on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 56:69, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:88": "messagecard on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 54:69, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:95": "nav on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 15:18, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:102": "notfound on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 16:119, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:112": "notificationbadge on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 47:54, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:119": "objecttable on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 28:71, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:126": "objectview on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 29:50, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:133": "pagecontrols on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 55:106, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:140": "pagestate on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 37:143, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:147": "pagination on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 57:91, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:154": "pricing on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 15:64, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:161": "progressbar on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 55:121, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:168": "progresssteps on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 57:135, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "96:175": "radio on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 47:33, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "97:8": "segmentedcontrol on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 39:161, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "97:15": "sidebar on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 16:54, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "97:22": "stats on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 86:189, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "97:29": "switch on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 47:13, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "97:42": "systembanner on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 54:26, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "97:49": "team on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 16:82, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "97:56": "testimonials on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 15:80, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "97:63": "timeline on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 86:271, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "97:70": "toast on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 39:139, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one.",
+    "97:77": "tooltip on `Library (generated)` - the GENERATOR's drawing. FIGMA_NODES points at 47:42, the hand-built set, so this block type now has TWO component sets in the file and the register cites the older one."
+  },
+  "_staleness_found": {
+    "_what": "THIS CENSUS WAS STALE AND NOTHING COULD TELL. It recorded 18 pages and 46 component sets; the live file has 19 and 89.",
+    "_the_difference": "Exactly one page and 43 component sets: `Library (generated)`, which figma-draw.js created AFTER this census was taken. The old totals reconcile perfectly against the rest (46 = 30 on `Components` plus 16 on `Base (redrawn)`), and frames (27) and empty pages (0) were unchanged. It was never WRONG about what it measured. It had simply stopped being about the file.",
+    "_why_nothing_caught_it": "`measured_at` was a SENTENCE, not a timestamp, so no instrument could compare it to anything, while a reader saw a date and a reason and concluded the file was current. Every other manifest written this week carries an ISO instant; this one carried prose because the prose was more interesting than the date, which is how it went unnoticed.",
+    "_how_it_was_found": "Not by this file, and not by the tool that wrote it. By reading the live document through the REST API while verifying a DIFFERENT manifest, and noticing the page count disagreed. A census re-read only by its own author can be stale for as long as nobody points a second instrument at the same subject.",
+    "_and_a_second_mistake": "The first attempt to update this file REPLACED `pages` with an array of names. It is a MAP from page name to shape, and the inventory test failed with nineteen \"unrecognised shape\" findings. Restored from git and re-done by ADDING the missing key. Overwriting a structure before reading it is how a repair becomes a second defect.",
+    "previous_totals": {
+      "pages": 18,
+      "componentSets": 46,
+      "frames": 27,
+      "emptyPages": 0
+    }
+  },
+  "measured_by": "GET /v1/files/4pPUFvaPdqYzPquBusSfWl?depth=2 (REST), pairing a plugin-side survey against an instrument that did not take it"
 }
