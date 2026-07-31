@@ -79,12 +79,12 @@ use std::collections::BTreeMap;
 use std::io::Write;
 
 use vds_core::{
-    Compliance, GeometryBound, GeometryReading, KindReading, ProofKind, ReadFrom, Result,
-    Severity, Status, SurfaceKind, Violation,
+    Compliance, GeometryBound, GeometryReading, KindReading, ProofKind, ReadFrom, Result, Severity,
+    Status, SurfaceKind, Violation,
 };
 
-use crate::run::{Outcome, Verdict};
 use crate::ProofContext;
+use crate::run::{Outcome, Verdict};
 
 pub const GATE: &str = "crates/vds-proof/src/geometry.rs";
 
@@ -350,7 +350,10 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
             run.fail(Violation::fatal(
                 location.clone(),
                 RULE_EXCEEDED,
-                format!("at most {} non-compliant {} surfaces", current.bound, bound.surface_kind),
+                format!(
+                    "at most {} non-compliant {} surfaces",
+                    current.bound, bound.surface_kind
+                ),
                 format!(
                     "{} do not comply, which is {} over the bound.{}",
                     kind_reading.non_compliant,
@@ -572,7 +575,10 @@ mod tests {
         // Zero would read as "the bound fell today", which is the direction that
         // turns an unreadable input into a pass.
         assert_eq!(days_between("not-a-date", "2026-07-31T00:00:00Z"), None);
-        assert_eq!(days_between("2026-13-01T00:00:00Z", "2026-07-31T00:00:00Z"), None);
+        assert_eq!(
+            days_between("2026-13-01T00:00:00Z", "2026-07-31T00:00:00Z"),
+            None
+        );
         assert_eq!(days_between("2026-07", "2026-07-31T00:00:00Z"), None);
     }
 }

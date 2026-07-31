@@ -219,6 +219,7 @@ pub const GATE_PATHS: &[&str] = &[
     states::GATE,
     token_pin::GATE,
     screen_parity::GATE,
+    geometry::GATE,
 ];
 
 /// A timestamp helper for proofs that must record when they measured something.

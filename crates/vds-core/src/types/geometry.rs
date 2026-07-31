@@ -389,11 +389,10 @@ pub fn read_reading(project: &Project) -> Result<Option<GeometryReading>> {
             understood: READING_SCHEMA_VERSION,
         });
     }
-    let reading: GeometryReading =
-        serde_yaml::from_value(raw).map_err(|e| VdsError::Artefact {
-            path: project.rel(&path),
-            message: format!("is not a geometry reading: {e}"),
-        })?;
+    let reading: GeometryReading = serde_yaml::from_value(raw).map_err(|e| VdsError::Artefact {
+        path: project.rel(&path),
+        message: format!("is not a geometry reading: {e}"),
+    })?;
     Ok(Some(reading))
 }
 

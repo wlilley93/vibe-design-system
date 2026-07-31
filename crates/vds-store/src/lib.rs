@@ -22,8 +22,7 @@ use vds_core::{
     BreachReport, ComponentId, ComponentRecord, DecisionLog, Digest, EnforcementLock,
     GeometryBound, GeometryId, LOCK_FILE_NAME, LOCK_SCHEMA_VERSION, PathRole, Pin, Project,
     ProofId, ProofKind, ProofResult, Result, ScreenId, ScreenRecord, Stage, Submission, Timestamp,
-    VdsError, Warrant, WarrantId,
-    WarrantStatus, write_text_atomically, yaml_files,
+    VdsError, Warrant, WarrantId, WarrantStatus, write_text_atomically, yaml_files,
 };
 
 pub mod lock;
