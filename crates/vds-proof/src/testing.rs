@@ -23,6 +23,10 @@ use vds_store::Store;
 
 use crate::{Outcome, ProofContext};
 
+/// One component's variant axes for `Harness::figma_variants`: the component,
+/// then each axis name with its legal values.
+pub type VariantRow<'a> = (&'a vds_core::ComponentId, &'a [(&'a str, &'a [&'a str])]);
+
 pub struct Harness {
     pub tmp: tempfile::TempDir,
     project: RefCell<Project>,
@@ -196,7 +200,7 @@ impl Harness {
     /// Spelled out per call rather than defaulted, because the whole subject of
     /// the R11/R12 limb is whether two value sets are the same set, and a fixture
     /// that supplies a plausible set for you decides the answer.
-    pub fn figma_variants(&self, rows: &[(&vds_core::ComponentId, &[(&str, &[&str])])]) {
+    pub fn figma_variants(&self, rows: &[VariantRow<'_>]) {
         use std::collections::BTreeMap;
         use vds_figma::ledger::{
             FigmaLedger, FigmaNodeRow, GENERATOR_COMMAND, LEDGER_SCHEMA_VERSION,

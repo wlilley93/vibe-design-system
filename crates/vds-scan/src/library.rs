@@ -525,9 +525,9 @@ fn prop_types_in(code: &str, source: &str) -> Vec<(String, Vec<LibraryProp>, Opt
 /// ```
 ///
 /// - and the named reader finds nothing, so the import wrote nineteen records
-/// carrying `props: []`. That is not a component without a contract; it is a
-/// contract this reader could not see, and the two are indistinguishable in the
-/// register, which is what makes it worth fixing rather than reporting.
+///   carrying `props: []`. That is not a component without a contract; it is a
+///   contract this reader could not see, and the two are indistinguishable in the
+///   register, which is what makes it worth fixing rather than reporting.
 ///
 /// Emitted as synthetic `{Name}Props` entries so the three lookup sites in
 /// `exports_in` need no change, and appended AFTER the named ones so a real
@@ -571,8 +571,13 @@ fn inline_prop_types_in(
         // is the only thing that tells the three apart.
         let mut depth = 0i32;
         let mut colon = None;
-        for idx in open_paren + 1..close_paren {
-            match chars[idx] {
+        for (idx, ch) in chars
+            .iter()
+            .enumerate()
+            .take(close_paren)
+            .skip(open_paren + 1)
+        {
+            match ch {
                 '{' | '(' | '[' | '<' => depth += 1,
                 '}' | ')' | ']' | '>' => depth -= 1,
                 ':' if depth == 0 => {
