@@ -185,6 +185,75 @@ impl Harness {
         vds_core::write_reading(&project, &reading).expect("a written reading")
     }
 
+    /// Write a figma ledger giving one registered component a set of variant
+    /// properties and their legal values.
+    ///
+    /// Spelled out per call rather than defaulted, because the whole subject of
+    /// the R11/R12 limb is whether two value sets are the same set, and a fixture
+    /// that supplies a plausible set for you decides the answer.
+    pub fn figma_variants(&self, rows: &[(&vds_core::ComponentId, &[(&str, &[&str])])]) {
+        use std::collections::BTreeMap;
+        use vds_figma::ledger::{
+            FigmaLedger, FigmaNodeRow, GENERATOR_COMMAND, LEDGER_SCHEMA_VERSION,
+        };
+        // Built here rather than borrowed from `vds_figma::testing`, which is
+        // `#[cfg(test)]` and therefore does not exist outside its own crate.
+        let mut ledger = FigmaLedger {
+            schema_version: LEDGER_SCHEMA_VERSION,
+            generated_at: Timestamp::fixed(2026, 7, 25, 10, 0, 0),
+            generated_by: GENERATOR_COMMAND.into(),
+            file_key: "KEY".into(),
+            file_version: "1".into(),
+            file_name: "Decided target".into(),
+            content_digest: vds_core::Digest::of_text("placeholder"),
+            nodes: rows
+                .iter()
+                .map(|(id, variants)| {
+                    let mut map: BTreeMap<String, Vec<String>> = BTreeMap::new();
+                    for (name, values) in variants.iter() {
+                        map.insert(
+                            (*name).to_owned(),
+                            values.iter().map(|v| (*v).to_owned()).collect(),
+                        );
+                    }
+                    FigmaNodeRow {
+                        component_id: (*id).clone(),
+                        node_id: "12:34".into(),
+                        resolved: true,
+                        figma_name: Some("Node".into()),
+                        is_component_set: true,
+                        variant_properties: map,
+                        states_drawn: vec![State::Default],
+                        unresolved_because: None,
+                    }
+                })
+                .collect(),
+            unclaimed: vec![],
+            notes: vec![],
+        };
+        ledger.content_digest = ledger.compute_content_digest().unwrap();
+        vds_figma::pull::write(&self.store(), &ledger).expect("the figma ledger writer");
+    }
+
+    /// Give a registered record a prop with a `figmaProperty` correspondence.
+    pub fn prop_with_variant(
+        &self,
+        id: &vds_core::ComponentId,
+        name: &str,
+        type_expr: &str,
+        figma_property: &str,
+    ) {
+        let store = self.store();
+        let mut record = store.read_record(id).unwrap().value;
+        record.props.push(vds_core::PropContract {
+            name: name.into(),
+            type_expr: type_expr.into(),
+            required: true,
+            figma_property: Some(figma_property.into()),
+        });
+        store.replace(&store.record_path(id), &record).unwrap();
+    }
+
     /// Regenerate the screens ledger.
     pub fn ledger(&self) {
         let project = self.project();

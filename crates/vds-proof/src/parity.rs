@@ -119,6 +119,9 @@ const RULE_TYPE_DISAGREES: &str =
     "VDS S-7(5) parity R8: the contract and the component agree on a prop's type expression";
 const RULE_STATE_NOT_BUILT: &str =
     "VDS S-7(5) parity R9: every state the contract requires is carried by states.built";
+const RULE_VARIANT_ABSENT: &str =
+    "VDS S-7(5) parity R11: a prop's figmaProperty names a variant property the frame declares";
+const RULE_VARIANT_VALUES: &str = "VDS S-7(5) parity R12: a prop's legal values and its variant property's legal values are one set";
 const RULE_DUPLICATE_PROP: &str =
     "VDS S-5(2) parity R10: a contract names each prop once, so each one is compared";
 const RULE_NO_EXPORT_FOUND: &str = "VDS S-7(5) parity W1: the scanner read code.sourceFile and found no exported component in \
@@ -186,17 +189,41 @@ pub const STATES_REACH_NOTE: &str = "[states-reach] the states limb compares the
      is true. The limb runs only on a row that was enforced, so a row skipped for want of a \
      readable source carries no states finding either.";
 
-pub const FIGMA_NOTE: &str = "[figma] a prop's `figmaProperty` names a variant property in the decided-target file. \
-     Resolving it is a call to the Figma API and VDS S-7(2)(1) forbids a network call inside a \
-     proof, so it is NOT checked. A contract whose figmaProperty names a variant that was deleted \
-     from the decided-target file passes this run.";
+pub const FIGMA_NOTE_UNREACHED: &str = "[figma] a prop's `figmaProperty` names a variant property in the decided-target file, and \
+     NO figma ledger is on disk, so R11 and R12 are unreached and every such prop is skipped. \
+     Resolving one live is a call to the Figma API and VDS S-7(2)(1) forbids a network call \
+     inside a proof; `vds figma pull` generates the ledger out of band, and a ledger on disk is \
+     something this proof may read offline. Until it exists, a contract whose figmaProperty \
+     names a variant that was deleted from the file passes this run.";
+
+pub const FIGMA_NOTE_REACHED: &str = "[figma] a figma ledger is on disk and was relied on, so R11 and R12 ran. This limb \
+     compares the LEGAL VALUES of a prop against the legal values of the variant property it \
+     names: `intent: 'success' | 'warning'` in code and `Intent: Success, Warning` in the frame \
+     are two spellings of one set, and until now nothing compared them. What it establishes is \
+     bounded by the ledger's freshness, which is `ledger_staleness`'s to hold, and by the fact \
+     that a variant property the pull could not read is absent rather than empty.";
+
+pub const FIGMA_NORMALISATION_NOTE: &str = "[figma-normalisation] a member matches across the boundary case-insensitively and \
+     ignoring separators, so `partially_paid`, `PARTIALLY_PAID` and `Partially paid` are one \
+     member. That is deliberate and it is also the limit of this limb: Figma variant values are \
+     typed by a designer in prose case and TypeScript union members are typed by an engineer in \
+     code case, and a comparison that failed on the difference would fail on every honest pair \
+     and be switched off within a week. The cost is stated rather than hidden: this limb cannot \
+     see a member that differs ONLY in case or punctuation, so `partially-paid` against \
+     `partially_paid` reads as agreement. It is not the checker for that.";
 
 pub const REDACTION_NOTE: &str = "[redaction] a finding names the prop, the record, the source file and the SHAPE of the \
      disagreement in counts, and never the type expressions themselves. A type expression can \
      carry a realisation, a captured proof record lands under the tree `no_stored_values` scans, \
      and a finding that copied one would put it there permanently and fail that gate forever on a \
      file this proof wrote (VDS S-2(2), S-2(8)). Open the named record and the named source file \
-     to read the two expressions.";
+     to read the two expressions.\n\
+     ONE EXCEPTION, R12: a finding about a figmaProperty NAMES the variant values on both \
+     sides. A variant value is not a realisation, and that is settled where the field is \
+     defined rather than asserted here (crates/vds-figma/src/ledger.rs: \"a variant value is a \
+     label a designer typed, not a design value\"), which is why the ledger carrying them \
+     already passes `no_stored_values`. Naming them costs nothing in safety and saves the \
+     reader diffing two files by hand.";
 
 pub const REACH_SUMMARY: &str = "[reach] this run establishes, for every row it enforced, that the contract's prop set and the \
      component's prop set are the same set, that they agree on requiredness, that their type \
@@ -269,12 +296,38 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
         run.input_file(&record.path)?;
     }
 
+    // The figma ledger, where one is on disk and can be relied on. Absent is a
+    // NARROWING and never an error, exactly as in `reconciliation`: a project
+    // with no Figma access still gets every other limb, and the note says which
+    // it got. Staleness is checked HERE rather than trusted, because a limb that
+    // compares against a ledger nobody regenerated reports the frame as it was,
+    // not as it is, and reports it with the same confidence either way.
+    let figma_ledger = match vds_figma::pull::read(&ctx.store())? {
+        None => {
+            run.note(FIGMA_NOTE_UNREACHED);
+            None
+        }
+        Some(found) => match vds_figma::ledger::check_fresh(&found, None) {
+            Ok(()) => {
+                run.note(FIGMA_NOTE_REACHED);
+                run.note(FIGMA_NORMALISATION_NOTE);
+                run.input_named("<figma ledger content>", found.compute_content_digest()?);
+                Some(found)
+            }
+            Err(why) => {
+                run.note(format!(
+                    "{FIGMA_NOTE_UNREACHED} A ledger IS present and was NOT relied on: {why}"
+                ));
+                None
+            }
+        },
+    };
+
     run.note(SCOPE_NOTE);
     run.note(NORMALISATION_NOTE);
     run.note(EXPORT_LIMB_NOTE);
     run.note(PROPS_REACH_NOTE);
     run.note(STATES_REACH_NOTE);
-    run.note(FIGMA_NOTE);
     run.note(REDACTION_NOTE);
     run.note(REACH_SUMMARY);
     if index.is_empty() {
@@ -286,6 +339,10 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
     }
 
     let mut undecided: BTreeMap<&'static str, u64> = BTreeMap::new();
+    // Counted separately from the type limb's. Folding them together would make
+    // one note report "N comparisons were not decided" over two different
+    // questions, and a reader could not tell which limb went quiet.
+    let mut variant_undecided: BTreeMap<&'static str, u64> = BTreeMap::new();
     let mut without_requirement: u64 = 0;
 
     for located in index.records() {
@@ -302,6 +359,13 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
 
         run.row(Verdict::Enforced);
         compare_props(&mut run, &mut undecided, record, &location, export);
+        compare_figma_variants(
+            &mut run,
+            &mut variant_undecided,
+            record,
+            &location,
+            figma_ledger.as_ref(),
+        );
         if record.states.required.is_empty() {
             without_requirement += 1;
         }
@@ -319,6 +383,22 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
              undecided comparison is not an agreement: for those props R8 establishes nothing, \
              and this line is where that is visible rather than assumed. The prop and the record \
              are named individually in the informational findings on this record.",
+            by_reason.join(", ")
+        ));
+    }
+    if !variant_undecided.is_empty() {
+        let total: u64 = variant_undecided.values().sum();
+        let by_reason: Vec<String> = variant_undecided
+            .iter()
+            .map(|(reason, count)| format!("{reason} ({count})"))
+            .collect();
+        run.note(format!(
+            "[figma-limb] {total} figmaProperty comparisons were NOT decided, by reason: {}. An \
+             undecided comparison is not an agreement: for those props R11 and R12 establish \
+             nothing. `type_expression_is_not_a_closed_union` is the expected majority and is \
+             not a defect - a prop typed `string` or `ReactNode` has no legal-value set to \
+             compare, and the honest answer to \"do these two sets match\" is that one of them \
+             does not exist.",
             by_reason.join(", ")
         ));
     }
@@ -634,6 +714,303 @@ fn resolve<'a>(
 }
 
 /// R5, R6, R7, R8 and R10, in both directions.
+/// Fold a member name to the form both sides of the boundary can be compared in.
+///
+/// Case and separators are removed. See [`FIGMA_NORMALISATION_NOTE`] for why,
+/// and for what that costs: this is the point past which the limb cannot see a
+/// difference, and it is stated on every run rather than left in this comment.
+fn fold_member(raw: &str) -> String {
+    raw.chars()
+        .filter(|c| c.is_alphanumeric())
+        .flat_map(char::to_lowercase)
+        .collect()
+}
+
+/// TypeScript type names that can never be a legal VALUE of a variant property.
+///
+/// Not exhaustive and it does not need to be: it is the tail guard behind the
+/// two structural rules in [`is_legal_value_set`], and a builtin missing from
+/// this list only reaches the "two or more bare words" case, which is already
+/// the shorthand the contract publishes.
+const NOT_A_VALUE: [&str; 14] = [
+    "string",
+    "number",
+    "boolean",
+    "bigint",
+    "symbol",
+    "object",
+    "any",
+    "unknown",
+    "never",
+    "void",
+    "null",
+    "undefined",
+    "ReactNode",
+    "ReactElement",
+];
+
+/// Whether a type expression's members are a set of legal VALUES, rather than a
+/// type that merely happens to be one token long.
+///
+/// `member_names` answers a structural question: is every member of this union a
+/// single token. That is necessary and not sufficient. `PropContract` publishes
+/// its field as "the TypeScript type expression, OR a closed union written
+/// `a|b|c`", so both of these are lawful contents and they need different
+/// answers:
+///
+///   `'success' | 'warning'`   quoted literals, unambiguously values
+///   `primary|ghost`           the documented shorthand, values
+///   `string`                  the TYPE, and not a one-member enum
+///   `InvoiceStatus`           an imported alias this build cannot resolve
+///
+/// The three rules, in order:
+///
+///   1. every member quoted: values, whatever the words are. `'string'` really
+///      is the one-member set containing "string".
+///   2. any member is a TypeScript builtin: undecided. `'success' | string` is a
+///      widened union and its legal values are unbounded.
+///   3. a SINGLE bare word: undecided. A one-value enum is vanishingly rare and
+///      a bare identifier is overwhelmingly a type name, so guessing "value"
+///      here is guessing wrong nearly every time.
+///
+/// Two or more bare words that are not builtins fall through to true, which is
+/// the shorthand the field documents.
+fn is_legal_value_set(members: &[Vec<Token>], names: &[String]) -> bool {
+    let all_quoted = members
+        .iter()
+        .all(|m| matches!(m.as_slice(), [Token::Text(_)]));
+    if all_quoted {
+        return true;
+    }
+    if names.iter().any(|n| NOT_A_VALUE.contains(&n.as_str())) {
+        return false;
+    }
+    names.len() > 1
+}
+
+/// R11 and R12: the legal values a prop admits, against the legal values of the
+/// Figma variant property it names.
+///
+/// # The field this makes real
+///
+/// `PropContract.figma_property` has existed since the first Rust build and was
+/// read by nothing. Every write site set it to `None` and no proof consumed it,
+/// so a field whose NAME asserts a correspondence carried no evidence that the
+/// correspondence held. That is the shape a capability claim takes when there is
+/// no eval behind it.
+///
+/// # Why this is not a network call
+///
+/// Both halves were already on disk and had never been introduced. The ledger
+/// records `variant_properties: {name: [values]}`, which is the property AND its
+/// legal options (`crates/vds-figma/src/ledger.rs`), and the contract records
+/// `type_expr`, which for a closed union IS the legal values of the code prop.
+/// `reconciliation` already settles that a ledger on disk may be read offline
+/// under VDS S-7(2)(1); this limb relies on the same reading.
+///
+/// The values are derived from `type_expr` rather than stored a second time. A
+/// second copy of a set that is already written down is a copy that drifts, and
+/// the derive-don't-store ratio is on all fours.
+///
+/// # What is UNDECIDED, and why that is most of it
+///
+/// A prop typed `string`, `ReactNode` or an imported alias has no legal-value
+/// set, so there is nothing to compare and the honest answer is that one side
+/// does not exist. Counting that as agreement would be a comparison that cannot
+/// go red on the majority of props, which is the defect this codebase has paid
+/// for more than once.
+fn compare_figma_variants(
+    run: &mut ProofRun<'_>,
+    undecided: &mut BTreeMap<&'static str, u64>,
+    record: &ComponentRecord,
+    location: &str,
+    ledger: Option<&vds_figma::ledger::FigmaLedger>,
+) {
+    let claimed: Vec<&PropContract> = record
+        .props
+        .iter()
+        .filter(|p| p.figma_property.is_some())
+        .collect();
+    if claimed.is_empty() {
+        return;
+    }
+
+    let Some(ledger) = ledger else {
+        *undecided.entry("no_figma_ledger_on_disk").or_insert(0) += claimed.len() as u64;
+        return;
+    };
+    let Some(row) = ledger.nodes.iter().find(|n| n.component_id == record.id) else {
+        *undecided
+            .entry("record_has_no_row_in_the_figma_ledger")
+            .or_insert(0) += claimed.len() as u64;
+        return;
+    };
+    if !row.resolved {
+        // The node id did not resolve in the pinned file. Distinct from "the
+        // property is missing": nothing was read, so nothing is absent.
+        *undecided
+            .entry("node_did_not_resolve_in_the_pinned_file")
+            .or_insert(0) += claimed.len() as u64;
+        return;
+    }
+    if !row.is_component_set {
+        // A component set is what carries variants. A plain frame has none, so
+        // "the property is absent" would be true of every property and would say
+        // nothing about this one.
+        *undecided
+            .entry("node_is_not_a_component_set_so_carries_no_variants")
+            .or_insert(0) += claimed.len() as u64;
+        return;
+    }
+
+    // The declared variant properties, folded once so a lookup does not depend on
+    // the designer's capitalisation of the PROPERTY name any more than of its
+    // values.
+    let declared: BTreeMap<String, (&String, &Vec<String>)> = row
+        .variant_properties
+        .iter()
+        .map(|(name, values)| (fold_member(name), (name, values)))
+        .collect();
+
+    for prop in claimed {
+        let wanted = prop
+            .figma_property
+            .as_deref()
+            .expect("filtered on is_some above");
+
+        let Some((declared_name, values)) = declared.get(&fold_member(wanted)) else {
+            run.fail(Violation::fatal(
+                format!("{location} prop {}", prop.name),
+                RULE_VARIANT_ABSENT,
+                format!(
+                    "the frame to declare a variant property named {wanted:?}, which \
+                     {}'s prop {:?} says it corresponds to",
+                    record.id, prop.name
+                ),
+                format!(
+                    "the frame declares {} variant propert{} and none of them is {wanted:?}: {}. \
+                     Either the property was renamed or deleted in the decided-target file and \
+                     the contract still names the old one, or the contract named a property that \
+                     never existed. Both read identically from the code side, which is why \
+                     nothing caught this while the field went unread.",
+                    row.variant_properties.len(),
+                    if row.variant_properties.len() == 1 {
+                        "y"
+                    } else {
+                        "ies"
+                    },
+                    if row.variant_properties.is_empty() {
+                        "it declares none at all".to_owned()
+                    } else {
+                        row.variant_properties
+                            .keys()
+                            .cloned()
+                            .collect::<Vec<String>>()
+                            .join(", ")
+                    }
+                ),
+            ));
+            continue;
+        };
+
+        // The code side's legal values, DERIVED from the type expression with the
+        // reader the type limb already uses. A second parser here would be a
+        // second opinion about one expression, and two opinions drift.
+        let Some(tokens) = tokenise(&prop.type_expr) else {
+            *undecided.entry(UNDECIDED_UNTERMINATED).or_insert(0) += 1;
+            continue;
+        };
+        let members = top_level_union(&tokens);
+        let Some(code_members) = member_names(&members) else {
+            *undecided
+                .entry("type_expression_is_not_a_closed_union")
+                .or_insert(0) += 1;
+            continue;
+        };
+        // `member_names` answers "is every member a single token", which is not
+        // the same question as "is this a set of legal VALUES", and the gap is
+        // not academic: it read the type `string` as a one-member union whose
+        // member is the literal "string", and reported the frame's real values
+        // as absent from it. A confident false finding is worse than no finding,
+        // because the first thing a reader does is edit the contract to match it.
+        if !is_legal_value_set(&members, &code_members) {
+            *undecided
+                .entry("type_expression_is_not_a_closed_union")
+                .or_insert(0) += 1;
+            continue;
+        }
+
+        let code_folded: BTreeMap<String, &String> =
+            code_members.iter().map(|m| (fold_member(m), m)).collect();
+        let frame_folded: BTreeMap<String, &String> =
+            values.iter().map(|v| (fold_member(v), v)).collect();
+
+        // A member whose fold is EMPTY carries no comparable content (a value of
+        // `"-"`, or `''`). Counting it as a mismatch would report a difference
+        // this limb cannot actually see either way.
+        if code_folded.contains_key("") || frame_folded.contains_key("") {
+            *undecided
+                .entry("a_member_folds_to_nothing_comparable")
+                .or_insert(0) += 1;
+            continue;
+        }
+
+        let only_in_code: Vec<&str> = code_folded
+            .iter()
+            .filter(|(k, _)| !frame_folded.contains_key(*k))
+            .map(|(_, v)| v.as_str())
+            .collect();
+        let only_in_frame: Vec<&str> = frame_folded
+            .iter()
+            .filter(|(k, _)| !code_folded.contains_key(*k))
+            .map(|(_, v)| v.as_str())
+            .collect();
+
+        if only_in_code.is_empty() && only_in_frame.is_empty() {
+            continue;
+        }
+
+        // The members ARE named, and that is a considered departure from the
+        // redaction discipline the type limb follows. A variant value is not a
+        // realisation: `crates/vds-figma/src/ledger.rs` records the same
+        // conclusion on the field itself ("a variant value is a label a designer
+        // typed, not a design value"), which is why the ledger carrying them
+        // passes `no_stored_values` today. A finding that said only "2 members
+        // differ" would send the reader to open two files and diff them by hand,
+        // for no gain in safety.
+        let mut parts: Vec<String> = Vec::new();
+        if !only_in_frame.is_empty() {
+            parts.push(format!(
+                "the frame offers {} the code cannot be given ({})",
+                only_in_frame.len(),
+                only_in_frame.join(", ")
+            ));
+        }
+        if !only_in_code.is_empty() {
+            parts.push(format!(
+                "the code admits {} the frame does not draw ({})",
+                only_in_code.len(),
+                only_in_code.join(", ")
+            ));
+        }
+        run.fail(Violation::fatal(
+            format!("{location} prop {}", prop.name),
+            RULE_VARIANT_VALUES,
+            format!(
+                "prop {:?} and variant property {declared_name:?} to admit ONE set of values",
+                prop.name
+            ),
+            format!(
+                "they do not: {}. A value the frame draws and the code cannot accept is a state \
+                 nobody can ship; a value the code accepts and the frame does not draw is a \
+                 state nobody has designed, and it will be rendered by whatever the fallback \
+                 happens to be.",
+                parts.join(", and ")
+            ),
+        ));
+    }
+}
+
 fn compare_props(
     run: &mut ProofRun<'_>,
     undecided: &mut BTreeMap<&'static str, u64>,
@@ -1805,5 +2182,206 @@ mod tests {
 
         let (outcome, text) = run_kind(&h, ProofKind::Parity);
         assert_eq!(outcome.rows_enforced, 1, "{text}");
+    }
+}
+
+/// R11 and R12: the legal values on each side of the design/code boundary.
+///
+/// The limb exists because `PropContract.figma_property` had been in the type
+/// since the first Rust build and was read by NOTHING: every write site set it to
+/// `None`, no proof consumed it, and a field whose name asserts a correspondence
+/// carried no evidence that the correspondence held.
+#[cfg(test)]
+mod figma_variant_tests {
+    use crate::testing::{Harness, run_kind};
+    use vds_core::{ComponentId, EXIT_PASSED, EXIT_VIOLATION, ProofKind, ProofStatus, Status};
+
+    /// A Button whose contract and source agree, carrying ONE prop with a
+    /// `figmaProperty`, and a figma ledger declaring that variant property with
+    /// the given legal values.
+    ///
+    /// Both sides are spelled out at the call site. A fixture that supplied a
+    /// plausible value set would decide the very question the limb asks.
+    fn harness_with_intent(code_union: &[&str], frame_values: &[&str]) -> Harness {
+        let h = Harness::new();
+        let id = h.register("Button", Status::Registered);
+        h.write(
+            "src/components/ui/button.tsx",
+            &format!(
+                "interface ButtonProps {{\n  intent: {};\n}}\n\
+                 export function Button(p: ButtonProps) {{ return <div />; }}\n",
+                code_union[0]
+            ),
+        );
+        h.prop_with_variant(&id, "intent", code_union[0], "Intent");
+        h.figma_variants(&[(&id, &[("Intent", frame_values)])]);
+        h
+    }
+
+    /// A registered component with no `figmaProperty` on any prop.
+    fn agreeing_component(h: &Harness, status: Status) -> ComponentId {
+        let id = h.register("Button", status);
+        h.write(
+            "src/components/ui/button.tsx",
+            "interface ButtonProps {\n  onClick: () => void;\n}\n\
+             export function Button(p: ButtonProps) { return <div />; }\n",
+        );
+        h.amend(&id, |record| {
+            record.props = vec![vds_core::PropContract {
+                name: "onClick".into(),
+                type_expr: "() => void".into(),
+                required: true,
+                figma_property: None,
+            }];
+        });
+        id
+    }
+
+    #[test]
+    fn two_spellings_of_one_set_agree_across_the_boundary() {
+        // `'success' | 'warning'` in code and `Success, Warning` in the frame.
+        // A designer types prose case and an engineer types code case, and this
+        // is the pair the limb has to call equal or be switched off.
+        let h = harness_with_intent(&["'success' | 'warning'"], &["Success", "Warning"]);
+        let (outcome, text) = run_kind(&h, ProofKind::Parity);
+        assert_eq!(outcome.status, ProofStatus::Passed, "{text}");
+        assert_eq!(outcome.exit_code, EXIT_PASSED, "{text}");
+        assert!(text.contains("R11 and R12 ran"), "{text}");
+    }
+
+    /// The failing direction, and the one that matters: the code admits a value
+    /// the frame does not draw.
+    #[test]
+    fn parity_fails_when_the_code_admits_a_value_the_frame_does_not_draw() {
+        let h = harness_with_intent(
+            &["'success' | 'warning' | 'danger'"],
+            &["Success", "Warning"],
+        );
+        let (outcome, text) = run_kind(&h, ProofKind::Parity);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert_eq!(outcome.status, ProofStatus::Failed);
+        assert!(
+            text.contains("the code admits 1 the frame does not draw"),
+            "{text}"
+        );
+        assert!(text.contains("danger"), "{text}");
+        // The consequence, not just the count. A value nobody designed renders
+        // as whatever the fallback happens to be.
+        assert!(text.contains("nobody has designed"), "{text}");
+    }
+
+    #[test]
+    fn parity_fails_when_the_frame_draws_a_value_the_code_cannot_accept() {
+        let h = harness_with_intent(&["'success'"], &["Success", "Warning"]);
+        let (outcome, text) = run_kind(&h, ProofKind::Parity);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(
+            text.contains("the frame offers 1 the code cannot be given"),
+            "{text}"
+        );
+        assert!(text.contains("nobody can ship"), "{text}");
+    }
+
+    #[test]
+    fn both_directions_are_reported_in_one_finding_and_not_as_two() {
+        // A renamed member is ONE change and produces a member on each side. Two
+        // findings would double-count it and make a rename look worse than a
+        // deletion plus an addition.
+        let h = harness_with_intent(&["'success' | 'neutral'"], &["Success", "Default"]);
+        let (outcome, text) = run_kind(&h, ProofKind::Parity);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("the frame offers 1"), "{text}");
+        assert!(text.contains("and the code admits 1"), "{text}");
+    }
+
+    #[test]
+    fn a_figma_property_the_frame_does_not_declare_at_all_is_named_as_such() {
+        let h = harness_with_intent(&["'success'"], &["Success"]);
+        // Rename the variant property in the frame only, which is exactly what a
+        // designer tidying a component set does.
+        let id = vds_core::ComponentId::parse("CMP-0001").unwrap();
+        h.figma_variants(&[(&id, &[("Tone", &["Success"])])]);
+        let (outcome, text) = run_kind(&h, ProofKind::Parity);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("none of them is \"Intent\""), "{text}");
+        // Both causes read identically from the code side, and the finding says
+        // so rather than picking one.
+        assert!(text.contains("renamed or deleted"), "{text}");
+    }
+
+    #[test]
+    fn a_prop_with_no_closed_union_is_undecided_and_never_an_agreement() {
+        // The expected majority. `string` has no legal-value set, so the honest
+        // answer to "do these two sets match" is that one of them does not exist.
+        let h = harness_with_intent(&["string"], &["Success", "Warning"]);
+        let (outcome, text) = run_kind(&h, ProofKind::Parity);
+        assert_eq!(outcome.status, ProofStatus::Passed, "{text}");
+        assert!(
+            text.contains("type_expression_is_not_a_closed_union"),
+            "an undecided comparison must be VISIBLE, or a limb that decided nothing \
+             reads exactly like a limb that agreed: {text}"
+        );
+        assert!(text.contains("is not an agreement"), "{text}");
+    }
+
+    #[test]
+    fn with_no_figma_ledger_the_limb_is_unreached_and_says_so() {
+        let h = harness_with_intent(&["'success'"], &["Success"]);
+        std::fs::remove_file(h.root().join(".vds/ledgers/figma.yaml")).ok();
+        let (outcome, text) = run_kind(&h, ProofKind::Parity);
+        assert_eq!(outcome.status, ProofStatus::Passed, "{text}");
+        assert!(text.contains("R11 and R12 are unreached"), "{text}");
+        assert!(text.contains("no_figma_ledger_on_disk"), "{text}");
+    }
+
+    /// The predicate directly, because the bug it fixes was silent at the unit
+    /// level and only visible as a wrong finding two layers up.
+    #[test]
+    fn a_bare_type_name_is_not_read_as_a_one_member_enum() {
+        use super::{is_legal_value_set, member_names, tokenise, top_level_union};
+        let decide = |expr: &str| {
+            let tokens = tokenise(expr).expect("tokenises");
+            let members = top_level_union(&tokens);
+            member_names(&members).is_some_and(|names| is_legal_value_set(&members, &names))
+        };
+
+        // Values.
+        assert!(decide("'success' | 'warning'"));
+        assert!(
+            decide("'string'"),
+            "a QUOTED 'string' really is the one-member set"
+        );
+        assert!(
+            decide("primary|ghost"),
+            "the shorthand PropContract publishes"
+        );
+
+        // Not values. Each of these produced a confident false finding before
+        // the predicate existed: the limb read the type name as a member and
+        // reported every real variant value as missing from it.
+        assert!(!decide("string"));
+        assert!(!decide("number"));
+        assert!(!decide("ReactNode"));
+        assert!(
+            !decide("'success' | string"),
+            "a widened union has unbounded values"
+        );
+        assert!(
+            !decide("InvoiceStatus"),
+            "a single bare word is overwhelmingly an imported alias, and guessing \"value\" \
+             here guesses wrong nearly every time"
+        );
+    }
+
+    #[test]
+    fn a_record_with_no_figma_property_is_not_touched_by_this_limb() {
+        // The limb must be silent on the ordinary case, or every existing record
+        // acquires a finding the day it lands.
+        let h = crate::testing::Harness::new();
+        let id = agreeing_component(&h, Status::Registered);
+        let _ = id;
+        let (outcome, text) = run_kind(&h, ProofKind::Parity);
+        assert!(!text.contains("figma-limb"), "{text}");
+        assert_eq!(outcome.status, ProofStatus::Passed, "{text}");
     }
 }
