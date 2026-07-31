@@ -197,6 +197,24 @@ entries:
     seeds: a deprecated component still rendered by a route
   pinned_at: 2026-07-25T13:58:22Z
   pinned_by: jellytot
+- path: crates/vds-proof/src/geometry.rs
+  digest: sha256:6ec91decb1aab9af2367baf7735d15e062ea84fe234f7d2df98f13b753bae359
+  kind: proof_script
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Proofs
+    blocking: true
+  - surface: package_script
+    reference: make gates
+    blocking: true
+  proves:
+  - geometry
+  failing_direction_test:
+    path: crates/vds-proof/src/geometry.rs
+    test_name: geometry_fails_when_the_bound_only_ever_held
+    seeds: 'a bound that fell from 667 to 561 and then stood for 71 days against a 30-day window, over a reading it is otherwise comfortably under. The subscriber project''s own instrument, reproduced: R2 and R7 are both satisfied and the row still fails, because the direction is the rule. A seed that merely put the count over the bound would have proven a threshold, which a ratchet already had.'
+  pinned_at: 2026-07-31T09:52:00Z
+  pinned_by: jellytot
 - path: crates/vds-proof/src/screen_parity.rs
   digest: sha256:2aa81b074e90449f71ece63c466bb83580265bf65e6f1ce40aa01ea85ecb04c0
   kind: proof_script
