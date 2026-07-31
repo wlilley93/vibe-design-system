@@ -173,6 +173,22 @@ pub enum NameSource {
     Title,
     Alt,
     NoneDecorative,
+    /// Nobody has decided yet, and that is DIFFERENT from `none_decorative`.
+    ///
+    /// `none_decorative` is a decision: this element is decorative and must have
+    /// no accessible name. `undecided` is the absence of one. The enum could not
+    /// say the second, so `none_decorative` was used as the default - and
+    /// `vds impl` turned it into the instruction "take its accessible name from
+    /// none_decorative", for a NAV. An honest placeholder in one artefact became
+    /// a false instruction in the artefact derived from it, because the deriving
+    /// tool cannot tell a default from a decision.
+    ///
+    /// `role` never had this problem: it is `Option<String>`, so a record can say
+    /// "no role" and a contract can skip the requirement. This variant is the same
+    /// expressiveness for the field beside it. A contract for an undecided source
+    /// states that the decision is OUTSTANDING and must be made before the
+    /// component is built, rather than inventing one.
+    Undecided,
 }
 
 impl NameSource {
@@ -184,7 +200,7 @@ impl NameSource {
     /// added to the enum and the parse would have gone on refusing it while the
     /// error text went on saying "the six are", naming a set that was no longer
     /// the set.
-    pub const ALL: [NameSource; 7] = [
+    pub const ALL: [NameSource; 8] = [
         NameSource::Children,
         NameSource::Label,
         NameSource::AriaLabel,
@@ -192,6 +208,7 @@ impl NameSource {
         NameSource::Title,
         NameSource::Alt,
         NameSource::NoneDecorative,
+        NameSource::Undecided,
     ];
 
     pub fn parse(raw: &str) -> Option<NameSource> {
@@ -210,6 +227,7 @@ impl NameSource {
             NameSource::Title => "title",
             NameSource::Alt => "alt",
             NameSource::NoneDecorative => "none_decorative",
+            NameSource::Undecided => "undecided",
         }
     }
 }

@@ -19,7 +19,9 @@
 //! is decided, and reading it is the implementer's job rather than VDS's.
 
 use serde::{Deserialize, Serialize};
-use vds_core::{ComponentId, Digest, ProofKind, Result, State, Status, Timestamp, VdsError};
+use vds_core::{
+    ComponentId, Digest, NameSource, ProofKind, Result, State, Status, Timestamp, VdsError,
+};
 use vds_store::Store;
 
 use crate::ledger::FigmaLedger;
@@ -214,14 +216,41 @@ pub fn build(
             checked_by: Some(ProofKind::Parity.as_str().to_owned()),
         });
     }
-    must.push(Requirement {
-        what: format!(
-            "take its accessible name from {}",
-            record.a11y.accessible_name_source
-        ),
-        basis: "the accessibility contract".to_owned(),
-        checked_by: Some(ProofKind::Parity.as_str().to_owned()),
-    });
+    // An UNDECIDED name source is not a name source, and must not be phrased as one.
+    //
+    // This line used to be unconditional, so a record whose `accessibleNameSource` had never
+    // been decided produced, for a NAV, the instruction "take its accessible name from
+    // none_decorative" - which is not merely unhelpful, it is wrong twice: a nav is not
+    // decorative, and nothing had decided that it was. AN HONEST PLACEHOLDER IN ONE ARTEFACT
+    // IS A FALSE INSTRUCTION IN THE ARTEFACT DERIVED FROM IT.
+    //
+    // `role` never had the defect because it is `Option`, so the requirement above is simply
+    // skipped when there is no role. The asymmetry was the whole bug: one field could say
+    // "nothing here" and the one beside it could not.
+    //
+    // The requirement is still emitted, because an undecided contract is not a contract with
+    // one fewer clause - it is a contract that cannot be implemented yet, and an implementer
+    // reading a shorter list would take the silence for permission. `checked_by` is None
+    // because no proof settles a decision nobody has made.
+    if record.a11y.accessible_name_source == NameSource::Undecided {
+        must.push(Requirement {
+            what: "SETTLE the accessible name source before building this component: the \
+                   register records it as `undecided`, which is the absence of a decision \
+                   rather than a decision to be decorative"
+                .to_owned(),
+            basis: "the accessibility contract, which has an outstanding decision".to_owned(),
+            checked_by: None,
+        });
+    } else {
+        must.push(Requirement {
+            what: format!(
+                "take its accessible name from {}",
+                record.a11y.accessible_name_source
+            ),
+            basis: "the accessibility contract".to_owned(),
+            checked_by: Some(ProofKind::Parity.as_str().to_owned()),
+        });
+    }
     for key in &record.a11y.keyboard {
         must.push(Requirement {
             what: format!("respond to `{}` by: {}", key.key, key.effect),
@@ -546,6 +575,85 @@ mod tests {
         if let Some(found) = crate::testing::realisation_in(&text) {
             panic!("the contract contains {found:?}, which is a realisation (VDS S-2(4))");
         }
+    }
+
+    /// The failing-direction test for the undecided accessible-name source.
+    ///
+    /// `vds impl CMP-0001` printed, for a NAV: "take its accessible name from
+    /// none_decorative". Two false claims from one default - a nav is not decorative, and
+    /// nothing had decided that it was. The enum could not say "undecided", so the most
+    /// innocuous-looking real value stood in for the absence of a decision, and the deriving
+    /// tool could not tell the two apart.
+    ///
+    /// AN HONEST PLACEHOLDER IN ONE ARTEFACT IS A FALSE INSTRUCTION IN THE ARTEFACT DERIVED
+    /// FROM IT. The seed here is the exact record shape that produced it.
+    #[test]
+    fn an_undecided_name_source_asks_for_a_decision_instead_of_inventing_one() {
+        let f = Fixture::new();
+        let id = f.register("Nav", Status::Registered);
+
+        // The positive arm first: a DECIDED source still produces the plain instruction.
+        // Without this, every assertion below would pass on a build that never emitted the
+        // requirement at all.
+        f.amend(&id, |r| {
+            r.a11y.accessible_name_source = NameSource::AriaLabel;
+        });
+        let decided = build(&f.store(), &id, None).unwrap();
+        assert!(
+            decided
+                .must
+                .iter()
+                .any(|r| r.what == "take its accessible name from aria_label"),
+            "a decided source must still be stated as a plain requirement: {:?}",
+            decided.must.iter().map(|r| &r.what).collect::<Vec<_>>()
+        );
+
+        // THE SEED: the source nobody has settled.
+        f.amend(&id, |r| {
+            r.a11y.accessible_name_source = NameSource::Undecided;
+        });
+        let contract = build(&f.store(), &id, None).unwrap();
+
+        assert!(
+            !contract
+                .must
+                .iter()
+                .any(|r| r.what.starts_with("take its accessible name from")),
+            "an undecided source must NOT be phrased as a source to take the name from: {:?}",
+            contract.must.iter().map(|r| &r.what).collect::<Vec<_>>()
+        );
+        let outstanding = contract
+            .must
+            .iter()
+            .find(|r| r.what.contains("SETTLE the accessible name source"))
+            .expect(
+                "an undecided source must still produce a requirement: a shorter list \
+                     reads as permission, and the component genuinely cannot be built yet",
+            );
+        assert!(
+            outstanding.checked_by.is_none(),
+            "no proof settles a decision nobody has made"
+        );
+        assert!(
+            outstanding.what.contains("undecided") && outstanding.what.contains("decorative"),
+            "the requirement must name the distinction it exists for, or the next author \
+             re-introduces the default: {}",
+            outstanding.what
+        );
+
+        // And `none_decorative` must survive as a real, sayable DECISION - the fix must not
+        // have turned one lost distinction into another.
+        f.amend(&id, |r| {
+            r.a11y.accessible_name_source = NameSource::NoneDecorative;
+        });
+        assert!(
+            build(&f.store(), &id, None)
+                .unwrap()
+                .must
+                .iter()
+                .any(|r| r.what == "take its accessible name from none_decorative"),
+            "none_decorative is a decision and must still be statable as one"
+        );
     }
 
     #[test]

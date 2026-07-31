@@ -403,10 +403,16 @@ test('the accessibility contract is derived from the markup, not defaulted', () 
   }));
 
   // The whole point: it must not come back as the old default for everything.
-  const decorative = results.filter((r) => r.accessibleNameSource === 'none_decorative');
-  assert.ok(decorative.length < types.length / 2,
-    `${decorative.length} of ${types.length} blocks derived as none_decorative, which is the ` +
-    'default this check exists to prevent coming back');
+  // Neither fallback may become the answer for most blocks. `none_decorative` was the old
+  // default and is a DECISION - claiming every unreadable block is decorative. `undecided`
+  // is the new one and is honest, but a derivation that shrugs at half the library has
+  // stopped deriving anything, and the honesty of the value would hide that.
+  for (const fallback of ['none_decorative', 'undecided']) {
+    const n = results.filter((r) => r.accessibleNameSource === fallback).length;
+    assert.ok(n < types.length / 2,
+      `${n} of ${types.length} blocks derived as ${fallback}. A fallback that answers for ` +
+      'half the library is a derivation that is not deriving.');
+  }
 
   // Named cases, chosen because each exercises a different arm of the ARIA precedence and each
   // would be WRONG under the old default.
@@ -418,7 +424,34 @@ test('the accessibility contract is derived from the markup, not defaulted', () 
   assert.equal(by.features.accessibleNameSource, 'children', 'a section with a heading is named by it');
 
   // Every value must be one the schema allows, or the record will not validate.
-  const ALLOWED = new Set(['children', 'aria_label', 'aria_labelledby', 'title', 'alt', 'none_decorative', 'label']);
+  // DERIVED from the schema the kernel publishes, not a second hand-kept copy of it.
+  //
+  // This was a literal list, and it rotted the moment `undecided` was added to NameSource:
+  // eight blocks derived a value the kernel accepts and this test called invalid, so the
+  // fix looked like a regression. A hand-copied enum is the same class as a hand-copied
+  // count, and it fails in the more confusing direction - it reports the CODE as wrong when
+  // the LIST is.
+  //
+  // Reading it is not a one-liner, and the reason is worth recording: schemars splits an
+  // enum by whether a variant carries a doc comment. Undocumented variants group into one
+  // `enum` array; each DOCUMENTED variant becomes its own `oneOf` arm with a `description`.
+  // So `label` and `undecided` - the two variants that earned an explanation - sit apart
+  // from the rest, and a reader taking the first `enum` array finds six of eight and no
+  // indication that two are missing.
+  const schemaDoc = JSON.parse(
+    fs.readFileSync(path.join(__dirname, '..', '..', 'schema', 'component-record.schema.json'), 'utf8'),
+  );
+  // `definitions` in draft-07, `$defs` from draft 2019-09 onward. Both are read rather than
+  // one guessed: picking the wrong key yields `undefined` and a TypeError three lines later,
+  // which reads as a broken test rather than a schema whose dialect moved.
+  const defs = schemaDoc.definitions || schemaDoc.$defs;
+  assert.ok(defs, 'the component-record schema exposes neither `definitions` nor `$defs`');
+  const nameSourceDef = defs.NameSource;
+  assert.ok(nameSourceDef, 'the component-record schema defines no NameSource');
+  const ALLOWED = new Set((nameSourceDef.oneOf || [nameSourceDef]).flatMap((arm) => arm.enum || []));
+  assert.ok(ALLOWED.size >= 7,
+    `only ${ALLOWED.size} name sources were read out of the schema, which means the shape ` +
+    'changed and this reader is now finding a fraction of the enum rather than all of it');
   const bad = results.filter((r) => !ALLOWED.has(r.accessibleNameSource))
     .map((r) => `${r.type}: ${r.accessibleNameSource}`);
   assert.deepEqual(bad, [], `these are not in the schema's NameSource enum: ${bad.join(', ')}`);

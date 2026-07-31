@@ -378,7 +378,20 @@ function yamlList(items, indent) {
  */
 function deriveA11y(source) {
   const roles = [...new Set([...source.matchAll(/role="([a-z]+)"/g)].map((m) => m[1]))];
-  let accessibleNameSource = 'none_decorative';
+
+  // `undecided`, not `none_decorative`, when no arm below matches.
+  //
+  // `none_decorative` is a DECISION - this element is decorative and must have no
+  // accessible name. Using it as the fallback published that decision about every block
+  // whose markup this cascade could not read, and `vds impl` then printed, for a NAV,
+  // "take its accessible name from none_decorative". Two wrong claims from one default: a
+  // nav is not decorative, and nobody had decided it was.
+  //
+  // The kernel now carries `undecided` as a distinct value precisely so a derivation can
+  // say "I could not tell" rather than picking the most innocuous-looking real answer. An
+  // unmatched block is a block whose accessible name nobody has settled, and the contract
+  // asks for it to be settled instead of instructing an implementer to do the wrong thing.
+  let accessibleNameSource = 'undecided';
   if (/aria-labelledby=/.test(source)) accessibleNameSource = 'aria_labelledby';
   else if (/aria-label=/.test(source)) accessibleNameSource = 'aria_label';
   else if (/<label[^>]*\bfor=/.test(source)) accessibleNameSource = 'label';

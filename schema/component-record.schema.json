@@ -388,6 +388,13 @@
           "enum": [
             "label"
           ]
+        },
+        {
+          "description": "Nobody has decided yet, and that is DIFFERENT from `none_decorative`.\n\n`none_decorative` is a decision: this element is decorative and must have no accessible name. `undecided` is the absence of one. The enum could not say the second, so `none_decorative` was used as the default - and `vds impl` turned it into the instruction \"take its accessible name from none_decorative\", for a NAV. An honest placeholder in one artefact became a false instruction in the artefact derived from it, because the deriving tool cannot tell a default from a decision.\n\n`role` never had this problem: it is `Option<String>`, so a record can say \"no role\" and a contract can skip the requirement. This variant is the same expressiveness for the field beside it. A contract for an undecided source states that the decision is OUTSTANDING and must be made before the component is built, rather than inventing one.",
+          "type": "string",
+          "enum": [
+            "undecided"
+          ]
         }
       ]
     },

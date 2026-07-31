@@ -153,7 +153,14 @@ pub struct AddArgs {
     built: Option<String>,
     #[arg(long)]
     role: Option<String>,
-    #[arg(long, default_value = "children")]
+    /// Defaults to `undecided`, which is the honest value for a flag nobody passed.
+    ///
+    /// It used to default to `children`. That is a real accessible-name mechanism and a
+    /// plausible one, which is exactly what made it dangerous: `vds impl` cannot tell a
+    /// default from a decision, so an unpassed flag became the instruction "take its
+    /// accessible name from children" in the artefact the implementer is judged against.
+    /// A default that looks like an answer is worse than one that admits it is not.
+    #[arg(long, default_value = "undecided")]
     name_source: String,
     /// `Key=effect`, repeatable.
     #[arg(long)]

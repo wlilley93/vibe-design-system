@@ -216,7 +216,7 @@ remaining two, the decision log and the breach report, are ADOPTED from VJS and 
 against VJS's schemas rather than redefined here; saying "each has a schema under `schema/`"
 was wrong, because two of the nine never did.
 
-The seven schemas are GENERATED from the implementation's types and are not maintained
+The schemas under `schema/` are GENERATED from the implementation's types and are not maintained
 beside them. A hand-written schema and a hand-written parser are two opinions about one
 shape, and two opinions drift; `vds schema check` regenerates and diffs, so a divergence is
 a failing check rather than a discovery months later.
