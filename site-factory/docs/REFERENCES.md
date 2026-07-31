@@ -16,7 +16,8 @@ Access states are MEASURED, not assumed. Each was probed and the error recorded 
 | **Relume UI** (`@relume_io/relume-ui@1.3.1`) | React component library on Radix. 136 exports, ~30 distinct components | npm, public | Nothing yet. It is the PRIMITIVE layer; the sections are in the paid library |
 | **Relume Tailwind preset** (`@relume_io/relume-tailwind@1.3.0`) | Their token preset | npm, public | Nothing yet |
 | **Park UI** (park-ui.com) | Components on Ark UI + Panda CSS. React, Solid, Vue | public | Nothing yet |
-| **Relume Icons** (icons.relume.ai) | Icon set | not yet examined | Nothing yet |
+| **Reshaped** (reshaped.so) | React + Figma libraries claimed as a "100% match"; semantic tokens, Figma variables mode, theme generated from one colour, Tailwind import, WAI-ARIA, RSC | npm `reshaped`, licence not stated on the page | Nothing yet. THE strongest off-the-shelf answer to the twin problem - see `DESIGN-TWIN.md` |
+| **Relume Icons** (icons.relume.ai) | Icon set, presented for copy-paste into Webflow | public page, but it states no count, no grid, no formats and no licence | Nothing. Not adoptable on what the page discloses: an icon set with no stated grid or licence cannot be put in a design system |
 | **Opbox design** (own repo) | The product system. 6 themes, 62 Figma colour tokens, 56-entry component map | local | Documented as a system page. `statusMeaning` (aligned/floor/migrating) is the idea worth stealing |
 | **Opbox marketing** (own repo) | "Will Style", authored in oklch | local | Documented as a system page |
 | **Jellytot** (own repos) | Brand system with three disagreeing sources of truth | local | Documented as a system page; style pack |
@@ -45,6 +46,13 @@ a file to a component in a repo, and it is the thing usually meant by "connectin
 It is unavailable on this plan.
 
 ## What actually connects Figma to the code here, given that
+
+> The full argument, and the reason the crossing only works in one direction, is in
+> [`DESIGN-TWIN.md`](DESIGN-TWIN.md). Short version: a Figma component and a code component are
+> TWINS rather than stages, every vendor that seems to have solved it has staffed both platforms
+> instead, and the only direction that automates is code to Figma - which is how this file is
+> already built.
+
 
 Not a component library. Park UI, Relume UI and Material You are all COMPONENT RUNTIMES: they
 answer what a button is made of, not whether the button in the file and the button in the repo

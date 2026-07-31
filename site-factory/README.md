@@ -55,6 +55,7 @@ brief ──▶ suggest.js ──▶ config (36 fields) ──▶ compose.js ─
 | `vendor/uber-base-*.json` | The Uber Base harvest (92 sets, 3,211 variants) and each set's tier |
 | `docs/FIGMA-MASTER-FILE.md` | What is on each Figma page, and the traps the file has sprung |
 | `docs/REFERENCES.md` | Every external system looked at, what was taken, and the three access blockers |
+| `docs/DESIGN-TWIN.md` | Why the Figma and code components are twins, and which direction automates |
 | `vendor/relume-*.json` | The Relume kit harvest (1,799 sets) and site-factory's coverage against it |
 | `tests/` | 95 tests, run by `make test-factory` |
 
