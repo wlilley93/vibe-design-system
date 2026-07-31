@@ -28,6 +28,26 @@ Access states are MEASURED, not assumed. Each was probed and the error recorded 
 
 ### The blockers, each with its measured error
 
+**Uber Base: UNBLOCKED 2026-07-31, by a route nobody looked for.** The record below stands as
+written and the conclusion drawn from it was wrong.
+
+The duplicated file is the GALLERY, and the Gallery really does contain no components:
+measured, **0 component sets, 4 components, 19,406 instances**. So "duplicating it yields
+instances and no components" is true. But `getMainComponentAsync()` reaches an instance's MAIN
+COMPONENT even when that component is remote and even when `importComponentSetByKeyAsync`
+refuses the very same component by key. 19,405 of 19,406 instances reached, one failure
+unexplained.
+
+**A GALLERY DUPLICATE IS USELESS FOR IMPORTING AND COMPLETE FOR HARVESTING**, and nothing here
+had distinguished the two uses. Reading a contract needs no subscription at all, only an
+instance. Harvested: **126 component sets, 4,280 variants, 222 bare components** - against the
+92 sets and 3,211 variants recorded below, because that figure counted what a top-level page
+walk could see and this counts what is actually referenced. See `vendor/uber-base-contracts.json`.
+
+What remains true: the LIBRARY is still not subscribed and its keys still do not import. If you
+want to place a Base instance in a file, the subscription is still the answer. If you want its
+contract, it is already here.
+
 **Uber Base import.** `importComponentSetByKeyAsync` returns
 `Component set with key "..." not found` for a genuine harvested key AND for an impossible
 all-zeros key, byte-identical. So the failure is the missing library subscription, not the
