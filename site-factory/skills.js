@@ -130,6 +130,12 @@ const BLOCK_SKILLS = {
 // order the skills themselves declare rather than in block order.
 const RUN_ORDER = [
   'revenue/skills/offer-clarifier',
+  // Declared by headline-lab's own description ("Run after offer-clarifier and
+  // customer-research-engine") and missing from this order until the chain's
+  // first real run surfaced the gap: every skill that wanted voice-of-customer
+  // data had to assume it. The order the skills themselves declare includes
+  // the research step, so this list does now too.
+  'revenue/skills/customer-research-engine',
   'revenue/skills/headline-lab',
   'revenue/skills/offer-stack-builder',
   'revenue/skills/proof-and-testimonial-engine',

@@ -8,6 +8,7 @@
   "library": "~/Documents/agents-final/skill-library",
   "runOrder": [
     "offer-clarifier",
+    "customer-research-engine",
     "headline-lab",
     "offer-stack-builder",
     "proof-and-testimonial-engine",
@@ -15,7 +16,7 @@
     "objection-and-faq-engine",
     "cta-and-close-writer"
   ],
-  "totalChars": 42486,
+  "totalChars": 50062,
   "prompts": {
     "offer-clarifier": {
       "order": 1,
@@ -24,43 +25,50 @@
       "lines": 79,
       "checksum": 2035797
     },
-    "headline-lab": {
+    "customer-research-engine": {
       "order": 2,
+      "path": "revenue/skills/customer-research-engine/SKILL.md",
+      "chars": 7576,
+      "lines": 95,
+      "checksum": 2733859
+    },
+    "headline-lab": {
+      "order": 3,
       "path": "revenue/skills/headline-lab/SKILL.md",
       "chars": 5599,
       "lines": 79,
       "checksum": 2012937
     },
     "offer-stack-builder": {
-      "order": 3,
+      "order": 4,
       "path": "revenue/skills/offer-stack-builder/SKILL.md",
       "chars": 6175,
       "lines": 74,
       "checksum": 2231621
     },
     "proof-and-testimonial-engine": {
-      "order": 4,
+      "order": 5,
       "path": "revenue/skills/proof-and-testimonial-engine/SKILL.md",
       "chars": 6450,
       "lines": 75,
       "checksum": 2360956
     },
     "pricing-section-designer": {
-      "order": 5,
+      "order": 6,
       "path": "revenue/skills/pricing-section-designer/SKILL.md",
       "chars": 6455,
       "lines": 67,
       "checksum": 2362420
     },
     "objection-and-faq-engine": {
-      "order": 6,
+      "order": 7,
       "path": "product/skills/objection-and-faq-engine/SKILL.md",
       "chars": 6436,
       "lines": 98,
       "checksum": 2314269
     },
     "cta-and-close-writer": {
-      "order": 7,
+      "order": 8,
       "path": "revenue/skills/cta-and-close-writer/SKILL.md",
       "chars": 5681,
       "lines": 59,

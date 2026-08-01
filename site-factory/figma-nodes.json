@@ -12,23 +12,23 @@
   },
   "pages": {
     "Skills": [
-      "Skills — agents-final survey"
+      "Skills \u2014 agents-final survey"
     ],
     "Examples": [
       "Design & creative-agency references"
     ],
     "Playbook": [
-      "Product Design Playbook — full catalog"
+      "Product Design Playbook \u2014 full catalog"
     ],
     "Components": {
       "sets": 30,
       "frames": [
-        "Index — all 39 block types"
+        "Index \u2014 all 39 block types"
       ]
     },
     "Glossary": [
-      "Glossary — Framer design vocabulary (1/2)",
-      "Glossary — Framer design vocabulary (2/2)"
+      "Glossary \u2014 Framer design vocabulary (1/2)",
+      "Glossary \u2014 Framer design vocabulary (2/2)"
     ],
     "SaaS Components": [
       "SaaS component taxonomy (1/3)",
@@ -36,45 +36,46 @@
       "SaaS component taxonomy (3/3)"
     ],
     "Project: Oneshot": [
-      "Oneshot — project record"
+      "Oneshot \u2014 project record"
     ],
     "Project: Meridian Labs": [
-      "Meridian Labs — project record"
+      "Meridian Labs \u2014 project record"
     ],
     "Spec: Balmoral & Co": [
-      "Balmoral & Co — spec sheet"
+      "Balmoral & Co \u2014 spec sheet"
     ],
     "Base (redrawn)": 16,
-    "Uber Base — full catalogue": [
-      "Uber Base — 92 sets, 3,211 variants"
+    "Uber Base \u2014 full catalogue": [
+      "Uber Base \u2014 92 sets, 3,211 variants"
     ],
     "Prompts (verbatim)": [
-      "Prompts — what the writing actually runs on",
+      "Prompts \u2014 what the writing actually runs on",
       "1. offer-clarifier",
-      "2. headline-lab",
-      "3. offer-stack-builder",
-      "4. proof-and-testimonial-engine",
-      "5. pricing-section-designer",
-      "6. objection-and-faq-engine",
-      "7. cta-and-close-writer"
+      "2. customer-research-engine",
+      "3. headline-lab",
+      "4. offer-stack-builder",
+      "5. proof-and-testimonial-engine",
+      "6. pricing-section-designer",
+      "7. objection-and-faq-engine",
+      "8. cta-and-close-writer"
     ],
     "System: Jellytot": [
-      "Jellytot — brand system"
+      "Jellytot \u2014 brand system"
     ],
     "System: Opbox marketing": [
-      "Opbox marketing — Will Style"
+      "Opbox marketing \u2014 Will Style"
     ],
     "System: Opbox design": [
-      "Opbox design — product system"
+      "Opbox design \u2014 product system"
     ],
     "Styles (applied)": [
-      "Styles applied — one component set, four packs"
+      "Styles applied \u2014 one component set, four packs"
     ],
     "Sitemap": [
-      "Sitemap — Jellytot"
+      "Sitemap \u2014 Jellytot"
     ],
     "Wireframe": [
-      "Wireframe — Jellytot"
+      "Wireframe \u2014 Jellytot"
     ],
     "Library (generated)": {
       "sets": 43,

@@ -546,7 +546,8 @@
       "68:2": "proof-and-testimonial-engine",
       "69:2": "pricing-section-designer",
       "70:2": "objection-and-faq-engine",
-      "71:2": "cta-and-close-writer"
+      "71:2": "cta-and-close-writer",
+      "114:2": "customer-research-engine (added 2026-08-01: the prerequisite headline-lab declares that the pack RUN_ORDER omitted; written verbatim, read back byte-identical, checksum 2733859)"
     },
     "result": "CLEAN. No finding.",
     "_why_a_clean_result_is_recorded": "Three destination checks today produced three findings, and a verification suite that only ever reports findings is one nobody trusts when it reports none. This one passed: the prompts really are verbatim, the manifest really does fingerprint the source it names, and the two agree through a route the writer never used. Recording the pass is what makes the failures credible.",

@@ -1807,7 +1807,10 @@ test('the prompt fingerprints still match the source skills', () => {
   };
 
   const entries = Object.entries(man.prompts);
-  assert.equal(entries.length, 7, 'the manifest no longer carries seven prompts');
+  // Eight since 2026-08-01: customer-research-engine joined the run order after
+  // the chain's first real run surfaced that headline-lab declares it as a
+  // prerequisite the order never included.
+  assert.equal(entries.length, 8, 'the manifest no longer carries eight prompts');
   assert.equal(Object.keys(v.prompts_verified.frames).length, entries.length,
     'the verification names a different number of frames than the manifest has prompts');
 
