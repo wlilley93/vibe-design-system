@@ -1,0 +1,54 @@
+id: PROOF-20260801-140536
+kind: register_completeness
+status: passed
+warrant_id: null
+command: vds proof register_completeness
+script: crates/vds-proof/src/register_completeness.rs
+exit_code: 0
+rows_considered: 23
+rows_enforced: 15
+rows_skipped_reasons:
+  bare_element_informational_vds_s9_10: 8
+violations:
+- location: CMP-0001
+  rule: 'S-5(9) I4 ([2026] VJS-CA-VDS 1 order 17): a record carrying neither directedAt nor measuredBy is outside the clause'
+  expected: directedAt, or a measure naming what holds this record's conformance
+  actual: 'outside S-5(9) R2 entirely: nothing measures this record and nothing will ever report it as unmeasured.'
+  severity: informational
+  drift: undetermined
+- location: CMP-0002
+  rule: 'S-5(9) I4 ([2026] VJS-CA-VDS 1 order 17): a record carrying neither directedAt nor measuredBy is outside the clause'
+  expected: directedAt, or a measure naming what holds this record's conformance
+  actual: 'outside S-5(9) R2 entirely: nothing measures this record and nothing will ever report it as unmeasured.'
+  severity: informational
+  drift: undetermined
+- location: CMP-0003
+  rule: 'S-5(9) I4 ([2026] VJS-CA-VDS 1 order 17): a record carrying neither directedAt nor measuredBy is outside the clause'
+  expected: directedAt, or a measure naming what holds this record's conformance
+  actual: 'outside S-5(9) R2 entirely: nothing measures this record and nothing will ever report it as unmeasured.'
+  severity: informational
+  drift: undetermined
+- location: CMP-0004
+  rule: 'S-5(9) I4 ([2026] VJS-CA-VDS 1 order 17): a record carrying neither directedAt nor measuredBy is outside the clause'
+  expected: directedAt, or a measure naming what holds this record's conformance
+  actual: 'outside S-5(9) R2 entirely: nothing measures this record and nothing will ever report it as unmeasured.'
+  severity: informational
+  drift: undetermined
+- location: CMP-0006
+  rule: 'S-5(9) I4 ([2026] VJS-CA-VDS 1 order 17): a record carrying neither directedAt nor measuredBy is outside the clause'
+  expected: directedAt, or a measure naming what holds this record's conformance
+  actual: 'outside S-5(9) R2 entirely: nothing measures this record and nothing will ever report it as unmeasured.'
+  severity: informational
+  drift: undetermined
+notes:
+- 'this proof establishes EXISTENCE, AND THE MEASUREMENT COVERAGE OF A DIRECTED RECORD (VDS S-7(5) and S-5(9); the widening is recorded by [2026] VJS-CA-VDS 1 order 18 rather than left standing in a scope note the proof has outgrown). A record at `proposed` or `designed` satisfies it and fails `composition`, which is why they are two proofs: W1 REGISTER-COMPLETE is granted on existence alone, before any design work has happened. A warrant citing this run has evidence that the register covers the surface, and no evidence that anything on the surface is fit to be used.'
+- 'the claim is bounded by [surface] screen_globs and [surface] governed_import_prefixes. A screen outside those globs, a reference imported from outside those prefixes, and a reference whose import the ledger could not resolve are each counted and not enforced. This proof cannot say `no unregistered component anywhere`, only `no absent record among the references it reached`. R2 reaches only records that carry `directedAt`. A record naming no direction and no measure is outside this clause, and the count of such records is printed on every run: a rule that fires only on the rows that armed it has a denominator, and an unreported denominator is the defect this clause was written against ([2026] VJS-CA-VDS 1 order 17).'
+- 'relies on VDS S-9(10) RESERVED (SUBMISSION-VDS-005): bare HTML elements are informational rows only, excluded from rows_enforced. Any warrant citing this proof must record that reliance in its `reserved` array.'
+- '[I4] 5 enforceable register record(s) carry neither directedAt nor measuredBy, so S-5(9) R2 does not reach them: CMP-0001, CMP-0002, CMP-0003, CMP-0004, CMP-0006. This is COVERAGE OWED and not a failure ([2026] VJS-CA-VDS 1 order 17).'
+inputs_digest: sha256:42d525fb899ef5fc2be9fd13e1ed1e8d11f9d40ce3f41d1f43af1b0017555485
+digest: sha256:6c2dc7547c3885dfe72413cdcaeaf9aad2511c42ecbaeda70b960a2c6d3d4daa
+designpack_digest: sha256:f9c369f3175c15169dafde47c01d7efc2f45c64090444f17f5b3f480e710ec5a
+captured_at: 2026-08-01T14:05:36Z
+capture_mode: automatic
+invoked_by: package_script
+duration_ms: 0

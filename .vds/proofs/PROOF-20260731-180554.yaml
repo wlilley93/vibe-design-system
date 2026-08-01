@@ -1,0 +1,28 @@
+id: PROOF-20260731-180554
+kind: ledger_staleness
+status: failed
+warrant_id: null
+command: vds proof ledger_staleness
+script: crates/vds-proof/src/ledger_staleness.rs
+script_digest: sha256:f46c8cd8d46e9118767da2a52fefc8e2d91aac1a485b0356da5285e3e3047758
+exit_code: 1
+rows_considered: 2
+rows_enforced: 2
+rows_skipped_reasons: {}
+violations:
+- location: .vds/ledgers/ci.yaml
+  rule: 'VDS S-4(2) ledger_staleness R2: every ledger has a staleness test, and a ledger without one decays with nothing to say so'
+  expected: a staleness test in this build that regenerates .vds/ledgers/ci.yaml from its source and fails where the two disagree, as .vds/ledgers/screens.yaml has (VDS S-4(2))
+  actual: .vds/ledgers/ci.yaml has no staleness test in this build, so nothing would notice it going out of date with whatever generated it. Either add its generator and its staleness test to this gate, or remove the file.
+  severity: fatal
+  drift: undetermined
+notes:
+- the screens ledger's staleness test REGENERATES the ledger from its sources and compares the content, rather than comparing the source digest the ledger records. A source-digest comparison answers only whether the screens moved, so it certifies a hand-edited ledger clean, and a proof reading that ledger can then be flipped from failing to passing without touching a screen (VDS S-2(5)(4)).
+- 'what this run does NOT reach: this build holds one REGENERATING staleness test, the screens ledger''s. The figma ledger (R3) and the frame ledger (R4) have self-consistency tests instead, because their source is behind a network call and there is no generator here to re-run against it. For every other file in the ledgers directory it establishes only that no staleness test exists, never that the file is current. It reaches nothing outside the configured ledgers directory. And where the declared screens ledger is absent the run is a precondition failure at exit 2, so the other files in that directory go unexamined rather than passing.'
+inputs_digest: sha256:f7ccd973bfeffc96cd14bc04de7ecf45135b7a2dd82ac81ae4883675065ef24e
+digest: sha256:35b3b7e7a284d1a602268a91d0d84a899d29c2ecf2596753fde973c66aeb3b18
+designpack_digest: sha256:f9c369f3175c15169dafde47c01d7efc2f45c64090444f17f5b3f480e710ec5a
+captured_at: 2026-07-31T18:05:46Z
+capture_mode: automatic
+invoked_by: package_script
+duration_ms: 0

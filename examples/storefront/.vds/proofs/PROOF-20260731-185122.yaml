@@ -1,0 +1,26 @@
+id: PROOF-20260731-185122
+kind: ledger_staleness
+status: passed
+warrant_id: null
+command: vds proof ledger_staleness
+script: crates/vds-proof/src/ledger_staleness.rs
+exit_code: 0
+rows_considered: 4
+rows_enforced: 4
+rows_skipped_reasons: {}
+violations: []
+notes:
+- the screens ledger's staleness test REGENERATES the ledger from its sources and compares the content, rather than comparing the source digest the ledger records. A source-digest comparison answers only whether the screens moved, so it certifies a hand-edited ledger clean, and a proof reading that ledger can then be flipped from failing to passing without touching a screen (VDS S-2(5)(4)).
+- 'what this run does NOT reach: this build holds one REGENERATING staleness test, the screens ledger''s. The figma ledger (R3), the frame ledger (R4) and the CI run ledger (R6) have self-consistency tests instead, because their source is behind a network call and there is no generator here to re-run against it. For every other file in the ledgers directory it establishes only that no staleness test exists, never that the file is current. It reaches nothing outside the configured ledgers directory. And where the declared screens ledger is absent the run is a precondition failure at exit 2, so the other files in that directory go unexamined rather than passing.'
+- '[figma-ledger] the figma ledger''s staleness test settles three things and cannot settle the fourth. It settles that the ledger is SELF-CONSISTENT (its content digest matches its contents, so it was not hand-edited), that it agrees with the decided-target file the register names (two files is two opinions about what is decided), and that it is not OLDER than the register records that read it (a record pointed at a node after the pull is a record the ledger has never seen). It cannot settle whether the decided-target file has changed since the pull, because that is a network read VDS S-7(2)(1) forbids inside a proof. Its `generated_at` is reported so a reader can weigh how old the reading is, and a warrant citing anything downstream of it is bounded by that instant.'
+- '[figma-ledger-age] this ledger was generated at 2026-07-31T18:51:14Z, from file SFDEMO version 3841029571. Nothing          offline can establish whether that file has changed since.'
+- '[frame-ledger] the frame ledger''s staleness test settles three things and cannot settle the fourth. It settles that the ledger is SELF-CONSISTENT (its content digest matches its contents, so it was not hand-edited), that it agrees with the decided-target file the SCREEN register names, and that it is not OLDER than the screen records that read it. It cannot settle whether the decided-target file has changed since the capture, because that is a network read VDS S-7(2)(1) forbids inside a proof. It also cannot settle whether the capture went DEEP ENOUGH: the ledger records the depth it derived and marks every reading taken at the boundary, and `screen_parity` refuses to enforce those rows, which is the furthest an offline test can go.'
+- '[frame-ledger-age] this ledger was derived at 2026-07-31T18:51:14Z from a capture of file SFDEMO at depth 4, in which 4 leaf node(s) sat on the boundary. Nothing offline can establish whether that file has changed since, nor whether the depth was enough.'
+- '[geometry-reading] the geometry reading''s staleness test settles two things and cannot settle the third. It settles that the reading is SELF-CONSISTENT (its content digest matches its contents, so it was not hand-edited) and that it is not OLDER than the geometry bounds measured against it. It cannot settle whether the SHIPPED ARTEFACT has changed since the reading was taken, because that needs the generator re-run against a build, and this proof does not build the subject. That last gap is why the reading carries `takenAt` and why `geometry` measures its window from that field rather than from the clock: a reading nobody regenerated reports the shape as it WAS, and the proof reading it should conclude what was true then, not what is true now.'
+inputs_digest: sha256:79882c5b0333f7175a0db66847101e51bdc1db406a541f8a91c08bdd631954dc
+digest: sha256:9447ab8fa296402d2cb716aefdb9db63841d3ecf6f655e2570e6bddfe1c5e4fa
+designpack_digest: sha256:f9c369f3175c15169dafde47c01d7efc2f45c64090444f17f5b3f480e710ec5a
+captured_at: 2026-07-31T18:51:14Z
+capture_mode: automatic
+invoked_by: package_script
+duration_ms: 0

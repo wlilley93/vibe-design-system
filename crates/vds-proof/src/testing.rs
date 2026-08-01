@@ -102,6 +102,16 @@ impl Harness {
         path
     }
 
+    /// Write raw bytes, for a fixture that must be byte-identical to a real
+    /// artefact. A digest-bound test cannot go through [`Harness::write`],
+    /// because a text round trip is one newline away from a different digest.
+    pub fn write_bytes(&self, rel: &str, contents: &[u8]) -> PathBuf {
+        let path = self.root().join(rel);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, contents).unwrap();
+        path
+    }
+
     pub fn read(&self, rel: &str) -> String {
         std::fs::read_to_string(self.root().join(rel)).unwrap()
     }

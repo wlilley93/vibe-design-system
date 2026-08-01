@@ -161,6 +161,34 @@ The proof therefore fails in the direction that matters: seed `.vds/` with a dig
 one colour and the run must exit non-zero and print that colour back. A `no_stored_values`
 implementation that cannot do that has not satisfied S-7(2)(2) and is not a proof.
 
+**S-2(9A) - THE REACH OF LIMB 1, and the adjudicated collision ([2026] VJS-FI-VDS 1,
+answering `DECISION-0009`).** Three holdings, on a referral about two findings against a
+court record filed under `.vds/court/`.
+
+1. **Scope.** A court record is within the reach of S-2(8). S-2(8) is directory-scoped and
+   S-3(9) closes the exceptions at `cache/` and `private/`; no narrowing of the scan by
+   directory, by artefact class or by artefact kind is permitted. The question S-2(8) asks
+   is never what an artefact IS, it is what can be reconstructed FROM it.
+2. **Limb 1 is a floor, not a sufficient test.** A limb-1 match reports that a string is
+   SHAPED like a design value. Whether the record is in the storing form is answered by the
+   four limbs of S-2(5), which no pattern evaluates. Where all four limbs hold, the match is
+   a lexical COLLISION and not a realisation. No tightening of the matcher is available: the
+   two readings of such a string are lexically identical, so any predicate that admits the
+   collision admits the value. The ruling refuses three named candidate tightenings and says
+   why.
+3. **The adjudicated collision.** A court may dispose of ONE SITE - one file, at one digest,
+   at one line and column, for one limb-1 shape class - having applied the S-2(5) limbs to
+   it. A disposal is reported as a warning naming the ruling and counted on the face of the
+   record, never suppressed; it dies when the artefact's digest moves; it is fatal if it
+   disposes of nothing; and it reaches only `colour_literal`, `length_literal` and
+   `duration_literal`, never a field name, an encoding, an undecodable file or a preimage
+   recovery. The table is held in the gate, which is `permit_required` under S-3(8) and
+   digest-pinned under S-8(1), and not in data under `.vds/`. Two sites are adjudicated.
+
+The ruling also directs, at order 1, that any governance record under `.vds/**` discussing a
+realisation names it by CLASS and never quotes it. Two of the four findings in that matter
+existed only because the referral quoted the strings it was referring.
+
 ---
 
 ## S-3 The three trees
@@ -1091,6 +1119,7 @@ any of them.
 | S-3(6), SETTLED by [2026] VJS-CC-VIBE-DESIGN-SYSTEM 4 | does a designpack bind one project, a tenant, or the realm | `SUBMISSION-VDS-003` |
 | S-9(9), SETTLED by [2026] VJS-CC-VIBE-DESIGN-SYSTEM 5 | may a component be retired against a forced-drain deadline while consumers remain | `SUBMISSION-VDS-004` |
 | S-9(10), SETTLED by [2026] VJS-CC-VIBE-DESIGN-SYSTEM 5 | where the primitive floor sits for the composition proof | `SUBMISSION-VDS-005` |
+| S-2(8), SETTLED by [2026] VJS-FI-VDS 1 | is a court record filed under `.vds/court/**` within the reach of S-2(8), and does shape-only matching satisfy it | `DECISION-0009`, referred up; no submission filed |
 
 ---
 
