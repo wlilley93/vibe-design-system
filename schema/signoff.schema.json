@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "SignOff",
+  "description": "One frame sign-off: the frame's content hash at the moment it was signed.",
+  "type": "object",
+  "required": [
+    "fileKey",
+    "frameDigest",
+    "id",
+    "nodeId",
+    "signedAt",
+    "signedBy"
+  ],
+  "properties": {
+    "fileKey": {
+      "type": "string"
+    },
+    "frameDigest": {
+      "description": "The frame's content digest AT SIGN-OFF, as the frames ledger computes it. The whole mechanism: authority holds while the current digest equals this one, and not a moment longer.",
+      "type": "string"
+    },
+    "id": {
+      "$ref": "#/definitions/SignoffId"
+    },
+    "nodeId": {
+      "description": "The frame's node id, in the `12:34` spelling.",
+      "type": "string"
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "signedAt": {
+      "$ref": "#/definitions/Timestamp"
+    },
+    "signedBy": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "SignoffId": {
+      "description": "A frame sign-off: the frame's content hash at the moment taste was exercised (draft S-7D).",
+      "type": "string",
+      "pattern": "^SGN-[0-9]{4}$"
+    },
+    "Timestamp": {
+      "description": "UTC, second resolution, trailing Z. The one canonical form VDS writes.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    }
+  }
+}

@@ -1,5 +1,5 @@
 schema_version: 1
-generated_at: 2026-07-31T21:35:13Z
+generated_at: 2026-08-01T12:26:36Z
 entries:
 - path: crates/vds-cli/src/doctor.rs
   digest: sha256:d5e64c61ce271e43cd53f01e3a702d61df371a05a1fea610149b4b23a2a3ce52
@@ -42,6 +42,24 @@ entries:
   pinned_by: jellytot
   supersedes_digest: sha256:c5ae0f9bade970f4caddbcbcf156d0701486858db46a611714cff328a0adc7e0
   relock_rationale: 'Implement [2026] VJS-CC-VIBE-DESIGN-SYSTEM 1: D2 evaluates by seat. doctor.rs gains the subscriber seat (released_binary pin verified by digest, provenance required, NOT CHECKED with the missing link named when absent); lock.rs admits kind released_binary with empty proves (it runs all kinds, it is not one) and a --provenance flag; the lock schema gains the optional provenance field. The failing direction (a replaced binary reads UNMET) is proven with green-first plus a landed-seed assertion.'
+- path: crates/vds-proof/src/burndown.rs
+  digest: sha256:0ae3a6b92a73942f0d68d998dcb332f245f8619e3ff4a1ba6b7c52789ca8adc3
+  kind: proof_script
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Proofs
+    blocking: true
+  - surface: package_script
+    reference: make gates
+    blocking: true
+  proves:
+  - burndown
+  failing_direction_test:
+    path: crates/vds-proof/src/burndown.rs
+    test_name: a_reading_above_the_pin_fails_on_any_increase
+    seeds: a reading one over the pin, which is the smallest increase there is
+  pinned_at: 2026-08-01T12:26:28Z
+  pinned_by: jellytot
 - path: crates/vds-proof/src/composition.rs
   digest: sha256:20bf333373f07d872632d50c67a66cc43794ae8ac88a4d397b78b43c6c7fe328
   kind: proof_script
@@ -83,7 +101,7 @@ entries:
   supersedes_digest: sha256:cb7d188e20124fba772d9a5f84a77d4d1d00fa6e62fce376c2da3006b81f66a5
   relock_rationale: 'Adversarial review found all three new gates unsound; four criticals and five highs are closed. contrast: unclassified_palette_scopes returned empty on a sheet with no :root, so R6 was structurally dead and a palette nothing measured passed at exit 0 (the founding defect through the gate written to catch it); the redactor covered three of six realisation shapes and redacted only a colour function''s head; two findings named the default stylesheet rather than the one read. parity: an extends/intersection props type reported a SUBSET as complete, so R6 fired on inherited props or credited the row as enforced. token_pin: the redaction screen closed hex and left base64 open, the locator was never screened, the evidence digest was keyed on pin.id (which carries generated_at), coverage was reported before the currency check, and Store::read_pins never refused an unreadable entry.'
 - path: crates/vds-proof/src/geometry.rs
-  digest: sha256:00dbe1f2f6f8381c1f4730d6deb6b380f54c69074150e36e8a7a34287eee34d1
+  digest: sha256:94db97819f7dcb27051c121bb7ea069435a58de6741d3364a86cb957d4ee60ba
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -98,10 +116,10 @@ entries:
     path: crates/vds-proof/src/geometry.rs
     test_name: geometry_fails_when_the_bound_only_ever_held
     seeds: 'a bound that fell from 667 to 561 and then stood for 71 days against a 30-day window, over a reading it is otherwise comfortably under. The subscriber project''s own instrument, reproduced: R2 and R7 are both satisfied and the row still fails, because the direction is the rule. A seed that merely put the count over the bound would have proven a threshold, which a ratchet already had.'
-  pinned_at: 2026-07-31T19:03:48Z
+  pinned_at: 2026-08-01T12:26:36Z
   pinned_by: jellytot
-  supersedes_digest: sha256:464a29843dd1755a927feff4cb7fa1dce021cad6dab470393d096086a938da31
-  relock_rationale: 'Implement [2026] VJS-CC-VIBE-DESIGN-SYSTEM 3: ReadFrom gains design_file (not shipped), and geometry R5 refuses it for its OWN reason - a different subject, never code_model drift prose - with a test asserting both the refusal and that the forbidden wording is absent. Schema regenerated for the new variant.'
+  supersedes_digest: sha256:00dbe1f2f6f8381c1f4730d6deb6b380f54c69074150e36e8a7a34287eee34d1
+  relock_rationale: 'Lane feat/proof-kinds-visual-gap, 2026-08-01. Three gates changed for recorded reasons: (1) vds-scan/src/jsx.rs - three JSX lexer desyncs fixed (arrow-in-attribute closed the tag, JsxText persisted past the outermost closing tag, expression-rooted subtrees leaked brace frames), each reproduced against a subscriber tree and regression-tested; (2) vds-proof/src/geometry.rs - draft S-7A(5) authority-binding limb R11-R13/W2 added, ENACTMENT PENDING (SUBMISSION-VDS-012); (3) vds-proof/src/register_completeness.rs - draft S-5(9) measurement-coverage rules R2/R3 added, ENACTMENT PENDING (SUBMISSION-VDS-015). Every new rule carries a seed-red test.'
 - path: crates/vds-proof/src/ledger_staleness.rs
   digest: sha256:ac8bcfe5bc40a170db00dcf26d360657616d2fc0ec398c08f4c6fa3b38d03cf2
   kind: proof_script
@@ -182,6 +200,24 @@ entries:
   pinned_by: jellytot
   supersedes_digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
   relock_rationale: 'R10: the preimage limb of VDS S-2(8) limb 2 is now discharged. no_stored_values.rs gains rule R10 and a rewritten PREIMAGE_NOTE; crates/vds-proof/src/preimage.rs is a new gate and is pinned for the first time, since the logic deciding what counts as a recovered design value lives there and an unwitnessed gate can be weakened without tripping a finding. Recorded at .vds/logs/decisions/DECISION-0003.yaml (VDS S-8(4), S-12(3)).'
+- path: crates/vds-proof/src/prohibition.rs
+  digest: sha256:328c26c522078d73a6def8c4e8c47144e19b03207d565b45ad5dba2c28f99a0e
+  kind: proof_script
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Proofs
+    blocking: true
+  - surface: package_script
+    reference: make gates
+    blocking: true
+  proves:
+  - prohibition
+  failing_direction_test:
+    path: crates/vds-proof/src/prohibition.rs
+    test_name: a_surviving_site_fails_and_is_named_by_file_and_line
+    seeds: a forbidden pattern surviving in an in-scope file, and the finding names it file:line
+  pinned_at: 2026-08-01T12:26:28Z
+  pinned_by: jellytot
 - path: crates/vds-proof/src/reconciliation.rs
   digest: sha256:a4fbe2b1ae98fe9209454816492fe8cfe54b53544bb73a6db94b2b03276ef566
   kind: proof_script
@@ -203,7 +239,7 @@ entries:
   supersedes_digest: sha256:41310adbc73c2d0cff2a649ecd96dfa4b6057a29dbe51e653f9d6e0a18b602b3
   relock_rationale: Five gates edited in commits 1260462 and eb9313d shipped without a re-pin; self-filed as BREACH-0003. The edits are the vds-scan JSX generic fix and the retirement/collision proof work, both tested (674 workspace tests green). Re-pinning to the reviewed bytes so the lock binds what is actually in the tree.
 - path: crates/vds-proof/src/register_completeness.rs
-  digest: sha256:8213cdbcaf6a491c2b16dc8fdb263e27985abc6fe49431fbd8cf7a295cc866d4
+  digest: sha256:516a7e144f9f3b8fc4799d2c656cb52498b6a8583c517994f28dbdf6d311713d
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -218,8 +254,10 @@ entries:
     path: crates/vds-proof/src/register_completeness.rs
     test_name: register_completeness_fails_on_a_component_absent_from_the_register
     seeds: a screen referencing a component absent from the register
-  pinned_at: 2026-07-25T13:58:22Z
+  pinned_at: 2026-08-01T12:26:36Z
   pinned_by: jellytot
+  supersedes_digest: sha256:8213cdbcaf6a491c2b16dc8fdb263e27985abc6fe49431fbd8cf7a295cc866d4
+  relock_rationale: 'Lane feat/proof-kinds-visual-gap, 2026-08-01. Three gates changed for recorded reasons: (1) vds-scan/src/jsx.rs - three JSX lexer desyncs fixed (arrow-in-attribute closed the tag, JsxText persisted past the outermost closing tag, expression-rooted subtrees leaked brace frames), each reproduced against a subscriber tree and regression-tested; (2) vds-proof/src/geometry.rs - draft S-7A(5) authority-binding limb R11-R13/W2 added, ENACTMENT PENDING (SUBMISSION-VDS-012); (3) vds-proof/src/register_completeness.rs - draft S-5(9) measurement-coverage rules R2/R3 added, ENACTMENT PENDING (SUBMISSION-VDS-015). Every new rule carries a seed-red test.'
 - path: crates/vds-proof/src/retirement_drain.rs
   digest: sha256:7acb93f167f73a0d026b3cce96c286c2bc4e2bc68768c36ecb8ef24f69f24af4
   kind: proof_script
@@ -298,6 +336,24 @@ entries:
   pinned_by: jellytot
   supersedes_digest: sha256:6ab1121588fe85ac187c06962a7b03e553c86117d8145565e4f646cbeb3b4d61
   relock_rationale: 'Adversarial review found all three new gates unsound; four criticals and five highs are closed. contrast: unclassified_palette_scopes returned empty on a sheet with no :root, so R6 was structurally dead and a palette nothing measured passed at exit 0 (the founding defect through the gate written to catch it); the redactor covered three of six realisation shapes and redacted only a colour function''s head; two findings named the default stylesheet rather than the one read. parity: an extends/intersection props type reported a SUBSET as complete, so R6 fired on inherited props or credited the row as enforced. token_pin: the redaction screen closed hex and left base64 open, the locator was never screened, the evidence digest was keyed on pin.id (which carries generated_at), coverage was reported before the currency check, and Store::read_pins never refused an unreadable entry.'
+- path: crates/vds-proof/src/visual_review.rs
+  digest: sha256:0b81afd349522ac042912813afe629df3069024d84b5f2f35ed83400e097cd08
+  kind: proof_script
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Proofs
+    blocking: true
+  - surface: package_script
+    reference: make gates
+    blocking: true
+  proves:
+  - visual_review
+  failing_direction_test:
+    path: crates/vds-proof/src/visual_review.rs
+    test_name: a_deviation_against_a_signed_frame_fails_and_names_the_deltas
+    seeds: a recorded deviate verdict against a signed fresh frame, with its delta named
+  pinned_at: 2026-08-01T12:26:28Z
+  pinned_by: jellytot
 - path: crates/vds-scan/src/glob.rs
   digest: sha256:ab8189e8d4d8e56cfbf0a4eca9d738b3c13438ae190ad6179e057368ceea40d3
   kind: ledger_generator
@@ -314,7 +370,7 @@ entries:
   pinned_at: 2026-07-25T14:28:57Z
   pinned_by: jellytot
 - path: crates/vds-scan/src/jsx.rs
-  digest: sha256:56796729f76f74061c49ac7bc1df68a2177955c8ce4e72702be76826828247d7
+  digest: sha256:2e8ccbb6afe3f5a868a205805c374cc46b32959ce295318a8a9eb8464b12249b
   kind: ledger_generator
   invoked_by:
   - surface: ci_workflow
@@ -326,10 +382,10 @@ entries:
     path: crates/vds-scan/src/jsx.rs
     test_name: a_generic_type_argument_is_not_a_tag
     seeds: a TypeScript generic argument that the scanner must not count as a component reference
-  pinned_at: 2026-07-30T13:57:10Z
+  pinned_at: 2026-08-01T12:26:36Z
   pinned_by: jellytot
-  supersedes_digest: sha256:6b4c0ee4c5707cab80ea38d023cf5185ed2e0446798912fe2f8a4bc766ecc17a
-  relock_rationale: Five gates edited in commits 1260462 and eb9313d shipped without a re-pin; self-filed as BREACH-0003. The edits are the vds-scan JSX generic fix and the retirement/collision proof work, both tested (674 workspace tests green). Re-pinning to the reviewed bytes so the lock binds what is actually in the tree.
+  supersedes_digest: sha256:56796729f76f74061c49ac7bc1df68a2177955c8ce4e72702be76826828247d7
+  relock_rationale: 'Lane feat/proof-kinds-visual-gap, 2026-08-01. Three gates changed for recorded reasons: (1) vds-scan/src/jsx.rs - three JSX lexer desyncs fixed (arrow-in-attribute closed the tag, JsxText persisted past the outermost closing tag, expression-rooted subtrees leaked brace frames), each reproduced against a subscriber tree and regression-tested; (2) vds-proof/src/geometry.rs - draft S-7A(5) authority-binding limb R11-R13/W2 added, ENACTMENT PENDING (SUBMISSION-VDS-012); (3) vds-proof/src/register_completeness.rs - draft S-5(9) measurement-coverage rules R2/R3 added, ENACTMENT PENDING (SUBMISSION-VDS-015). Every new rule carries a seed-red test.'
 - path: crates/vds-scan/src/lib.rs
   digest: sha256:2de8814f1d70d035042653b874b58e689578c6819d17e779789ea0d5be81587c
   kind: ledger_generator

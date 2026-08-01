@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "BurndownReading",
+  "description": "The generated burndown reading: every metric's current value, one file.\n\nA ledger under VDS S-4(2): generated, never hand-edited, byte-reproducible by the named command, and witnessing its own content for the reason the geometry reading does - this is the proof's ONLY measurement, and without the digest a regression is cured by editing one integer.",
+  "type": "object",
+  "required": [
+    "contentDigest",
+    "generatedBy",
+    "rows",
+    "schemaVersion",
+    "takenAt"
+  ],
+  "properties": {
+    "contentDigest": {
+      "type": "string"
+    },
+    "doesNotCover": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "generatedBy": {
+      "type": "string"
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/BurndownRow"
+      }
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    },
+    "takenAt": {
+      "description": "When the reading was taken. Inside the digest: the deadline rule measures from it, so moving it changes what the proof concludes.",
+      "$ref": "#/definitions/Timestamp"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "BurndownRow": {
+      "description": "One metric's measured value, as the subject's reader produced it.",
+      "type": "object",
+      "required": [
+        "metric",
+        "value"
+      ],
+      "properties": {
+        "measuredBy": {
+          "description": "Where the count came from, so a row is auditable: a command, a glob, a query. Never a design value.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "metric": {
+          "type": "string"
+        },
+        "value": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "Timestamp": {
+      "description": "UTC, second resolution, trailing Z. The one canonical form VDS writes.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    }
+  }
+}

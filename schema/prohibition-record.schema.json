@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "ProhibitionRecord",
+  "description": "One prohibition: a pattern that must be ABSENT from every file in scope.",
+  "type": "object",
+  "required": [
+    "expansion",
+    "id",
+    "pattern",
+    "scope",
+    "status"
+  ],
+  "properties": {
+    "basis": {
+      "description": "The authorities this prohibition rests on.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "because": {
+      "description": "Why this pattern is forbidden here, in one line.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "directedAt": {
+      "description": "When the directive was given, so a reader can date the undertaking.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Timestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "expansion": {
+      "description": "What the scope EXPANDED TO when the record was written, sorted.\n\nThe anti-narrowing baseline. The proof re-expands `scope` and compares: a recorded file the globs no longer reach is a narrowed scope and a fatal finding, never a silent shrink.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "id": {
+      "$ref": "#/definitions/ProhibitionId"
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "pattern": {
+      "description": "The forbidden spelling, matched as a LITERAL SUBSTRING per line.\n\nA substring and not a regular expression, decided as a reversible call (DECISION-0007): a regex's failure modes - catastrophic backtracking, an unescaped dot silently widening the match - are exactly the silent-scope defects this kind exists to refuse, and every motivating directive is a literal class or import spelling.",
+      "type": "string"
+    },
+    "scope": {
+      "description": "The scope, as declared: explicit paths or globs, repository-relative.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "$ref": "#/definitions/Status"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "ProhibitionId": {
+      "description": "A prohibition: a pattern asserted ABSENT from an enumerated scope (draft S-7B).",
+      "type": "string",
+      "pattern": "^PRB-[0-9]{4}$"
+    },
+    "Status": {
+      "description": "The lifecycle at VDS S-5(4). A directed path where skipping is forbidden.",
+      "type": "string",
+      "enum": [
+        "proposed",
+        "designed",
+        "registered",
+        "built",
+        "verified",
+        "deprecated",
+        "retired"
+      ]
+    },
+    "Timestamp": {
+      "description": "UTC, second resolution, trailing Z. The one canonical form VDS writes.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    }
+  }
+}

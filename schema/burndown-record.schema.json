@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "BurndownRecord",
+  "description": "One metric under burndown.",
+  "type": "object",
+  "required": [
+    "history",
+    "id",
+    "metric",
+    "status"
+  ],
+  "properties": {
+    "basis": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "deadline": {
+      "description": "By when the metric must reach zero, where a deadline was directed.\n\nMeasured against the READING's `taken_at` and never the wall clock, for the reason geometry R3 gives: a proof reading the system time produces different findings from identical inputs (VDS S-7(2)(1)).",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Timestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "history": {
+      "description": "Every pin ever declared, OLDEST FIRST. The pin in force is the last entry, derived and never stored beside it.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/PinnedValue"
+      }
+    },
+    "id": {
+      "$ref": "#/definitions/BurndownId"
+    },
+    "metric": {
+      "description": "The machine key the reading reports this metric under. One enforceable record per metric, or nothing says which pin governs.",
+      "type": "string"
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "$ref": "#/definitions/Status"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "BurndownId": {
+      "description": "A burndown: a pinned numeric reading whose only lawful direction is down (draft S-7C).",
+      "type": "string",
+      "pattern": "^BRN-[0-9]{4}$"
+    },
+    "PinnedValue": {
+      "description": "One pin, as declared at one moment.",
+      "type": "object",
+      "required": [
+        "at",
+        "value"
+      ],
+      "properties": {
+        "at": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "because": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "value": {
+          "description": "The measured value somebody stood behind at that moment.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "Status": {
+      "description": "The lifecycle at VDS S-5(4). A directed path where skipping is forbidden.",
+      "type": "string",
+      "enum": [
+        "proposed",
+        "designed",
+        "registered",
+        "built",
+        "verified",
+        "deprecated",
+        "retired"
+      ]
+    },
+    "Timestamp": {
+      "description": "UTC, second resolution, trailing Z. The one canonical form VDS writes.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    }
+  }
+}

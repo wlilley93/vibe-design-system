@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "GeometryAuthority",
+  "description": "The authority side of the two-sided geometry proof: a snapshot binding a Figma node's DECIDED values (fetched via REST, out of band, saved as a capture file) to the artefact reading in force when the comparison ran.\n\nA ledger under VDS S-4(2). The proof never re-derives the agreement - that would need the values - it verifies the BINDING: both input hashes must still match what is on disk, or the snapshot is STALE, visibly, and proves nothing (draft S-7A(5)).",
+  "type": "object",
+  "required": [
+    "capture",
+    "captureDigest",
+    "contentDigest",
+    "fetchedAt",
+    "fileKey",
+    "generatedBy",
+    "nodeId",
+    "readingDigest",
+    "rows",
+    "schemaVersion"
+  ],
+  "properties": {
+    "capture": {
+      "description": "The saved REST capture the authority side was read from, repository-relative. It holds realisations, so it lives in the project tree and NEVER under `.vds/` (VDS S-2(2)).",
+      "type": "string"
+    },
+    "captureDigest": {
+      "description": "Digest of the capture file at comparison time: the AUTHORITY side's input hash. The capture moving on disk stales this snapshot.",
+      "type": "string"
+    },
+    "contentDigest": {
+      "description": "A digest over every other field, for the reason the reading carries one: this snapshot is the proof's only record of the comparison.",
+      "type": "string"
+    },
+    "fetchedAt": {
+      "description": "When the authority values were FETCHED from the design file's API. The fetch date is part of the claim: an old capture is an old decision.",
+      "$ref": "#/definitions/Timestamp"
+    },
+    "fileKey": {
+      "type": "string"
+    },
+    "generatedBy": {
+      "type": "string"
+    },
+    "nodeId": {
+      "description": "The node the authority values were read from, `12:34` spelling.",
+      "type": "string"
+    },
+    "readingDigest": {
+      "description": "The geometry reading's content digest at comparison time: the ARTEFACT side's input hash. The reading regenerating stales this snapshot.",
+      "type": "string"
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/AuthorityAgreement"
+      }
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "AuthorityAgreement": {
+      "description": "One surface kind's agreement between the authority and the artefact.\n\nAn AGREEMENT BIT and never a value, per the S-2(7) pin amendment: a Figma `cornerRadius` is a realisation and has no field to live in here. The generator that compared the two sides holds the values; this row holds only whether they agreed and where to look when they did not.",
+      "type": "object",
+      "required": [
+        "agrees",
+        "surfaceKind"
+      ],
+      "properties": {
+        "agrees": {
+          "description": "Whether the authority reading and the artefact reading agree for this kind, as the out-of-band comparator found them.",
+          "type": "boolean"
+        },
+        "because": {
+          "description": "Where the disagreement lives, in the comparator's words. Required by the proof when `agrees` is false: a bare bit names no work.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "surfaceKind": {
+          "$ref": "#/definitions/SurfaceKind"
+        }
+      },
+      "additionalProperties": false
+    },
+    "SurfaceKind": {
+      "description": "The shapes a bound may be declared over. CLOSED, and closed on purpose.\n\nVDS S-7A(3): the bound is per SURFACE KIND and never one number for the estate. The subscriber project's instrument reported \"561 hand-rolled card-geometry containers, pin 561\", and that number names no work: it cannot be assigned to anybody, it cannot be finished, and it hides which shapes are worst. An enum rather than a free string is the strongest available form of that rule, because one undifferentiated bucket is then unrepresentable rather than merely discouraged.",
+      "oneOf": [
+        {
+          "description": "Corner radius.",
+          "type": "string",
+          "enum": [
+            "radius"
+          ]
+        },
+        {
+          "description": "The weight of a surface's boundary: a border, a ring, a divider.",
+          "type": "string",
+          "enum": [
+            "boundary_weight"
+          ]
+        },
+        {
+          "description": "Control density: the spacing step a surface sets its own padding and gaps from.",
+          "type": "string",
+          "enum": [
+            "density"
+          ]
+        },
+        {
+          "description": "Type scale: the size and leading step a surface sets its text from.",
+          "type": "string",
+          "enum": [
+            "type_scale"
+          ]
+        }
+      ]
+    },
+    "Timestamp": {
+      "description": "UTC, second resolution, trailing Z. The one canonical form VDS writes.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    }
+  }
+}

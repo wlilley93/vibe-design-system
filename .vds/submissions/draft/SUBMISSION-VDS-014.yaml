@@ -1,0 +1,37 @@
+id: SUBMISSION-VDS-014
+status: draft
+question: "May the proof registry grow a `burndown` kind (draft S-7C): a pinned numeric reading red on ANY increase AND on a decrease not re-pinned in the same change, with an optional deadline measured against the reading's own moment?"
+trigger: first_impression
+why_first_impression: |
+  The geometry bound is the only directional instrument, and it deliberately admits
+  slack (a bound above the measured count) plus a falling window. The consuming repos'
+  actual pattern is different: a metric pinned AT its measurement, where a stale floor
+  measures the next regression from the wrong place. That pattern exists today as
+  bespoke ratchet scripts, one per repo, each with its own storage and its own quiet
+  rot - the consolidation-over-fragmentation steer reaches the duplication, but no
+  authority reaches whether the ENGINE should own the instrument or what makes an
+  unre-pinned decrease red.
+citator_checked:
+  - citation: "VDS S-7A(2) (the falling bound)"
+    why_not_on_all_fours: "The nearest instrument, and a genuinely different one: S-7A admits slack between bound and count and demands FALLING on a window; a burndown admits no slack and demands the pin sit ON the truth. A geometry bound could not express 'red on any increase'."
+  - citation: "[2026] VJS-CC-VIBE-DESIGN-SYSTEM 7 (recorded field needs a proof limb)"
+    why_not_on_all_fours: "Every field the burndown records is read by a rule (the deadline by R3, the history by R4/R8); satisfied by construction, does not decide the kind."
+options:
+  - option: "Enact draft S-7C as implemented."
+    consequence: "One engine-owned instrument replaces N scripts; good news mis-filed (an unre-pinned fall) is red with a one-command cure named in the finding."
+  - option: "Refuse: keep ratchets in consuming repos."
+    consequence: "The duplication stands and each copy drifts; the stale-floor defect stays unfixed wherever a script forgot it."
+  - option: "Enact without the unre-pinned-decrease rule (a plain ratchet)."
+    consequence: "The instrument the geometry amendment already refused: a number that may only be held, with invisible headroom below the pin."
+evidence:
+  - "crates/vds-core/src/types/burndown.rs"
+  - "crates/vds-proof/src/burndown.rs"
+  - "VDS.md"
+case_file_digest: sha256:322e1e7855df2abe081cfdff55d6585c6293264d7b98c595b0b794344cc6bf61
+reserved_clause: null
+fail_closed_interim: "ENACTMENT PENDING. Built, drafted on its face, lock-pinned with its seed-red test; vacuous until a metric is pinned; no warrant may cite it before the ruling. DIGEST PROVENANCE: case_file_digest is derived by scripts/case-file-digest.sh over the evidence files named above, at drafting."
+filed_to: vjs
+vjs_submission_id: null
+created_at: 2026-08-01T12:00:00Z
+filed_at: null
+answer: null

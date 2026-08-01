@@ -62,6 +62,17 @@
         }
       ]
     },
+    "directedAt": {
+      "description": "When the directive behind this record was given. With `grace_days`, the clock on register_completeness R2: a directed record whose measuredBy is still empty after the grace goes red.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Timestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "figma": {
       "description": "The node in the decided-target Figma file. Null only while unproposed or unresolved; a proof reports the absence rather than assuming it away.",
       "anyOf": [
@@ -73,8 +84,24 @@
         }
       ]
     },
+    "graceDays": {
+      "description": "How long a directed record may stand unmeasured, in days. Declared by the project; what VDS fixes is that expiry is fatal.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint32",
+      "minimum": 0.0
+    },
     "id": {
       "$ref": "#/definitions/ComponentId"
+    },
+    "measuredBy": {
+      "description": "What MEASURES this record: the gates, proofs or readers that hold its conformance (draft S-5(9), ENACTMENT PENDING, SUBMISSION-VDS-015).\n\nEach entry names shipped code or a rendered-artefact reader, never a plan. The defect this closes was observed: rule rows registered with an empty measuredBy stayed green forever, and rows \"measured\" by pointing at a plan document were measured by prose. A measure pointing at internal-docs or a `.md` plan is refused by register_completeness R3.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     },
     "name": {
       "type": "string"

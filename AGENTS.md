@@ -99,8 +99,22 @@ vds figma frames --file-key <key> --from capture-1.json capture-2.json
 
 # The declared surface and the proofs
 vds ledger screens
-vds proof --list                      # the closed registry of 11, all implemented
+vds proof --list                      # the closed registry of 15, all implemented
+                                      # (prohibition, burndown and visual_review are DRAFT
+                                      # amendments of 2026-08-01, enactment pending)
 vds proof <kind> | --all [--invoked-by ci_workflow] [--allow-vacuous] [--no-capture]
+
+# The draft S-7B/S-7C/S-7D artefacts (enactment pending; the doors work now)
+vds prohibition add --pattern 'rounded-' --scope 'src/components/body/**/*.tsx' \
+    --because 'no container radius in body regions'
+vds prohibition re-expand <PRB-id> --because "..." | list
+vds burndown add --metric legacy_rule_blocks --value 376 [--deadline <rfc3339>]
+vds burndown pin --id <BRN-id> --to <lower> --because "..." | deprecate | list
+vds ledger burndown --from reading.json
+vds ledger geometry-authority --from snapshot.json
+vds signoff record --file-key <key> --node-id 1:2 --signed-by "the principal" | list
+vds redraw add --deviation "VRW-0001: ..." --proposed "..." --file-key <key> --node-id 1:2
+vds redraw set-status --id <RDW-id> --to signed --resolved-by <SGN-id> | list
 
 # The design round trip
 vds brief                             # what an agent may draw into Figma

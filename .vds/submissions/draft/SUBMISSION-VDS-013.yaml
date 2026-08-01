@@ -1,0 +1,36 @@
+id: SUBMISSION-VDS-013
+status: draft
+question: "May the proof registry grow a `prohibition` kind (draft S-7B): a pattern asserted ABSENT from an enumerated scope whose expansion is RECORDED, failing by naming surviving sites, refusing empty patterns and empty scopes, and treating a silently narrowed scope as fatal?"
+trigger: first_impression
+why_first_impression: |
+  No kind in the registry can assert an ABSENCE from a PLACE. The motivating directives
+  ('no container radius in body regions', 'no dotfield behind main areas') lived as
+  prose beside twenty-eight gates that could not read them. The nearest instruments -
+  no_stored_values (absence from .vds/**) and composition (absence of unregistered
+  references) - each fix their own scope by construction; neither admits a
+  project-declared pattern over a project-declared scope, and nothing anywhere records
+  a scope's expansion so that narrowing is a finding rather than a disappearance.
+citator_checked:
+  - citation: "VDS S-7(6) (the closed registry)"
+    why_not_on_all_fours: "Names the amendment route this submission takes; it does not decide whether this kind should exist."
+  - citation: "[2026] VJS-CC-OPBOX 3 (D3, vacuity)"
+    why_not_on_all_fours: "A pass over zero enforceable rows is not evidence. Applied inside the draft (R4/R5 refuse a prohibition that cannot fail); it motivates rather than decides the kind."
+options:
+  - option: "Enact draft S-7B as implemented (literal substring, recorded expansion, R1-R5 + W1)."
+    consequence: "Absence directives become checkable. Cost: a record per directive and a re-expansion duty when scopes legitimately change."
+  - option: "Refuse: absence directives stay in consuming repos as bespoke greps."
+    consequence: "Each grep re-invents scope recording or omits it; the silent-narrowing defect returns per repo."
+  - option: "Enact with regex patterns instead of substrings."
+    consequence: "More expressive, and the failure modes (backtracking, an unescaped dot silently widening a match) are exactly the silent-scope defects the kind exists to refuse. Refused as the draft's default; a future amendment could add an explicit regex flag."
+evidence:
+  - "crates/vds-core/src/types/prohibition.rs"
+  - "crates/vds-proof/src/prohibition.rs"
+  - "VDS.md"
+case_file_digest: sha256:140dde9affa9638d2f5fb4982087c30fff2ceaee735131fdb67dc47ff0288191
+reserved_clause: null
+fail_closed_interim: "ENACTMENT PENDING. The kind is built, marked drafted on its face, and pinned in the enforcement lock with its seed-red test; runs are vacuous until a project registers a prohibition, and no warrant may cite it before the ruling. DIGEST PROVENANCE: case_file_digest is derived by scripts/case-file-digest.sh over the evidence files named above, at drafting."
+filed_to: vjs
+vjs_submission_id: null
+created_at: 2026-08-01T12:00:00Z
+filed_at: null
+answer: null

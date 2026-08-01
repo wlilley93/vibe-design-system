@@ -44,6 +44,28 @@ enum Which {
         #[arg(long, value_name = "PATH")]
         from: Option<std::path::PathBuf>,
     },
+    /// The measured values of every pinned metric (draft S-7C).
+    ///
+    /// Always `--from`: what a metric MEANS is the subject's reader talking,
+    /// and VDS deliberately has no built-in counter to substitute for it. The
+    /// digest is computed here, never taken from the file, for the reason the
+    /// geometry arm gives.
+    Burndown {
+        /// A reading produced by the subject's own reader, as JSON.
+        #[arg(long, value_name = "PATH")]
+        from: std::path::PathBuf,
+    },
+    /// The authority snapshot binding the shipped geometry reading to a signed
+    /// frame's decided values (draft S-7A(5)).
+    ///
+    /// Always `--from`: the comparison of decided values against shipped ones
+    /// is the subject's comparator talking, run out of band over a SAVED REST
+    /// capture, because a proof may not call the network (VDS S-7(2)(1)).
+    GeometryAuthority {
+        /// A snapshot produced by the subject's comparator, as JSON.
+        #[arg(long, value_name = "PATH")]
+        from: std::path::PathBuf,
+    },
     /// Whether the workflow the lock names has ever actually concluded (BREACH-0011).
     ///
     /// D4 asks "is every gate invoked by CI". It read the lock's own declaration, then
@@ -227,6 +249,87 @@ pub fn run(ctx: &Context, args: &Args) -> Result<i32> {
             println!("  Does NOT cover:");
             for line in &reading.does_not_cover {
                 println!("    - {line}");
+            }
+            Ok(PASSED)
+        }
+        Which::Burndown { from } => {
+            let text =
+                std::fs::read_to_string(from).map_err(|e| VdsError::io(from.display(), e))?;
+            let mut reading: vds_core::BurndownReading =
+                serde_json::from_str(&text).map_err(|e| VdsError::Artefact {
+                    path: project.rel(from),
+                    message: format!("is not a burndown reading: {e}"),
+                })?;
+            // Computed here, never taken from the file: the whole value of the
+            // digest is that something other than the hand that wrote the
+            // content computed it.
+            reading.content_digest = reading.compute_content_digest()?;
+            let path = vds_core::write_burndown_reading(&project, &reading)?;
+            println!("wrote {}", project.rel(&path));
+            println!("  by:       {}", reading.generated_by);
+            println!("  taken at: {}", reading.taken_at);
+            for row in &reading.rows {
+                println!(
+                    "  {:32} {:>8}{}",
+                    row.metric,
+                    row.value,
+                    row.measured_by
+                        .as_deref()
+                        .map(|m| format!("   ({m})"))
+                        .unwrap_or_default()
+                );
+            }
+            Ok(PASSED)
+        }
+        Which::GeometryAuthority { from } => {
+            let text =
+                std::fs::read_to_string(from).map_err(|e| VdsError::io(from.display(), e))?;
+            let mut snapshot: vds_core::GeometryAuthority =
+                serde_json::from_str(&text).map_err(|e| VdsError::Artefact {
+                    path: project.rel(from),
+                    message: format!("is not a geometry authority snapshot: {e}"),
+                })?;
+            // The two input hashes are REFUSED unless they match what is on
+            // disk right now: a snapshot born stale would fail the proof on
+            // its first run and teach the subject the ledger is noise.
+            let capture_path = project.root.join(&snapshot.capture);
+            let capture_now = vds_core::Digest::of_file(&capture_path).map_err(|_| {
+                VdsError::precondition(format!(
+                    "the capture {} cannot be read, so the authority side's input hash                      cannot be verified. The capture lives in the PROJECT tree (it holds                      realisations and may not enter .vds/), and the snapshot names it.",
+                    snapshot.capture
+                ))
+            })?;
+            if capture_now != snapshot.capture_digest {
+                return Err(VdsError::precondition(format!(
+                    "the snapshot binds capture digest {} and {} digests to {capture_now} on                      disk. A snapshot born stale proves nothing; regenerate it from the                      current capture.",
+                    snapshot.capture_digest, snapshot.capture
+                )));
+            }
+            let reading = vds_core::read_reading(&project)?.ok_or_else(|| {
+                VdsError::precondition(
+                    "no geometry reading exists, so there is no artefact side to bind. Run                      `vds ledger geometry` first.",
+                )
+            })?;
+            if reading.content_digest != snapshot.reading_digest {
+                return Err(VdsError::precondition(format!(
+                    "the snapshot binds reading digest {} and the reading on disk digests to                      {}. Regenerate the snapshot against the current reading.",
+                    snapshot.reading_digest, reading.content_digest
+                )));
+            }
+            snapshot.content_digest = snapshot.compute_content_digest()?;
+            let path = vds_core::write_authority(&project, &snapshot)?;
+            println!("wrote {}", project.rel(&path));
+            println!("  frame:    {}/{}", snapshot.file_key, snapshot.node_id);
+            println!(
+                "  capture:  {} (fetched {})",
+                snapshot.capture, snapshot.fetched_at
+            );
+            for row in &snapshot.rows {
+                println!(
+                    "  {:16} {}",
+                    row.surface_kind.to_string(),
+                    if row.agrees { "agrees" } else { "DISAGREES" }
+                );
             }
             Ok(PASSED)
         }

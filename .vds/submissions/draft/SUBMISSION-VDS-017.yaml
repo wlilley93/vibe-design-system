@@ -1,0 +1,39 @@
+id: SUBMISSION-VDS-017
+status: draft
+question: "Shall the sign-off registry, the conform|deviate|no_authority authority states, and the proposed-redraw primitive be enacted (draft S-7D(1)-(5)) - and shall the richness-is-a-floor ACCEPTANCE DOCTRINE, which was court-adopted, be REPEALED, so that an addition the frame omits is a deviation exactly like a missing element and the only resolution path is a new signed frame version?"
+trigger: proposal_to_overrule
+why_first_impression: |
+  This submission openly proposes to overrule. The acceptance doctrine - a shipped
+  surface richer than its frame may be excused, with direction-carrying acceptance
+  states recording the excusal - was adopted by the bench in the screen-parity family
+  of rulings. The Principal's constitutional direction of 2026-08-01 is that the
+  signed-off Figma DEFINES taste, exercised once, at frame sign-off; deviations are not
+  adjudicated downstream. Under that direction an engine-side acceptance state is taste
+  exercised in exactly the place the direction forbids. A Principal direction that
+  conflicts with adopted precedent routes to the bench rather than being silently
+  implemented, and this is that routing: the trigger is proposal_to_overrule, and the
+  repeal is stated rather than smuggled.
+citator_checked:
+  - citation: "[2026] VJS-CC-VDS-REGISTER-CONTRACT-007 / the screen-parity acceptance rulings"
+    why_not_on_all_fours: "The authority proposed to be overruled IN PART: its acceptance/excusal concepts, as applied to the NEW frame-bound kinds. The drafts do not touch screen_parity's enacted behaviour; whether the repeal should reach it too is squarely for the bench."
+  - citation: "VDS S-1(2) / S-10 (VDS decides nothing)"
+    why_not_on_all_fours: "The reason this is a submission and not a decision log: overruling adopted precedent is the enumerated proposal_to_overrule trigger."
+options:
+  - option: "Enact S-7D(1)-(5) and repeal the acceptance doctrine for all frame-bound kinds, new and enacted."
+    consequence: "One taste regime everywhere; screen_parity's acceptance surface is removed in a follow-up amendment."
+  - option: "Enact S-7D(1)-(5) for the NEW kinds only; screen_parity keeps its enacted acceptance behaviour until separately amended."
+    consequence: "The drafts as built. Two regimes coexist, visibly, each citing its instrument; no enacted behaviour changes without its own ruling."
+  - option: "Refuse the repeal: graft acceptance states onto the new kinds."
+    consequence: "An addition the frame omits could be excused engine-side, against the constitutional direction; the direction and the doctrine cannot both stand, so this option is really a referral of the direction itself back to the Principal."
+evidence:
+  - "crates/vds-core/src/types/signoff.rs"
+  - "crates/vds-proof/src/visual_review.rs"
+  - "VDS.md"
+case_file_digest: sha256:510d75377fea897d40b57004b73c1421c5952ef171fd278dca06699425d3048f
+reserved_clause: null
+fail_closed_interim: "ENACTMENT PENDING, and the interim is option 2 by construction: the new kinds carry NO acceptance state (the enum is closed at three and `accepted` does not parse), while screen_parity's enacted behaviour is untouched. Authority is resolved by hash against the sign-off register, which is empty until a Principal signs; every frame-bound verdict is therefore no_authority - coverage owed, never green - which is the fail-closed direction. DIGEST PROVENANCE: case_file_digest is derived by scripts/case-file-digest.sh over the evidence files named above, at drafting."
+filed_to: vjs
+vjs_submission_id: null
+created_at: 2026-08-01T12:00:00Z
+filed_at: null
+answer: null

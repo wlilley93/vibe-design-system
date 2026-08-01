@@ -321,6 +321,27 @@ set is a violation.
 measured it and the timestamp. A `demand` figure older than its ledger's generation is
 stale and the reconciliation proof says so.
 
+**S-5(9) - DRAFT AMENDMENT of 2026-08-01, ENACTMENT PENDING (SUBMISSION-VDS-015).** A
+registered record that a directive stands behind must be MEASURED BY something, and the
+measure must read the work. Three limbs:
+
+1. A record may carry `measuredBy` (the gates, proofs or readers that hold its
+   conformance), `directedAt` (when the directive was given) and `graceDays` (how long it
+   may stand unmeasured). The grace is the project's to declare; that expiry is fatal is
+   VDS's.
+2. A directed record whose `measuredBy` is EMPTY after its grace goes red
+   (`register_completeness` R2). The defect this closes was observed on the subscriber
+   project: rule rows registered with nothing measuring them stayed green forever, which
+   is how twenty-eight gates coexisted with pages that looked nothing like their frames.
+3. A measure pointing at a plan or documentation artefact (`internal-docs/`, a `*.md`
+   plan, a README) is INVALID (`register_completeness` R3). A rule measured by a plan is
+   measured by prose, and the plan can promise anything while the row stays green.
+   Measures read shipped code or rendered artefacts.
+
+The clock is a ledger's generation moment, never the wall clock (S-7(2)(1)). Records
+carrying neither field predate the draft and are outside it: the clause reaches what was
+DIRECTED, and does not retroactively redden the register.
+
 ---
 
 ## S-5A The screen register
@@ -502,6 +523,9 @@ that is the honest description of where they stand.
 | `no_stored_values` | `.vds/**` holds no realisation AND yields none under the S-2(9) recovery test, S-2(8) |
 | `screen_parity` | each registered screen's required arrangement is the one its authoritative frame draws, S-5A |
 | `geometry` | each registered surface's SHAPE - radius, boundary weight, density, type scale - is the one the design system specifies, and the count of surfaces that do not comply is BOUNDED AND FALLING, S-7A |
+| `prohibition` | each registered pattern is ABSENT from its enumerated scope, and the scope has not narrowed since it was recorded, S-7B (DRAFT, enactment pending) |
+| `burndown` | each pinned metric reads exactly its pin: any increase is red, and a decrease not re-pinned is red too, S-7C (DRAFT, enactment pending) |
+| `visual_review` | each recorded visual verdict still holds: shipped screenshot against SIGNED frame, stale the moment either side or the authority moves, S-7D (DRAFT, enactment pending) |
 
 The eleventh kind was added by amendment on 2026-07-30, by the route S-7(6) requires. The
 first ten all read a COMPONENT; `register_completeness` and `composition` say "screen" and
@@ -522,6 +546,18 @@ column deviations - and the application looked substantially unchanged to the pe
 commissioned the work. The paint had moved and the shape had not: 561 hand-rolled
 card-geometry containers, 376 legacy rule blocks and 385 files importing the outgoing
 component library were all invisible to every proof in the registry.
+
+The thirteenth, fourteenth and fifteenth kinds were DRAFTED on 2026-08-01 and are pending
+enactment: the amendments are filed (SUBMISSION-VDS-013, -014, -016/-017) and the code is
+built behind them, marked as drafted on its face, so it ships the day the ruling lands.
+They are drawn from the same migration's post-mortem, one level further out. The twelve
+enacted kinds could hold the structure of a page to its frame and the shape of its
+surfaces to a falling bound; none of them could hold a PATTERN absent from a place
+(S-7B), consolidate the bespoke ratchet scripts every consuming repo had grown (S-7C), or
+hold the RENDERED PAGE to the SIGNED FRAME through anything but structure (S-7D). And
+S-7D carries a constitutional direction of its own: the signed-off Figma DEFINES taste,
+exercised once, at sign-off - which REPEALS the acceptance doctrine the earlier
+adjudication rulings had adopted, and says so in the submission rather than smuggling it.
 
 ### S-7A GEOMETRY, AND WHY A PIN IS NOT A PROOF
 
@@ -559,6 +595,100 @@ model of the intended design is a legitimate design tool and is NOT admissible a
 subject of this proof: it is a third artefact that drifts, and on the subscriber project a
 17-page code model of the design drifted so completely that it now models the OUTGOING
 system it was built to replace. The proof reads what ships. The frames remain the target.
+
+**S-7A(5) - DRAFT AMENDMENT of 2026-08-01, ENACTMENT PENDING (SUBMISSION-VDS-012).** The
+TWO-SIDED binding. The reading at S-7A(4) measures what shipped; this clause binds it to
+what was DECIDED. An authority snapshot - generated out of band from a saved REST capture
+of the signed frame's node values, because a proof may not call the network (S-7(2)(1)) -
+records, per surface kind, an AGREEMENT BIT and never a value (the S-2(7) pin discipline),
+plus the input hash of each side: the capture's digest and the reading's content digest.
+The proof holds while both hashes still match what is on disk and the agreement bits are
+true; it goes STALE, visibly and fatally, the moment either side's input hash changes. A
+silently green stale binding is the 561-pin-561 instrument again, and the staleness rule
+is the whole reason the snapshot exists. The snapshot's frame is subject to S-7D
+authority: agreement claimed against an unsigned frame is refused.
+
+### S-7B PROHIBITION - DRAFT AMENDMENT of 2026-08-01, ENACTMENT PENDING (SUBMISSION-VDS-013)
+
+**S-7B(1)** A prohibition asserts a pattern ABSENT from an ENUMERATED scope. This is the
+instrument for the "no container radius in body regions" / "no dotfield behind main
+areas" class of directive, which on the subscriber project's migration lived as prose
+beside twenty-eight gates that could not read it. Prose is not enforcement.
+
+**S-7B(2)** The scope is an explicit file list or a glob, and the glob's EXPANSION at
+registration is recorded in the record. A recorded file the globs no longer reach is a
+fatal finding, never a disappearance: without the recorded expansion, a file renamed out
+of the glob takes its violations with it and the pass over the smaller population reads
+exactly like a pass over the original. Growth past the recorded expansion is scanned AND
+warned, so a new file is never an unenforced shadow while the baseline catches up.
+
+**S-7B(3)** Failure NAMES THE SURVIVING SITES, file and line. A count names no work.
+
+**S-7B(4)** A prohibition that cannot fail is refused: an empty pattern, or a scope whose
+recorded expansion is empty, is not a control but the appearance of one (S-7(2)(4)).
+
+### S-7C BURNDOWN - DRAFT AMENDMENT of 2026-08-01, ENACTMENT PENDING (SUBMISSION-VDS-014)
+
+**S-7C(1)** A burndown pins a NUMERIC READING whose only lawful direction is down. It
+consolidates the pattern every consuming repo had grown as its own bespoke ratchet
+script, each with its own storage and its own quiet way of rotting.
+
+**S-7C(2)** The pin must SIT ON the measured value. Red on ANY increase, because the pin
+is the last measurement and not an allowance above it. Red ALSO on a decrease that was
+not re-pinned in the same change: a stale floor measures the next regression from the
+wrong place, and a metric that fell forty under its pin has forty regressions of
+invisible headroom. Green means exactly one thing - the pin is the truth.
+
+**S-7C(3)** A deadline, where directed, is measured against the reading's `taken_at` and
+never the wall clock (S-7(2)(1)). Past it, a non-zero metric is red until zero or until
+the undertaking is renegotiated as a NEW record with the reason on it.
+
+**S-7C(4)** A raised pin is refused wherever it appears in the history, on S-7A(2)'s
+reasoning: the lawful route to a higher number is a deprecation and a new baseline.
+
+### S-7D VISUAL REVIEW, FRAME SIGN-OFF, AND THE END OF DOWNSTREAM TASTE - DRAFT AMENDMENT of 2026-08-01, ENACTMENT PENDING (SUBMISSION-VDS-016, -017)
+
+**S-7D(1)** The constitutional direction (Principal, 2026-08-01): the signed-off Figma
+DEFINES taste. Taste is exercised once, at frame sign-off, and deviations are not
+adjudicated downstream. Everything in this section is that sentence made mechanical.
+
+**S-7D(2)** THE SIGN-OFF REGISTER. A sign-off row records the file key, the node id, the
+frame's CONTENT HASH at sign-off, the signer, and the date. Authority for any frame-bound
+proof exists ONLY while the frame's current content hash matches a sign-off row. A frame
+edited after sign-off reverts to UNSIGNED until re-signed, however senior the last
+signer: staleness is by hash, never by trust. VDS records who signed and never decides
+who may sign; granting is not the engine's to do (S-1(3)).
+
+**S-7D(3)** AUTHORITY STATES. The verdict vocabulary of every frame-bound proof is
+`conform | deviate | no_authority`, closed at three. `no_authority` - the frame unsigned,
+parked, a proposal, or changed since sign-off - is a DISTINCT state: never green, never
+red, reported as coverage owed. A proof cannot claim conformance against an unsigned
+frame; the claim is refused at validation, because green-against-nothing is the one
+combination that would smuggle taste back downstream.
+
+**S-7D(4)** NO ACCEPTANCE STATE. The direction-blind and direction-carrying acceptance
+concepts do not exist in these kinds. An addition the frame omits is a deviation exactly
+like a missing element; direction carries no excuse. The resolution path is a new signed
+frame version, never an engine-side excusal. This deliberately REPEALS the
+richness-is-a-floor acceptance doctrine, which was court-adopted; the repeal is put to
+the bench openly in SUBMISSION-VDS-017 rather than implemented as if it were settled.
+
+**S-7D(5)** PROPOSED REDRAWS. A deviation routed back through the design is a redraw
+record: the deviation, the proposed change described, a status of
+`proposed | drawn | signed | withdrawn`, and the frame it belongs to. `signed` is lawful
+ONLY with a `resolved_by` naming a sign-off row whose hash covers the change - the
+frame's current hash, verified on every run. This is the machine-readable form of "add it
+neatly later": the band comes back through the design, never through an exception.
+
+**S-7D(6)** THE VISUAL REVIEW RECORD. The verdict artefact of an automated visual pass:
+shipped-screenshot hash, the route's source digest at review time, frame-image hash, the
+frame's content digest at review time, a delta list, the reviewing agent's identity, and
+the date. The engine validates, stores and stales the record; the capture and review
+pipeline lives in the consuming repo, because a proof may not call a network or a model
+(S-7(2)(1)). A verdict is evidence only while the shipped side, the frame side, AND the
+authority all still hash to what was reviewed; any of the three moving ENDS the verdict,
+visibly. A deviate verdict with no deltas, or a conform verdict with some, is incoherent
+and refused: a verdict and its evidence may not disagree.
 
 **S-7(6)** Adding a proof kind is an amendment to this specification and to the invariant
 registry, not a script anyone may drop in. The registry is closed for the same reason VJS
@@ -813,7 +943,7 @@ unrepresentable rather than invalid. Where a rule can be made structural it is m
 structural, because a rule enforced at runtime is a rule that can be reached with the check
 disabled.
 
-**S-14A(3)** All twelve proof kinds at S-7(5) are implemented. `unimplemented_because` is kept on
+**S-14A(3)** All fifteen proof kinds at S-7(5) are implemented. `unimplemented_because` is kept on
 the type rather than deleted: a kind that later has to be withdrawn must record WHY, per kind,
 rather than disappearing from a match arm, and the difference between work and a dependency is
 what tells a reader which it is. What remains unbuilt is a pin GENERATOR: `token_pin` checks a
