@@ -105,6 +105,14 @@ const RULE_INPUT_INCOHERENT: &str = "VDS S-7A geometry R9: an input that does no
 const RULE_READING_EDITED: &str =
     "VDS S-2(5)(4) geometry R10: the reading witnesses its own content";
 const RULE_UNCLAIMED_KIND: &str = "VDS S-7A(3) geometry W1: a shape nobody has undertaken";
+const RULE_AUTHORITY_EDITED: &str =
+    "draft S-7A(5) geometry R11: the authority snapshot witnesses its own content";
+const RULE_AUTHORITY_STALE: &str =
+    "draft S-7A(5) geometry R12: a side of the binding moved; the snapshot is STALE";
+const RULE_AUTHORITY_DISAGREES: &str =
+    "draft S-7A(5) geometry R13: the shipped shape disagrees with the decided one";
+const RULE_AUTHORITY_UNSIGNED: &str =
+    "draft S-7D geometry W2: no authority; coverage owed, never green, never red";
 
 /// Stated on every run, passing or not.
 ///
@@ -127,7 +135,7 @@ const RESERVED_NOTE: &str = "[reserved] This kind checks the BOUND and its DIREC
 /// A bound's window is declared in days and no rule here is sensitive to hours;
 /// pulling in a date library to be wrong by less than a day would be precision
 /// nobody asked for.
-fn days_between(earlier: &str, later: &str) -> Option<i64> {
+pub(crate) fn days_between(earlier: &str, later: &str) -> Option<i64> {
     let day = |s: &str| -> Option<i64> {
         let date = s.get(..10)?;
         let mut parts = date.split('-');
@@ -561,6 +569,162 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
         ));
     }
 
+    // Draft S-7A(5), ENACTMENT PENDING: the two-sided binding. The snapshot
+    // binds the AUTHORITY reading (the signed frame's decided values, fetched
+    // out of band and saved as a capture) to the ARTEFACT reading above. The
+    // proof never re-derives the agreement - that would need the values - it
+    // verifies the BINDING: both input hashes must still match what is on
+    // disk, and the frame must carry authority under the sign-off register.
+    if let Some(snapshot) = vds_core::read_authority(project)? {
+        run.input_file(&vds_core::authority_path(project))?;
+
+        if let Some(why) = snapshot.untrustworthy_because()? {
+            // R11. Nothing in an edited snapshot can be relied on.
+            for _ in &snapshot.rows {
+                run.row(Verdict::Skipped("authority_snapshot_edited"));
+            }
+            run.fail(Violation::fatal(
+                project.rel(&vds_core::authority_path(project)),
+                RULE_AUTHORITY_EDITED,
+                "a snapshot whose contentDigest matches its own content",
+                why,
+            ));
+        } else {
+            // R12, both sides. STALE is a failure, never a quiet green: the
+            // whole point of the binding is that it EXPIRES when either side
+            // moves, visibly.
+            let mut stale: Vec<String> = Vec::new();
+            match reading.as_ref() {
+                None => stale.push(
+                    "the ARTEFACT side: no geometry reading exists, so the reading this \
+                     snapshot was bound to is gone"
+                        .to_owned(),
+                ),
+                Some(r) if r.content_digest != snapshot.reading_digest => stale.push(format!(
+                    "the ARTEFACT side: the geometry reading now digests to {} and the \
+                     snapshot was bound to {}",
+                    r.content_digest, snapshot.reading_digest
+                )),
+                Some(_) => {}
+            }
+            let capture_path = project.root.join(&snapshot.capture);
+            match vds_core::Digest::of_file(&capture_path) {
+                Err(_) => stale.push(format!(
+                    "the AUTHORITY side: the capture {} cannot be read",
+                    snapshot.capture
+                )),
+                Ok(now) if now != snapshot.capture_digest => stale.push(format!(
+                    "the AUTHORITY side: the capture {} now digests to {now} and the \
+                     snapshot was bound to {}",
+                    snapshot.capture, snapshot.capture_digest
+                )),
+                Ok(_) => {}
+            }
+
+            if !stale.is_empty() {
+                for _ in &snapshot.rows {
+                    run.row(Verdict::Skipped("authority_snapshot_stale"));
+                }
+                run.fail(Violation::fatal(
+                    project.rel(&vds_core::authority_path(project)),
+                    RULE_AUTHORITY_STALE,
+                    "both input hashes to still match what is on disk",
+                    format!(
+                        "{}. The binding expired: regenerate the snapshot from the current \
+                         capture and reading rather than trusting an agreement measured \
+                         between artefacts that no longer exist.",
+                        stale.join("; ")
+                    ),
+                ));
+            } else {
+                // The authority question: does a sign-off row cover the
+                // frame's CURRENT hash? Draft S-7D: no_authority is distinct,
+                // and an agreement CLAIM against an unsigned frame is refused.
+                let signoffs: Vec<vds_core::SignOff> = store
+                    .read_signoffs()?
+                    .into_iter()
+                    .map(|l| l.value)
+                    .collect();
+                let frames = vds_figma::frames::read(project)?;
+                let current_frame = frames
+                    .as_ref()
+                    .filter(|l| l.file_key == snapshot.file_key)
+                    .and_then(|l| l.row(&snapshot.node_id))
+                    .and_then(|r| r.content_digest.as_ref());
+                let authority = vds_core::frame_authority(
+                    &snapshot.file_key,
+                    &snapshot.node_id,
+                    current_frame,
+                    &signoffs,
+                );
+
+                for row in &snapshot.rows {
+                    let location = format!(
+                        "authority [{}] {}/{}",
+                        row.surface_kind, snapshot.file_key, snapshot.node_id
+                    );
+                    match &authority {
+                        vds_core::FrameAuthority::Unsigned { because } if row.agrees => {
+                            run.row(Verdict::Enforced);
+                            run.fail(Violation::fatal(
+                                location,
+                                RULE_AUTHORITY_UNSIGNED,
+                                "agreement claimed only against a frame whose CURRENT hash \
+                                 matches a sign-off row",
+                                format!(
+                                    "the snapshot claims the shipped {} agrees with the \
+                                     decided one, and the frame carries no authority: \
+                                     {because} A proof cannot claim conformance against an \
+                                     unsigned frame (draft S-7D).",
+                                    row.surface_kind
+                                ),
+                            ));
+                        }
+                        vds_core::FrameAuthority::Unsigned { because } => {
+                            run.row(Verdict::Skipped("no_authority_frame_unsigned"));
+                            run.warn(Violation::fatal(
+                                location,
+                                RULE_AUTHORITY_UNSIGNED,
+                                "a sign-off row matching the frame's current content hash",
+                                format!(
+                                    "no_authority: {because} COVERAGE OWED, and neither a \
+                                     pass nor a failure."
+                                ),
+                            ));
+                        }
+                        vds_core::FrameAuthority::Signed { .. } if !row.agrees => {
+                            run.row(Verdict::Enforced);
+                            run.fail(Violation::fatal(
+                                location,
+                                RULE_AUTHORITY_DISAGREES,
+                                format!(
+                                    "the shipped {} to agree with the decided one \
+                                     (capture {}, fetched {})",
+                                    row.surface_kind,
+                                    snapshot.capture,
+                                    snapshot.fetched_at.as_str()
+                                ),
+                                format!(
+                                    "the comparator found disagreement{}. Taste was \
+                                     exercised at sign-off; the resolution is to move the \
+                                     shipped shape, or to redraw and RE-SIGN the frame - \
+                                     never an engine-side excusal (draft S-7D).",
+                                    row.because
+                                        .as_deref()
+                                        .map(|b| format!(": {b}"))
+                                        .unwrap_or_default()
+                                ),
+                            ));
+                        }
+                        vds_core::FrameAuthority::Signed { .. } => {
+                            run.row(Verdict::Enforced);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     if bounds.is_empty() {
         run.note(
             "[scope] no geometry bound is declared, so every row is skipped and this run is \
@@ -979,6 +1143,148 @@ mod proof_tests {
         compliant(&h);
         let (_, text) = run_kind(&h, ProofKind::Geometry);
         assert!(text.contains("fourth design authority"), "{text}");
+    }
+}
+
+#[cfg(test)]
+mod authority_binding_tests {
+    use crate::testing::{Harness, run_kind};
+    use vds_core::{EXIT_VIOLATION, ProofKind, ProofStatus, ReadFrom, SurfaceKind};
+
+    /// A compliant bound and reading, a captured frame, and a sign-off at the
+    /// frame's current hash.
+    fn signed(h: &Harness) {
+        h.geometry_bound(
+            SurfaceKind::Radius,
+            30,
+            &[("2026-06-01", 667), ("2026-07-20", 561)],
+        );
+        h.geometry_reading(
+            "2026-07-31",
+            ReadFrom::ShippedStylesheet,
+            &[(SurfaceKind::Radius, 900, 540, 0)],
+        );
+        h.frames(&[Harness::frame("1:2", "kit frame", &["body"], 1)]);
+        h.signoff("KEY", "1:2");
+    }
+
+    #[test]
+    fn a_fresh_agreeing_snapshot_against_a_signed_frame_passes() {
+        let h = Harness::new();
+        signed(&h);
+        h.geometry_authority("KEY", "1:2", &[(SurfaceKind::Radius, true)]);
+        let (outcome, text) = run_kind(&h, ProofKind::Geometry);
+        assert_eq!(outcome.status, ProofStatus::Passed, "{text}");
+        // One bound row plus one authority row.
+        assert_eq!(outcome.rows_enforced, 2, "{text}");
+    }
+
+    /// THE failing-direction seed for R13: the comparator found the shipped
+    /// shape disagreeing with the decided one.
+    #[test]
+    fn a_disagreement_with_the_decided_shape_fails_and_names_the_resolution() {
+        let h = Harness::new();
+        signed(&h);
+        h.geometry_authority("KEY", "1:2", &[(SurfaceKind::Radius, false)]);
+        let (outcome, text) = run_kind(&h, ProofKind::Geometry);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("off the decided scale"), "{text}");
+        assert!(
+            text.contains("never an engine-side excusal"),
+            "the repeal is stated on the finding: {text}"
+        );
+    }
+
+    /// R12, artefact side: the reading regenerates after the comparison, and
+    /// the binding must EXPIRE visibly rather than stay green.
+    #[test]
+    fn a_snapshot_whose_reading_moved_is_stale_and_fails() {
+        let h = Harness::new();
+        signed(&h);
+        h.geometry_authority("KEY", "1:2", &[(SurfaceKind::Radius, true)]);
+        // The artefact side moves: a new reading with different counts.
+        h.geometry_reading(
+            "2026-08-01",
+            ReadFrom::ShippedStylesheet,
+            &[(SurfaceKind::Radius, 900, 500, 0)],
+        );
+        let (outcome, text) = run_kind(&h, ProofKind::Geometry);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("ARTEFACT side"), "{text}");
+        assert!(text.contains("The binding expired"), "{text}");
+    }
+
+    /// R12, authority side: the saved capture moves.
+    #[test]
+    fn a_snapshot_whose_capture_moved_is_stale_and_fails() {
+        let h = Harness::new();
+        signed(&h);
+        h.geometry_authority("KEY", "1:2", &[(SurfaceKind::Radius, true)]);
+        h.write(
+            "design/captures/geometry-authority.json",
+            "{\"nodes\":{\"1:2\":{\"document\":{\"name\":\"REDRAWN\"}}}}\n",
+        );
+        let (outcome, text) = run_kind(&h, ProofKind::Geometry);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("AUTHORITY side"), "{text}");
+    }
+
+    /// Draft S-7D: an agreement CLAIM against an unsigned frame is refused.
+    #[test]
+    fn an_agreement_claim_against_an_unsigned_frame_is_refused() {
+        let h = Harness::new();
+        h.geometry_bound(
+            SurfaceKind::Radius,
+            30,
+            &[("2026-06-01", 667), ("2026-07-20", 561)],
+        );
+        h.geometry_reading(
+            "2026-07-31",
+            ReadFrom::ShippedStylesheet,
+            &[(SurfaceKind::Radius, 900, 540, 0)],
+        );
+        h.frames(&[Harness::frame("1:2", "kit frame", &["body"], 1)]);
+        // NO sign-off.
+        h.geometry_authority("KEY", "1:2", &[(SurfaceKind::Radius, true)]);
+        let (outcome, text) = run_kind(&h, ProofKind::Geometry);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(
+            text.contains("cannot claim conformance against an unsigned frame"),
+            "{text}"
+        );
+    }
+
+    /// MANDATE SEED 1 for this limb: a signed frame whose hash then drifts
+    /// flips the authority rows to no_authority - never green, never red.
+    #[test]
+    fn a_frame_that_changed_after_signoff_flips_the_binding_to_no_authority() {
+        let h = Harness::new();
+        signed(&h);
+        // The frame is REDRAWN after sign-off: its current hash moves.
+        h.frames(&[Harness::frame("1:2", "kit frame REDRAWN", &["body"], 2)]);
+        // An honest snapshot against the redrawn frame, not claiming agreement.
+        h.geometry_authority("KEY", "1:2", &[(SurfaceKind::Radius, false)]);
+        let (outcome, text) = run_kind(&h, ProofKind::Geometry);
+        // The bound row still passes; the authority row is coverage owed, and
+        // the disagreement is NOT adjudicated red against a dead sign-off.
+        assert_eq!(outcome.status, ProofStatus::Passed, "{text}");
+        assert!(text.contains("no_authority_frame_unsigned"), "{text}");
+        assert!(text.contains("changed after sign-off"), "{text}");
+        assert!(text.contains("COVERAGE OWED"), "{text}");
+    }
+
+    #[test]
+    fn an_edited_snapshot_is_refused_by_its_own_digest() {
+        let h = Harness::new();
+        signed(&h);
+        let path = h.geometry_authority("KEY", "1:2", &[(SurfaceKind::Radius, false)]);
+        let original = std::fs::read_to_string(&path).unwrap();
+        let edited = original.replace("agrees: false", "agrees: true");
+        assert_ne!(edited, original, "the seed did not change the snapshot");
+        std::fs::write(&path, &edited).unwrap();
+        let (outcome, text) = run_kind(&h, ProofKind::Geometry);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("edited after it was generated"), "{text}");
     }
 }
 

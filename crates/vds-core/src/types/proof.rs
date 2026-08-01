@@ -59,10 +59,21 @@ pub enum ProofKind {
     /// and the count that does not comply is BOUNDED AND FALLING. The only kind
     /// that carries a DIRECTION rather than a threshold.
     Geometry,
+    /// A registered pattern is ABSENT from its enumerated scope, and the scope
+    /// cannot silently narrow. Draft S-7B, enactment pending.
+    Prohibition,
+    /// A pinned numeric reading whose only lawful direction is down: red on any
+    /// increase AND on a decrease that was not re-pinned. Draft S-7C, enactment
+    /// pending.
+    Burndown,
+    /// The recorded visual verdicts hold: shipped screenshot against signed
+    /// frame, stale on either side moving, no conformance claim without
+    /// authority. Draft S-7D, enactment pending.
+    VisualReview,
 }
 
 impl ProofKind {
-    pub const ALL: [ProofKind; 12] = [
+    pub const ALL: [ProofKind; 15] = [
         ProofKind::RegisterCompleteness,
         ProofKind::Reconciliation,
         ProofKind::Composition,
@@ -75,6 +86,9 @@ impl ProofKind {
         ProofKind::NoStoredValues,
         ProofKind::ScreenParity,
         ProofKind::Geometry,
+        ProofKind::Prohibition,
+        ProofKind::Burndown,
+        ProofKind::VisualReview,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -91,6 +105,9 @@ impl ProofKind {
             ProofKind::NoStoredValues => "no_stored_values",
             ProofKind::ScreenParity => "screen_parity",
             ProofKind::Geometry => "geometry",
+            ProofKind::Prohibition => "prohibition",
+            ProofKind::Burndown => "burndown",
+            ProofKind::VisualReview => "visual_review",
         }
     }
 
@@ -130,6 +147,18 @@ impl ProofKind {
             ProofKind::Geometry => {
                 "each registered surface's SHAPE is the one the design system specifies, and \
                  the count that does not comply is bounded AND falling"
+            }
+            ProofKind::Prohibition => {
+                "each registered pattern is ABSENT from its enumerated scope, and the scope \
+                 has not narrowed since it was recorded"
+            }
+            ProofKind::Burndown => {
+                "each pinned metric reads exactly its pin: any increase is red, and a \
+                 decrease not re-pinned is red too"
+            }
+            ProofKind::VisualReview => {
+                "each recorded visual verdict still holds: shipped screenshot against SIGNED \
+                 frame, stale the moment either side or the authority moves"
             }
         }
     }
@@ -495,12 +524,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_registry_is_closed_at_twelve() {
-        // Twelve since the `geometry` amendment of 2026-07-31. This number is
-        // asserted rather than derived on purpose: VDS S-7(6) makes adding a
-        // kind an amendment to the specification, so a variant appearing without
-        // one has to fail somewhere, and this is where.
-        assert_eq!(ProofKind::ALL.len(), 12);
+    fn the_registry_is_closed_at_fifteen() {
+        // Twelve enacted kinds, plus three DRAFTED on 2026-08-01 (prohibition,
+        // burndown, visual_review) whose amendments are filed and pending
+        // enactment; the code ships when the ruling lands, and the drafts say
+        // so on their faces. This number is asserted rather than derived on
+        // purpose: VDS S-7(6) makes adding a kind an amendment to the
+        // specification, so a variant appearing without one has to fail
+        // somewhere, and this is where.
+        assert_eq!(ProofKind::ALL.len(), 15);
         assert!(serde_json::from_str::<ProofKind>("\"vibes\"").is_err());
     }
 
@@ -536,7 +568,11 @@ mod tests {
              twelve are built, and one of the four is now wrong."
         );
         assert_eq!(ProofKind::implemented().len(), ProofKind::ALL.len());
-        assert_eq!(ProofKind::ALL.len(), 12, "the registry is closed at twelve");
+        assert_eq!(
+            ProofKind::ALL.len(),
+            15,
+            "the registry is closed at fifteen"
+        );
 
         // The honest form, held in place for whenever a kind has to be
         // withdrawn: a reason is a sentence, not a shrug.

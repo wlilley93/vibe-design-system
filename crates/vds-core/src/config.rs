@@ -31,6 +31,8 @@ pub struct Config {
     #[serde(default)]
     pub geometry: GeometryConfig,
     #[serde(default)]
+    pub burndown: BurndownConfig,
+    #[serde(default)]
     pub governance: Governance,
 }
 
@@ -54,6 +56,22 @@ pub struct Paths {
     /// amendment a flag day for every adopting project.
     #[serde(default = "default_geometry_dir")]
     pub geometry: PathBuf,
+    /// The prohibition register (draft S-7B). Defaulted for the flag-day
+    /// reason `screens` and `geometry` are.
+    #[serde(default = "default_prohibitions_dir")]
+    pub prohibitions: PathBuf,
+    /// The burndown register (draft S-7C).
+    #[serde(default = "default_burndowns_dir")]
+    pub burndowns: PathBuf,
+    /// The frame sign-off register (draft S-7D).
+    #[serde(default = "default_signoffs_dir")]
+    pub signoffs: PathBuf,
+    /// Proposed-redraw records (draft S-7D).
+    #[serde(default = "default_redraws_dir")]
+    pub redraws: PathBuf,
+    /// Visual review verdict records (draft S-7D).
+    #[serde(default = "default_reviews_dir")]
+    pub reviews: PathBuf,
     pub warrants: PathBuf,
     pub proofs: PathBuf,
     pub pins: PathBuf,
@@ -71,12 +89,37 @@ fn default_geometry_dir() -> PathBuf {
     PathBuf::from(".vds/geometry")
 }
 
+fn default_prohibitions_dir() -> PathBuf {
+    PathBuf::from(".vds/prohibitions")
+}
+
+fn default_burndowns_dir() -> PathBuf {
+    PathBuf::from(".vds/burndowns")
+}
+
+fn default_signoffs_dir() -> PathBuf {
+    PathBuf::from(".vds/signoffs")
+}
+
+fn default_redraws_dir() -> PathBuf {
+    PathBuf::from(".vds/redraws")
+}
+
+fn default_reviews_dir() -> PathBuf {
+    PathBuf::from(".vds/reviews")
+}
+
 impl Default for Paths {
     fn default() -> Self {
         Self {
             register: ".vds/register".into(),
             screens: default_screens_dir(),
             geometry: default_geometry_dir(),
+            prohibitions: default_prohibitions_dir(),
+            burndowns: default_burndowns_dir(),
+            signoffs: default_signoffs_dir(),
+            redraws: default_redraws_dir(),
+            reviews: default_reviews_dir(),
             warrants: ".vds/warrants".into(),
             proofs: ".vds/proofs".into(),
             pins: ".vds/pins".into(),
@@ -249,12 +292,40 @@ impl Default for ScreensConfig {
 pub struct GeometryConfig {
     /// Where the generated geometry reading is written (VDS S-7A(4)).
     pub reading_ledger: PathBuf,
+    /// Where the authority snapshot is written (draft S-7A(5)): the ledger
+    /// binding the shipped reading to the signed frame's decided values.
+    /// Defaulted so every existing config keeps loading.
+    #[serde(default = "default_authority_ledger")]
+    pub authority_ledger: PathBuf,
+}
+
+fn default_authority_ledger() -> PathBuf {
+    PathBuf::from(".vds/ledgers/geometry-authority.yaml")
 }
 
 impl Default for GeometryConfig {
     fn default() -> Self {
         Self {
             reading_ledger: ".vds/ledgers/geometry.yaml".into(),
+            authority_ledger: default_authority_ledger(),
+        }
+    }
+}
+
+/// Where the burndown reading is written, and nothing else. Thin for the
+/// reason [`GeometryConfig`] is: what a metric MEANS is the subject's
+/// generator talking, never VDS's.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BurndownConfig {
+    /// Where the generated burndown reading is written (draft S-7C).
+    pub reading_ledger: PathBuf,
+}
+
+impl Default for BurndownConfig {
+    fn default() -> Self {
+        Self {
+            reading_ledger: ".vds/ledgers/burndown.yaml".into(),
         }
     }
 }
@@ -295,6 +366,11 @@ pub enum PathRole {
     Register,
     Screens,
     Geometry,
+    Prohibitions,
+    Burndowns,
+    Signoffs,
+    Redraws,
+    Reviews,
     Warrants,
     Proofs,
     Pins,
@@ -310,6 +386,11 @@ impl PathRole {
             PathRole::Register => "register",
             PathRole::Screens => "screens",
             PathRole::Geometry => "geometry",
+            PathRole::Prohibitions => "prohibitions",
+            PathRole::Burndowns => "burndowns",
+            PathRole::Signoffs => "signoffs",
+            PathRole::Redraws => "redraws",
+            PathRole::Reviews => "reviews",
             PathRole::Warrants => "warrants",
             PathRole::Proofs => "proofs",
             PathRole::Pins => "pins",
@@ -327,6 +408,11 @@ impl Config {
             PathRole::Register => &self.paths.register,
             PathRole::Screens => &self.paths.screens,
             PathRole::Geometry => &self.paths.geometry,
+            PathRole::Prohibitions => &self.paths.prohibitions,
+            PathRole::Burndowns => &self.paths.burndowns,
+            PathRole::Signoffs => &self.paths.signoffs,
+            PathRole::Redraws => &self.paths.redraws,
+            PathRole::Reviews => &self.paths.reviews,
             PathRole::Warrants => &self.paths.warrants,
             PathRole::Proofs => &self.paths.proofs,
             PathRole::Pins => &self.paths.pins,
@@ -369,6 +455,11 @@ impl Config {
             PathRole::Register,
             PathRole::Screens,
             PathRole::Geometry,
+            PathRole::Prohibitions,
+            PathRole::Burndowns,
+            PathRole::Signoffs,
+            PathRole::Redraws,
+            PathRole::Reviews,
             PathRole::Warrants,
             PathRole::Proofs,
             PathRole::Pins,

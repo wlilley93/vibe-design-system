@@ -12,6 +12,7 @@
 //! in this module, and `no_stored_values` re-checks that claim against the bytes
 //! on disk rather than trusting it (VDS S-2(8)).
 
+mod burndown;
 /// Public and NAMED (not glob-exported like its siblings): it exports `derive`
 /// and `parse`, names that would shadow at a glob boundary.
 pub mod ci;
@@ -20,18 +21,25 @@ mod geometry;
 mod lock;
 mod log;
 mod pin;
+mod prohibition;
 mod proof;
+mod review;
 mod screen;
+mod signoff;
 mod submission;
 mod warrant;
 
+pub use burndown::*;
 pub use component::*;
 pub use geometry::*;
 pub use lock::*;
 pub use log::*;
 pub use pin::*;
+pub use prohibition::*;
 pub use proof::*;
+pub use review::*;
 pub use screen::*;
+pub use signoff::*;
 pub use submission::*;
 pub use warrant::*;
 

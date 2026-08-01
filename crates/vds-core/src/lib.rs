@@ -28,8 +28,8 @@ pub use config::{
 pub use digest::{Digest, canonical_json, digest_rows};
 pub use error::{EXIT_PASSED, EXIT_PRECONDITION, EXIT_VACUOUS, EXIT_VIOLATION, Result, VdsError};
 pub use ids::{
-    BreachId, ComponentId, DecisionId, GeometryId, PinId, ProofId, ScreenId, SubmissionId,
-    WarrantId,
+    BreachId, BurndownId, ComponentId, DecisionId, GeometryId, PinId, ProhibitionId, ProofId,
+    RedrawId, ReviewId, ScreenId, SignoffId, SubmissionId, WarrantId,
 };
 pub use project::{Project, write_atomically, write_text_atomically, yaml_files};
 pub use timestamp::Timestamp;

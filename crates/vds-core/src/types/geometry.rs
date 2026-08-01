@@ -421,6 +421,159 @@ impl GeometryReading {
     }
 }
 
+// ------------------------------------------------- the authority binding
+//
+// Draft S-7A(5), ENACTMENT PENDING (SUBMISSION-VDS-012). The two-sided limb:
+// the reading above measures what SHIPPED; this snapshot binds it to what was
+// DECIDED, so the proof holds only while both sides still are what they were.
+
+pub const AUTHORITY_SNAPSHOT_SCHEMA_VERSION: u32 = 1;
+
+/// One surface kind's agreement between the authority and the artefact.
+///
+/// An AGREEMENT BIT and never a value, per the S-2(7) pin amendment: a Figma
+/// `cornerRadius` is a realisation and has no field to live in here. The
+/// generator that compared the two sides holds the values; this row holds only
+/// whether they agreed and where to look when they did not.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct AuthorityAgreement {
+    pub surface_kind: SurfaceKind,
+    /// Whether the authority reading and the artefact reading agree for this
+    /// kind, as the out-of-band comparator found them.
+    pub agrees: bool,
+    /// Where the disagreement lives, in the comparator's words. Required by
+    /// the proof when `agrees` is false: a bare bit names no work.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub because: Option<String>,
+}
+
+/// The authority side of the two-sided geometry proof: a snapshot binding a
+/// Figma node's DECIDED values (fetched via REST, out of band, saved as a
+/// capture file) to the artefact reading in force when the comparison ran.
+///
+/// A ledger under VDS S-4(2). The proof never re-derives the agreement - that
+/// would need the values - it verifies the BINDING: both input hashes must
+/// still match what is on disk, or the snapshot is STALE, visibly, and proves
+/// nothing (draft S-7A(5)).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct GeometryAuthority {
+    pub schema_version: u32,
+    pub generated_by: String,
+    /// When the authority values were FETCHED from the design file's API.
+    /// The fetch date is part of the claim: an old capture is an old decision.
+    pub fetched_at: Timestamp,
+    pub file_key: String,
+    /// The node the authority values were read from, `12:34` spelling.
+    pub node_id: String,
+    /// The saved REST capture the authority side was read from,
+    /// repository-relative. It holds realisations, so it lives in the project
+    /// tree and NEVER under `.vds/` (VDS S-2(2)).
+    pub capture: String,
+    /// Digest of the capture file at comparison time: the AUTHORITY side's
+    /// input hash. The capture moving on disk stales this snapshot.
+    pub capture_digest: Digest,
+    /// The geometry reading's content digest at comparison time: the ARTEFACT
+    /// side's input hash. The reading regenerating stales this snapshot.
+    pub reading_digest: Digest,
+    pub rows: Vec<AuthorityAgreement>,
+    /// A digest over every other field, for the reason the reading carries
+    /// one: this snapshot is the proof's only record of the comparison.
+    pub content_digest: Digest,
+}
+
+impl GeometryAuthority {
+    pub fn compute_content_digest(&self) -> Result<Digest> {
+        #[derive(Serialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Content<'a> {
+            schema_version: u32,
+            generated_by: &'a str,
+            fetched_at: &'a Timestamp,
+            file_key: &'a str,
+            node_id: &'a str,
+            capture: &'a str,
+            capture_digest: &'a Digest,
+            reading_digest: &'a Digest,
+            rows: &'a [AuthorityAgreement],
+        }
+        Digest::of_value(&Content {
+            schema_version: self.schema_version,
+            generated_by: &self.generated_by,
+            fetched_at: &self.fetched_at,
+            file_key: &self.file_key,
+            node_id: &self.node_id,
+            capture: &self.capture,
+            capture_digest: &self.capture_digest,
+            reading_digest: &self.reading_digest,
+            rows: &self.rows,
+        })
+    }
+
+    pub fn untrustworthy_because(&self) -> Result<Option<String>> {
+        let recomputed = self.compute_content_digest()?;
+        Ok((recomputed != self.content_digest).then(|| {
+            format!(
+                "the snapshot's contentDigest is {} and its content digests to {recomputed}. \
+                 It was edited after it was generated. Regenerate it rather than correcting \
+                 the digest by hand.",
+                self.content_digest
+            )
+        }))
+    }
+}
+
+/// Where the authority snapshot lives, per `[geometry] authority_ledger`.
+pub fn authority_path(project: &Project) -> std::path::PathBuf {
+    project.root.join(&project.config.geometry.authority_ledger)
+}
+
+pub fn write_authority(
+    project: &Project,
+    snapshot: &GeometryAuthority,
+) -> Result<std::path::PathBuf> {
+    let path = authority_path(project);
+    let text = serde_yaml::to_string(snapshot).map_err(|e| VdsError::Serialize {
+        what: "the geometry authority snapshot".into(),
+        message: e.to_string(),
+    })?;
+    crate::write_text_atomically(&path, &text)?;
+    Ok(path)
+}
+
+/// Read the authority snapshot, or `None` where none has been generated.
+pub fn read_authority(project: &Project) -> Result<Option<GeometryAuthority>> {
+    let path = authority_path(project);
+    if !path.is_file() {
+        return Ok(None);
+    }
+    let text = std::fs::read_to_string(&path).map_err(|e| VdsError::io(path.display(), e))?;
+    let raw: serde_yaml::Value = serde_yaml::from_str(&text).map_err(|e| VdsError::Artefact {
+        path: project.rel(&path),
+        message: format!("is not readable YAML: {e}"),
+    })?;
+    let found = raw
+        .get("schemaVersion")
+        .or_else(|| raw.get("schema_version"))
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0) as u32;
+    if found > AUTHORITY_SNAPSHOT_SCHEMA_VERSION {
+        return Err(VdsError::SchemaVersionAhead {
+            path: project.rel(&path),
+            kind: "geometry authority snapshot",
+            found,
+            understood: AUTHORITY_SNAPSHOT_SCHEMA_VERSION,
+        });
+    }
+    let snapshot: GeometryAuthority =
+        serde_yaml::from_value(raw).map_err(|e| VdsError::Artefact {
+            path: project.rel(&path),
+            message: format!("is not a geometry authority snapshot: {e}"),
+        })?;
+    Ok(Some(snapshot))
+}
+
 /// Where the geometry reading lives, per `[geometry] reading_ledger`.
 pub fn reading_path(project: &Project) -> std::path::PathBuf {
     project.root.join(&project.config.geometry.reading_ledger)

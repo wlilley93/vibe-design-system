@@ -56,6 +56,10 @@ const RULE_UNREACHED: &str = "VDS S-7(5) register_completeness I2: a reference w
      is outside the completeness claim";
 const RULE_ROOT_ONLY: &str = "VDS S-7(5) register_completeness I3: a namespaced reference is established at its root \
      binding only";
+const RULE_UNMEASURED: &str = "draft S-5(9) register_completeness R2: a directed record measured by nothing, out of \
+     grace";
+const RULE_MEASURE_HYGIENE: &str = "draft S-5(9) register_completeness R3: a measure reads shipped code or a rendered \
+     artefact, never a plan";
 
 /// What this proof establishes, and the thing a reader will otherwise assume it
 /// establishes.
@@ -260,6 +264,104 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
              status `composition` accepts. This proof passes on them by design, because VDS \
              S-7(5) is the existence question; composition is where they fail."
         ));
+    }
+
+    // Draft S-5(9), ENACTMENT PENDING (SUBMISSION-VDS-015): measurement
+    // coverage of DIRECTED records, and hygiene of the measures themselves.
+    // One row per record that carries the metadata; a record carrying none is
+    // outside the drafted clause and adds no row.
+    //
+    // The clock is the ledger's `generated_at` and never the wall clock
+    // (VDS S-7(2)(1)). It is normally excluded from this proof's evidence
+    // digest precisely because it moves on a no-op regeneration; the grace
+    // rule READS it, so where a directed record exists it becomes an input and
+    // is digested, keeping findings a function of inputs.
+    let directed_exists = index
+        .records()
+        .iter()
+        .any(|r| r.value.directed_at.is_some());
+    if directed_exists {
+        run.input_named(
+            "<screens ledger generated_at>",
+            vds_core::Digest::of_text(ledger.generated_at.as_str()),
+        );
+    }
+    for record in index.records() {
+        let value = &record.value;
+        let has_metadata = value.directed_at.is_some() || !value.measured_by.is_empty();
+        if !has_metadata {
+            continue;
+        }
+        run.row(Verdict::Enforced);
+        let location = format!("{} [{}]", value.id, value.name);
+
+        // R3, the hygiene rule, checked for EVERY measure regardless of grace:
+        // a measure pointing at a plan or an internal doc is measured by
+        // prose, and prose is not enforcement. Measures read shipped code or
+        // rendered artefacts.
+        for measure in &value.measured_by {
+            let lowered = measure.to_lowercase();
+            let doc_like = lowered.ends_with(".md")
+                || lowered.contains("internal-docs/")
+                || lowered.starts_with("docs/")
+                || lowered.contains("/docs/")
+                || lowered.contains("plans/")
+                || lowered.contains("readme");
+            if doc_like {
+                run.fail(Violation::fatal(
+                    location.clone(),
+                    RULE_MEASURE_HYGIENE,
+                    "every measuredBy entry to name shipped code or a rendered-artefact \
+                     reader (a gate path, a proof kind, a reader command)",
+                    format!(
+                        "measuredBy names {measure:?}, which is a document. A rule measured \
+                         by a plan is measured by prose: the plan can promise anything and \
+                         the row stays green. Point the measure at the gate that reads the \
+                         artefact, or remove it and let R2 say the record is unmeasured."
+                    ),
+                ));
+            }
+        }
+
+        // R2, the grace rule: directed, unmeasured, and out of grace.
+        if let Some(directed_at) = &value.directed_at
+            && value.measured_by.is_empty()
+        {
+            let grace = i64::from(value.grace_days.unwrap_or(0));
+            match crate::geometry::days_between(directed_at.as_str(), ledger.generated_at.as_str())
+            {
+                None => run.fail(Violation::fatal(
+                    location.clone(),
+                    RULE_UNMEASURED,
+                    "two readable UTC dates",
+                    format!(
+                        "directedAt is {:?} and the ledger's generated_at is {:?}, and the \
+                         distance between them could not be computed, so the grace rule is \
+                         UNKNOWN rather than met.",
+                        directed_at.as_str(),
+                        ledger.generated_at.as_str()
+                    ),
+                )),
+                Some(days) if days > grace => run.fail(Violation::fatal(
+                    location.clone(),
+                    RULE_UNMEASURED,
+                    format!(
+                        "measuredBy to name at least one measure within {grace} day(s) of \
+                         the directive"
+                    ),
+                    format!(
+                        "directed {} day(s) ago (at {}) and measured by NOTHING. A directed \
+                         record with an empty measuredBy is a promise nobody checks: it was \
+                         registered, it reads as governed, and no instrument would ever say \
+                         it failed. This is the row class that shipped structurally-green \
+                         pages that looked nothing like their frames.",
+                        days,
+                        directed_at.as_str()
+                    ),
+                )),
+                Some(_) => {}
+            }
+        }
     }
 
     run.finish(&ctx.capture_options()?, out)
@@ -544,5 +646,84 @@ mod tests {
             first, second,
             "a digest that moves on a no-op regeneration makes every warrant look spent"
         );
+    }
+
+    // -- draft S-5(9): measurement coverage and measure hygiene ---------------
+
+    /// THE failing-direction seed for R2: the row class that shipped
+    /// structurally-green pages. Directed, registered, measured by nothing,
+    /// and out of grace.
+    #[test]
+    fn a_directed_record_measured_by_nothing_goes_red_after_its_grace() {
+        let h = Harness::new();
+        h.screen("dash", &["Button"]);
+        let id = h.register("Button", Status::Registered);
+        h.amend(&id, |r| {
+            r.directed_at = Some(vds_core::Timestamp::fixed(2026, 7, 1, 10, 0, 0));
+            r.grace_days = Some(14);
+        });
+        h.ledger();
+        let (outcome, text) = run_kind(&h, KIND);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("measured by NOTHING"), "{text}");
+    }
+
+    #[test]
+    fn a_directed_record_inside_its_grace_does_not_fail_yet() {
+        let h = Harness::new();
+        h.screen("dash", &["Button"]);
+        let id = h.register("Button", Status::Registered);
+        h.amend(&id, |r| {
+            // Directed "now": the ledger regenerates below, so its
+            // generated_at sits within any non-trivial grace of today.
+            r.directed_at = Some(vds_core::Timestamp::now());
+            r.grace_days = Some(14);
+        });
+        h.ledger();
+        let (outcome, text) = run_kind(&h, KIND);
+        assert_eq!(outcome.status, ProofStatus::Passed, "{text}");
+    }
+
+    #[test]
+    fn a_directed_record_with_a_real_measure_passes() {
+        let h = Harness::new();
+        h.screen("dash", &["Button"]);
+        let id = h.register("Button", Status::Registered);
+        h.amend(&id, |r| {
+            r.directed_at = Some(vds_core::Timestamp::fixed(2026, 7, 1, 10, 0, 0));
+            r.grace_days = Some(14);
+            r.measured_by = vec!["crates/vds-proof/src/contrast.rs".into()];
+        });
+        h.ledger();
+        let (outcome, text) = run_kind(&h, KIND);
+        assert_eq!(outcome.status, ProofStatus::Passed, "{text}");
+    }
+
+    /// THE failing-direction seed for R3: a measure pointing at a plan
+    /// document is measured by prose, whatever the grace says.
+    #[test]
+    fn a_measure_pointing_at_a_plan_document_is_refused() {
+        let h = Harness::new();
+        h.screen("dash", &["Button"]);
+        let id = h.register("Button", Status::Registered);
+        h.amend(&id, |r| {
+            r.measured_by = vec!["internal-docs/design-migration-plan.md".into()];
+        });
+        h.ledger();
+        let (outcome, text) = run_kind(&h, KIND);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("measured by prose"), "{text}");
+    }
+
+    #[test]
+    fn an_undirected_unmeasured_record_is_outside_the_drafted_clause() {
+        // The clause reaches records that were DIRECTED. A record with neither
+        // field is the pre-draft world and must not be retroactively red.
+        let h = Harness::new();
+        h.screen("dash", &["Button"]);
+        h.register("Button", Status::Registered);
+        h.ledger();
+        let (outcome, text) = run_kind(&h, KIND);
+        assert_eq!(outcome.status, ProofStatus::Passed, "{text}");
     }
 }
