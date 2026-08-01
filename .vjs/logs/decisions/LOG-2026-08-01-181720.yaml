@@ -1,0 +1,13 @@
+id: LOG-2026-08-01-181720
+time: 2026-08-01T18:17:20.874354998+00:00
+actor: lexby
+kind: record
+issue: lawpack-repin
+decision: Re-pinned this subscriber's lawpack lock from sha256:5481b9e2 to sha256:8c4ef842, the apex canon digest at vibe-justice-system commit e7152cb.
+basis:
+- 2026-VJS-CC-VJS-WRITE-TARGET-DISPLACEMENT-016
+- ACT-007:s7
+risk: low
+reversibility: easy
+court_required: false
+why: 'CC-VJS 16 C7 requires the cure be proved at the destination, and holds this repository cannot show displacement is distinguishable from drift while itself IN drift. Measured before: pinned 5481b9e2, computed 8c4ef842, three canon moves behind. No vendored lawpack/v2 exists here, so this jurisdiction is in drift and NOT displaced, and the re-pin is a lawful cure rather than a ratification. C7 named 60aead5c; the canon moved again between ruling and execution, so the pin is to the current digest, which is CC-VJS 16 obiter (v) on a checkable fact going stale. Also measured and filed upstream as SUBMISSION-2026-08-01-181122: vjs local-ci cannot run here at all, dying with missing field specs, so the pre-push gate has never run in this repository.'
