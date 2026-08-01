@@ -56,6 +56,10 @@ const RULE_STALE_PIN: &str = "draft S-7C burndown R2: a decrease not re-pinned m
 const RULE_DEADLINE: &str =
     "draft S-7C burndown R3: the deadline passed and the metric is not zero";
 const RULE_RAISED: &str = "draft S-7C burndown R4: the pin was raised";
+const RULE_READING_AGE: &str = "S-7C(5) ([2026] VJS-CA-VDS 1 order 13) burndown R10: a deadline may not be deferred by \
+     a reading that stopped moving";
+const RULE_NO_AGE_DECLARED: &str =
+    "S-7C(5) burndown R11: a deadline without a declared maximum reading age";
 const RULE_NO_READING: &str = "draft S-7C burndown R5: nothing was measured";
 const RULE_READING_EDITED: &str =
     "VDS S-2(5)(4) burndown R6: the reading witnesses its own content";
@@ -75,6 +79,22 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
     let reading = vds_core::read_burndown_reading(project)?;
     if reading.is_some() {
         run.input_file(&vds_core::burndown_reading_path(project))?;
+    }
+
+    // THE INDEPENDENT WITNESS (S-7C(5), [2026] VJS-CA-VDS 1 order 13). The
+    // freshest `generatedAt` among the ledgers this run can read, which the
+    // subject cannot hold still by declining to regenerate the burndown
+    // reading. `register_completeness` already measures its grace against this
+    // same witness, so no new input is introduced and determinism holds: the
+    // finding is still a function of artefacts on disk and never of the clock.
+    let witness: Option<vds_core::Timestamp> = vds_scan::load_fresh(project)
+        .ok()
+        .map(|ledger| ledger.generated_at);
+    if let Some(witness) = &witness {
+        run.input_named(
+            "<screens ledger generated_at>",
+            vds_core::Digest::of_text(witness.as_str()),
+        );
     }
 
     // R6 first, for geometry R10's reason: an edited reading's every number is
@@ -254,7 +274,46 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
             ));
         }
 
-        // R3: the deadline, measured from the reading's moment.
+        // R11 then R10, both only where a deadline is declared: a record with
+        // no deadline has nothing for a stale reading to defer.
+        if burndown.deadline.is_some() && burndown.max_reading_age_days.is_none() {
+            run.fail(Violation::fatal(
+                location.clone(),
+                RULE_NO_AGE_DECLARED,
+                "a declared maxReadingAgeDays beside every deadline",
+                "the record carries a deadline and no maximum reading age, so the only \
+                 clock the deadline could be measured against is the reading it gates, and \
+                 a deadline measured only against the input it gates is a deadline the \
+                 subject sets (S-7C(5))."
+                    .to_owned(),
+            ));
+        }
+        if let (Some(_), Some(max_age), Some(witness)) =
+            (&burndown.deadline, burndown.max_reading_age_days, &witness)
+            && let Some(age) =
+                crate::geometry::days_between(reading.taken_at.as_str(), witness.as_str())
+            && age > i64::from(max_age)
+        {
+            run.fail(Violation::fatal(
+                location.clone(),
+                RULE_READING_AGE,
+                format!("a reading no more than {max_age} day(s) behind the run's freshest independent input"),
+                format!(
+                    "the reading was taken {} and the freshest ledger this run read was \
+                     generated {}, which is {age} days later - past the declared maximum of \
+                     {max_age}. The deadline cannot be measured against a reading that \
+                     stopped moving, and a subject that stops regenerating cannot thereby \
+                     outlive the undertaking that reading witnesses. Regenerate: vds ledger \
+                     burndown --from <reading.json>",
+                    reading.taken_at.as_str(),
+                    witness.as_str()
+                ),
+            ));
+        }
+
+        // R3: the deadline, measured from the reading's moment. UNDISTURBED by
+        // order 14: that discipline is what keeps a dated fence from producing
+        // different findings from identical inputs.
         if let Some(deadline) = &burndown.deadline
             && reading.taken_at.as_str() > deadline.as_str()
             && row.value > 0
@@ -467,6 +526,79 @@ mod proof_tests {
         let (outcome, text) = run_kind(&h, ProofKind::Burndown);
         assert_eq!(outcome.status, ProofStatus::Passed, "{text}");
         assert!(text.contains("measured and unowned"), "{text}");
+    }
+
+    // -- S-7C(5), [2026] VJS-CA-VDS 1 order 13 --------------------------------
+
+    /// THE SEED the bench's Finding B names: a subject stops regenerating its
+    /// reading and thereby outlives its own undertaking in silence. The pin
+    /// still equals the reading and the deadline is still in the future BY THE
+    /// READING'S OWN CLOCK, so every pre-order rule passes.
+    #[test]
+    fn a_reading_that_stopped_moving_cannot_defer_its_deadline() {
+        let h = Harness::new();
+        // The ledger is generated "now"; the reading is from a month before.
+        h.screen("dash", &["Button"]);
+        h.ledger();
+        h.burndown_aged(
+            "legacy_rule_blocks",
+            Some("2099-01-01"),
+            Some(7),
+            &[("2026-07-01", 200)],
+        );
+        h.burndown_reading("2026-07-01", &[("legacy_rule_blocks", 200)]);
+        let (outcome, text) = run_kind(&h, ProofKind::Burndown);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("stopped moving"), "{text}");
+        assert!(
+            text.contains("past the declared maximum of 7"),
+            "the finding names the age and the bound: {text}"
+        );
+    }
+
+    #[test]
+    fn a_reading_inside_its_declared_age_passes() {
+        let h = Harness::new();
+        h.screen("dash", &["Button"]);
+        h.ledger();
+        // A generous age, so the fixture's ledger-vs-reading gap is inside it.
+        h.burndown_aged(
+            "legacy_rule_blocks",
+            Some("2099-01-01"),
+            Some(36500),
+            &[("2026-07-01", 200)],
+        );
+        h.burndown_reading("2026-07-01", &[("legacy_rule_blocks", 200)]);
+        let (outcome, text) = run_kind(&h, ProofKind::Burndown);
+        assert_eq!(outcome.status, ProofStatus::Passed, "{text}");
+    }
+
+    /// A deadline with no declared age has only the clock its own subject
+    /// winds, which is the defect stated as a rule.
+    #[test]
+    fn a_deadline_with_no_declared_reading_age_is_refused() {
+        let h = Harness::new();
+        h.burndown_aged(
+            "legacy_rule_blocks",
+            Some("2099-01-01"),
+            None,
+            &[("2026-07-20", 200)],
+        );
+        h.burndown_reading("2026-08-01", &[("legacy_rule_blocks", 200)]);
+        let (outcome, text) = run_kind(&h, ProofKind::Burndown);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("a deadline the subject sets"), "{text}");
+    }
+
+    /// A record with NO deadline has nothing to defer, so neither rule fires:
+    /// the amendment must not turn every undated burndown red.
+    #[test]
+    fn a_record_with_no_deadline_needs_no_reading_age() {
+        let h = Harness::new();
+        h.burndown_aged("legacy_rule_blocks", None, None, &[("2026-07-20", 200)]);
+        h.burndown_reading("2026-08-01", &[("legacy_rule_blocks", 200)]);
+        let (outcome, text) = run_kind(&h, ProofKind::Burndown);
+        assert_eq!(outcome.status, ProofStatus::Passed, "{text}");
     }
 
     #[test]

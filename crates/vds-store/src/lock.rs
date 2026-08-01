@@ -130,20 +130,34 @@ pub fn verify_lock(store: &Store, gate_paths: &[String]) -> Result<LockVerdict> 
                  * of THIS gate. It proves a function of that name exists in that file. A
                  * test named right and asserting nothing resolves here.
                  */
-                let test_file = store.project.root.join(&entry.failing_direction_test.path);
-                let names_the_test = std::fs::read_to_string(&test_file)
-                    .ok()
-                    .is_some_and(|text| {
-                        test_name_resolves(&text, &entry.failing_direction_test.test_name)
-                    });
-                if !names_the_test {
+                // EVERY recorded control is resolved, not the first.
+                // [2026] VJS-CA-VDS 1 order 3 made this a list precisely
+                // because one slot recorded a negative control for one rule of
+                // a gate that decides five; resolving only the first would
+                // rebuild that hole one level up.
+                if entry.failing_direction_tests.is_empty() {
                     verdict
                         .findings
                         .push(DriftFinding::MissingFailingDirectionTest {
                             path: entry.path.clone(),
-                            test_path: entry.failing_direction_test.path.clone(),
-                            test_name: entry.failing_direction_test.test_name.clone(),
+                            test_path: entry.path.clone(),
+                            test_name: "<none recorded>".into(),
                         });
+                }
+                for test in &entry.failing_direction_tests {
+                    let test_file = store.project.root.join(&test.path);
+                    let names_the_test = std::fs::read_to_string(&test_file)
+                        .ok()
+                        .is_some_and(|text| test_name_resolves(&text, &test.test_name));
+                    if !names_the_test {
+                        verdict
+                            .findings
+                            .push(DriftFinding::MissingFailingDirectionTest {
+                                path: entry.path.clone(),
+                                test_path: test.path.clone(),
+                                test_name: test.test_name.clone(),
+                            });
+                    }
                 }
                 if !entry.has_blocking_ci() {
                     let mut surfaces: Vec<String> = entry
@@ -343,11 +357,11 @@ mod tests {
                 }
             }],
             proves: vec![ProofKind::Composition],
-            failing_direction_test: FailingDirectionTest {
+            failing_direction_tests: vec![FailingDirectionTest {
                 path: "gates/a_test.rs".into(),
                 test_name: "gate_fails_on_a_seeded_violation".into(),
                 seeds: Some("an unregistered component".into()),
-            },
+            }],
             pinned_at: Timestamp::fixed(2026, 7, 25, 10, 0, 0),
             pinned_by: "tester".into(),
             supersedes_digest: None,

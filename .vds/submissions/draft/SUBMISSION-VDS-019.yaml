@@ -1,0 +1,48 @@
+id: SUBMISSION-VDS-019
+status: draft
+question: "Shall the geometry authority row be THREE-VALUED (agrees | disagrees | not_drawn), with not_drawn resolving to no_authority for that surface kind, never contributing conformance, and an all-not_drawn snapshot refused as a binding nothing can fail - Fidelity J's amendment 012-A, recorded at Schedule B item 1 of [2026] VJS-CA-VDS 1 as not carried?"
+trigger: first_impression
+why_first_impression: |
+  RECORDED, NOT CARRIED, and therefore first impression on its own case file. Fidelity J
+  found in [2026] VJS-CA-VDS 1 (Finding A) that `agrees: bool` cannot express a frame's
+  SILENCE: [2026] VJS-SC-OPBOX 1 order 6 binds a frame "only for what it draws in the states
+  it draws" and order 14 forbids manufacturing conformance from what was never drawn, and a
+  two-valued field has nowhere to record that the frame drew nothing on a dimension. A
+  comparator that finds nothing to compare then has one honest-looking value to write, writes
+  `true`, and the proof records conformance against silence. That is an order defeated by a
+  datatype.
+  
+  It commanded one judge and is Schedule B item 1: "Ground touched by no other judge.
+  Recorded as the strongest uncarried finding in the set." Order 1 makes such an item bind
+  nothing and remain available to a future submission on its own case file, which is this.
+  
+  The engine change is built and marked as drafted on its face (draft S-7A(5A); every rule
+  cites it), on this lane's standing posture that code ships behind a pending draft and no
+  warrant may cite it before the ruling. Implementing it without a submission would have been
+  the defect the judgment itself names - an instrument enforcing a rule no enactment carries.
+citator_checked:
+  - citation: "[2026] VJS-CA-VDS 1, Schedule B item 1"
+    why_not_on_all_fours: "The nearest authority, and it is the authority that this question is OPEN: the item binds nothing and is expressly available to a future submission on its own case file. It is cited as the source of the finding and not as a decision of it."
+  - citation: "[2026] VJS-SC-OPBOX 1, orders 6 and 14"
+    why_not_on_all_fours: "Binding, and followed rather than distinguished: a frame binds only for what it draws, and no agent may manufacture conformance from what was never drawn. What they do not decide is whether the DATATYPE must carry the third state, which is the question - orders bind conduct and this asks what shape makes the conduct impossible."
+  - citation: "[2026] VJS-CA-VDS 1 orders 6 to 9 (the carried comparator amendments)"
+    why_not_on_all_fours: "They hash the comparator so its assertion can expire; they do not widen what the assertion may SAY. A pinned comparator writing `true` over silence is still conformance manufactured from silence, so the carried amendments and this one close different halves."
+options:
+  - option: "Enact draft S-7A(5A) as implemented: `agrees | disagrees | not_drawn`, not_drawn resolving to no_authority for that surface kind and never contributing conformance, and an all-not_drawn snapshot refused as a binding nothing can fail."
+    consequence: "The datatype can express what the frame did not draw, so orders 6 and 14 are not defeated one level below the rule that states them. Cost: a schema change to a ledger only just enacted, and every comparator must learn a third value."
+  - option: "Refuse: keep the two-valued bit, and require the comparator to omit rows for undrawn dimensions instead."
+    consequence: "Cheaper, and it moves the same defect into a place with no witness: an omitted row and a dimension nobody compared are the same absence, and the proof cannot tell a comparator that found silence from one that skipped the check. Absence is exactly what this lane keeps finding invisible."
+  - option: "Refuse: leave it to the comparator's `because` prose."
+    consequence: "A bare bit with a sentence beside it is what Engine J refused in the same judgment for the disagreement case ('a docstring promise is not behaviour'), and a state the engine cannot branch on cannot be made to resolve no_authority."
+evidence:
+  - "crates/vds-core/src/types/geometry.rs"
+  - "crates/vds-proof/src/geometry.rs"
+  - ".vds/court/2026-VJS-CA-VDS-1-enactment.md"
+case_file_digest: sha256:dc1373c6dbf7ae418448b6fc0e87a561242ddff9d194797399383a2eb58b3b5d
+reserved_clause: null
+fail_closed_interim: "ENACTMENT PENDING. The three-valued type is built and every rule that reads it cites 'draft S-7A(5A)' on its face, so no reader mistakes it for enacted law; no warrant may cite it, and VDS is not commenced (S-15) so none can. The fail-closed direction is the point of the change: not_drawn resolves to no_authority - coverage owed, never green - and an all-not_drawn snapshot is refused rather than passed, so where the frame is silent the instrument now says so instead of agreeing. Seeded both ways: a_dimension_the_frame_does_not_draw_is_no_authority_and_never_conformance and a_snapshot_whose_every_row_is_not_drawn_is_refused_as_vacuous. DIGEST PROVENANCE: derived by scripts/case-file-digest.sh over the evidence files named above."
+filed_to: vjs
+vjs_submission_id: null
+created_at: 2026-08-01T14:00:00Z
+filed_at: null
+answer: null

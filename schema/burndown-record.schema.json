@@ -38,6 +38,15 @@
     "id": {
       "$ref": "#/definitions/BurndownId"
     },
+    "maxReadingAgeDays": {
+      "description": "How stale the reading may be before the deadline stops being measurable, in days. REQUIRED where a deadline is declared ([2026] VJS-CA-VDS 1 order 13).\n\nThe defect this closes was found by the bench, not by us: R3 fired only where `reading.taken_at > deadline`, and the proof read no independent freshness witness at all - so a subject that simply stopped regenerating its reading outlived its undertaking in silence. A deadline measured only against the input it gates is a deadline the subject sets. The clock is never the wall clock (S-7(2)(1)); it is the run's own freshest independent input.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint32",
+      "minimum": 0.0
+    },
     "metric": {
       "description": "The machine key the reading reports this metric under. One enforceable record per metric, or nothing says which pin governs.",
       "type": "string"

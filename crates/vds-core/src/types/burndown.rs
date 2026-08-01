@@ -60,6 +60,19 @@ pub struct BurndownRecord {
     /// different findings from identical inputs (VDS S-7(2)(1)).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub deadline: Option<Timestamp>,
+    /// How stale the reading may be before the deadline stops being
+    /// measurable, in days. REQUIRED where a deadline is declared
+    /// ([2026] VJS-CA-VDS 1 order 13).
+    ///
+    /// The defect this closes was found by the bench, not by us: R3 fired only
+    /// where `reading.taken_at > deadline`, and the proof read no independent
+    /// freshness witness at all - so a subject that simply stopped
+    /// regenerating its reading outlived its undertaking in silence. A
+    /// deadline measured only against the input it gates is a deadline the
+    /// subject sets. The clock is never the wall clock (S-7(2)(1)); it is the
+    /// run's own freshest independent input.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_reading_age_days: Option<u32>,
     /// Every pin ever declared, OLDEST FIRST. The pin in force is the last
     /// entry, derived and never stored beside it.
     pub history: Vec<PinnedValue>,
@@ -234,6 +247,7 @@ mod tests {
             status: Status::Registered,
             metric: "legacy_rule_blocks".into(),
             deadline: None,
+            max_reading_age_days: None,
             history,
             basis: vec!["draft S-7C".into()],
             notes: None,

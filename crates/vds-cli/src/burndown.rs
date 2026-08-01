@@ -41,6 +41,12 @@ pub struct AddArgs {
     /// By when the metric must be zero, as an RFC 3339 UTC timestamp.
     #[arg(long)]
     deadline: Option<String>,
+    /// How stale the reading may be before the deadline stops being
+    /// measurable, in days. REQUIRED with --deadline (S-7C(5),
+    /// [2026] VJS-CA-VDS 1 order 13): a deadline whose only clock is the
+    /// reading it gates is a deadline the subject sets.
+    #[arg(long)]
+    max_reading_age_days: Option<u32>,
     /// Why this baseline, in one line.
     #[arg(long)]
     because: Option<String>,
@@ -99,12 +105,21 @@ fn add(store: &Store, args: &AddArgs) -> Result<i32> {
         )));
     }
     let deadline = args.deadline.as_deref().map(Timestamp::parse).transpose()?;
+    if deadline.is_some() && args.max_reading_age_days.is_none() {
+        return Err(VdsError::precondition(
+            "--deadline requires --max-reading-age-days (S-7C(5), [2026] VJS-CA-VDS 1 order \
+             13). Without it the only clock the deadline could be measured against is the \
+             reading it gates, and a subject that stops regenerating the reading would \
+             outlive its own undertaking in silence.",
+        ));
+    }
     let id = BurndownId::allocate(&store.burndowns_dir())?;
     let record = BurndownRecord {
         id: id.clone(),
         status,
         metric: args.metric.clone(),
         deadline,
+        max_reading_age_days: args.max_reading_age_days,
         history: vec![PinnedValue {
             at: Timestamp::now(),
             value: args.value,

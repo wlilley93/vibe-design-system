@@ -1,5 +1,5 @@
 id: SUBMISSION-VDS-013
-status: draft
+status: answered
 question: "May the proof registry grow a `prohibition` kind (draft S-7B): a pattern asserted ABSENT from an enumerated scope whose expansion is RECORDED, failing by naming surviving sites, refusing empty patterns and empty scopes, and treating a silently narrowed scope as fatal?"
 trigger: first_impression
 why_first_impression: |
@@ -30,7 +30,11 @@ case_file_digest: sha256:140dde9affa9638d2f5fb4982087c30fff2ceaee735131fdb67dc47
 reserved_clause: null
 fail_closed_interim: "ENACTMENT PENDING. The kind is built, marked drafted on its face, and pinned in the enforcement lock with its seed-red test; runs are vacuous until a project registers a prohibition, and no warrant may cite it before the ruling. DIGEST PROVENANCE: case_file_digest is derived by scripts/case-file-digest.sh over the evidence files named above, at drafting."
 filed_to: vjs
-vjs_submission_id: null
+vjs_submission_id: "[2026] VJS-CA-VDS 1"
 created_at: 2026-08-01T12:00:00Z
-filed_at: null
-answer: null
+filed_at: 2026-08-01T12:30:00Z
+answer:
+  citation: "[2026] VJS-CA-VDS 1"
+  ratio: >-
+    ENACTED UNAMENDED on option 1, two of three judges requiring no amendment so the narrowest position commanding a majority is enactment as drafted. The recorded-expansion rule and the vacuity refusals stand; the regex option is refused because an unescaped dot that silently widens a match is the very silent-scope defect the kind exists to refuse. Order 2 attaches; SC-OPBOX 1 order 24 does not reach a directive proof. Engine J's sitesAtRegistration amendment is Schedule B item 4.
+  answered_at: 2026-08-01T13:00:00Z

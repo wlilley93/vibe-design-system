@@ -97,8 +97,11 @@ enum Command {
     Burndown(burndown::Args),
     /// Record a frame sign-off at its CURRENT content hash (draft S-7D).
     Signoff(signoff::Args),
-    /// Route a recorded deviation back through the design (draft S-7D).
+    /// Route a recorded deviation back through the design (S-7D).
     Redraw(signoff::RedrawArgs),
+    /// Register a Principal direction: the sign-off register's second row kind
+    /// ([2026] VJS-CA-VDS 1 order 26).
+    Direction(signoff::DirectionArgs),
     /// Run one proof kind, or every implemented kind.
     /// The governance logs: a decisive call, or a self-reported breach.
     Log(log::Args),
@@ -156,6 +159,7 @@ fn dispatch(cli: &Cli) -> Result<i32> {
         Command::Burndown(args) => burndown::run(&ctx, args),
         Command::Signoff(args) => signoff::run(&ctx, args),
         Command::Redraw(args) => signoff::run_redraw(&ctx, args),
+        Command::Direction(args) => signoff::run_direction(&ctx, args),
         Command::Log(args) => log::run(&ctx, args),
         Command::Pin(args) => figma::run_pin(&ctx, args),
         Command::Proof(args) => proof::run(&ctx, args),

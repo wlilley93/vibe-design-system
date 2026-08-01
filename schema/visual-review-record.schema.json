@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2019-09/schema",
   "title": "VisualReviewRecord",
-  "description": "One recorded visual pass over one route, against one frame.",
+  "description": "One recorded visual pass, against one frame.",
   "type": "object",
   "required": [
     "fileKey",
@@ -11,7 +11,7 @@
     "nodeId",
     "reviewedAt",
     "reviewedBy",
-    "route",
+    "routes",
     "shippedScreenshotDigest",
     "shippedSourceDigest",
     "verdict"
@@ -23,6 +23,17 @@
       "items": {
         "type": "string"
       }
+    },
+    "contractSignoff": {
+      "description": "THE STAGE-1 CONTRACT VERSION this verdict was taken against: the sign-off row whose hash is the signed frame the reviewer compared to.\n\nThe pipeline is four stages in fixed order - contract JSON, then Figma AND code built to it, then source-side gates, then this artefact-side visual check - and the stages must be LINKED, not parallel. A verdict that cannot name its contract version is how \"we checked it\" survives a contract change with nobody noticing: the frame is redrawn, the contract moves, and a verdict rendered against the old one keeps reading as coverage.\n\n`Option` because a `no_authority` verdict is precisely the state of having NO contract to cite, and forcing a citation there would teach a pipeline to invent one. Any other verdict without it is invalid.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/SignoffId"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "deltas": {
       "description": "What differed, one delta per line. Required non-empty for `deviate` and required EMPTY for `conform`: a verdict and its evidence may not disagree.",
@@ -56,6 +67,14 @@
         "null"
       ]
     },
+    "regions": {
+      "description": "Which bands of the pair were examined, and what was found in each.\n\nRequired non-empty. A verdict with no region checklist is a verdict about \"the page\", and a finding about the page cannot be told apart from a glance at the page.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/RegionFinding"
+      }
+    },
     "reviewedAt": {
       "$ref": "#/definitions/Timestamp"
     },
@@ -63,9 +82,12 @@
       "description": "The reviewing agent's identity: model, harness, prompt version.",
       "type": "string"
     },
-    "route": {
-      "description": "The route reviewed, as the screens ledger spells it.",
-      "type": "string"
+    "routes": {
+      "description": "The route(s) this pass covered, as the screens ledger spells them.\n\nA LIST so a grouped verdict is representable and refusable by name. Read the module note: a single-route field would have made the family review that motivated this amendment impossible to write down and impossible to catch. Exactly one route confers coverage; more confers none.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     },
     "shippedScreenshotDigest": {
       "description": "Hash of the shipped screenshot artefact itself.",
@@ -108,10 +130,92 @@
         }
       ]
     },
+    "RegionFinding": {
+      "description": "What the reviewer found in one region, or that they did not look.",
+      "type": "object",
+      "required": [
+        "examined",
+        "finding",
+        "region"
+      ],
+      "properties": {
+        "examined": {
+          "description": "Whether this region of the PAIR was actually compared.\n\n`false` is a first-class, recordable answer and is the whole point: \"capture debt, needs seeded data\" is a legitimate thing to conclude about a region, and it has to be readable as a region that was not studied rather than disappearing into a verdict about the page.",
+          "type": "boolean"
+        },
+        "finding": {
+          "description": "The finding, or the reason the region was not examined. Required either way: a region row carrying neither is a row that says nothing.",
+          "type": "string"
+        },
+        "region": {
+          "$ref": "#/definitions/ReviewRegion"
+        }
+      },
+      "additionalProperties": false
+    },
     "ReviewId": {
       "description": "A visual review verdict: automated eyes over a shipped screen against its signed frame (draft S-7D).",
       "type": "string",
       "pattern": "^VRW-[0-9]{4}$"
+    },
+    "ReviewRegion": {
+      "description": "The bands of a screen a visual pass is expected to account for. CLOSED.\n\nClosed for the reason [`super::SurfaceKind`] is: an open set of region names lets one undifferentiated \"the page\" bucket back in, and \"the page looks fine\" is exactly the finding that missed a counted facet row, a counted eyebrow, date-group bands and a footer window statement on one route.\n\nThese are ANATOMY names and hold no design value (VDS S-2(4)): a region is a place to look, never a size, a colour or a spacing.",
+      "oneOf": [
+        {
+          "description": "The page header band: title, eyebrow, counts, primary actions.",
+          "type": "string",
+          "enum": [
+            "header"
+          ]
+        },
+        {
+          "description": "The filter/facet band, and whatever counts it carries.",
+          "type": "string",
+          "enum": [
+            "facets"
+          ]
+        },
+        {
+          "description": "The body rows or cards, and their internal anatomy.",
+          "type": "string",
+          "enum": [
+            "body_rows"
+          ]
+        },
+        {
+          "description": "The side rail, where the frame draws one.",
+          "type": "string",
+          "enum": [
+            "rail"
+          ]
+        },
+        {
+          "description": "The footer band, and any window or scope statement in it.",
+          "type": "string",
+          "enum": [
+            "footer"
+          ]
+        },
+        {
+          "description": "The empty state, which is a drawn state and not an absence.",
+          "type": "string",
+          "enum": [
+            "empty_state"
+          ]
+        },
+        {
+          "description": "Keyboard affordances drawn in the frame: focus rings, hints, shortcuts.",
+          "type": "string",
+          "enum": [
+            "keyboard"
+          ]
+        }
+      ]
+    },
+    "SignoffId": {
+      "description": "A frame sign-off: the frame's content hash at the moment taste was exercised (draft S-7D).",
+      "type": "string",
+      "pattern": "^SGN-[0-9]{4}$"
     },
     "Timestamp": {
       "description": "UTC, second resolution, trailing Z. The one canonical form VDS writes.",

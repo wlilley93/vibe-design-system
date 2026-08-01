@@ -19,10 +19,10 @@ use std::path::PathBuf;
 use clap::{Args as ClapArgs, Subcommand};
 use schemars::r#gen::{SchemaGenerator, SchemaSettings};
 use vds_core::{
-    BurndownReading, BurndownRecord, ComponentRecord, EXIT_VIOLATION, GeometryAuthority,
-    GeometryBound, GeometryReading, LockEntry, Pin, ProhibitionRecord, ProofResult, RedrawRecord,
-    Result, ScreenRecord, SignOff, Submission, VdsError, VisualReviewRecord, Warrant,
-    write_text_atomically,
+    BurndownReading, BurndownRecord, ComponentRecord, DirectionRecord, EXIT_VIOLATION,
+    GeometryAuthority, GeometryBound, GeometryReading, LockEntry, Pin, ProhibitionRecord,
+    ProofResult, RedrawRecord, Result, RouteManifest, ScreenRecord, SignOff, Submission, VdsError,
+    VisualReviewRecord, Warrant, write_text_atomically,
 };
 
 use crate::{Context, PASSED};
@@ -94,8 +94,10 @@ fn schemas() -> Result<BTreeMap<&'static str, String>> {
     emit!("burndown-record", BurndownRecord);
     emit!("burndown-reading", BurndownReading);
     emit!("signoff", SignOff);
+    emit!("direction-record", DirectionRecord);
     emit!("redraw-record", RedrawRecord);
     emit!("visual-review-record", VisualReviewRecord);
+    emit!("route-manifest", RouteManifest);
     emit!("warrant", Warrant);
     emit!("proof-result", ProofResult);
     emit!("pin", Pin);

@@ -148,6 +148,11 @@ lexical_id!(
     "A proposed redraw: a deviation routed back through the design, never through an exception (draft S-7D)."
 );
 lexical_id!(
+    DirectionId,
+    r"^DIR-[0-9]{4}$",
+    "A registered Principal direction: the sign-off register's second row kind, hash-bound to its logged decision ([2026] VJS-CA-VDS 1 order 26)."
+);
+lexical_id!(
     ReviewId,
     r"^VRW-[0-9]{4}$",
     "A visual review verdict: automated eyes over a shipped screen against its signed frame (draft S-7D)."
@@ -182,6 +187,7 @@ numbered_series!(BurndownId, "BRN-", "burndown");
 numbered_series!(SignoffId, "SGN-", "sign-off");
 numbered_series!(RedrawId, "RDW-", "redraw");
 numbered_series!(ReviewId, "VRW-", "visual review");
+numbered_series!(DirectionId, "DIR-", "direction");
 
 impl ComponentId {
     /// The next free component id, read off disk. VDS S-4(4).

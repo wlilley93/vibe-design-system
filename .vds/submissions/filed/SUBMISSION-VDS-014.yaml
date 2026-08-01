@@ -1,5 +1,5 @@
 id: SUBMISSION-VDS-014
-status: draft
+status: answered
 question: "May the proof registry grow a `burndown` kind (draft S-7C): a pinned numeric reading red on ANY increase AND on a decrease not re-pinned in the same change, with an optional deadline measured against the reading's own moment?"
 trigger: first_impression
 why_first_impression: |
@@ -31,7 +31,11 @@ case_file_digest: sha256:322e1e7855df2abe081cfdff55d6585c6293264d7b98c595b0b7943
 reserved_clause: null
 fail_closed_interim: "ENACTMENT PENDING. Built, drafted on its face, lock-pinned with its seed-red test; vacuous until a metric is pinned; no warrant may cite it before the ruling. DIGEST PROVENANCE: case_file_digest is derived by scripts/case-file-digest.sh over the evidence files named above, at drafting."
 filed_to: vjs
-vjs_submission_id: null
+vjs_submission_id: "[2026] VJS-CA-VDS 1"
 created_at: 2026-08-01T12:00:00Z
-filed_at: null
-answer: null
+filed_at: 2026-08-01T12:30:00Z
+answer:
+  citation: "[2026] VJS-CA-VDS 1"
+  ratio: >-
+    ENACTED AS AMENDED on option 1. The unre-pinned-decrease rule is the whole difference between a burndown and a ratchet and stands. AMENDED by order 13: a record carrying a deadline MUST declare a maximum reading age, and the proof is fatal where the reading precedes the run's freshest independent input by more than that - a deadline measured only against the input it gates is a deadline the subject sets. S-7C(3)'s measurement against the reading's own moment is otherwise undisturbed (order 14). Engine J's inputs/sourceDigest and re-based clock are Schedule B item 5.
+  answered_at: 2026-08-01T13:00:00Z

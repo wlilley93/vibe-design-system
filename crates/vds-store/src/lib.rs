@@ -20,11 +20,11 @@ use serde::de::DeserializeOwned;
 
 use vds_core::{
     BreachReport, BurndownId, BurndownRecord, ComponentId, ComponentRecord, DecisionLog, Digest,
-    EnforcementLock, GeometryBound, GeometryId, LOCK_FILE_NAME, LOCK_SCHEMA_VERSION, PathRole, Pin,
-    ProhibitionId, ProhibitionRecord, Project, ProofId, ProofKind, ProofResult, RedrawId,
-    RedrawRecord, Result, ReviewId, ScreenId, ScreenRecord, SignOff, SignoffId, Stage, Submission,
-    Timestamp, VdsError, VisualReviewRecord, Warrant, WarrantId, WarrantStatus,
-    write_text_atomically, yaml_files,
+    DirectionId, DirectionRecord, EnforcementLock, GeometryBound, GeometryId, LOCK_FILE_NAME,
+    LOCK_SCHEMA_VERSION, PathRole, Pin, ProhibitionId, ProhibitionRecord, Project, ProofId,
+    ProofKind, ProofResult, RedrawId, RedrawRecord, Result, ReviewId, ScreenId, ScreenRecord,
+    SignOff, SignoffId, Stage, Submission, Timestamp, VdsError, VisualReviewRecord, Warrant,
+    WarrantId, WarrantStatus, write_text_atomically, yaml_files,
 };
 
 pub mod lock;
@@ -365,6 +365,22 @@ impl<'a> Store<'a> {
             &self.reviews_dir(),
             "visual review",
             |r: &VisualReviewRecord| r.id.to_string(),
+        )
+    }
+
+    pub fn directions_dir(&self) -> PathBuf {
+        self.project.path(PathRole::Directions)
+    }
+
+    pub fn direction_path(&self, id: &DirectionId) -> PathBuf {
+        self.directions_dir().join(format!("{id}.yaml"))
+    }
+
+    pub fn read_directions(&self) -> Result<Vec<Located<DirectionRecord>>> {
+        self.read_named_series(
+            &self.directions_dir(),
+            "direction",
+            |r: &DirectionRecord| r.id.to_string(),
         )
     }
 

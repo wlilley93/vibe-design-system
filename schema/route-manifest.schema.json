@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "RouteManifest",
+  "description": "The estate's own list of routes a visual pass is expected to cover.\n\nSupplied by the subject and never derived here, for the reason the geometry reading is supplied: WHICH routes are in the programme is the estate's question (in the motivating project it is a route tracker), and VDS deciding it would make VDS the authority on the estate's own scope. What VDS owns is that the enumeration EXISTS and that the proof reports every one of its entries in one of three populations.\n\nA ledger under VDS S-4(2): generated, digest-witnessed, byte-reproducible by the named command. Without the digest, a route that is going unreviewed can be cured by deleting its line, and the coverage report shrinks to fit.",
+  "type": "object",
+  "required": [
+    "contentDigest",
+    "generatedBy",
+    "routes",
+    "schemaVersion",
+    "source",
+    "takenAt"
+  ],
+  "properties": {
+    "contentDigest": {
+      "type": "string"
+    },
+    "doesNotCover": {
+      "description": "What the estate knows this manifest does NOT cover, in its own words.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "generatedBy": {
+      "type": "string"
+    },
+    "routes": {
+      "description": "Every route in the programme, as the screens ledger spells them.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    },
+    "source": {
+      "description": "Where the estate's list came from, in the estate's own words: a tracker, a query, a file. Named so a reader can tell a full estate from a slice.",
+      "type": "string"
+    },
+    "takenAt": {
+      "$ref": "#/definitions/Timestamp"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "Timestamp": {
+      "description": "UTC, second resolution, trailing Z. The one canonical form VDS writes.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    }
+  }
+}

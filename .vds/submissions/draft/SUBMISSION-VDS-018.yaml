@@ -1,0 +1,61 @@
+id: SUBMISSION-VDS-018
+status: draft
+question: "May visual verdicts be required to be ROUTE-SCOPED (a verdict naming more than one route conferring coverage on none), to record WHICH regions of the pair were examined, and to be reported against the estate's own digest-witnessed route manifest in three populations - current, owed by drift, never reviewed - with an under-enumerated run refused; and must a stage-4 verdict CITE the stage-1 contract version it was taken against, with the statute stating that stage-3 gates and stage-4 visual checks are not substitutes?"
+trigger: first_impression
+why_first_impression: |
+  A measured failure, and a new one. A family-level visual pass covered a dashboard family,
+  scored one route inside it "capture debt, needs seeded data", and moved on. The Principal
+  then opened that route and found a counted facet row, a counted eyebrow, keyboard
+  affordances, date-group bands, rich row anatomy and a footer window statement drawn in the
+  frame, none of them shipped, and none of them requiring data to find. The pass was not
+  wrong about the family; it never studied the route, and nothing recorded that it had not.
+  
+  Nothing in the citator reaches the SCOPE of a verdict or the ENUMERATION a coverage claim
+  is made against. SUBMISSION-VDS-016 (pending) asks whether a visual verdict artefact may
+  exist at all and settles its staleness; it says nothing about whether one verdict may
+  cover a family, whether a verdict must record which bands were examined, or what
+  population a run reports against. The instrument as filed can report only on the records
+  it holds, which cannot distinguish "reviewed and clean" from "never looked at" - the same
+  class as a stale hand census and a depth-limited capture recording "no children" as fact.
+  
+  The Principal's architecture statement of 2026-08-01 (LOG-2026-08-01-124753) supplies the
+  second half of the question: the pipeline is four stages in fixed order - contract JSON
+  from signed frames, then Figma AND code built to it, then source-side gates, then the
+  artefact-side visual check - and the stages must be LINKED rather than parallel. Whether
+  the engine should enforce that link (a verdict citing its contract version) and state the
+  non-substitution of stages 3 and 4 is first impression too, and is folded in here rather
+  than filed as a seventh submission.
+  
+  PROCEDURAL NOTE: a bench is currently sitting on SUBMISSION-VDS-012 to -017. This
+  submission is therefore drafted for the NEXT sitting and is not put before the present
+  one, so that neither the current bench's record nor this case file moves under the other.
+citator_checked:
+  - citation: "SUBMISSION-VDS-016 (pending)"
+    why_not_on_all_fours: "Asks whether a visual verdict artefact may exist and what stales it. Adjacent and not the same question: it could be answered either way and leave the SCOPE of a verdict (route or family), the DEPTH it records, and the POPULATION a coverage claim is made against entirely open. This submission presupposes 016 is answered yes and is void if it is not."
+  - citation: "[2026] VJS-SC-OPBOX 1 Q3"
+    why_not_on_all_fours: "ON ALL FOURS AND FOLLOWED, not distinguished: no_authority is a first-class state that neither blocks nor licenses deletion. This submission implements it - coverage owed is exactly that state made countable, so a never-reviewed route is a named warning and never a pass or a failure. Cited as the authority the coverage limb rests on."
+  - citation: "[2026] VJS-CC-OPBOX 3 (D3, vacuity)"
+    why_not_on_all_fours: "A pass over zero enforceable rows is not evidence. It reaches the ROW accounting and not the DENOMINATOR: a run can enforce many rows and still report on a population it chose. The enumeration rule extends the same discipline to the population, and the extension is the question."
+  - citation: "VDS S-4(2) (a ledger is generated and digest-witnessed)"
+    why_not_on_all_fours: "Supplies the shape of the route manifest and not the decision to have one; whether the estate's own scope may enter VDS as a governed input at all is the open part."
+options:
+  - option: "Enact draft S-7D(7)-(10) as implemented: one route per verdict, a mandatory region checklist, three-population reporting against a digest-witnessed estate manifest, refusal of an under-enumerated run, and a checked stage-1 contract citation."
+    consequence: "Never-reviewed routes become named lines on every run, and a family pass can no longer occupy a route's coverage slot. Cost: the estate must supply and maintain a manifest, and every verdict grows two required fields plus a citation."
+  - option: "Enact the route-scoping and depth limbs only; leave coverage reporting to the estate."
+    consequence: "Removes the family-pass defect and leaves the one that motivated it half-closed: with no enumeration, a route nobody ever reviewed is still invisible, because a run reports on the records it holds."
+  - option: "Enact, but make a never-reviewed route FATAL rather than a named warning."
+    consequence: "Louder, and it contradicts [2026] VJS-SC-OPBOX 1 Q3: no_authority neither blocks nor licenses, and an estate adopting the kind would fail on day one across every unreviewed route, which is how an instrument gets switched off. Refused as the draft's default; the bench may prefer it."
+  - option: "Refuse: verdicts stay whatever the pipeline emits, and coverage is a consuming-repo concern."
+    consequence: "The measured failure recurs by construction, and the engine keeps a kind whose green means 'nothing I happen to hold is wrong'."
+evidence:
+  - "crates/vds-core/src/types/review.rs"
+  - "crates/vds-proof/src/visual_review.rs"
+  - "VDS.md"
+case_file_digest: sha256:594fec76e3f3f69e2cd4bda72597f06d1f8ffaa3828d47297228f37a143a941c
+reserved_clause: null
+fail_closed_interim: "ENACTMENT PENDING, and the interim is the implementation itself, marked as drafted on its face (every new rule cites 'draft S-7D(7)', '(8)', '(9)' or '(10)'). Fail-closed in three places: a run with NO manifest reports '[stage-4 coverage] UNKNOWN' and explicitly says it cannot state what it was supposed to cover, rather than reporting on the records it holds; an edited manifest REFUSES the run rather than shrinking the report; and an under-enumerated run refuses rather than publishing. A never-reviewed route is a named warning, not a failure, following [2026] VJS-SC-OPBOX 1 Q3, so adopting the kind cannot redden an estate on day one. No warrant may cite any of this before the ruling, and VDS is not commenced (S-15) so none can. DEFERRED, and named so it is not mistaken for done: the stage-1 contract JSON itself is not generated here - the engine checks that a verdict CITES a sign-off row and that the row covers the frame version compared against, which is the link; deriving the contract document from frame geometry is stage-1 work and belongs with the capture pipeline. PROCEDURAL: a bench is sitting on SUBMISSION-VDS-012 to -017, so this goes to the next sitting. DIGEST PROVENANCE: case_file_digest is derived by scripts/case-file-digest.sh over the evidence files named above, at drafting."
+filed_to: vjs
+vjs_submission_id: null
+created_at: 2026-08-01T13:30:00Z
+filed_at: null
+answer: null

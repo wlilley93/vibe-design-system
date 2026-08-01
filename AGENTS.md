@@ -99,12 +99,13 @@ vds figma frames --file-key <key> --from capture-1.json capture-2.json
 
 # The declared surface and the proofs
 vds ledger screens
-vds proof --list                      # the closed registry of 15, all implemented
-                                      # (prohibition, burndown and visual_review are DRAFT
-                                      # amendments of 2026-08-01, enactment pending)
+vds proof --list                      # the closed registry of 15, all implemented and
+                                      # ENACTED by [2026] VJS-CA-VDS 1 (2026-08-01), five
+                                      # of six submissions as amended. The registry is
+                                      # closed at fifteen: no sixteenth kind was created.
 vds proof <kind> | --all [--invoked-by ci_workflow] [--allow-vacuous] [--no-capture]
 
-# The draft S-7B/S-7C/S-7D artefacts (enactment pending; the doors work now)
+# The S-7B/S-7C/S-7D artefacts, enacted by [2026] VJS-CA-VDS 1
 vds prohibition add --pattern 'rounded-' --scope 'src/components/body/**/*.tsx' \
     --because 'no container radius in body regions'
 vds prohibition re-expand <PRB-id> --because "..." | list
@@ -115,6 +116,13 @@ vds ledger geometry-authority --from snapshot.json
 vds signoff record --file-key <key> --node-id 1:2 --signed-by "the principal" | list
 vds redraw add --deviation "VRW-0001: ..." --proposed "..." --file-key <key> --node-id 1:2
 vds redraw set-status --id <RDW-id> --to signed --resolved-by <SGN-id> | list
+vds redraw set-status --id <RDW-id> --to parked --directed-by <DIR-id>   # order 27
+vds direction record --log-id <path-or-decision-id> --route <route> \
+    --direction "..." --magnitude "..."   # the register's SECOND row kind, order 26
+vds direction list
+vds ledger routes --from routes.json      # the estate's enumeration, S-7D(9)
+vds lock add <gate> --seed 'path::test::what it seeds' [--seed ...]  # order 3: one
+                                          # recorded negative control PER RULE
 
 # The design round trip
 vds brief                             # what an agent may draw into Figma

@@ -429,21 +429,72 @@ impl GeometryReading {
 
 pub const AUTHORITY_SNAPSHOT_SCHEMA_VERSION: u32 = 1;
 
+/// What the comparator found for one surface kind. THREE-VALUED.
+///
+/// Draft S-7A(5A), ENACTMENT PENDING (SUBMISSION-VDS-019). This was a `bool`
+/// and the shape was the defect: [2026] VJS-SC-OPBOX 1 order 6 binds a frame
+/// "only for what it draws in the states it draws" and order 14 forbids
+/// manufacturing conformance from what was never drawn, and a two-valued field
+/// has nowhere to record that the frame drew NOTHING on a dimension. A
+/// comparator that finds nothing to compare then has one honest-looking value
+/// to write, writes `true`, and the proof records conformance against silence.
+/// That is an order defeated by a datatype.
+///
+/// Recorded as Schedule B item 1 of [2026] VJS-CA-VDS 1 (Fidelity J, 012-A,
+/// commanding one judge and therefore NOT CARRIED). It is implemented here
+/// behind its own pending submission, on this lane's standing posture: the code
+/// ships marked as drafted and no warrant may cite it until the ruling lands.
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum AgreementState {
+    /// The shipped reading and the decided values agree on this dimension.
+    Agrees,
+    /// They disagree. `because` is then required: a bare state names no work.
+    Disagrees,
+    /// THE SIGNED FRAME DRAWS NOTHING on this dimension. Resolves to
+    /// no_authority for that surface kind and can never contribute
+    /// conformance, because a frame binds only for what it draws.
+    NotDrawn,
+}
+
+impl AgreementState {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            AgreementState::Agrees => "agrees",
+            AgreementState::Disagrees => "disagrees",
+            AgreementState::NotDrawn => "not_drawn",
+        }
+    }
+
+    /// Whether this row can contribute conformance. `not_drawn` never can.
+    pub fn is_conformance(self) -> bool {
+        matches!(self, AgreementState::Agrees)
+    }
+}
+
+impl std::fmt::Display for AgreementState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 /// One surface kind's agreement between the authority and the artefact.
 ///
-/// An AGREEMENT BIT and never a value, per the S-2(7) pin amendment: a Figma
+/// An AGREEMENT STATE and never a value, per the S-2(7) pin amendment: a Figma
 /// `cornerRadius` is a realisation and has no field to live in here. The
 /// generator that compared the two sides holds the values; this row holds only
-/// whether they agreed and where to look when they did not.
+/// what it concluded and where to look when the two disagreed.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AuthorityAgreement {
     pub surface_kind: SurfaceKind,
-    /// Whether the authority reading and the artefact reading agree for this
-    /// kind, as the out-of-band comparator found them.
-    pub agrees: bool,
+    /// What the out-of-band comparator found: agrees, disagrees, or the frame
+    /// drew nothing here.
+    pub agrees: AgreementState,
     /// Where the disagreement lives, in the comparator's words. Required by
-    /// the proof when `agrees` is false: a bare bit names no work.
+    /// the proof when the state is `disagrees`: a bare state names no work.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub because: Option<String>,
 }
@@ -477,6 +528,21 @@ pub struct GeometryAuthority {
     /// The geometry reading's content digest at comparison time: the ARTEFACT
     /// side's input hash. The reading regenerating stales this snapshot.
     pub reading_digest: Digest,
+    /// The out-of-band program that produced the agreement rows,
+    /// repository-relative. REQUIRED by [2026] VJS-CA-VDS 1 order 6.
+    ///
+    /// The engine cannot re-derive an agreement bit - re-deriving needs the
+    /// values, which VDS S-2(2) and [2026] VJS-CC-OPBOX 3 forbid it to hold -
+    /// so the one input that decides the verdict was the one input carrying no
+    /// witness at all. A comparator rewritten to return agreement
+    /// unconditionally produced an identical `generatedBy` NAME, regenerated
+    /// cleanly through the front door, and turned the whole limb green with
+    /// nothing measured.
+    pub comparator: String,
+    /// That file's digest at the moment the comparison ran, entering
+    /// `contentDigest`. A comparator that moved after the comparison is a
+    /// third expired input (geometry R14).
+    pub comparator_digest: Digest,
     pub rows: Vec<AuthorityAgreement>,
     /// A digest over every other field, for the reason the reading carries
     /// one: this snapshot is the proof's only record of the comparison.
@@ -496,6 +562,8 @@ impl GeometryAuthority {
             capture: &'a str,
             capture_digest: &'a Digest,
             reading_digest: &'a Digest,
+            comparator: &'a str,
+            comparator_digest: &'a Digest,
             rows: &'a [AuthorityAgreement],
         }
         Digest::of_value(&Content {
@@ -507,6 +575,8 @@ impl GeometryAuthority {
             capture: &self.capture,
             capture_digest: &self.capture_digest,
             reading_digest: &self.reading_digest,
+            comparator: &self.comparator,
+            comparator_digest: &self.comparator_digest,
             rows: &self.rows,
         })
     }

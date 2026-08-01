@@ -32,7 +32,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::digest::Digest;
-use crate::ids::{RedrawId, ReviewId, SignoffId};
+use crate::ids::{DirectionId, RedrawId, ReviewId, SignoffId};
 use crate::timestamp::Timestamp;
 
 /// One frame sign-off: the frame's content hash at the moment it was signed.
@@ -51,6 +51,121 @@ pub struct SignOff {
     pub signed_at: Timestamp,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notes: Option<String>,
+}
+
+/// A PRINCIPAL DIRECTION that disposes of a surface's conformance: the second
+/// row kind of the sign-off register.
+///
+/// [2026] VJS-CA-VDS 1 order 26, giving effect to [2026] VJS-SC-OPBOX 1 orders
+/// 15, 30 and 31. The register as first built could not record one, and the
+/// consequence was not cosmetic: a direction is not a frame - it has no file
+/// key, no node id and no frame content hash - so the four founding directions
+/// order 32 requires could not pass through the door at all, and a register
+/// that cannot execute the order that founds it is not the condition precedent
+/// order 23 requires.
+///
+/// A direction is taste exercised AT the register, hash-bound, by the only
+/// person entitled to exercise it. It is not taste exercised downstream by an
+/// engine, which is what the constitutional direction forbids, and the
+/// distinction is the whole reason this row kind is lawful.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct DirectionRecord {
+    pub id: DirectionId,
+    /// The decision-log entry the direction was given in.
+    pub log_id: String,
+    /// That entry's content digest when the direction was registered.
+    ///
+    /// The direction's authority holds while, and only while, this equals the
+    /// log entry's current digest: staleness by hash, never by trust, on the
+    /// same terms as a [`SignOff`]. A direction edited after registration is a
+    /// different direction.
+    pub decision_digest: Digest,
+    /// The surface directed: a route, or a frame.
+    pub surface: DirectedSurface,
+    /// The [2026] VJS-CC-OPBOX 155 O2 form: what was directed, and how much.
+    /// Preserved rather than summarised, because it becomes the redraw brief.
+    pub direction: String,
+    pub magnitude: String,
+    pub directed_at: Timestamp,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notes: Option<String>,
+}
+
+/// What a direction touches: a route where it names no frame, a frame where it
+/// does. Two variants rather than three optional fields, so "a direction that
+/// names neither" is unrepresentable.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum DirectedSurface {
+    Route { route: String },
+    Frame { file_key: String, node_id: String },
+}
+
+impl DirectedSurface {
+    pub fn describe(&self) -> String {
+        match self {
+            DirectedSurface::Route { route } => route.clone(),
+            DirectedSurface::Frame { file_key, node_id } => format!("{file_key}/{node_id}"),
+        }
+    }
+}
+
+/// The CURRENT digest of the decision-log entry a direction names, or `None`
+/// where it cannot be resolved.
+///
+/// `log_id` is resolved two ways, in order: as a repository-relative path, and
+/// as a decision record under `[paths] logs`. Two ways rather than one because
+/// the log entry a Principal direction was given in lives wherever the estate
+/// keeps its decisions, and a resolver that knew only VDS's own log would make
+/// every direction from a consuming repo unresolvable - which resolves
+/// UNSIGNED, which would read as "the direction lapsed" when it means "I did
+/// not look there".
+pub fn decision_log_digest(project: &crate::project::Project, log_id: &str) -> Option<Digest> {
+    let direct = project.root.join(log_id);
+    if direct.is_file() {
+        return Digest::of_file(&direct).ok();
+    }
+    let in_logs = project
+        .path(crate::config::PathRole::Logs)
+        .join("decisions")
+        .join(format!("{log_id}.yaml"));
+    if in_logs.is_file() {
+        return Digest::of_file(&in_logs).ok();
+    }
+    None
+}
+
+/// Whether a direction row still carries authority, given the CURRENT digest
+/// of the decision log entry it names.
+///
+/// `None` for the current digest resolves UNSIGNED, fail-closed and for the
+/// same reason [`frame_authority`] does: a direction whose log entry cannot be
+/// read cannot be shown to be the direction that was given.
+pub fn direction_authority(
+    direction: &DirectionRecord,
+    current_decision_digest: Option<&Digest>,
+) -> FrameAuthority {
+    match current_decision_digest {
+        Some(current) if current == &direction.decision_digest => FrameAuthority::Signed {
+            signoff: SignoffId::parse("SGN-0000").unwrap_or_else(|_| unreachable!()),
+        },
+        Some(current) => FrameAuthority::Unsigned {
+            because: format!(
+                "direction {} was registered against decision {} at digest {}, and that log \
+                 entry now digests to {current}. The direction was edited after registration, \
+                 so its authority lapsed: staleness by hash, never by trust.",
+                direction.id, direction.log_id, direction.decision_digest
+            ),
+        },
+        None => FrameAuthority::Unsigned {
+            because: format!(
+                "direction {} names decision log {}, which cannot be read, so the direction \
+                 cannot be shown to be the one that was given.",
+                direction.id, direction.log_id
+            ),
+        },
+    }
 }
 
 /// Whether a frame currently carries authority.
@@ -164,10 +279,28 @@ pub enum RedrawStatus {
     Proposed,
     /// The change has been drawn and awaits sign-off.
     Drawn,
+    /// PARKED under a registered Principal direction ([2026] VJS-CA-VDS 1
+    /// order 27, giving effect to [2026] VJS-SC-OPBOX 1 order 29).
+    ///
+    /// Lawful ONLY with a `directedBy` naming a [`DirectionRecord`] whose
+    /// `decisionDigest` still matches. A parked subject retains its render
+    /// rights and is reported and never fatal: while the registered direction
+    /// stands no gate may count it a violation.
+    ///
+    /// This is NOT the acceptance state returning. An acceptance was a verdict
+    /// the ENGINE reached about a difference; a park is a direction the
+    /// Principal gave, recorded at the register and hash-bound to its own log
+    /// entry, which is where the constitutional direction puts taste.
+    Parked,
     /// A sign-off row covering the change exists. ONLY lawful with
     /// `resolved_by` naming it; the proof refuses the word without the row.
     Signed,
-    /// The proposal was withdrawn; the deviation stands and stays red.
+    /// The proposal is ABANDONED and the deviation stands.
+    ///
+    /// Documented as what it is, per [2026] VJS-CA-VDS 1 order 27: it was
+    /// briefly the only status a direction could be squeezed into, and it says
+    /// the opposite of what a direction means. A direction is recorded as
+    /// `parked` with a covering direction row, never here.
     Withdrawn,
 }
 
@@ -176,6 +309,7 @@ impl RedrawStatus {
         match self {
             RedrawStatus::Proposed => "proposed",
             RedrawStatus::Drawn => "drawn",
+            RedrawStatus::Parked => "parked",
             RedrawStatus::Signed => "signed",
             RedrawStatus::Withdrawn => "withdrawn",
         }
@@ -210,6 +344,11 @@ pub struct RedrawRecord {
     /// whose hash covers the change, never by the word "signed".
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub resolved_by: Option<SignoffId>,
+    /// The direction row that PARKS this redraw. `parked` without it is
+    /// refused in the same terms `signed` without a sign-off row is
+    /// ([2026] VJS-CA-VDS 1 order 27).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub directed_by: Option<DirectionId>,
     pub opened_at: Timestamp,
     #[serde(default)]
     pub basis: Vec<String>,

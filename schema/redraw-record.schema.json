@@ -24,6 +24,17 @@
       "description": "The deviation this resolves: a review record and the delta it named.",
       "type": "string"
     },
+    "directedBy": {
+      "description": "The direction row that PARKS this redraw. `parked` without it is refused in the same terms `signed` without a sign-off row is ([2026] VJS-CA-VDS 1 order 27).",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/DirectionId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "fileKey": {
       "type": "string"
     },
@@ -74,6 +85,11 @@
   },
   "additionalProperties": false,
   "definitions": {
+    "DirectionId": {
+      "description": "A registered Principal direction: the sign-off register's second row kind, hash-bound to its logged decision ([2026] VJS-CA-VDS 1 order 26).",
+      "type": "string",
+      "pattern": "^DIR-[0-9]{4}$"
+    },
     "RedrawId": {
       "description": "A proposed redraw: a deviation routed back through the design, never through an exception (draft S-7D).",
       "type": "string",
@@ -97,6 +113,13 @@
           ]
         },
         {
+          "description": "PARKED under a registered Principal direction ([2026] VJS-CA-VDS 1 order 27, giving effect to [2026] VJS-SC-OPBOX 1 order 29).\n\nLawful ONLY with a `directedBy` naming a [`DirectionRecord`] whose `decisionDigest` still matches. A parked subject retains its render rights and is reported and never fatal: while the registered direction stands no gate may count it a violation.\n\nThis is NOT the acceptance state returning. An acceptance was a verdict the ENGINE reached about a difference; a park is a direction the Principal gave, recorded at the register and hash-bound to its own log entry, which is where the constitutional direction puts taste.",
+          "type": "string",
+          "enum": [
+            "parked"
+          ]
+        },
+        {
           "description": "A sign-off row covering the change exists. ONLY lawful with `resolved_by` naming it; the proof refuses the word without the row.",
           "type": "string",
           "enum": [
@@ -104,7 +127,7 @@
           ]
         },
         {
-          "description": "The proposal was withdrawn; the deviation stands and stays red.",
+          "description": "The proposal is ABANDONED and the deviation stands.\n\nDocumented as what it is, per [2026] VJS-CA-VDS 1 order 27: it was briefly the only status a direction could be squeezed into, and it says the opposite of what a direction means. A direction is recorded as `parked` with a covering direction row, never here.",
           "type": "string",
           "enum": [
             "withdrawn"

@@ -191,11 +191,16 @@ fn d2(store: &Store) -> Result<Row> {
         // ci_workflow limb was also failing, so the output looked like two problems and was
         // one problem plus an unfixable assertion. A rule implemented twice is a rule that
         // stays broken at the call site nobody remembered.
+        // EVERY recorded control resolves, and there is at least one
+        // ([2026] VJS-CA-VDS 1 order 3): a gate with five limbs and one
+        // resolvable seed has four limbs no negative control performs.
         let named_test = entry.is_some_and(|e| {
-            let file = store.project.root.join(&e.failing_direction_test.path);
-            std::fs::read_to_string(&file).is_ok_and(|text| {
-                vds_store::test_name_resolves(&text, &e.failing_direction_test.test_name)
-            })
+            !e.failing_direction_tests.is_empty()
+                && e.failing_direction_tests.iter().all(|t| {
+                    let file = store.project.root.join(&t.path);
+                    std::fs::read_to_string(&file)
+                        .is_ok_and(|text| vds_store::test_name_resolves(&text, &t.test_name))
+                })
         });
         let invoked = entry.is_some_and(|e| {
             e.has_blocking_ci()

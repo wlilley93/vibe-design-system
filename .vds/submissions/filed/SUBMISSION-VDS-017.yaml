@@ -1,5 +1,5 @@
 id: SUBMISSION-VDS-017
-status: draft
+status: answered
 question: "Shall the sign-off registry, the conform|deviate|no_authority authority states, and the proposed-redraw primitive be enacted (draft S-7D(1)-(5)) - and shall the richness-is-a-floor ACCEPTANCE DOCTRINE, which was court-adopted, be REPEALED, so that an addition the frame omits is a deviation exactly like a missing element and the only resolution path is a new signed frame version?"
 trigger: proposal_to_overrule
 why_first_impression: |
@@ -33,7 +33,11 @@ case_file_digest: sha256:510d75377fea897d40b57004b73c1421c5952ef171fd278dca06699
 reserved_clause: null
 fail_closed_interim: "ENACTMENT PENDING, and the interim is option 2 by construction: the new kinds carry NO acceptance state (the enum is closed at three and `accepted` does not parse), while screen_parity's enacted behaviour is untouched. Authority is resolved by hash against the sign-off register, which is empty until a Principal signs; every frame-bound verdict is therefore no_authority - coverage owed, never green - which is the fail-closed direction. DIGEST PROVENANCE: case_file_digest is derived by scripts/case-file-digest.sh over the evidence files named above, at drafting."
 filed_to: vjs
-vjs_submission_id: null
+vjs_submission_id: "[2026] VJS-CA-VDS 1"
 created_at: 2026-08-01T12:00:00Z
-filed_at: null
-answer: null
+filed_at: 2026-08-01T12:30:00Z
+answer:
+  citation: "[2026] VJS-CA-VDS 1"
+  ratio: >-
+    ENACTED AS AMENDED on option 1 by two to one, Estate J dissenting for option 2. Order 17 is itself the ruling option 2 waits for, and a doctrine repealed for some instruments and retained for others is one rule and a disagreement. CORRECTED ON THE RECORD (order 24): screen_parity carries NO acceptance surface, both options asserted one, and the consequence clause directing its removal is STRUCK as a direction reaching nothing - the surface the doctrine occupies is the consuming repository's richness pin and its fifteen accepted-over rows. AMENDED by orders 25-33: three resolution routes replace the drafted single route; the register grows a DirectionRecord row kind hash-bound to its logged decision; RedrawStatus grows `parked`; the repeal is executed as a MIGRATION and never a deletion; the front door refuses a frame that disclaims its own currency; and the register is a condition precedent, the flip from report to block being per surface.
+  answered_at: 2026-08-01T13:00:00Z

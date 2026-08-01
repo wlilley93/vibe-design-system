@@ -39,6 +39,7 @@ const RECORD_DIRS: &[&str] = &[
     "signoffs",
     "redraws",
     "reviews",
+    "directions",
     "warrants",
     "proofs",
     "pins",

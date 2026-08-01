@@ -113,6 +113,12 @@ const RULE_AUTHORITY_DISAGREES: &str =
     "draft S-7A(5) geometry R13: the shipped shape disagrees with the decided one";
 const RULE_AUTHORITY_UNSIGNED: &str =
     "draft S-7D geometry W2: no authority; coverage owed, never green, never red";
+const RULE_COMPARATOR_UNPINNED: &str = "[2026] VJS-CA-VDS 1 order 9, geometry W3: the comparator carries no seeded negative \
+     control, so this limb claims no primacy";
+const RULE_NOT_DRAWN: &str =
+    "draft S-7A(5A) geometry W4: the signed frame draws nothing on this dimension";
+const RULE_ALL_NOT_DRAWN: &str =
+    "VDS S-7(2)(4) geometry R15: a binding whose every row is not_drawn cannot fail";
 
 /// Stated on every run, passing or not.
 ///
@@ -620,6 +626,26 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
                 )),
                 Ok(_) => {}
             }
+            // R14, the THIRD side ([2026] VJS-CA-VDS 1 order 8). The agreement
+            // rows are the comparator's assertion and the engine cannot
+            // re-derive them, so a comparator that moved after the comparison
+            // is an expired input exactly like a moved capture, and a snapshot
+            // that outlives it is an agreement measured by a program that no
+            // longer exists.
+            let comparator_path = project.root.join(&snapshot.comparator);
+            match vds_core::Digest::of_file(&comparator_path) {
+                Err(_) => stale.push(format!(
+                    "the COMPARATOR side: {} cannot be read, so the program that produced \
+                     these agreement rows is gone",
+                    snapshot.comparator
+                )),
+                Ok(now) if now != snapshot.comparator_digest => stale.push(format!(
+                    "the COMPARATOR side: {} now digests to {now} and the snapshot was \
+                     bound to {}",
+                    snapshot.comparator, snapshot.comparator_digest
+                )),
+                Ok(_) => {}
+            }
 
             if !stale.is_empty() {
                 for _ in &snapshot.rows {
@@ -658,13 +684,100 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
                     &signoffs,
                 );
 
-                for row in &snapshot.rows {
+                // W3 ([2026] VJS-CA-VDS 1 order 9). The comparator's
+                // assertion is the one input the engine cannot falsify, so
+                // until the comparator itself is pinned with a seeded negative
+                // control, this limb claims no primacy over any repo-local
+                // gate on the same ground (SC-OPBOX 1 orders 2 and 3).
+                let comparator_pinned = store.read_lock()?.is_some_and(|lock| {
+                    lock.entries.iter().any(|entry| {
+                        entry.path == snapshot.comparator
+                            && !entry.failing_direction_tests.is_empty()
+                    })
+                });
+                if !comparator_pinned {
+                    run.warn(Violation::fatal(
+                        snapshot.comparator.clone(),
+                        RULE_COMPARATOR_UNPINNED,
+                        "the comparator pinned in .vds/enforcement.lock with a \
+                         failing-direction test",
+                        format!(
+                            "{} produces the agreement rows this limb rests on and carries \
+                             no seeded negative control in the lock, so `agrees` is an \
+                             assertion the engine cannot falsify. NO WARRANT MAY CLAIM \
+                             PRIMACY for this limb over a repo-local gate on the same \
+                             ground, and no such gate may be retired in reliance on it \
+                             ([2026] VJS-SC-OPBOX 1 orders 2 and 3; [2026] VJS-CA-VDS 1 \
+                             order 9).",
+                            snapshot.comparator
+                        ),
+                    ));
+                }
+
+                // Draft S-7A(5A): a snapshot whose every row is `not_drawn` is
+                // a binding nothing can fail, refused under VDS S-7(2)(4).
+                let mut all_not_drawn = false;
+                if !snapshot.rows.is_empty()
+                    && snapshot
+                        .rows
+                        .iter()
+                        .all(|r| r.agrees == vds_core::AgreementState::NotDrawn)
+                {
+                    for _ in &snapshot.rows {
+                        run.row(Verdict::Skipped("every_row_not_drawn"));
+                    }
+                    run.fail(Violation::fatal(
+                        project.rel(&vds_core::authority_path(project)),
+                        RULE_ALL_NOT_DRAWN,
+                        "at least one surface kind the signed frame actually draws",
+                        format!(
+                            "all {} row(s) report not_drawn, so the signed frame draws \
+                             nothing this binding could compare and no reading could ever \
+                             fail it. A binding over silence is not a control, it is the \
+                             appearance of one.",
+                            snapshot.rows.len()
+                        ),
+                    ));
+                    all_not_drawn = true;
+                }
+
+                for row in snapshot.rows.iter().filter(|_| !all_not_drawn) {
                     let location = format!(
                         "authority [{}] {}/{}",
                         row.surface_kind, snapshot.file_key, snapshot.node_id
                     );
+                    // NOT_DRAWN first, and it can never reach a conformance
+                    // arm: a frame binds only for what it draws in the states
+                    // it draws, and a comparator that found nothing to compare
+                    // has recorded silence, not agreement (draft S-7A(5A),
+                    // [2026] VJS-SC-OPBOX 1 orders 6 and 14).
+                    if row.agrees == vds_core::AgreementState::NotDrawn {
+                        run.row(Verdict::Skipped("surface_kind_not_drawn_by_the_frame"));
+                        run.warn(Violation::fatal(
+                            location,
+                            RULE_NOT_DRAWN,
+                            format!(
+                                "the signed frame to draw {} if this binding is to speak \
+                                 about it",
+                                row.surface_kind
+                            ),
+                            format!(
+                                "no_authority for {}: the signed frame draws nothing on \
+                                 this dimension{}. COVERAGE OWED, and it can never \
+                                 contribute conformance.",
+                                row.surface_kind,
+                                row.because
+                                    .as_deref()
+                                    .map(|b| format!(" ({b})"))
+                                    .unwrap_or_default()
+                            ),
+                        ));
+                        continue;
+                    }
                     match &authority {
-                        vds_core::FrameAuthority::Unsigned { because } if row.agrees => {
+                        vds_core::FrameAuthority::Unsigned { because }
+                            if row.agrees.is_conformance() =>
+                        {
                             run.row(Verdict::Enforced);
                             run.fail(Violation::fatal(
                                 location,
@@ -692,7 +805,7 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
                                 ),
                             ));
                         }
-                        vds_core::FrameAuthority::Signed { .. } if !row.agrees => {
+                        vds_core::FrameAuthority::Signed { .. } if !row.agrees.is_conformance() => {
                             run.row(Verdict::Enforced);
                             run.fail(Violation::fatal(
                                 location,
@@ -1149,7 +1262,7 @@ mod proof_tests {
 #[cfg(test)]
 mod authority_binding_tests {
     use crate::testing::{Harness, run_kind};
-    use vds_core::{EXIT_VIOLATION, ProofKind, ProofStatus, ReadFrom, SurfaceKind};
+    use vds_core::{AgreementState, EXIT_VIOLATION, ProofKind, ProofStatus, ReadFrom, SurfaceKind};
 
     /// A compliant bound and reading, a captured frame, and a sign-off at the
     /// frame's current hash.
@@ -1172,7 +1285,11 @@ mod authority_binding_tests {
     fn a_fresh_agreeing_snapshot_against_a_signed_frame_passes() {
         let h = Harness::new();
         signed(&h);
-        h.geometry_authority("KEY", "1:2", &[(SurfaceKind::Radius, true)]);
+        h.geometry_authority(
+            "KEY",
+            "1:2",
+            &[(SurfaceKind::Radius, AgreementState::Agrees)],
+        );
         let (outcome, text) = run_kind(&h, ProofKind::Geometry);
         assert_eq!(outcome.status, ProofStatus::Passed, "{text}");
         // One bound row plus one authority row.
@@ -1185,7 +1302,11 @@ mod authority_binding_tests {
     fn a_disagreement_with_the_decided_shape_fails_and_names_the_resolution() {
         let h = Harness::new();
         signed(&h);
-        h.geometry_authority("KEY", "1:2", &[(SurfaceKind::Radius, false)]);
+        h.geometry_authority(
+            "KEY",
+            "1:2",
+            &[(SurfaceKind::Radius, AgreementState::Disagrees)],
+        );
         let (outcome, text) = run_kind(&h, ProofKind::Geometry);
         assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
         assert!(text.contains("off the decided scale"), "{text}");
@@ -1201,7 +1322,11 @@ mod authority_binding_tests {
     fn a_snapshot_whose_reading_moved_is_stale_and_fails() {
         let h = Harness::new();
         signed(&h);
-        h.geometry_authority("KEY", "1:2", &[(SurfaceKind::Radius, true)]);
+        h.geometry_authority(
+            "KEY",
+            "1:2",
+            &[(SurfaceKind::Radius, AgreementState::Agrees)],
+        );
         // The artefact side moves: a new reading with different counts.
         h.geometry_reading(
             "2026-08-01",
@@ -1219,7 +1344,11 @@ mod authority_binding_tests {
     fn a_snapshot_whose_capture_moved_is_stale_and_fails() {
         let h = Harness::new();
         signed(&h);
-        h.geometry_authority("KEY", "1:2", &[(SurfaceKind::Radius, true)]);
+        h.geometry_authority(
+            "KEY",
+            "1:2",
+            &[(SurfaceKind::Radius, AgreementState::Agrees)],
+        );
         h.write(
             "design/captures/geometry-authority.json",
             "{\"nodes\":{\"1:2\":{\"document\":{\"name\":\"REDRAWN\"}}}}\n",
@@ -1245,7 +1374,11 @@ mod authority_binding_tests {
         );
         h.frames(&[Harness::frame("1:2", "kit frame", &["body"], 1)]);
         // NO sign-off.
-        h.geometry_authority("KEY", "1:2", &[(SurfaceKind::Radius, true)]);
+        h.geometry_authority(
+            "KEY",
+            "1:2",
+            &[(SurfaceKind::Radius, AgreementState::Agrees)],
+        );
         let (outcome, text) = run_kind(&h, ProofKind::Geometry);
         assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
         assert!(
@@ -1263,7 +1396,11 @@ mod authority_binding_tests {
         // The frame is REDRAWN after sign-off: its current hash moves.
         h.frames(&[Harness::frame("1:2", "kit frame REDRAWN", &["body"], 2)]);
         // An honest snapshot against the redrawn frame, not claiming agreement.
-        h.geometry_authority("KEY", "1:2", &[(SurfaceKind::Radius, false)]);
+        h.geometry_authority(
+            "KEY",
+            "1:2",
+            &[(SurfaceKind::Radius, AgreementState::Disagrees)],
+        );
         let (outcome, text) = run_kind(&h, ProofKind::Geometry);
         // The bound row still passes; the authority row is coverage owed, and
         // the disagreement is NOT adjudicated red against a dead sign-off.
@@ -1273,13 +1410,124 @@ mod authority_binding_tests {
         assert!(text.contains("COVERAGE OWED"), "{text}");
     }
 
+    // -- [2026] VJS-CA-VDS 1 orders 8, 9 and Schedule B 1 ---------------------
+
+    /// ORDER 8's seed (R14, the THIRD side). The comparator is rewritten after
+    /// the comparison, and the agreement rows it produced are now an assertion
+    /// by a program that no longer exists. Both the other two hashes still
+    /// match, so nothing else in the limb notices.
+    #[test]
+    fn a_comparator_that_moved_after_the_comparison_stales_the_binding() {
+        let h = Harness::new();
+        signed(&h);
+        h.geometry_authority(
+            "KEY",
+            "1:2",
+            &[(SurfaceKind::Radius, AgreementState::Agrees)],
+        );
+        h.write(
+            "scripts/geometry-comparator.py",
+            "# rewritten after the comparison ran\n",
+        );
+        let (outcome, text) = run_kind(&h, ProofKind::Geometry);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("COMPARATOR side"), "{text}");
+        assert!(text.contains("The binding expired"), "{text}");
+    }
+
+    #[test]
+    fn a_comparator_that_cannot_be_read_stales_the_binding() {
+        let h = Harness::new();
+        signed(&h);
+        h.geometry_authority(
+            "KEY",
+            "1:2",
+            &[(SurfaceKind::Radius, AgreementState::Agrees)],
+        );
+        std::fs::remove_file(h.root().join("scripts/geometry-comparator.py")).unwrap();
+        let (outcome, text) = run_kind(&h, ProofKind::Geometry);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("cannot be read"), "{text}");
+    }
+
+    /// ORDER 9's seed (W3). The comparator is the one input the engine cannot
+    /// falsify, so until it is pinned with its own negative control this limb
+    /// claims no primacy and says so on every run. A warning, not a failure:
+    /// the order carried the warning form and not the voiding form.
+    #[test]
+    fn an_unpinned_comparator_warns_that_the_limb_claims_no_primacy() {
+        let h = Harness::new();
+        signed(&h);
+        h.geometry_authority(
+            "KEY",
+            "1:2",
+            &[(SurfaceKind::Radius, AgreementState::Agrees)],
+        );
+        let (outcome, text) = run_kind(&h, ProofKind::Geometry);
+        assert_eq!(outcome.status, ProofStatus::Passed, "{text}");
+        assert!(text.contains("NO WARRANT MAY CLAIM PRIMACY"), "{text}");
+        assert!(text.contains("cannot falsify"), "{text}");
+    }
+
+    /// Schedule B 1's seed, built behind SUBMISSION-VDS-019: a comparator that
+    /// finds NOTHING TO COMPARE records silence, and silence can never reach a
+    /// conformance arm. Before the third state existed the only honest-looking
+    /// value was `true`, and the proof recorded conformance against ground the
+    /// frame never drew.
+    #[test]
+    fn a_dimension_the_frame_does_not_draw_is_no_authority_and_never_conformance() {
+        let h = Harness::new();
+        signed(&h);
+        h.geometry_authority(
+            "KEY",
+            "1:2",
+            &[
+                (SurfaceKind::Radius, AgreementState::Agrees),
+                (SurfaceKind::TypeScale, AgreementState::NotDrawn),
+            ],
+        );
+        let (outcome, text) = run_kind(&h, ProofKind::Geometry);
+        assert!(
+            text.contains("surface_kind_not_drawn_by_the_frame"),
+            "{text}"
+        );
+        assert!(text.contains("draws nothing on this dimension"), "{text}");
+        assert!(text.contains("can never contribute conformance"), "{text}");
+        // The row is NOT enforced: the bound row plus the one drawn dimension.
+        assert_eq!(outcome.rows_enforced, 2, "{text}");
+    }
+
+    /// And a binding whose every row is silence is a binding nothing can fail.
+    #[test]
+    fn a_snapshot_whose_every_row_is_not_drawn_is_refused_as_vacuous() {
+        let h = Harness::new();
+        signed(&h);
+        h.geometry_authority(
+            "KEY",
+            "1:2",
+            &[
+                (SurfaceKind::Radius, AgreementState::NotDrawn),
+                (SurfaceKind::TypeScale, AgreementState::NotDrawn),
+            ],
+        );
+        let (outcome, text) = run_kind(&h, ProofKind::Geometry);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("A binding over silence"), "{text}");
+        // The bound row still enforced; no authority row did.
+        assert_eq!(outcome.rows_enforced, 1, "{text}");
+    }
+
     #[test]
     fn an_edited_snapshot_is_refused_by_its_own_digest() {
         let h = Harness::new();
         signed(&h);
-        let path = h.geometry_authority("KEY", "1:2", &[(SurfaceKind::Radius, false)]);
+        let path = h.geometry_authority(
+            "KEY",
+            "1:2",
+            &[(SurfaceKind::Radius, AgreementState::Disagrees)],
+        );
         let original = std::fs::read_to_string(&path).unwrap();
-        let edited = original.replace("agrees: false", "agrees: true");
+        let edited = original.replace("agrees: disagrees", "agrees: agrees");
         assert_ne!(edited, original, "the seed did not change the snapshot");
         std::fs::write(&path, &edited).unwrap();
         let (outcome, text) = run_kind(&h, ProofKind::Geometry);

@@ -1,5 +1,5 @@
 id: SUBMISSION-VDS-015
-status: draft
+status: answered
 question: "May the component register grow measurement-coverage metadata (draft S-5(9)): measuredBy / directedAt / graceDays, with register_completeness going red on a directed record measured by nothing after its grace (R2) and refusing a measure that points at a plan or doc artefact (R3)?"
 trigger: first_impression
 why_first_impression: |
@@ -31,7 +31,11 @@ case_file_digest: sha256:771a2e521ff65a9fbf77eeb26de96449c4361819c5376dc70504712
 reserved_clause: null
 fail_closed_interim: "ENACTMENT PENDING. Fields are serde-defaulted so every existing record parses; records carrying neither field are outside the clause, so nothing reddens retroactively; no warrant may cite R2/R3 before the ruling. DIGEST PROVENANCE: case_file_digest is derived by scripts/case-file-digest.sh over the evidence files named above, at drafting."
 filed_to: vjs
-vjs_submission_id: null
+vjs_submission_id: "[2026] VJS-CA-VDS 1"
 created_at: 2026-08-01T12:00:00Z
-filed_at: null
-answer: null
+filed_at: 2026-08-01T12:30:00Z
+answer:
+  citation: "[2026] VJS-CA-VDS 1"
+  ratio: >-
+    ENACTED AS AMENDED on option 1, housed in register_completeness and not as a sixteenth kind (two of three; Engine J dissenting, his reasoning recorded in full at Schedule B item 6). AMENDED by orders 16-18: every measure must RESOLVE to a proof kind, an existing repository path, or a lock-pinned path, the rule being an allowlist and never a denylist of document-shaped strings; an I4 census counts and names the records carrying neither field, because a rule that fires only on the rows that armed it has a denominator; and the scope note is widened in the specification and the lock rather than left standing.
+  answered_at: 2026-08-01T13:00:00Z

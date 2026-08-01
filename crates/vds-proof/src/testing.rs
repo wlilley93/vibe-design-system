@@ -325,6 +325,17 @@ impl Harness {
         deadline: Option<&str>,
         history: &[(&str, u64)],
     ) -> PathBuf {
+        self.burndown_aged(metric, deadline, deadline.map(|_| 7), history)
+    }
+
+    /// A burndown declaring its own maximum reading age, for the S-7C(5) seeds.
+    pub fn burndown_aged(
+        &self,
+        metric: &str,
+        deadline: Option<&str>,
+        max_reading_age_days: Option<u32>,
+        history: &[(&str, u64)],
+    ) -> PathBuf {
         let store = self.store();
         let id = vds_core::BurndownId::allocate(&store.burndowns_dir()).unwrap();
         let record = vds_core::BurndownRecord {
@@ -333,6 +344,7 @@ impl Harness {
             metric: metric.into(),
             deadline: deadline
                 .map(|d| Timestamp::parse(format!("{d}T00:00:00Z")).expect("a fixture date")),
+            max_reading_age_days,
             history: history
                 .iter()
                 .map(|(at, value)| vds_core::PinnedValue {
@@ -377,13 +389,20 @@ impl Harness {
         &self,
         file_key: &str,
         node_id: &str,
-        rows: &[(SurfaceKind, bool)],
+        rows: &[(SurfaceKind, vds_core::AgreementState)],
     ) -> PathBuf {
         let project = self.project();
         let capture_rel = "design/captures/geometry-authority.json";
         let capture = self.write(
             capture_rel,
             "{\"nodes\":{\"1:2\":{\"document\":{\"name\":\"decided\"}}}}\n",
+        );
+        // The comparator is a real file in the fixture tree, because the
+        // proof digests it and W3 asks whether the lock pins it.
+        let comparator_rel = "scripts/geometry-comparator.py";
+        let comparator = self.write(
+            comparator_rel,
+            "# the out-of-band comparator that produced the agreement rows\n",
         );
         let reading = vds_core::read_reading(&project)
             .expect("a readable reading")
@@ -397,13 +416,22 @@ impl Harness {
             capture: capture_rel.into(),
             capture_digest: vds_core::Digest::of_file(&capture).unwrap(),
             reading_digest: reading.content_digest.clone(),
+            comparator: comparator_rel.into(),
+            comparator_digest: vds_core::Digest::of_file(&comparator).unwrap(),
             rows: rows
                 .iter()
                 .map(|(kind, agrees)| vds_core::AuthorityAgreement {
                     surface_kind: *kind,
                     agrees: *agrees,
-                    because: (!agrees)
-                        .then(|| "the shipped step sits off the decided scale".to_owned()),
+                    because: match agrees {
+                        vds_core::AgreementState::Disagrees => {
+                            Some("the shipped step sits off the decided scale".to_owned())
+                        }
+                        vds_core::AgreementState::NotDrawn => {
+                            Some("the signed frame draws no radius at all".to_owned())
+                        }
+                        vds_core::AgreementState::Agrees => None,
+                    },
                 })
                 .collect(),
             content_digest: vds_core::Digest::of_text("placeholder"),
@@ -452,6 +480,41 @@ impl Harness {
         id
     }
 
+    /// A registered Principal direction, hash-bound to a decision log entry
+    /// this helper writes into the project tree.
+    pub fn direction(&self, surface: vds_core::DirectedSurface) -> vds_core::DirectionId {
+        let store = self.store();
+        let id = vds_core::DirectionId::allocate(&store.directions_dir()).unwrap();
+        let log_rel = format!("logs/{id}-decision.md");
+        let log = self.write(
+            &log_rel,
+            "LOG-2026-08-01-104739: the band goes off-screen for now.\n",
+        );
+        let record = vds_core::DirectionRecord {
+            id: id.clone(),
+            log_id: log_rel,
+            decision_digest: vds_core::Digest::of_file(&log).unwrap(),
+            surface,
+            direction: "band off-screen".into(),
+            magnitude: "the whole band, until the frames carry it".into(),
+            directed_at: Timestamp::fixed(2026, 8, 1, 10, 47, 39),
+            notes: None,
+        };
+        let path = store.direction_path(&id);
+        store.create(&path, &record).unwrap();
+        id
+    }
+
+    /// Rewrite a direction's log entry, so its decisionDigest lapses.
+    pub fn move_direction_log(&self, id: &vds_core::DirectionId) {
+        let store = self.store();
+        let record: vds_core::DirectionRecord = store.read(&store.direction_path(id)).unwrap();
+        self.write(
+            &record.log_id,
+            "the direction was rewritten after registration\n",
+        );
+    }
+
     pub fn review(&self, record: vds_core::VisualReviewRecord) -> PathBuf {
         let store = self.store();
         let path = store.review_path(&record.id);
@@ -464,6 +527,25 @@ impl Harness {
         let path = store.redraw_path(&record.id);
         store.create(&path, &record).unwrap();
         path
+    }
+
+    /// The estate's route manifest: the enumeration a stage-4 run reports
+    /// against. Spelled out per call rather than derived from the screens
+    /// ledger, because the whole subject of the coverage limb is that the
+    /// estate says what is in the programme and the proof reports on THAT.
+    pub fn route_manifest(&self, routes: &[&str]) -> PathBuf {
+        let mut manifest = vds_core::RouteManifest {
+            schema_version: vds_core::ROUTE_MANIFEST_SCHEMA_VERSION,
+            generated_by: "vds ledger routes --from -".into(),
+            taken_at: Timestamp::fixed(2026, 8, 1, 9, 0, 0),
+            source: "the estate's route tracker".into(),
+            routes: routes.iter().map(|r| (*r).to_owned()).collect(),
+            does_not_cover: vec![],
+            content_digest: vds_core::Digest::of_text("placeholder"),
+        };
+        manifest.content_digest = manifest.compute_content_digest().expect("a digest");
+        let project = self.project();
+        vds_core::write_route_manifest(&project, &manifest).expect("a written manifest")
     }
 
     // -- register ------------------------------------------------------------

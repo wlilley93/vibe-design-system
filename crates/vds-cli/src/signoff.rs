@@ -83,6 +83,44 @@ fn record(store: &Store, args: &RecordArgs) -> Result<i32> {
             args.node_id
         ))
     })?;
+    // ORDER 31: only a CURRENT SOURCE frame is registrable. The ledger already
+    // carries what this needs (`disclaimed`, `authority_by`) and the door never
+    // looked. A register entry over a frame that says in its own authoritative
+    // layer that it is NOT source-current is a signed contradiction, and the
+    // register is the condition precedent to the whole regime: poisoning it at
+    // genesis poisons everything downstream ([2026] VJS-SC-OPBOX 1 orders 23
+    // and 25). Front door only - this creates no proof rule and reddens
+    // nothing already recorded.
+    if row.disclaimed {
+        return Err(VdsError::precondition(format!(
+            "{}/{} DISCLAIMS ITSELF: its authoritative layer {:?} says in its own name that \
+             it is not source-current, or was never built. Such a frame states no contract, \
+             so signing it would enter a contradiction as the register's own authority. \
+             Resolve the label - redraw and re-capture - before signing.",
+            args.file_key, row.node_id, row.authority_layer
+        )));
+    }
+    if row.authority_by == vds_figma::frames::AuthorityBy::Unlabelled {
+        return Err(VdsError::precondition(format!(
+            "{}/{} carries NO AUTHORITY MARKER at all: {:?} was taken as the authority by \
+             default, which is a default and not a declaration. Only frames labelled \
+             CURRENT SOURCE are registrable ([2026] VJS-SC-OPBOX 1 order 25); if this file \
+             uses different words for that, they belong in `[screens] authority_markers`.",
+            args.file_key, row.node_id, row.authority_layer
+        )));
+    }
+    if vds_figma::frames::authority_of(&row.authority_layer, &project.config.screens)
+        != Some(vds_figma::frames::Authority::Current)
+    {
+        return Err(VdsError::precondition(format!(
+            "{}/{} resolves its authority from {:?}, which is not a CURRENT SOURCE label \
+             under `[screens] authority_markers`. LEGACY/REFERENCE and TARGET/proposal \
+             frames are no_authority per se and are registrable only after redraw \
+             ([2026] VJS-SC-OPBOX 1 order 25).",
+            args.file_key, row.node_id, row.authority_layer
+        )));
+    }
+
     let frame_digest = row.content_digest.clone().ok_or_else(|| {
         VdsError::precondition(
             "this frame row predates per-frame content digests, so the current hash is \
@@ -148,6 +186,147 @@ fn list(store: &Store) -> Result<i32> {
     Ok(PASSED)
 }
 
+// ---------------------------------------------------------------- directions
+
+#[derive(ClapArgs)]
+pub struct DirectionArgs {
+    #[command(subcommand)]
+    action: DirectionAction,
+}
+
+#[derive(Subcommand)]
+enum DirectionAction {
+    /// Register a Principal direction, hash-bound to its logged decision.
+    Record(DirectionRecordArgs),
+    /// Every direction, and whether its decision still digests to what was
+    /// registered.
+    List,
+}
+
+#[derive(ClapArgs)]
+pub struct DirectionRecordArgs {
+    /// The decision-log entry the direction was given in: a repository-relative
+    /// path, or a decision id under `[paths] logs`.
+    #[arg(long)]
+    log_id: String,
+    /// The route the direction touches, where it names no frame.
+    #[arg(long, conflicts_with_all = ["file_key", "node_id"])]
+    route: Option<String>,
+    #[arg(long, requires = "node_id")]
+    file_key: Option<String>,
+    #[arg(long, requires = "file_key")]
+    node_id: Option<String>,
+    /// WHAT was directed, in the [2026] VJS-CC-OPBOX 155 O2 form.
+    #[arg(long)]
+    direction: String,
+    /// HOW MUCH, in the same form. Preserved rather than summarised: it
+    /// becomes the redraw brief.
+    #[arg(long)]
+    magnitude: String,
+    #[arg(long)]
+    notes: Option<String>,
+}
+
+pub fn run_direction(ctx: &Context, args: &DirectionArgs) -> Result<i32> {
+    let project = ctx.project()?;
+    let store = Store::new(&project);
+    match &args.action {
+        DirectionAction::Record(a) => direction_record(&store, a),
+        DirectionAction::List => direction_list(&store),
+    }
+}
+
+fn direction_record(store: &Store, args: &DirectionRecordArgs) -> Result<i32> {
+    let project = store.project;
+    // The digest is READ from the log entry, never taken from the caller: a
+    // direction is bound to what was actually decided, and a hash somebody
+    // types is a hash somebody can type wrongly.
+    let decision_digest =
+        vds_core::decision_log_digest(project, &args.log_id).ok_or_else(|| {
+            VdsError::precondition(format!(
+                "the decision log {:?} cannot be resolved, either as a repository-relative path \
+             or as a decision record under [paths] logs. A direction is hash-bound to its \
+             LOGGED DECISION ([2026] VJS-SC-OPBOX 1 order 30), and a direction with no \
+             readable decision behind it is authority the instruments cannot read - which is \
+             authority the estate does not have.",
+                args.log_id
+            ))
+        })?;
+    let surface = match (&args.route, &args.file_key, &args.node_id) {
+        (Some(route), _, _) => vds_core::DirectedSurface::Route {
+            route: route.clone(),
+        },
+        (None, Some(file_key), Some(node_id)) => vds_core::DirectedSurface::Frame {
+            file_key: file_key.clone(),
+            node_id: node_id.clone(),
+        },
+        _ => {
+            return Err(VdsError::precondition(
+                "pass --route, or --file-key with --node-id. A direction that names no \
+                 surface disposes of nothing.",
+            ));
+        }
+    };
+    let id = vds_core::DirectionId::allocate(&store.directions_dir())?;
+    let record = vds_core::DirectionRecord {
+        id: id.clone(),
+        log_id: args.log_id.clone(),
+        decision_digest,
+        surface,
+        direction: args.direction.clone(),
+        magnitude: args.magnitude.clone(),
+        directed_at: Timestamp::now(),
+        notes: args.notes.clone(),
+    };
+    let path = store.direction_path(&id);
+    store.create(&path, &record)?;
+    println!("recorded {id}: {}", record.surface.describe());
+    println!("  direction: {}", record.direction);
+    println!("  magnitude: {}", record.magnitude);
+    println!(
+        "  bound to:  {} at {}",
+        record.log_id, record.decision_digest
+    );
+    println!();
+    println!(
+        "Authority holds while the logged decision still digests to that value: staleness by \
+         hash, never by trust. A direction confers authority for its OWN TERMS only and \
+         carries a live duty to redraw, so the frame record converges on the directed state."
+    );
+    Ok(PASSED)
+}
+
+fn direction_list(store: &Store) -> Result<i32> {
+    let records = store.read_directions()?;
+    if records.is_empty() {
+        println!("no direction is registered.");
+        println!(
+            "  [2026] VJS-SC-OPBOX 1 order 31 makes the four directions of 2026-08-01 the \
+             register's FOUNDING entries, backfilled before any frame-bound proof runs in \
+             blocking mode."
+        );
+        return Ok(PASSED);
+    }
+    println!("{} direction(s):", records.len());
+    for located in &records {
+        let d = &located.value;
+        let standing = match vds_core::decision_log_digest(store.project, &d.log_id) {
+            Some(current) if current == d.decision_digest => "LIVE",
+            Some(_) => "LAPSED: the logged decision changed after registration",
+            None => "UNREADABLE: the logged decision cannot be resolved",
+        };
+        println!(
+            "  {:10} {:28} {:24} {}",
+            d.id.as_str(),
+            d.surface.describe(),
+            d.log_id,
+            standing
+        );
+        println!("      {} / {}", d.direction, d.magnitude);
+    }
+    Ok(PASSED)
+}
+
 // ------------------------------------------------------------------- redraws
 
 #[derive(ClapArgs)]
@@ -185,12 +364,15 @@ pub struct RedrawAddArgs {
 pub struct RedrawSetStatusArgs {
     #[arg(long)]
     id: String,
-    /// proposed | drawn | signed | withdrawn
+    /// proposed | drawn | signed | parked | withdrawn
     #[arg(long)]
     to: String,
     /// The sign-off row that covers the change. Required for `signed`.
     #[arg(long)]
     resolved_by: Option<String>,
+    /// The direction row that parks it. Required for `parked`.
+    #[arg(long)]
+    directed_by: Option<String>,
 }
 
 pub fn run_redraw(ctx: &Context, args: &RedrawArgs) -> Result<i32> {
@@ -214,6 +396,7 @@ fn redraw_add(store: &Store, args: &RedrawAddArgs) -> Result<i32> {
         file_key: args.file_key.clone(),
         node_id: args.node_id.clone(),
         resolved_by: None,
+        directed_by: None,
         opened_at: Timestamp::now(),
         basis: vec!["draft S-7D".into()],
         notes: None,
@@ -238,12 +421,15 @@ fn redraw_set_status(store: &Store, args: &RedrawSetStatusArgs) -> Result<i32> {
         "proposed" => RedrawStatus::Proposed,
         "drawn" => RedrawStatus::Drawn,
         "signed" => RedrawStatus::Signed,
+        "parked" => RedrawStatus::Parked,
         "withdrawn" => RedrawStatus::Withdrawn,
         other => {
             return Err(VdsError::precondition(format!(
-                "{other:?} is not one of proposed | drawn | signed | withdrawn. There is \
-                 deliberately no `accepted`: an acceptance state is taste exercised \
-                 downstream of sign-off, which draft S-7D forbids."
+                "{other:?} is not one of proposed | drawn | signed | parked | withdrawn. \
+                 There is deliberately no `accepted`: an acceptance state is taste \
+                 exercised downstream of sign-off, which S-7D(4) repeals. A direction the \
+                 Principal gave is recorded as `parked` under a direction row, which is \
+                 taste exercised AT the register."
             )));
         }
     };
@@ -270,13 +456,45 @@ fn redraw_set_status(store: &Store, args: &RedrawSetStatusArgs) -> Result<i32> {
         }
         record.resolved_by = Some(signoff_id);
     }
+    if to == RedrawStatus::Parked {
+        let Some(raw) = &args.directed_by else {
+            return Err(VdsError::precondition(
+                "`parked` requires --directed-by <DIR-nnnn>: a park rests on a REGISTERED \
+                 PRINCIPAL DIRECTION, and the word is not the row ([2026] VJS-CA-VDS 1 \
+                 order 27).",
+            ));
+        };
+        let direction_id = vds_core::DirectionId::parse(raw)?;
+        let directions = store.read_directions()?;
+        let Some(direction) = directions.iter().find(|d| d.value.id == direction_id) else {
+            return Err(VdsError::precondition(format!(
+                "{direction_id} does not exist in the direction register."
+            )));
+        };
+        let current = vds_core::decision_log_digest(store.project, &direction.value.log_id);
+        if !vds_core::direction_authority(&direction.value, current.as_ref()).is_signed() {
+            return Err(VdsError::precondition(format!(
+                "{direction_id} no longer carries authority: its logged decision does not \
+                 digest to what was registered. Re-register the direction against the \
+                 decision as it now stands."
+            )));
+        }
+        record.directed_by = Some(direction_id);
+    }
     record.status = to;
     store.replace(&path, &record)?;
     println!("{id} -> {}", record.status);
     if to == RedrawStatus::Signed {
         println!(
             "  the proof still verifies the covering hash against the frame's CURRENT one on \
-             every run (draft S-7D R8); this door checked the row exists and names the frame."
+             every run (S-7D R8); this door checked the row exists and names the frame."
+        );
+    }
+    if to == RedrawStatus::Parked {
+        println!(
+            "  while the registered direction stands no gate may count this a violation, and \
+             the subject keeps its render rights ([2026] VJS-SC-OPBOX 1 order 29). The \
+             redraw DUTY stands: the frame record converges on the directed state."
         );
     }
     Ok(PASSED)

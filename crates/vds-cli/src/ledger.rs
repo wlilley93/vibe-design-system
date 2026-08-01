@@ -55,6 +55,19 @@ enum Which {
         #[arg(long, value_name = "PATH")]
         from: std::path::PathBuf,
     },
+    /// The estate's ROUTE MANIFEST: what a stage-4 visual pass is supposed to
+    /// cover (draft S-7D(9)).
+    ///
+    /// Always `--from`: WHICH routes are in the programme is the estate's
+    /// question - in the motivating project, a route tracker - and VDS
+    /// deciding it would make VDS the authority on the estate's own scope.
+    /// What VDS owns is that the enumeration exists, is digest-witnessed, and
+    /// is reported against in three populations.
+    Routes {
+        /// The estate's list, as JSON in the route-manifest shape.
+        #[arg(long, value_name = "PATH")]
+        from: std::path::PathBuf,
+    },
     /// The authority snapshot binding the shipped geometry reading to a signed
     /// frame's decided values (draft S-7A(5)).
     ///
@@ -252,6 +265,55 @@ pub fn run(ctx: &Context, args: &Args) -> Result<i32> {
             }
             Ok(PASSED)
         }
+        Which::Routes { from } => {
+            let text =
+                std::fs::read_to_string(from).map_err(|e| VdsError::io(from.display(), e))?;
+            let mut manifest: vds_core::RouteManifest =
+                serde_json::from_str(&text).map_err(|e| VdsError::Artefact {
+                    path: project.rel(from),
+                    message: format!("is not a route manifest: {e}"),
+                })?;
+            if manifest.routes.is_empty() {
+                return Err(VdsError::precondition(
+                    "the manifest enumerates no route. An enumeration of nothing makes every \
+                     coverage population zero and every never-reviewed route invisible, which \
+                     is the defect this ledger exists to close (draft S-7D(9)).",
+                ));
+            }
+            let before = manifest.routes.len();
+            manifest.routes.sort();
+            manifest.routes.dedup();
+            // Computed here, never taken from the file: a route quietly removed
+            // from the manifest is a route that stops being reported as owed,
+            // and the digest is what makes that edit visible.
+            manifest.content_digest = manifest.compute_content_digest()?;
+            let path = vds_core::write_route_manifest(&project, &manifest)?;
+            println!("wrote {}", project.rel(&path));
+            println!("  source:   {}", manifest.source);
+            println!("  taken at: {}", manifest.taken_at);
+            println!(
+                "  routes:   {}{}",
+                manifest.routes.len(),
+                if manifest.routes.len() < before {
+                    format!(
+                        " ({} duplicate(s) collapsed)",
+                        before - manifest.routes.len()
+                    )
+                } else {
+                    String::new()
+                }
+            );
+            for line in &manifest.does_not_cover {
+                println!("  does NOT cover: {line}");
+            }
+            println!();
+            println!(
+                "`vds proof visual_review` now reports every one of these routes in one of \
+                 three populations: current, owed by drift, or never reviewed. A route missing \
+                 from this list is a route nothing will report as owed."
+            );
+            Ok(PASSED)
+        }
         Which::Burndown { from } => {
             let text =
                 std::fs::read_to_string(from).map_err(|e| VdsError::io(from.display(), e))?;
@@ -316,6 +378,29 @@ pub fn run(ctx: &Context, args: &Args) -> Result<i32> {
                     snapshot.reading_digest, reading.content_digest
                 )));
             }
+            // [2026] VJS-CA-VDS 1 order 7: the comparator is refused on the
+            // same terms as a stale capture or reading. The agreement rows are
+            // its assertion, and a snapshot naming a program that cannot be
+            // read - or one that has moved since the comparison - is bound to
+            // an input that no longer exists.
+            let comparator_path = project.root.join(&snapshot.comparator);
+            let comparator_now = vds_core::Digest::of_file(&comparator_path).map_err(|_| {
+                VdsError::precondition(format!(
+                    "the comparator {} cannot be read. The engine cannot re-derive an \
+                     agreement bit (that needs the values, which VDS S-2(2) forbids it to \
+                     hold), so the program that produced them is the only witness there is \
+                     ([2026] VJS-CA-VDS 1 order 7).",
+                    snapshot.comparator
+                ))
+            })?;
+            if comparator_now != snapshot.comparator_digest {
+                return Err(VdsError::precondition(format!(
+                    "the snapshot binds comparator digest {} and {} digests to \
+                     {comparator_now} on disk. Regenerate the snapshot with the comparator \
+                     that actually ran.",
+                    snapshot.comparator_digest, snapshot.comparator
+                )));
+            }
             snapshot.content_digest = snapshot.compute_content_digest()?;
             let path = vds_core::write_authority(&project, &snapshot)?;
             println!("wrote {}", project.rel(&path));
@@ -328,7 +413,11 @@ pub fn run(ctx: &Context, args: &Args) -> Result<i32> {
                 println!(
                     "  {:16} {}",
                     row.surface_kind.to_string(),
-                    if row.agrees { "agrees" } else { "DISAGREES" }
+                    match row.agrees {
+                        vds_core::AgreementState::Agrees => "agrees",
+                        vds_core::AgreementState::Disagrees => "DISAGREES",
+                        vds_core::AgreementState::NotDrawn => "not drawn by the frame",
+                    }
                 );
             }
             Ok(PASSED)

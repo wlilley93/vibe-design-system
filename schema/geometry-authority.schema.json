@@ -6,6 +6,8 @@
   "required": [
     "capture",
     "captureDigest",
+    "comparator",
+    "comparatorDigest",
     "contentDigest",
     "fetchedAt",
     "fileKey",
@@ -22,6 +24,14 @@
     },
     "captureDigest": {
       "description": "Digest of the capture file at comparison time: the AUTHORITY side's input hash. The capture moving on disk stales this snapshot.",
+      "type": "string"
+    },
+    "comparator": {
+      "description": "The out-of-band program that produced the agreement rows, repository-relative. REQUIRED by [2026] VJS-CA-VDS 1 order 6.\n\nThe engine cannot re-derive an agreement bit - re-deriving needs the values, which VDS S-2(2) and [2026] VJS-CC-OPBOX 3 forbid it to hold - so the one input that decides the verdict was the one input carrying no witness at all. A comparator rewritten to return agreement unconditionally produced an identical `generatedBy` NAME, regenerated cleanly through the front door, and turned the whole limb green with nothing measured.",
+      "type": "string"
+    },
+    "comparatorDigest": {
+      "description": "That file's digest at the moment the comparison ran, entering `contentDigest`. A comparator that moved after the comparison is a third expired input (geometry R14).",
       "type": "string"
     },
     "contentDigest": {
@@ -60,8 +70,34 @@
   },
   "additionalProperties": false,
   "definitions": {
+    "AgreementState": {
+      "description": "What the comparator found for one surface kind. THREE-VALUED.\n\nDraft S-7A(5A), ENACTMENT PENDING (SUBMISSION-VDS-019). This was a `bool` and the shape was the defect: [2026] VJS-SC-OPBOX 1 order 6 binds a frame \"only for what it draws in the states it draws\" and order 14 forbids manufacturing conformance from what was never drawn, and a two-valued field has nowhere to record that the frame drew NOTHING on a dimension. A comparator that finds nothing to compare then has one honest-looking value to write, writes `true`, and the proof records conformance against silence. That is an order defeated by a datatype.\n\nRecorded as Schedule B item 1 of [2026] VJS-CA-VDS 1 (Fidelity J, 012-A, commanding one judge and therefore NOT CARRIED). It is implemented here behind its own pending submission, on this lane's standing posture: the code ships marked as drafted and no warrant may cite it until the ruling lands.",
+      "oneOf": [
+        {
+          "description": "The shipped reading and the decided values agree on this dimension.",
+          "type": "string",
+          "enum": [
+            "agrees"
+          ]
+        },
+        {
+          "description": "They disagree. `because` is then required: a bare state names no work.",
+          "type": "string",
+          "enum": [
+            "disagrees"
+          ]
+        },
+        {
+          "description": "THE SIGNED FRAME DRAWS NOTHING on this dimension. Resolves to no_authority for that surface kind and can never contribute conformance, because a frame binds only for what it draws.",
+          "type": "string",
+          "enum": [
+            "not_drawn"
+          ]
+        }
+      ]
+    },
     "AuthorityAgreement": {
-      "description": "One surface kind's agreement between the authority and the artefact.\n\nAn AGREEMENT BIT and never a value, per the S-2(7) pin amendment: a Figma `cornerRadius` is a realisation and has no field to live in here. The generator that compared the two sides holds the values; this row holds only whether they agreed and where to look when they did not.",
+      "description": "One surface kind's agreement between the authority and the artefact.\n\nAn AGREEMENT STATE and never a value, per the S-2(7) pin amendment: a Figma `cornerRadius` is a realisation and has no field to live in here. The generator that compared the two sides holds the values; this row holds only what it concluded and where to look when the two disagreed.",
       "type": "object",
       "required": [
         "agrees",
@@ -69,11 +105,11 @@
       ],
       "properties": {
         "agrees": {
-          "description": "Whether the authority reading and the artefact reading agree for this kind, as the out-of-band comparator found them.",
-          "type": "boolean"
+          "description": "What the out-of-band comparator found: agrees, disagrees, or the frame drew nothing here.",
+          "$ref": "#/definitions/AgreementState"
         },
         "because": {
-          "description": "Where the disagreement lives, in the comparator's words. Required by the proof when `agrees` is false: a bare bit names no work.",
+          "description": "Where the disagreement lives, in the comparator's words. Required by the proof when the state is `disagrees`: a bare state names no work.",
           "type": [
             "string",
             "null"

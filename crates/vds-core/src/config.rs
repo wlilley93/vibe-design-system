@@ -33,6 +33,8 @@ pub struct Config {
     #[serde(default)]
     pub burndown: BurndownConfig,
     #[serde(default)]
+    pub review: ReviewConfig,
+    #[serde(default)]
     pub governance: Governance,
 }
 
@@ -72,6 +74,10 @@ pub struct Paths {
     /// Visual review verdict records (draft S-7D).
     #[serde(default = "default_reviews_dir")]
     pub reviews: PathBuf,
+    /// Registered Principal directions: the sign-off register's second row
+    /// kind ([2026] VJS-CA-VDS 1 order 26).
+    #[serde(default = "default_directions_dir")]
+    pub directions: PathBuf,
     pub warrants: PathBuf,
     pub proofs: PathBuf,
     pub pins: PathBuf,
@@ -109,6 +115,10 @@ fn default_reviews_dir() -> PathBuf {
     PathBuf::from(".vds/reviews")
 }
 
+fn default_directions_dir() -> PathBuf {
+    PathBuf::from(".vds/directions")
+}
+
 impl Default for Paths {
     fn default() -> Self {
         Self {
@@ -120,6 +130,7 @@ impl Default for Paths {
             signoffs: default_signoffs_dir(),
             redraws: default_redraws_dir(),
             reviews: default_reviews_dir(),
+            directions: default_directions_dir(),
             warrants: ".vds/warrants".into(),
             proofs: ".vds/proofs".into(),
             pins: ".vds/pins".into(),
@@ -312,6 +323,28 @@ impl Default for GeometryConfig {
     }
 }
 
+/// Where the estate's ROUTE MANIFEST lives, and nothing else.
+///
+/// Thin, and deliberately so. WHICH routes are in the programme is the
+/// estate's question - in the motivating project a route tracker - and VDS
+/// deciding it would make VDS the authority on the estate's own scope. What
+/// VDS owns is that the enumeration exists and that every entry is reported in
+/// one of three populations (draft S-7D(9)).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReviewConfig {
+    /// Where the supplied route manifest is written.
+    pub route_manifest: PathBuf,
+}
+
+impl Default for ReviewConfig {
+    fn default() -> Self {
+        Self {
+            route_manifest: ".vds/ledgers/routes.yaml".into(),
+        }
+    }
+}
+
 /// Where the burndown reading is written, and nothing else. Thin for the
 /// reason [`GeometryConfig`] is: what a metric MEANS is the subject's
 /// generator talking, never VDS's.
@@ -371,6 +404,7 @@ pub enum PathRole {
     Signoffs,
     Redraws,
     Reviews,
+    Directions,
     Warrants,
     Proofs,
     Pins,
@@ -391,6 +425,7 @@ impl PathRole {
             PathRole::Signoffs => "signoffs",
             PathRole::Redraws => "redraws",
             PathRole::Reviews => "reviews",
+            PathRole::Directions => "directions",
             PathRole::Warrants => "warrants",
             PathRole::Proofs => "proofs",
             PathRole::Pins => "pins",
@@ -413,6 +448,7 @@ impl Config {
             PathRole::Signoffs => &self.paths.signoffs,
             PathRole::Redraws => &self.paths.redraws,
             PathRole::Reviews => &self.paths.reviews,
+            PathRole::Directions => &self.paths.directions,
             PathRole::Warrants => &self.paths.warrants,
             PathRole::Proofs => &self.paths.proofs,
             PathRole::Pins => &self.paths.pins,
@@ -460,6 +496,7 @@ impl Config {
             PathRole::Signoffs,
             PathRole::Redraws,
             PathRole::Reviews,
+            PathRole::Directions,
             PathRole::Warrants,
             PathRole::Proofs,
             PathRole::Pins,
