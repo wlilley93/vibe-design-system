@@ -1336,6 +1336,7 @@ fn the_documents_and_the_enum_agree_on_how_many_proof_kinds_there_are() {
         12 => "twelve",
         13 => "thirteen",
         14 => "fourteen",
+        15 => "fifteen",
         other => panic!(
             "{other} proof kinds, and this test cannot spell that. Add the word rather than \
              relaxing the check: the whole point is that a human number and a machine number \

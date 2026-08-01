@@ -1,0 +1,22 @@
+id: PROOF-20260731-184228
+kind: geometry
+status: passed
+warrant_id: null
+command: vds proof geometry
+script: crates/vds-proof/src/geometry.rs
+exit_code: 0
+rows_considered: 1
+rows_enforced: 1
+rows_skipped_reasons: {}
+violations: []
+notes:
+- '[reserved] This kind checks the BOUND and its DIRECTION. What counts as a compliant radius, boundary weight, spacing step or type step is the subject''s design system talking, and VDS does not hold those thresholds: deciding them here would make VDS a fourth design authority. So a reading that calls everything compliant passes this proof, and the honesty of the reading is the generator''s to establish, per VDS S-4(2), by being byte-reproducible from the shipped artefact.'
+- '[reading] the generator states it does NOT cover: utility classes. A framework that composes shape from class names (`rounded-lg`, `p-4`) puts it in the markup, and this reader looks only at the stylesheet. On such a project the counts here are a floor and the reading needs its own generator.; inline style attributes and any shape set from JavaScript.; `margin`, which positions a surface among its siblings rather than shaping it. Density here is the space a surface keeps inside itself.; whether a referenced token holds a value the design system endorses. This reader establishes that a surface takes its shape FROM the system, never that the system''s own value is right, which is not VDS''s to say.'
+- '[reading] taken 2026-07-31T10:14:23Z from shipped_source (app/globals.css)'
+inputs_digest: sha256:575d7d301a75ae8943aaccd47e9b065a527271e81b1071db8e0163dc5e1df3ea
+digest: sha256:f29423153c8ef11e2653c3725cc06b9214fc54d0ad30096d89398f7f509d2167
+designpack_digest: sha256:f9c369f3175c15169dafde47c01d7efc2f45c64090444f17f5b3f480e710ec5a
+captured_at: 2026-07-31T18:42:18Z
+capture_mode: automatic
+invoked_by: package_script
+duration_ms: 0

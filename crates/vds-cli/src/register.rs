@@ -260,6 +260,9 @@ fn add(store: &Store, args: &AddArgs) -> Result<i32> {
         } else {
             args.basis.clone()
         },
+        measured_by: vec![],
+        directed_at: None,
+        grace_days: None,
         deprecated_at: None,
         retired_at: None,
         retirement_proof_id: None,

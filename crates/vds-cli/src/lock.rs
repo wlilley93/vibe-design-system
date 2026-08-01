@@ -26,7 +26,11 @@ enum Action {
     /// Recompute every pinned digest and report what moved.
     Verify,
     /// Pin one gate.
-    Add(AddArgs),
+    ///
+    /// Boxed because the variant grew a repeatable `--seed` list when
+    /// [2026] VJS-CA-VDS 1 order 3 made the lock carry one control per rule,
+    /// and an unboxed variant makes every `Action` the size of this one.
+    Add(Box<AddArgs>),
     /// Re-pin every gate whose bytes moved, recording what each superseded.
     Repin {
         /// Why. Required: re-locking without recording why is itself the breach
@@ -264,11 +268,14 @@ fn verify(store: &Store) -> Result<i32> {
                 );
                 println!("    invoked: {}", surfaces.join(", "));
                 println!(
-                    "    failing-direction test: {}::{}",
-                    entry.failing_direction_test.path, entry.failing_direction_test.test_name
+                    "    failing-direction tests ({}):",
+                    entry.failing_direction_tests.len()
                 );
-                if let Some(seeds) = &entry.failing_direction_test.seeds {
-                    println!("      seeds: {seeds}");
+                for test in &entry.failing_direction_tests {
+                    println!("      {}::{}", test.path, test.test_name);
+                    if let Some(seeds) = &test.seeds {
+                        println!("        seeds: {seeds}");
+                    }
                 }
             }
         }
@@ -376,6 +383,36 @@ pub struct AddArgs {
     /// Required when re-pinning a path whose bytes have changed.
     #[arg(long)]
     rationale: Option<String>,
+    /// An additional seeded negative control, repeatable, as
+    /// `path::test_name::what it seeds`.
+    ///
+    /// A gate decides as many things as it has rules, and
+    /// [2026] VJS-CA-VDS 1 order 3 makes the lock carry one control PER RULE
+    /// rather than one per file: `geometry.rs` pinned a seed for its direction
+    /// rule while the same gate acquired four live limbs nothing had a
+    /// negative control for.
+    #[arg(long = "seed", value_name = "PATH::TEST::SEEDS")]
+    seed: Vec<String>,
+}
+
+/// Parse `path::test_name::what it seeds`.
+fn parse_seed(spec: &str) -> Result<FailingDirectionTest> {
+    let mut parts = spec.splitn(3, "::");
+    let path = parts.next().unwrap_or_default().trim();
+    let test_name = parts.next().unwrap_or_default().trim();
+    let seeds = parts.next().map(|s| s.trim().to_owned());
+    if path.is_empty() || test_name.is_empty() {
+        return Err(VdsError::precondition(format!(
+            "--seed {spec:?} is not `path::test_name::what it seeds`. Both a path and a test \
+             name are required: a control nobody can resolve is a control nothing performs \
+             ([2026] VJS-CA-VDS 1 order 2)."
+        )));
+    }
+    Ok(FailingDirectionTest {
+        path: path.to_owned(),
+        test_name: test_name.to_owned(),
+        seeds,
+    })
 }
 
 fn add(store: &Store, args: &AddArgs) -> Result<i32> {
@@ -393,18 +430,35 @@ fn add(store: &Store, args: &AddArgs) -> Result<i32> {
              because an uninvoked gate is not enforcement (VDS S-7(2)(3)).",
         ));
     }
-    let (Some(test_path), Some(test_name)) = (&args.test_path, &args.test_name) else {
+    // One entry may carry MANY controls, one per rule the gate decides
+    // ([2026] VJS-CA-VDS 1 order 3). The --test-path/--test-name pair is the
+    // single-control spelling and is kept; --seed adds the rest.
+    let mut tests: Vec<FailingDirectionTest> = Vec::new();
+    if let (Some(test_path), Some(test_name)) = (&args.test_path, &args.test_name) {
+        tests.push(FailingDirectionTest {
+            path: test_path.clone(),
+            test_name: test_name.clone(),
+            seeds: args.seeds.clone(),
+        });
+    }
+    for spec in &args.seed {
+        tests.push(parse_seed(spec)?);
+    }
+    if tests.is_empty() {
         return Err(VdsError::precondition(
-            "pass --test-path and --test-name. An entry cannot be written without naming the \
-             test that proves the gate's FAILING direction, which is how VDS S-7(2)(2) is made \
-             structural rather than aspirational: a check whose failing direction is asserted \
-             nowhere has proven only its happy path.",
+            "pass --test-path and --test-name, or --seed at least once. An entry cannot be \
+             written without naming the test that proves the gate's FAILING direction, which \
+             is how VDS S-7(2)(2) is made structural rather than aspirational: a check whose \
+             failing direction is asserted nowhere has proven only its happy path.",
         ));
-    };
-    if !store.project.root.join(test_path).is_file() {
-        return Err(VdsError::precondition(format!(
-            "--test-path {test_path} does not exist"
-        )));
+    }
+    for test in &tests {
+        if !store.project.root.join(&test.path).is_file() {
+            return Err(VdsError::precondition(format!(
+                "the seed path {} does not exist",
+                test.path
+            )));
+        }
     }
     let kind = LockKind::parse(&args.kind).ok_or_else(|| {
         VdsError::precondition(format!(
@@ -447,11 +501,7 @@ fn add(store: &Store, args: &AddArgs) -> Result<i32> {
         kind,
         invoked_by: invocations,
         proves,
-        failing_direction_test: FailingDirectionTest {
-            path: test_path.clone(),
-            test_name: test_name.clone(),
-            seeds: args.seeds.clone(),
-        },
+        failing_direction_tests: tests,
         pinned_at: Timestamp::now(),
         pinned_by: actor(),
         supersedes_digest: None,

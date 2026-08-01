@@ -1,0 +1,39 @@
+id: SUBMISSION-VDS-016
+status: answered
+question: "May the proof registry grow a `visual_review` kind (draft S-7D(6)): the verdict artefact of an AUTOMATED visual pass - shipped-screenshot hash, source digest, frame-image hash, frame digest, delta list, reviewer identity, date - validated, stored and staled by the engine while the capture/review pipeline lives in consuming repos?"
+trigger: first_impression
+why_first_impression: |
+  The founding defect of this lane: a migration shipped structurally-green pages that
+  looked nothing like their frames, under twenty-eight source-side gates none of which
+  read the ARTEFACT against the FRAME. No kind in the registry has a rendered artefact
+  on either side. S-7(2)(1) forbids a network or model call inside a proof, so the open
+  question is whether a proof may instead govern the RECORD of such a pass - and what
+  expires it. The Principal directed automated eyes on 2026-08-01.
+citator_checked:
+  - citation: "VDS S-7(2)(1) (no network, no model call)"
+    why_not_on_all_fours: "Constrains the shape (the pipeline stays outside; the proof reads the record) and does not decide whether the record-kind should exist."
+  - citation: "VDS S-4(2) (ledgers are generated)"
+    why_not_on_all_fours: "The staleness discipline the draft borrows (hash-witnessed inputs); it does not reach a verdict artefact authored by an agent."
+options:
+  - option: "Enact draft S-7D(6) as implemented (R1-R8, W1-W2)."
+    consequence: "Verdicts expire the moment the shipped side, the frame side, or the authority moves; the engine never trusts a stale green."
+  - option: "Refuse: visual verdicts stay entirely in consuming repos."
+    consequence: "The verdict-goes-silently-stale defect is re-invented per repo, which is this lane's founding failure repeated."
+  - option: "Enact with the pipeline inside the engine."
+    consequence: "Violates S-7(2)(1) on both limbs (network and model); refused."
+evidence:
+  - "crates/vds-core/src/types/review.rs"
+  - "crates/vds-proof/src/visual_review.rs"
+  - "VDS.md"
+case_file_digest: sha256:e6d9d48d85ee9d11420d9b91248be51838c7bf9f71d771584c4ce192cb33b470
+reserved_clause: null
+fail_closed_interim: "ENACTMENT PENDING. Built, drafted on its face, lock-pinned with its seed-red test; vacuous until a pipeline records a review; no warrant may cite it before the ruling. DIGEST PROVENANCE: case_file_digest is derived by scripts/case-file-digest.sh over the evidence files named above, at drafting."
+filed_to: vjs
+vjs_submission_id: "[2026] VJS-CA-VDS 1"
+created_at: 2026-08-01T12:00:00Z
+filed_at: 2026-08-01T12:30:00Z
+answer:
+  citation: "[2026] VJS-CA-VDS 1"
+  ratio: >-
+    ENACTED AS AMENDED on option 1 (unanimous). The three-hash staleness discipline and the refusal of conform-against-nothing stand. AMENDED by orders 20-22: the frame's authority is resolved BEFORE the staleness rules and an unsigned surface warns and skips rather than failing, R1 and R6 staying fatal as defects in the record; the reserved note recites that registration is the moment a surface flips from report to block and that there is no estate-wide flag day; and the R5 finding states that it CLASSIFIES and does not dispose, 155 O7 remaining the exclusive law of removal. Engine J's typed deltas and R5 split are Schedule B item 7.
+  answered_at: 2026-08-01T13:00:00Z

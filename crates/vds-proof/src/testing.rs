@@ -46,7 +46,19 @@ impl Harness {
     pub fn with_config(config: &str) -> Harness {
         let tmp = tempfile::tempdir().expect("a temporary directory");
         for dir in [
-            "register", "screens", "geometry", "warrants", "proofs", "pins", "ledgers", "logs",
+            "register",
+            "screens",
+            "geometry",
+            "prohibitions",
+            "burndowns",
+            "signoffs",
+            "redraws",
+            "reviews",
+            "warrants",
+            "proofs",
+            "pins",
+            "ledgers",
+            "logs",
             "permits",
         ] {
             std::fs::create_dir_all(tmp.path().join(".vds").join(dir)).unwrap();
@@ -84,6 +96,16 @@ impl Harness {
     }
 
     pub fn write(&self, rel: &str, contents: &str) -> PathBuf {
+        let path = self.root().join(rel);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, contents).unwrap();
+        path
+    }
+
+    /// Write raw bytes, for a fixture that must be byte-identical to a real
+    /// artefact. A digest-bound test cannot go through [`Harness::write`],
+    /// because a text round trip is one newline away from a different digest.
+    pub fn write_bytes(&self, rel: &str, contents: &[u8]) -> PathBuf {
         let path = self.root().join(rel);
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(&path, contents).unwrap();
@@ -269,6 +291,273 @@ impl Harness {
         vds_scan::write(&project).expect("the ledger generator");
     }
 
+    // -- prohibitions ---------------------------------------------------------
+
+    /// A prohibition whose expansion is recorded from the CURRENT tree, exactly
+    /// as `vds prohibition add` records it.
+    pub fn prohibition(&self, pattern: &str, scope: &[&str]) -> PathBuf {
+        self.prohibition_with_status(pattern, scope, "registered")
+    }
+
+    pub fn prohibition_with_status(&self, pattern: &str, scope: &[&str], status: &str) -> PathBuf {
+        let store = self.store();
+        let project = self.project();
+        let id = vds_core::ProhibitionId::allocate(&store.prohibitions_dir()).unwrap();
+        let scope: Vec<String> = scope.iter().map(|s| (*s).to_owned()).collect();
+        let mut expansion: Vec<String> = vds_scan::glob::match_globs(&project.root, &scope)
+            .unwrap()
+            .iter()
+            .map(|p| project.rel(p))
+            .collect();
+        expansion.sort();
+        let record = vds_core::ProhibitionRecord {
+            id: id.clone(),
+            status: Status::parse(status).unwrap(),
+            pattern: pattern.into(),
+            scope,
+            expansion,
+            directed_at: Some(Timestamp::fixed(2026, 8, 1, 10, 0, 0)),
+            because: None,
+            basis: vec!["draft S-7B".into()],
+            notes: None,
+        };
+        let path = store.prohibition_path(&id);
+        store.create(&path, &record).unwrap();
+        path
+    }
+
+    // -- burndowns ------------------------------------------------------------
+
+    /// A burndown with the given pin history, `(date, value)` OLDEST FIRST.
+    pub fn burndown(
+        &self,
+        metric: &str,
+        deadline: Option<&str>,
+        history: &[(&str, u64)],
+    ) -> PathBuf {
+        self.burndown_aged(metric, deadline, deadline.map(|_| 7), history)
+    }
+
+    /// A burndown declaring its own maximum reading age, for the S-7C(5) seeds.
+    pub fn burndown_aged(
+        &self,
+        metric: &str,
+        deadline: Option<&str>,
+        max_reading_age_days: Option<u32>,
+        history: &[(&str, u64)],
+    ) -> PathBuf {
+        let store = self.store();
+        let id = vds_core::BurndownId::allocate(&store.burndowns_dir()).unwrap();
+        let record = vds_core::BurndownRecord {
+            id: id.clone(),
+            status: Status::Registered,
+            metric: metric.into(),
+            deadline: deadline
+                .map(|d| Timestamp::parse(format!("{d}T00:00:00Z")).expect("a fixture date")),
+            max_reading_age_days,
+            history: history
+                .iter()
+                .map(|(at, value)| vds_core::PinnedValue {
+                    at: Timestamp::parse(format!("{at}T00:00:00Z")).expect("a fixture date"),
+                    value: *value,
+                    because: None,
+                })
+                .collect(),
+            basis: vec!["draft S-7C".into()],
+            notes: None,
+        };
+        let path = store.burndown_path(&id);
+        store.create(&path, &record).unwrap();
+        path
+    }
+
+    /// A burndown reading covering the given metrics, `(metric, value)`.
+    pub fn burndown_reading(&self, taken: &str, rows: &[(&str, u64)]) -> PathBuf {
+        let mut reading = vds_core::BurndownReading {
+            schema_version: vds_core::BURNDOWN_READING_SCHEMA_VERSION,
+            generated_by: "vds ledger burndown --from -".into(),
+            taken_at: Timestamp::parse(format!("{taken}T00:00:00Z")).expect("a fixture date"),
+            rows: rows
+                .iter()
+                .map(|(metric, value)| vds_core::BurndownRow {
+                    metric: (*metric).to_owned(),
+                    value: *value,
+                    measured_by: Some("a named counter".into()),
+                })
+                .collect(),
+            does_not_cover: vec![],
+            content_digest: vds_core::Digest::of_text("placeholder"),
+        };
+        reading.content_digest = reading.compute_content_digest().expect("a digest");
+        let project = self.project();
+        vds_core::write_burndown_reading(&project, &reading).expect("a written reading")
+    }
+
+    /// Write a geometry authority snapshot bound to the CURRENT reading and a
+    /// capture file this helper writes, with the given agreement rows.
+    pub fn geometry_authority(
+        &self,
+        file_key: &str,
+        node_id: &str,
+        rows: &[(SurfaceKind, vds_core::AgreementState)],
+    ) -> PathBuf {
+        let project = self.project();
+        let capture_rel = "design/captures/geometry-authority.json";
+        let capture = self.write(
+            capture_rel,
+            "{\"nodes\":{\"1:2\":{\"document\":{\"name\":\"decided\"}}}}\n",
+        );
+        // The comparator is a real file in the fixture tree, because the
+        // proof digests it and W3 asks whether the lock pins it.
+        let comparator_rel = "scripts/geometry-comparator.py";
+        let comparator = self.write(
+            comparator_rel,
+            "# the out-of-band comparator that produced the agreement rows\n",
+        );
+        let reading = vds_core::read_reading(&project)
+            .expect("a readable reading")
+            .expect("a generated geometry reading to bind to");
+        let mut snapshot = vds_core::GeometryAuthority {
+            schema_version: vds_core::AUTHORITY_SNAPSHOT_SCHEMA_VERSION,
+            generated_by: "vds ledger geometry-authority --from -".into(),
+            fetched_at: Timestamp::fixed(2026, 8, 1, 11, 0, 0),
+            file_key: file_key.into(),
+            node_id: node_id.into(),
+            capture: capture_rel.into(),
+            capture_digest: vds_core::Digest::of_file(&capture).unwrap(),
+            reading_digest: reading.content_digest.clone(),
+            comparator: comparator_rel.into(),
+            comparator_digest: vds_core::Digest::of_file(&comparator).unwrap(),
+            rows: rows
+                .iter()
+                .map(|(kind, agrees)| vds_core::AuthorityAgreement {
+                    surface_kind: *kind,
+                    agrees: *agrees,
+                    because: match agrees {
+                        vds_core::AgreementState::Disagrees => {
+                            Some("the shipped step sits off the decided scale".to_owned())
+                        }
+                        vds_core::AgreementState::NotDrawn => {
+                            Some("the signed frame draws no radius at all".to_owned())
+                        }
+                        vds_core::AgreementState::Agrees => None,
+                    },
+                })
+                .collect(),
+            content_digest: vds_core::Digest::of_text("placeholder"),
+        };
+        snapshot.content_digest = snapshot.compute_content_digest().expect("a digest");
+        vds_core::write_authority(&project, &snapshot).expect("a written snapshot")
+    }
+
+    // -- sign-offs, redraws, reviews ------------------------------------------
+
+    /// Sign a frame off at its CURRENT content digest, as read from the frames
+    /// ledger. Panics if the frame has no current digest: a fixture signing a
+    /// hash nothing measured would decide the answer.
+    pub fn signoff(&self, file_key: &str, node_id: &str) -> vds_core::SignoffId {
+        let project = self.project();
+        let ledger = vds_figma::frames::read(&project)
+            .expect("the frames ledger")
+            .expect("a generated frames ledger");
+        let digest = ledger
+            .row(node_id)
+            .and_then(|r| r.content_digest.clone())
+            .expect("a frame with a current content digest");
+        self.signoff_at(file_key, node_id, digest)
+    }
+
+    /// Sign a frame off at an EXPLICIT digest, for the staleness seeds.
+    pub fn signoff_at(
+        &self,
+        file_key: &str,
+        node_id: &str,
+        frame_digest: vds_core::Digest,
+    ) -> vds_core::SignoffId {
+        let store = self.store();
+        let id = vds_core::SignoffId::allocate(&store.signoffs_dir()).unwrap();
+        let record = vds_core::SignOff {
+            id: id.clone(),
+            file_key: file_key.into(),
+            node_id: node_id.into(),
+            frame_digest,
+            signed_by: "the principal".into(),
+            signed_at: Timestamp::fixed(2026, 8, 1, 10, 0, 0),
+            notes: None,
+        };
+        let path = store.signoff_path(&id);
+        store.create(&path, &record).unwrap();
+        id
+    }
+
+    /// A registered Principal direction, hash-bound to a decision log entry
+    /// this helper writes into the project tree.
+    pub fn direction(&self, surface: vds_core::DirectedSurface) -> vds_core::DirectionId {
+        let store = self.store();
+        let id = vds_core::DirectionId::allocate(&store.directions_dir()).unwrap();
+        let log_rel = format!("logs/{id}-decision.md");
+        let log = self.write(
+            &log_rel,
+            "LOG-2026-08-01-104739: the band goes off-screen for now.\n",
+        );
+        let record = vds_core::DirectionRecord {
+            id: id.clone(),
+            log_id: log_rel,
+            decision_digest: vds_core::Digest::of_file(&log).unwrap(),
+            surface,
+            direction: "band off-screen".into(),
+            magnitude: "the whole band, until the frames carry it".into(),
+            directed_at: Timestamp::fixed(2026, 8, 1, 10, 47, 39),
+            notes: None,
+        };
+        let path = store.direction_path(&id);
+        store.create(&path, &record).unwrap();
+        id
+    }
+
+    /// Rewrite a direction's log entry, so its decisionDigest lapses.
+    pub fn move_direction_log(&self, id: &vds_core::DirectionId) {
+        let store = self.store();
+        let record: vds_core::DirectionRecord = store.read(&store.direction_path(id)).unwrap();
+        self.write(
+            &record.log_id,
+            "the direction was rewritten after registration\n",
+        );
+    }
+
+    pub fn review(&self, record: vds_core::VisualReviewRecord) -> PathBuf {
+        let store = self.store();
+        let path = store.review_path(&record.id);
+        store.create(&path, &record).unwrap();
+        path
+    }
+
+    pub fn redraw(&self, record: vds_core::RedrawRecord) -> PathBuf {
+        let store = self.store();
+        let path = store.redraw_path(&record.id);
+        store.create(&path, &record).unwrap();
+        path
+    }
+
+    /// The estate's route manifest: the enumeration a stage-4 run reports
+    /// against. Spelled out per call rather than derived from the screens
+    /// ledger, because the whole subject of the coverage limb is that the
+    /// estate says what is in the programme and the proof reports on THAT.
+    pub fn route_manifest(&self, routes: &[&str]) -> PathBuf {
+        let mut manifest = vds_core::RouteManifest {
+            schema_version: vds_core::ROUTE_MANIFEST_SCHEMA_VERSION,
+            generated_by: "vds ledger routes --from -".into(),
+            taken_at: Timestamp::fixed(2026, 8, 1, 9, 0, 0),
+            source: "the estate's route tracker".into(),
+            routes: routes.iter().map(|r| (*r).to_owned()).collect(),
+            does_not_cover: vec![],
+            content_digest: vds_core::Digest::of_text("placeholder"),
+        };
+        manifest.content_digest = manifest.compute_content_digest().expect("a digest");
+        let project = self.project();
+        vds_core::write_route_manifest(&project, &manifest).expect("a written manifest")
+    }
+
     // -- register ------------------------------------------------------------
 
     pub fn register(&self, name: &str, status: Status) -> ComponentId {
@@ -322,6 +611,9 @@ impl Harness {
             superseded_by: None,
             amendments: vec![],
             basis: vec!["ACT-VDS-001:s5".into()],
+            measured_by: vec![],
+            directed_at: None,
+            grace_days: None,
             deprecated_at: matches!(status, Status::Deprecated | Status::Retired)
                 .then(|| Timestamp::fixed(2026, 7, 25, 10, 0, 0)),
             retired_at: matches!(status, Status::Retired)

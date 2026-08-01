@@ -32,6 +32,14 @@ const RECORD_DIRS: &[&str] = &[
     // registers.
     "screens",
     "geometry",
+    // The draft S-7B/S-7C/S-7D families, added with the lesson above applied:
+    // the directory ships in the scaffold the same day the artefact kind does.
+    "prohibitions",
+    "burndowns",
+    "signoffs",
+    "redraws",
+    "reviews",
+    "directions",
     "warrants",
     "proofs",
     "pins",

@@ -1,8 +1,8 @@
 schema_version: 1
-generated_at: 2026-07-31T21:35:13Z
+generated_at: 2026-08-01T14:02:52Z
 entries:
 - path: crates/vds-cli/src/doctor.rs
-  digest: sha256:d5e64c61ce271e43cd53f01e3a702d61df371a05a1fea610149b4b23a2a3ce52
+  digest: sha256:61a4c86e2fe16925c8eabc4869925b3a1559f14fb270629d4904cedbe93791c9
   kind: criteria_grader
   invoked_by:
   - surface: ci_workflow
@@ -16,15 +16,15 @@ entries:
     blocking: false
   proves: []
   failing_direction_test:
-    path: crates/vds-cli/src/doctor.rs
+  - path: crates/vds-cli/src/doctor.rs
     test_name: a_pass_over_zero_rows_is_still_a_vacuous_pass
     seeds: a proof record labelled passed over rows_enforced 0, which D3 once agreed was a pass
-  pinned_at: 2026-07-31T19:53:23Z
+  pinned_at: 2026-08-01T13:24:30Z
   pinned_by: jellytot
-  supersedes_digest: sha256:91e6c44eb8b9a25b0474ae801918511ab67ad28abaeeb0ea0bf27fce5fbc1461
-  relock_rationale: 'Task #53: the last four RESERVED clauses (S-3(6), S-6(5), S-6(6), S-9(9)) enacted from their rulings ([2026] VJS-CC-VIBE-DESIGN-SYSTEM 4 and 5), each rewritten to carry its ratio. The doctor reserved-census goes to zero with a comment explaining why zero is the deliberate value and what a future marker owes.'
+  supersedes_digest: sha256:d5e64c61ce271e43cd53f01e3a702d61df371a05a1fea610149b4b23a2a3ce52
+  relock_rationale: '[2026] VJS-CA-VDS 1 implementation. ledger_staleness gains R7 (order 39''s election: arms for the three ledgers this lane added, rather than moving their defaults). lock.rs, vds-store/lock.rs and doctor.rs carry order 3: the enforcement lock holds a LIST of failing-direction tests per gate, every recorded control is resolved rather than the first, and a --seed flag records one control per rule.'
 - path: crates/vds-cli/src/lock.rs
-  digest: sha256:056a937bdacc8b2539624a618c39ca5bb6ec8b67d3119925cf417a185daefdcc
+  digest: sha256:1eae4ef0f256e064582f51d6cb94aaf245b3fc0da12af1ff3c537ac64abf4ecc
   kind: hook
   invoked_by:
   - surface: ci_workflow
@@ -35,13 +35,51 @@ entries:
     blocking: true
   proves: []
   failing_direction_test:
-    path: crates/vds-cli/src/lock.rs
+  - path: crates/vds-cli/src/lock.rs
     test_name: a_renamed_step_unbinds_the_gate_and_is_reported
     seeds: a workflow step renamed from Test to Tests while every pinned digest still matches, which is the case the digest half of the lock cannot see
-  pinned_at: 2026-07-31T18:47:59Z
+  pinned_at: 2026-08-01T14:02:52Z
   pinned_by: jellytot
-  supersedes_digest: sha256:c5ae0f9bade970f4caddbcbcf156d0701486858db46a611714cff328a0adc7e0
-  relock_rationale: 'Implement [2026] VJS-CC-VIBE-DESIGN-SYSTEM 1: D2 evaluates by seat. doctor.rs gains the subscriber seat (released_binary pin verified by digest, provenance required, NOT CHECKED with the missing link named when absent); lock.rs admits kind released_binary with empty proves (it runs all kinds, it is not one) and a --provenance flag; the lock schema gains the optional provenance field. The failing direction (a replaced binary reads UNMET) is proven with green-first plus a landed-seed assertion.'
+  supersedes_digest: sha256:ee15f32b8aba9d0af5022af605ab867dac2c6934614a49f98b36ec66d6e8efe9
+  relock_rationale: 'Carried orders of [2026] VJS-CA-VDS 1 (enactment of the visual-gap proof kinds). Each of the three is a gate change the judgment ORDERED, not a drift discovered afterwards: crates/vds-cli/src/lock.rs implements orders 3 and 38 (failing_direction_tests becomes a LIST, repeatable --seed, verify and doctor resolve every recorded control); crates/vds-proof/src/geometry.rs implements orders 6 to 9 (a required comparator plus comparatorDigest inside the content digest, R14 comparator-stale fatal, W3 unpinned-comparator warning); crates/vds-proof/src/ledger_staleness.rs implements the order 39 election (R7 arms for the three new ledgers rather than moving defaults). Re-pinned as a set ONLY because the drifting set is exactly the set that judgment ordered and nothing else drifts: [2026] VJS-FI-VDS 1 declined to repin these under ITS citation precisely because that citation never considered them, and that reasoning is honoured here by citing the judgment that did. VDS S-8(4), S-12(3).'
+- path: crates/vds-proof/src/burndown.rs
+  digest: sha256:5fff7027a134981d69af0d310153347675ce50d1aa137674e2b8a8049602bc6b
+  kind: proof_script
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Proofs
+    blocking: true
+  - surface: package_script
+    reference: make gates
+    blocking: true
+  proves:
+  - burndown
+  failing_direction_test:
+  - path: crates/vds-proof/src/burndown.rs
+    test_name: a_reading_above_the_pin_fails_on_any_increase
+    seeds: a reading one over the pin (R1)
+  - path: crates/vds-proof/src/burndown.rs
+    test_name: a_decrease_that_was_not_repinned_fails_and_names_the_cure
+    seeds: a fall the pin did not follow (R2)
+  - path: crates/vds-proof/src/burndown.rs
+    test_name: a_deadline_that_passed_with_the_metric_nonzero_fails
+    seeds: a passed deadline over a non-zero metric (R3)
+  - path: crates/vds-proof/src/burndown.rs
+    test_name: an_edited_reading_is_refused_and_buys_no_pass
+    seeds: a reading edited from 250 to 200 after generation (R6)
+  - path: crates/vds-proof/src/burndown.rs
+    test_name: two_enforceable_pins_for_one_metric_are_refused
+    seeds: two live pins for one metric (R7)
+  - path: crates/vds-proof/src/burndown.rs
+    test_name: a_reading_that_stopped_moving_cannot_defer_its_deadline
+    seeds: a reading a month behind the run's freshest independent input (S-7C(5) R10)
+  - path: crates/vds-proof/src/burndown.rs
+    test_name: a_deadline_with_no_declared_reading_age_is_refused
+    seeds: a deadline whose only clock is the reading it gates (R11)
+  pinned_at: 2026-08-01T13:24:30Z
+  pinned_by: jellytot
+  supersedes_digest: sha256:0ae3a6b92a73942f0d68d998dcb332f245f8619e3ff4a1ba6b7c52789ca8adc3
+  relock_rationale: '[2026] VJS-CA-VDS 1 orders 3, 12-14 and 38.'
 - path: crates/vds-proof/src/composition.rs
   digest: sha256:20bf333373f07d872632d50c67a66cc43794ae8ac88a4d397b78b43c6c7fe328
   kind: proof_script
@@ -55,7 +93,7 @@ entries:
   proves:
   - composition
   failing_direction_test:
-    path: crates/vds-proof/src/composition.rs
+  - path: crates/vds-proof/src/composition.rs
     test_name: composition_fails_on_an_unregistered_component
     seeds: a screen importing a governed component with no register record
   pinned_at: 2026-07-31T19:46:24Z
@@ -75,7 +113,7 @@ entries:
   proves:
   - contrast
   failing_direction_test:
-    path: crates/vds-proof/src/contrast.rs
+  - path: crates/vds-proof/src/contrast.rs
     test_name: contrast_fails_on_a_boundary_below_its_floor_in_one_theme
     seeds: a boundary that clears its floor in one theme and falls below it in another
   pinned_at: 2026-07-25T17:10:40Z
@@ -83,7 +121,7 @@ entries:
   supersedes_digest: sha256:cb7d188e20124fba772d9a5f84a77d4d1d00fa6e62fce376c2da3006b81f66a5
   relock_rationale: 'Adversarial review found all three new gates unsound; four criticals and five highs are closed. contrast: unclassified_palette_scopes returned empty on a sheet with no :root, so R6 was structurally dead and a palette nothing measured passed at exit 0 (the founding defect through the gate written to catch it); the redactor covered three of six realisation shapes and redacted only a colour function''s head; two findings named the default stylesheet rather than the one read. parity: an extends/intersection props type reported a SUBSET as complete, so R6 fired on inherited props or credited the row as enforced. token_pin: the redaction screen closed hex and left base64 open, the locator was never screened, the evidence digest was keyed on pin.id (which carries generated_at), coverage was reported before the currency check, and Store::read_pins never refused an unreadable entry.'
 - path: crates/vds-proof/src/geometry.rs
-  digest: sha256:00dbe1f2f6f8381c1f4730d6deb6b380f54c69074150e36e8a7a34287eee34d1
+  digest: sha256:430fe4266040c59f7ac1867844abaa0a839f39d9bda2a4a54b02dab5a41f15de
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -95,15 +133,30 @@ entries:
   proves:
   - geometry
   failing_direction_test:
-    path: crates/vds-proof/src/geometry.rs
+  - path: crates/vds-proof/src/geometry.rs
     test_name: geometry_fails_when_the_bound_only_ever_held
-    seeds: 'a bound that fell from 667 to 561 and then stood for 71 days against a 30-day window, over a reading it is otherwise comfortably under. The subscriber project''s own instrument, reproduced: R2 and R7 are both satisfied and the row still fails, because the direction is the rule. A seed that merely put the count over the bound would have proven a threshold, which a ratchet already had.'
-  pinned_at: 2026-07-31T19:03:48Z
+    seeds: a bound that moved once and then held for 71 days, which is the 561-pin-561 instrument (R3)
+  - path: crates/vds-proof/src/geometry.rs
+    test_name: an_edited_snapshot_is_refused_by_its_own_digest
+    seeds: an authority snapshot edited from disagrees to agrees after generation (R11)
+  - path: crates/vds-proof/src/geometry.rs
+    test_name: a_snapshot_whose_reading_moved_is_stale_and_fails
+    seeds: the artefact side moving after the comparison (R12)
+  - path: crates/vds-proof/src/geometry.rs
+    test_name: a_disagreement_with_the_decided_shape_fails_and_names_the_resolution
+    seeds: the comparator finding the shipped shape off the decided scale (R13)
+  - path: crates/vds-proof/src/geometry.rs
+    test_name: a_comparator_that_moved_after_the_comparison_stales_the_binding
+    seeds: the comparator rewritten after the comparison, both other hashes still matching (R14)
+  - path: crates/vds-proof/src/geometry.rs
+    test_name: an_unpinned_comparator_warns_that_the_limb_claims_no_primacy
+    seeds: a comparator carrying no seeded negative control in the lock (W3)
+  pinned_at: 2026-08-01T14:02:52Z
   pinned_by: jellytot
-  supersedes_digest: sha256:464a29843dd1755a927feff4cb7fa1dce021cad6dab470393d096086a938da31
-  relock_rationale: 'Implement [2026] VJS-CC-VIBE-DESIGN-SYSTEM 3: ReadFrom gains design_file (not shipped), and geometry R5 refuses it for its OWN reason - a different subject, never code_model drift prose - with a test asserting both the refusal and that the forbidden wording is absent. Schema regenerated for the new variant.'
+  supersedes_digest: sha256:5b71674f952ffc9802e0e8ff801ae71479decf098ed17aa3fca322f98615d578
+  relock_rationale: 'Carried orders of [2026] VJS-CA-VDS 1 (enactment of the visual-gap proof kinds). Each of the three is a gate change the judgment ORDERED, not a drift discovered afterwards: crates/vds-cli/src/lock.rs implements orders 3 and 38 (failing_direction_tests becomes a LIST, repeatable --seed, verify and doctor resolve every recorded control); crates/vds-proof/src/geometry.rs implements orders 6 to 9 (a required comparator plus comparatorDigest inside the content digest, R14 comparator-stale fatal, W3 unpinned-comparator warning); crates/vds-proof/src/ledger_staleness.rs implements the order 39 election (R7 arms for the three new ledgers rather than moving defaults). Re-pinned as a set ONLY because the drifting set is exactly the set that judgment ordered and nothing else drifts: [2026] VJS-FI-VDS 1 declined to repin these under ITS citation precisely because that citation never considered them, and that reasoning is honoured here by citing the judgment that did. VDS S-8(4), S-12(3).'
 - path: crates/vds-proof/src/ledger_staleness.rs
-  digest: sha256:ac8bcfe5bc40a170db00dcf26d360657616d2fc0ec398c08f4c6fa3b38d03cf2
+  digest: sha256:78bd9f8c7aaa8234cb9739d42bd29bbd929fa9486119eb0aea9608c4112df6ba
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -115,15 +168,15 @@ entries:
   proves:
   - ledger_staleness
   failing_direction_test:
-    path: crates/vds-proof/src/ledger_staleness.rs
+  - path: crates/vds-proof/src/ledger_staleness.rs
     test_name: ledger_staleness_fails_on_a_stale_screens_ledger
     seeds: a screen edited after the ledger was generated
-  pinned_at: 2026-07-31T18:18:07Z
+  pinned_at: 2026-08-01T14:02:52Z
   pinned_by: jellytot
-  supersedes_digest: sha256:f46c8cd8d46e9118767da2a52fefc8e2d91aac1a485b0356da5285e3e3047758
-  relock_rationale: 'ledger_staleness gains R6, a self-consistency arm for the CI run ledger (BREACH-0011 remedy): the parse and cross-total rules live once, on vds_core::types::ci::CiLedger, the same type vds ledger ci writes through. doctor.rs moved its test imports to that type after the CiLedger/WorkflowRuns definitions were consolidated out of vds-cli - the same two-copies defect the sibling VJS repo measured today ([2026] VJS-CC-VJS 12), fixed here before it bit.'
+  supersedes_digest: sha256:4f5c7353db5404af8e24912e7dacda3bfac17365e78a35ed4bc95eda5d2beebb
+  relock_rationale: 'Carried orders of [2026] VJS-CA-VDS 1 (enactment of the visual-gap proof kinds). Each of the three is a gate change the judgment ORDERED, not a drift discovered afterwards: crates/vds-cli/src/lock.rs implements orders 3 and 38 (failing_direction_tests becomes a LIST, repeatable --seed, verify and doctor resolve every recorded control); crates/vds-proof/src/geometry.rs implements orders 6 to 9 (a required comparator plus comparatorDigest inside the content digest, R14 comparator-stale fatal, W3 unpinned-comparator warning); crates/vds-proof/src/ledger_staleness.rs implements the order 39 election (R7 arms for the three new ledgers rather than moving defaults). Re-pinned as a set ONLY because the drifting set is exactly the set that judgment ordered and nothing else drifts: [2026] VJS-FI-VDS 1 declined to repin these under ITS citation precisely because that citation never considered them, and that reasoning is honoured here by citing the judgment that did. VDS S-8(4), S-12(3).'
 - path: crates/vds-proof/src/no_stored_values.rs
-  digest: sha256:5628df4003d75f42e828f4980b812bd7d182b087c0ba0faf23bd3f847293a988
+  digest: sha256:f0e8fe2ccd200a539ef11b0ae5950de12145c29e3d2855513677e9077c7d03ce
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -135,13 +188,22 @@ entries:
   proves:
   - no_stored_values
   failing_direction_test:
-    path: crates/vds-proof/src/no_stored_values.rs
+  - path: crates/vds-proof/src/no_stored_values.rs
     test_name: no_stored_values_fails_on_a_hex_colour_in_a_register_record
     seeds: a hex colour literal written into a register record
-  pinned_at: 2026-07-31T21:35:13Z
+  - path: crates/vds-proof/src/no_stored_values.rs
+    test_name: an_adjudication_dies_when_the_artefact_it_names_moves
+    seeds: the real adjudicated court record with one byte appended, so the digest the ruling pinned no longer matches. The disposals must be SPENT, the two limb 1 findings must return as fatal, and the spending must itself be a fatal finding. This is the control that proves a disposal cannot be inherited by content no court has read
+  - path: crates/vds-proof/src/no_stored_values.rs
+    test_name: an_adjudication_does_not_switch_limb_one_off
+    seeds: a genuine colour literal in a register record while the adjudicated artefact is present and unmodified, so an adjudication is proved to dispose of a SITE and never to disable a rule
+  - path: crates/vds-proof/src/no_stored_values.rs
+    test_name: an_adjudication_that_disposes_of_nothing_is_fatal
+    seeds: an adjudication row one column to the left of a real finding, at the artefact's true digest, so an orphaned row is proved fatal rather than left in the gate as a suppression with nothing to suppress
+  pinned_at: 2026-08-01T13:57:46Z
   pinned_by: jellytot
-  supersedes_digest: sha256:09d3675cb7df56e57e39fce8f1f76b7becdc4280c56725fe350bba6924574d85
-  relock_rationale: 'no_stored_values R8: a hex candidate that is a segment of a hyphenated or underscored identifier is skipped - the gate failed the build on its own capture clock (a six-digit HHMMSS time, hex-decoded, read as a one-character duration). The first fix (skip all-digit tokens) was killed by the seeded R8 test in one run: the hex encoding of the seeded grey colour literal is pure digits (the hash mark and the letters a to e all encode to digit-only pairs), so position, not digit purity, is the discriminator. The incident is seeded as its own passing test beside the colour test that keeps the carve-out honest. Also the ceiling gains a test binding its D2 claim to SUBMISSION-VDS-010 answer.citation, after the doc kept calling a decided question open with no test tripping.'
+  supersedes_digest: sha256:5628df4003d75f42e828f4980b812bd7d182b087c0ba0faf23bd3f847293a988
+  relock_rationale: 'Re-pinned under order 8 of [2026] VJS-FI-VDS 1, which held that a court record filed under .vds/court/ is within the reach of VDS S-2(8), that limb 1 is a shape FLOOR and not a sufficient test of the storing form, that no tightening of the matcher exists because the two readings of such a string are lexically identical, and that a judge at first instance has no power over a superior court''s text. The gate gains the ADJUDICATED COLLISION: one court, one file, one digest, one line, one column, one limb 1 shape class, reported as a warning naming the ruling and counted on the face of the record, dying when the artefact moves and fatal when it disposes of nothing, and reaching only the three classes whose spellings collide with ordinary prose. Two sites are adjudicated, both in the Court of Appeal enactment judgment, on the VDS S-2(5) analysis at section IV of the ruling. Three seeded controls are added and named above, because a narrowing without a control is a gate switched off. Only this entry is re-pinned: three other gates carry drift that predates this change and is not this ruling''s to launder. PRIOR RATIONALE, kept because a re-lock that overwrites the reason for the last one leaves a warrant citing wording nobody can retrieve - no_stored_values R8: a hex candidate that is a segment of a hyphenated or underscored identifier is skipped - the gate failed the build on its own capture clock (a six-digit HHMMSS time, hex-decoded, read as a one-character duration). The first fix (skip all-digit tokens) was killed by the seeded R8 test in one run: the hex encoding of the seeded grey colour literal is pure digits (the hash mark and the letters a to e all encode to digit-only pairs), so position, not digit purity, is the discriminator. The incident is seeded as its own passing test beside the colour test that keeps the carve-out honest. Also the ceiling gains a test binding its D2 claim to SUBMISSION-VDS-010 answer.citation, after the doc kept calling a decided question open with no test tripping.'
 - path: crates/vds-proof/src/parity.rs
   digest: sha256:82a48217eee317b1cee3389c2c26e4f3aeccb7fe1f1b6261874ff17b0b118862
   kind: proof_script
@@ -155,7 +217,7 @@ entries:
   proves:
   - parity
   failing_direction_test:
-    path: crates/vds-proof/src/parity.rs
+  - path: crates/vds-proof/src/parity.rs
     test_name: parity_fails_on_a_prop_the_component_accepts_that_no_contract_names
     seeds: a prop the component source exposes that no register record contracts, which is how a component drifts out from under its contract without anything being removed
   pinned_at: 2026-07-31T18:41:00Z
@@ -175,13 +237,31 @@ entries:
   proves:
   - no_stored_values
   failing_direction_test:
-    path: crates/vds-proof/src/preimage.rs
+  - path: crates/vds-proof/src/preimage.rs
     test_name: the_recovery_that_broke_the_first_pin_is_the_recovery_this_gate_runs
     seeds: the sha256 of a hex colour, a length, a duration, an easing keyword and a generic font family, each of which must be recovered from its digest, alongside fifteen digests VDS writes itself which must not be
   pinned_at: 2026-07-25T14:57:58Z
   pinned_by: jellytot
   supersedes_digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
   relock_rationale: 'R10: the preimage limb of VDS S-2(8) limb 2 is now discharged. no_stored_values.rs gains rule R10 and a rewritten PREIMAGE_NOTE; crates/vds-proof/src/preimage.rs is a new gate and is pinned for the first time, since the logic deciding what counts as a recovered design value lives there and an unwitnessed gate can be weakened without tripping a finding. Recorded at .vds/logs/decisions/DECISION-0003.yaml (VDS S-8(4), S-12(3)).'
+- path: crates/vds-proof/src/prohibition.rs
+  digest: sha256:328c26c522078d73a6def8c4e8c47144e19b03207d565b45ad5dba2c28f99a0e
+  kind: proof_script
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Proofs
+    blocking: true
+  - surface: package_script
+    reference: make gates
+    blocking: true
+  proves:
+  - prohibition
+  failing_direction_test:
+  - path: crates/vds-proof/src/prohibition.rs
+    test_name: a_surviving_site_fails_and_is_named_by_file_and_line
+    seeds: a forbidden pattern surviving in an in-scope file, and the finding names it file:line
+  pinned_at: 2026-08-01T12:26:28Z
+  pinned_by: jellytot
 - path: crates/vds-proof/src/reconciliation.rs
   digest: sha256:a4fbe2b1ae98fe9209454816492fe8cfe54b53544bb73a6db94b2b03276ef566
   kind: proof_script
@@ -195,7 +275,7 @@ entries:
   proves:
   - reconciliation
   failing_direction_test:
-    path: crates/vds-proof/src/reconciliation.rs
+  - path: crates/vds-proof/src/reconciliation.rs
     test_name: reconciliation_fails_on_a_library_file_with_no_register_entry
     seeds: a component file in a governed library directory that no register record names
   pinned_at: 2026-07-30T13:57:10Z
@@ -203,7 +283,7 @@ entries:
   supersedes_digest: sha256:41310adbc73c2d0cff2a649ecd96dfa4b6057a29dbe51e653f9d6e0a18b602b3
   relock_rationale: Five gates edited in commits 1260462 and eb9313d shipped without a re-pin; self-filed as BREACH-0003. The edits are the vds-scan JSX generic fix and the retirement/collision proof work, both tested (674 workspace tests green). Re-pinning to the reviewed bytes so the lock binds what is actually in the tree.
 - path: crates/vds-proof/src/register_completeness.rs
-  digest: sha256:8213cdbcaf6a491c2b16dc8fdb263e27985abc6fe49431fbd8cf7a295cc866d4
+  digest: sha256:1005bdf3eb328c501d6bd06e0c264e17a43c55c77ec665117c4cd03f315bde6e
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -215,11 +295,25 @@ entries:
   proves:
   - register_completeness
   failing_direction_test:
-    path: crates/vds-proof/src/register_completeness.rs
+  - path: crates/vds-proof/src/register_completeness.rs
     test_name: register_completeness_fails_on_a_component_absent_from_the_register
-    seeds: a screen referencing a component absent from the register
-  pinned_at: 2026-07-25T13:58:22Z
+    seeds: a governed reference with no register record (R1)
+  - path: crates/vds-proof/src/register_completeness.rs
+    test_name: a_directed_record_measured_by_nothing_goes_red_after_its_grace
+    seeds: a directed record whose measuredBy is empty past its grace (R2)
+  - path: crates/vds-proof/src/register_completeness.rs
+    test_name: a_measure_pointing_at_a_plan_document_is_refused
+    seeds: a measure naming a plan document (R3)
+  - path: crates/vds-proof/src/register_completeness.rs
+    test_name: a_measure_that_resolves_to_nothing_is_refused
+    seeds: a measure that is a sentence and resolves to nothing (R4)
+  - path: crates/vds-proof/src/register_completeness.rs
+    test_name: records_outside_the_clause_are_counted_and_named_on_every_run
+    seeds: a register whose records carry neither field, the denominator I4 reports
+  pinned_at: 2026-08-01T13:24:10Z
   pinned_by: jellytot
+  supersedes_digest: sha256:516a7e144f9f3b8fc4799d2c656cb52498b6a8583c517994f28dbdf6d311713d
+  relock_rationale: '[2026] VJS-CA-VDS 1 orders 3, 15-18 and 38: the S-5(9) limbs R2, R3, R4 and the I4 census are live in a gate whose recorded control pinned only R1, and order 18 requires the widened scope to be recorded in this entry as well as in the specification.'
 - path: crates/vds-proof/src/retirement_drain.rs
   digest: sha256:7acb93f167f73a0d026b3cce96c286c2bc4e2bc68768c36ecb8ef24f69f24af4
   kind: proof_script
@@ -233,7 +327,7 @@ entries:
   proves:
   - retirement_drain
   failing_direction_test:
-    path: crates/vds-proof/src/retirement_drain.rs
+  - path: crates/vds-proof/src/retirement_drain.rs
     test_name: retirement_drain_fails_on_a_remaining_consumer
     seeds: a deprecated component still rendered by a route
   pinned_at: 2026-07-25T13:58:22Z
@@ -251,7 +345,7 @@ entries:
   proves:
   - screen_parity
   failing_direction_test:
-    path: crates/vds-proof/src/screen_parity.rs
+  - path: crates/vds-proof/src/screen_parity.rs
     test_name: screen_parity_fails_on_a_screen_with_a_column_its_frame_does_not_draw
     seeds: a screen requiring three content columns whose authoritative frame draws two, with every component on it registered
   pinned_at: 2026-07-30T16:38:22Z
@@ -271,7 +365,7 @@ entries:
   proves:
   - states
   failing_direction_test:
-    path: crates/vds-proof/src/states.rs
+  - path: crates/vds-proof/src/states.rs
     test_name: states_fails_on_a_required_state_that_is_not_drawn
     seeds: a registered component with a required state that is not drawn
   pinned_at: 2026-07-30T13:57:10Z
@@ -291,13 +385,54 @@ entries:
   proves:
   - token_pin
   failing_direction_test:
-    path: crates/vds-proof/src/token_pin.rs
+  - path: crates/vds-proof/src/token_pin.rs
     test_name: token_pin_fails_on_a_row_the_pin_declares_aligned_that_does_not_agree
     seeds: a pin row the pin declares aligned whose two named records do not agree
   pinned_at: 2026-07-25T17:10:40Z
   pinned_by: jellytot
   supersedes_digest: sha256:6ab1121588fe85ac187c06962a7b03e553c86117d8145565e4f646cbeb3b4d61
   relock_rationale: 'Adversarial review found all three new gates unsound; four criticals and five highs are closed. contrast: unclassified_palette_scopes returned empty on a sheet with no :root, so R6 was structurally dead and a palette nothing measured passed at exit 0 (the founding defect through the gate written to catch it); the redactor covered three of six realisation shapes and redacted only a colour function''s head; two findings named the default stylesheet rather than the one read. parity: an extends/intersection props type reported a SUBSET as complete, so R6 fired on inherited props or credited the row as enforced. token_pin: the redaction screen closed hex and left base64 open, the locator was never screened, the evidence digest was keyed on pin.id (which carries generated_at), coverage was reported before the currency check, and Store::read_pins never refused an unreadable entry.'
+- path: crates/vds-proof/src/visual_review.rs
+  digest: sha256:efb7b4d2025ed4156c458079560a26fda69ab5dafdcf4f6010066d0a7e6ce395
+  kind: proof_script
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Proofs
+    blocking: true
+  - surface: package_script
+    reference: make gates
+    blocking: true
+  proves:
+  - visual_review
+  failing_direction_test:
+  - path: crates/vds-proof/src/visual_review.rs
+    test_name: a_deviation_against_a_signed_frame_fails_and_names_the_deltas
+    seeds: a recorded deviate verdict against a signed fresh frame (R5)
+  - path: crates/vds-proof/src/visual_review.rs
+    test_name: a_grouped_verdict_confers_coverage_on_no_route_and_both_read_as_owed
+    seeds: a family verdict naming two routes (R9)
+  - path: crates/vds-proof/src/visual_review.rs
+    test_name: a_verdict_with_no_region_checklist_is_refused
+    seeds: a verdict about the page with no region checklist (R10)
+  - path: crates/vds-proof/src/visual_review.rs
+    test_name: a_verdict_citing_a_contract_it_was_not_taken_against_is_refused
+    seeds: a verdict citing a sign-off of a different frame version (R11)
+  - path: crates/vds-proof/src/visual_review.rs
+    test_name: a_parked_redraw_without_a_direction_row_is_refused
+    seeds: the word parked with no direction row behind it (R12)
+  - path: crates/vds-proof/src/visual_review.rs
+    test_name: a_signed_redraw_without_a_covering_signoff_fails
+    seeds: the word signed with no covering sign-off row (R8)
+  - path: crates/vds-proof/src/visual_review.rs
+    test_name: a_stale_verdict_on_an_unsigned_surface_warns_and_never_blocks
+    seeds: a stale verdict on an unregistered surface, which must warn and skip (order 20)
+  - path: crates/vds-proof/src/visual_review.rs
+    test_name: a_stale_verdict_on_a_signed_surface_still_blocks
+    seeds: the same staleness on a REGISTERED surface, which must still block
+  pinned_at: 2026-08-01T13:24:30Z
+  pinned_by: jellytot
+  supersedes_digest: sha256:0b81afd349522ac042912813afe629df3069024d84b5f2f35ed83400e097cd08
+  relock_rationale: '[2026] VJS-CA-VDS 1 orders 3, 19-22, 27 and 38.'
 - path: crates/vds-scan/src/glob.rs
   digest: sha256:ab8189e8d4d8e56cfbf0a4eca9d738b3c13438ae190ad6179e057368ceea40d3
   kind: ledger_generator
@@ -308,13 +443,13 @@ entries:
   proves:
   - ledger_staleness
   failing_direction_test:
-    path: crates/vds-scan/src/glob.rs
+  - path: crates/vds-scan/src/glob.rs
     test_name: a_pattern_this_matcher_cannot_read_is_refused
     seeds: a brace or character-class glob the matcher does not implement and must refuse rather than half-match
   pinned_at: 2026-07-25T14:28:57Z
   pinned_by: jellytot
 - path: crates/vds-scan/src/jsx.rs
-  digest: sha256:56796729f76f74061c49ac7bc1df68a2177955c8ce4e72702be76826828247d7
+  digest: sha256:2e8ccbb6afe3f5a868a205805c374cc46b32959ce295318a8a9eb8464b12249b
   kind: ledger_generator
   invoked_by:
   - surface: ci_workflow
@@ -323,13 +458,13 @@ entries:
   proves:
   - ledger_staleness
   failing_direction_test:
-    path: crates/vds-scan/src/jsx.rs
+  - path: crates/vds-scan/src/jsx.rs
     test_name: a_generic_type_argument_is_not_a_tag
     seeds: a TypeScript generic argument that the scanner must not count as a component reference
-  pinned_at: 2026-07-30T13:57:10Z
+  pinned_at: 2026-08-01T12:26:36Z
   pinned_by: jellytot
-  supersedes_digest: sha256:6b4c0ee4c5707cab80ea38d023cf5185ed2e0446798912fe2f8a4bc766ecc17a
-  relock_rationale: Five gates edited in commits 1260462 and eb9313d shipped without a re-pin; self-filed as BREACH-0003. The edits are the vds-scan JSX generic fix and the retirement/collision proof work, both tested (674 workspace tests green). Re-pinning to the reviewed bytes so the lock binds what is actually in the tree.
+  supersedes_digest: sha256:56796729f76f74061c49ac7bc1df68a2177955c8ce4e72702be76826828247d7
+  relock_rationale: 'Lane feat/proof-kinds-visual-gap, 2026-08-01. Three gates changed for recorded reasons: (1) vds-scan/src/jsx.rs - three JSX lexer desyncs fixed (arrow-in-attribute closed the tag, JsxText persisted past the outermost closing tag, expression-rooted subtrees leaked brace frames), each reproduced against a subscriber tree and regression-tested; (2) vds-proof/src/geometry.rs - draft S-7A(5) authority-binding limb R11-R13/W2 added, ENACTMENT PENDING (SUBMISSION-VDS-012); (3) vds-proof/src/register_completeness.rs - draft S-5(9) measurement-coverage rules R2/R3 added, ENACTMENT PENDING (SUBMISSION-VDS-015). Every new rule carries a seed-red test.'
 - path: crates/vds-scan/src/lib.rs
   digest: sha256:2de8814f1d70d035042653b874b58e689578c6819d17e779789ea0d5be81587c
   kind: ledger_generator
@@ -340,7 +475,7 @@ entries:
   proves:
   - ledger_staleness
   failing_direction_test:
-    path: crates/vds-scan/src/lib.rs
+  - path: crates/vds-scan/src/lib.rs
     test_name: a_hand_edited_ledger_is_refused_even_though_its_sources_are_untouched
     seeds: a ledger row deleted by hand while its source files are untouched
   pinned_at: 2026-07-31T10:22:00Z
@@ -348,7 +483,7 @@ entries:
   supersedes_digest: sha256:6ab81f88013c57a0c1d757f87e1336720d846f279cee0bc272f8228466181828
   relock_rationale: Five gates edited in commits 1260462 and eb9313d shipped without a re-pin; self-filed as BREACH-0003. The edits are the vds-scan JSX generic fix and the retirement/collision proof work, both tested (674 workspace tests green). Re-pinning to the reviewed bytes so the lock binds what is actually in the tree.
 - path: crates/vds-store/src/lock.rs
-  digest: sha256:6bb701818ded3751f3687f1d85823e8375b8867e85af248e53d21f407f47ef55
+  digest: sha256:eb4883bf58eba166fe5f16fd8feed5875165ee5524755b94140065f9f73409dd
   kind: config
   invoked_by:
   - surface: ci_workflow
@@ -357,13 +492,13 @@ entries:
   proves:
   - no_stored_values
   failing_direction_test:
-    path: crates/vds-store/src/lock.rs
+  - path: crates/vds-store/src/lock.rs
     test_name: editing_a_pinned_gate_trips_a_fatal_drift_finding
     seeds: a pinned gate edited after it was pinned
-  pinned_at: 2026-07-31T18:49:53Z
+  pinned_at: 2026-08-01T13:24:30Z
   pinned_by: jellytot
-  supersedes_digest: sha256:7349412e777127171b823bcaadb19e6b8e8266d1ac8d82efa8baec1f67a46c1e
-  relock_rationale: cargo fmt over the subscriber-seat additions plus the two provenance:None initialisers clippy required in test fixtures. No behavioural change; the seat test and 72 parity tests pass either side.
+  supersedes_digest: sha256:6bb701818ded3751f3687f1d85823e8375b8867e85af248e53d21f407f47ef55
+  relock_rationale: '[2026] VJS-CA-VDS 1 implementation. ledger_staleness gains R7 (order 39''s election: arms for the three ledgers this lane added, rather than moving their defaults). lock.rs, vds-store/lock.rs and doctor.rs carry order 3: the enforcement lock holds a LIST of failing-direction tests per gate, every recorded control is resolved rather than the first, and a --seed flag records one control per rule.'
 - path: scripts/githooks/pre-push
   digest: sha256:229b6ddcc7bcfaf7fd48363e216510a0a1f4461d6f606b68384e76b99da321cf
   kind: hook
@@ -373,7 +508,7 @@ entries:
     blocking: true
   proves: []
   failing_direction_test:
-    path: crates/vds-cli/src/lock.rs
+  - path: crates/vds-cli/src/lock.rs
     test_name: the_committed_pre_push_hook_runs_the_full_check_set
     seeds: the hook narrowed from `make check` to `make test`, so it still exits non-zero on a failing test while silently no longer running any gate
   pinned_at: 2026-07-31T09:23:43Z
@@ -387,7 +522,7 @@ entries:
     blocking: true
   proves: []
   failing_direction_test:
-    path: site-factory/tests/skills.test.js
+  - path: site-factory/tests/skills.test.js
     test_name: no block composes itself, directly or through another
     seeds: a block that requires itself, and a two-block cycle, each asserted to be found exactly once
   pinned_at: 2026-07-31T17:13:00Z
@@ -401,7 +536,7 @@ entries:
     blocking: true
   proves: []
   failing_direction_test:
-    path: site-factory/tests/skills.test.js
+  - path: site-factory/tests/skills.test.js
     test_name: the emitted Figma script matches its committed golden bytes
     seeds: a real edit to figma-draw.js with data inputs unchanged, and a data-only change, each classified separately
   pinned_at: 2026-07-31T17:13:00Z
@@ -415,7 +550,7 @@ entries:
     blocking: true
   proves: []
   failing_direction_test:
-    path: site-factory/tests/skills.test.js
+  - path: site-factory/tests/skills.test.js
     test_name: every declared site-factory gate is pinned, at its current digest
     seeds: MIN_TESTS lowered without a re-pin, so deleting tests stops being detectable by the count
   pinned_at: 2026-07-31T17:13:04Z
@@ -431,7 +566,7 @@ entries:
     blocking: true
   proves: []
   failing_direction_test:
-    path: site-factory/tests/skills.test.js
+  - path: site-factory/tests/skills.test.js
     test_name: every declared site-factory gate is pinned, at its current digest
     seeds: MIN_FILES lowered so the runner reports a pass over a suite that has lost files
   pinned_at: 2026-07-31T13:26:04Z
@@ -445,7 +580,7 @@ entries:
     blocking: true
   proves: []
   failing_direction_test:
-    path: site-factory/tests/skills.test.js
+  - path: site-factory/tests/skills.test.js
     test_name: token-reach finds both directions
     seeds: an emitted token nothing reads, and a var() nothing declares
   pinned_at: 2026-07-31T13:26:16Z

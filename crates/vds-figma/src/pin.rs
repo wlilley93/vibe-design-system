@@ -1036,7 +1036,17 @@ mod tests {
         // clause the whole architecture turns on (VDS S-2(7)): the first pin
         // carried per-value digests and all 52 values came back out in 27
         // seconds.
-        let text = serde_yaml::to_string(&generated.pin).unwrap();
+        // Scanned over the pin's SUBSTANTIVE fields, with the identifier and
+        // the timestamps removed first. Scanning the whole serialisation made
+        // this assertion a function of the clock: a pin allocated at 12:55:22
+        // is `PIN-20260801-125522`, which contains "255", and the test failed
+        // for two seconds in every hundred with a message accusing the
+        // generator of leaking a colour channel. A check that fires on the
+        // time of day is a check people learn to re-run rather than read.
+        let mut scanned = generated.pin.clone();
+        scanned.id = vds_core::PinId::parse("PIN-19700101-000000").unwrap();
+        scanned.generated_at = vds_core::Timestamp::fixed(1970, 1, 1, 0, 0, 0);
+        let text = serde_yaml::to_string(&scanned).unwrap();
         for value in ["1d4ed8", "4f79f0", "ffffff", "101215", "0.1137", "255"] {
             assert!(
                 !text.contains(value),

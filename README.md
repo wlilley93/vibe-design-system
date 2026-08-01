@@ -91,9 +91,9 @@ Per project, in a committed `.vds/`:
 | logs | decision logs and self-filed breach reports |
 | locks | the designpack digest, the install state, and the enforcement surface |
 
-**Twelve proof kinds are a closed registry** (VDS S-7(5)), and closure is enforced by the
+**Fifteen proof kinds are a closed registry** (VDS S-7(5)), and closure is enforced by the
 type system: `ProofKind` is an enum, so a kind outside the registry does not fail validation,
-it fails to compile. **All twelve are implemented** (`vds proof --list`).
+it fails to compile. **All fifteen are implemented** (three as DRAFT amendments of 2026-08-01, pending enactment) (`vds proof --list`).
 
 This table said ten kinds, seven implemented, and named `contrast`, `parity` and `token_pin`
 as unbuilt. All three had been built and were being run daily; `screen_parity` was missing

@@ -1,0 +1,24 @@
+id: PROOF-20260801-132601
+kind: register_completeness
+status: vacuous
+warrant_id: null
+command: vds proof register_completeness
+script: crates/vds-proof/src/register_completeness.rs
+script_digest: sha256:1005bdf3eb328c501d6bd06e0c264e17a43c55c77ec665117c4cd03f315bde6e
+exit_code: 0
+rows_considered: 0
+rows_enforced: 0
+rows_skipped_reasons: {}
+violations: []
+notes:
+- the register holds no records, so every governed reference on the declared surface is about to be reported absent
+- 'this proof establishes EXISTENCE, AND THE MEASUREMENT COVERAGE OF A DIRECTED RECORD (VDS S-7(5) and S-5(9); the widening is recorded by [2026] VJS-CA-VDS 1 order 18 rather than left standing in a scope note the proof has outgrown). A record at `proposed` or `designed` satisfies it and fails `composition`, which is why they are two proofs: W1 REGISTER-COMPLETE is granted on existence alone, before any design work has happened. A warrant citing this run has evidence that the register covers the surface, and no evidence that anything on the surface is fit to be used.'
+- 'the claim is bounded by [surface] screen_globs and [surface] governed_import_prefixes. A screen outside those globs, a reference imported from outside those prefixes, and a reference whose import the ledger could not resolve are each counted and not enforced. This proof cannot say `no unregistered component anywhere`, only `no absent record among the references it reached`. R2 reaches only records that carry `directedAt`. A record naming no direction and no measure is outside this clause, and the count of such records is printed on every run: a rule that fires only on the rows that armed it has a denominator, and an unreported denominator is the defect this clause was written against ([2026] VJS-CA-VDS 1 order 17).'
+- 'relies on VDS S-9(10) RESERVED (SUBMISSION-VDS-005): bare HTML elements are informational rows only, excluded from rows_enforced. Any warrant citing this proof must record that reliance in its `reserved` array.'
+inputs_digest: sha256:0f1c7419284605ce0244eeb6375da23482888953323966937b7b8d747fb02b18
+digest: sha256:0cefd9b1044f5cc20de9ee416e5d043f9133aac9ace444517c3dd962a121dfd3
+designpack_digest: sha256:f9c369f3175c15169dafde47c01d7efc2f45c64090444f17f5b3f480e710ec5a
+captured_at: 2026-08-01T13:26:01Z
+capture_mode: automatic
+invoked_by: package_script
+duration_ms: 0

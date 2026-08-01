@@ -127,6 +127,67 @@ lexical_id!(
     r"^SUBMISSION-(VDS-[0-9]{3}|[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6})$",
     "A question referred to VJS. The VDS-nnn series is reserved for the matters at VDS S-13."
 );
+lexical_id!(
+    ProhibitionId,
+    r"^PRB-[0-9]{4}$",
+    "A prohibition: a pattern asserted ABSENT from an enumerated scope (draft S-7B)."
+);
+lexical_id!(
+    BurndownId,
+    r"^BRN-[0-9]{4}$",
+    "A burndown: a pinned numeric reading whose only lawful direction is down (draft S-7C)."
+);
+lexical_id!(
+    SignoffId,
+    r"^SGN-[0-9]{4}$",
+    "A frame sign-off: the frame's content hash at the moment taste was exercised (draft S-7D)."
+);
+lexical_id!(
+    RedrawId,
+    r"^RDW-[0-9]{4}$",
+    "A proposed redraw: a deviation routed back through the design, never through an exception (draft S-7D)."
+);
+lexical_id!(
+    DirectionId,
+    r"^DIR-[0-9]{4}$",
+    "A registered Principal direction: the sign-off register's second row kind, hash-bound to its logged decision ([2026] VJS-CA-VDS 1 order 26)."
+);
+lexical_id!(
+    ReviewId,
+    r"^VRW-[0-9]{4}$",
+    "A visual review verdict: automated eyes over a shipped screen against its signed frame (draft S-7D)."
+);
+
+/// The allocator every simple numbered series shares: highest on disk plus one
+/// (VDS S-4(4)), refusing exhaustion rather than wrapping.
+macro_rules! numbered_series {
+    ($name:ident, $prefix:literal, $what:literal) => {
+        impl $name {
+            pub fn allocate(dir: &Path) -> Result<Self> {
+                let highest = highest_numbered(dir, |stem| {
+                    stem.strip_prefix($prefix)
+                        .filter(|rest| rest.len() == 4)
+                        .and_then(|rest| rest.parse::<u32>().ok())
+                })?;
+                if highest >= 9999 {
+                    return Err(VdsError::Identifier(format!(
+                        "the {} id space {}0001..{}9999 is exhausted. Widening it is an \
+                         amendment to the schema, not a change to this allocator.",
+                        $what, $prefix, $prefix
+                    )));
+                }
+                Self::parse(format!("{}{:04}", $prefix, highest + 1))
+            }
+        }
+    };
+}
+
+numbered_series!(ProhibitionId, "PRB-", "prohibition");
+numbered_series!(BurndownId, "BRN-", "burndown");
+numbered_series!(SignoffId, "SGN-", "sign-off");
+numbered_series!(RedrawId, "RDW-", "redraw");
+numbered_series!(ReviewId, "VRW-", "visual review");
+numbered_series!(DirectionId, "DIR-", "direction");
 
 impl ComponentId {
     /// The next free component id, read off disk. VDS S-4(4).

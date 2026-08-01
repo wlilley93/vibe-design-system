@@ -21,6 +21,7 @@ use std::process::ExitCode;
 use clap::{Parser, Subcommand};
 use vds_core::{EXIT_PASSED, EXIT_PRECONDITION, Result, VdsError};
 
+mod burndown;
 mod ci;
 mod doctor;
 mod figma;
@@ -31,11 +32,13 @@ mod ledger;
 mod lock;
 mod log;
 mod pack;
+mod prohibition;
 mod proof;
 mod prune;
 mod register;
 mod schema;
 mod screen;
+mod signoff;
 mod warrant;
 
 #[derive(Parser)]
@@ -88,6 +91,17 @@ enum Command {
     /// something the interface should make available one character away from
     /// lowering it.
     Geometry(geometry::Args),
+    /// Register a pattern as ABSENT from an enumerated scope (draft S-7B).
+    Prohibition(prohibition::Args),
+    /// Pin a metric whose only lawful direction is down (draft S-7C).
+    Burndown(burndown::Args),
+    /// Record a frame sign-off at its CURRENT content hash (draft S-7D).
+    Signoff(signoff::Args),
+    /// Route a recorded deviation back through the design (S-7D).
+    Redraw(signoff::RedrawArgs),
+    /// Register a Principal direction: the sign-off register's second row kind
+    /// ([2026] VJS-CA-VDS 1 order 26).
+    Direction(signoff::DirectionArgs),
     /// Run one proof kind, or every implemented kind.
     /// The governance logs: a decisive call, or a self-reported breach.
     Log(log::Args),
@@ -141,6 +155,11 @@ fn dispatch(cli: &Cli) -> Result<i32> {
         Command::Register(args) => register::run(&ctx, args),
         Command::Screen(args) => screen::run(&ctx, args),
         Command::Geometry(args) => geometry::run(&ctx, args),
+        Command::Prohibition(args) => prohibition::run(&ctx, args),
+        Command::Burndown(args) => burndown::run(&ctx, args),
+        Command::Signoff(args) => signoff::run(&ctx, args),
+        Command::Redraw(args) => signoff::run_redraw(&ctx, args),
+        Command::Direction(args) => signoff::run_direction(&ctx, args),
         Command::Log(args) => log::run(&ctx, args),
         Command::Pin(args) => figma::run_pin(&ctx, args),
         Command::Proof(args) => proof::run(&ctx, args),

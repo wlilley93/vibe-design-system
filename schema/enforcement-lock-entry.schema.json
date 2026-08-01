@@ -17,7 +17,11 @@
       "type": "string"
     },
     "failing_direction_test": {
-      "$ref": "#/definitions/FailingDirectionTest"
+      "description": "The seeded negative controls for this gate. A LIST since [2026] VJS-CA-VDS 1 order 3: `geometry.rs` and `register_completeness.rs` are blocking gates whose single recorded control pinned only their original rule while the same file acquired live limbs under orders 5 to 8 and 14 to 16, so one slot recorded a negative control for a fraction of what the gate now decides. Order 2 makes the recorded seed the thing primacy rests on, and a seed that covers one rule of five is a negative control nothing performs for the other four.\n\nA single object still deserialises, so every lock written before the order keeps loading and is rewritten as a list on the next re-pin. Structurally non-empty: the field has no default, so an entry without one does not parse (VDS S-7(2)(2)), and an EMPTY list is refused by [`LockEntry::defects`] rather than read as \"no seed required\".",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/FailingDirectionTest"
+      }
     },
     "invoked_by": {
       "description": "At least one. An empty list is not representable in a valid entry, because an uninvoked gate is not enforcement.",
@@ -239,6 +243,27 @@
           "type": "string",
           "enum": [
             "geometry"
+          ]
+        },
+        {
+          "description": "A registered pattern is ABSENT from its enumerated scope, and the scope cannot silently narrow. Draft S-7B, enactment pending.",
+          "type": "string",
+          "enum": [
+            "prohibition"
+          ]
+        },
+        {
+          "description": "A pinned numeric reading whose only lawful direction is down: red on any increase AND on a decrease that was not re-pinned. Draft S-7C, enactment pending.",
+          "type": "string",
+          "enum": [
+            "burndown"
+          ]
+        },
+        {
+          "description": "The recorded visual verdicts hold: shipped screenshot against signed frame, stale on either side moving, no conformance claim without authority. Draft S-7D, enactment pending.",
+          "type": "string",
+          "enum": [
+            "visual_review"
           ]
         }
       ]

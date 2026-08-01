@@ -15,6 +15,7 @@ use std::io::Write;
 use vds_core::{Digest, EXIT_PASSED, InvokedBy, Project, ProofKind, Result, Timestamp};
 use vds_store::Store;
 
+pub mod burndown;
 pub mod composition;
 pub mod contrast;
 pub mod geometry;
@@ -23,6 +24,7 @@ pub mod ledger_staleness;
 pub mod no_stored_values;
 pub mod parity;
 pub mod preimage;
+pub mod prohibition;
 pub mod reconciliation;
 pub mod register_completeness;
 pub mod retirement_drain;
@@ -30,6 +32,7 @@ pub mod run;
 pub mod screen_parity;
 pub mod states;
 pub mod token_pin;
+pub mod visual_review;
 
 #[cfg(test)]
 pub mod testing;
@@ -110,6 +113,9 @@ pub fn run(kind: ProofKind, ctx: &ProofContext, out: &mut dyn Write) -> Result<O
         ProofKind::TokenPin => token_pin::run(ctx, out),
         ProofKind::ScreenParity => screen_parity::run(ctx, out),
         ProofKind::Geometry => geometry::run(ctx, out),
+        ProofKind::Prohibition => prohibition::run(ctx, out),
+        ProofKind::Burndown => burndown::run(ctx, out),
+        ProofKind::VisualReview => visual_review::run(ctx, out),
     }
 }
 
@@ -220,6 +226,9 @@ pub const GATE_PATHS: &[&str] = &[
     token_pin::GATE,
     screen_parity::GATE,
     geometry::GATE,
+    prohibition::GATE,
+    burndown::GATE,
+    visual_review::GATE,
 ];
 
 /// A timestamp helper for proofs that must record when they measured something.

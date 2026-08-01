@@ -56,10 +56,20 @@ const RULE_UNREACHED: &str = "VDS S-7(5) register_completeness I2: a reference w
      is outside the completeness claim";
 const RULE_ROOT_ONLY: &str = "VDS S-7(5) register_completeness I3: a namespaced reference is established at its root \
      binding only";
+const RULE_UNMEASURED: &str = "draft S-5(9) register_completeness R2: a directed record measured by nothing, out of \
+     grace";
+const RULE_MEASURE_HYGIENE: &str = "draft S-5(9) register_completeness R3: a measure reads shipped code or a rendered \
+     artefact, never a plan";
+const RULE_MEASURE_UNRESOLVED: &str = "S-5(9) R4 ([2026] VJS-CA-VDS 1 order 16): every measure must RESOLVE, or R2 is \
+     discharged by typing a word";
+const RULE_UNARMED: &str = "S-5(9) I4 ([2026] VJS-CA-VDS 1 order 17): a record carrying neither directedAt nor \
+     measuredBy is outside the clause";
 
 /// What this proof establishes, and the thing a reader will otherwise assume it
 /// establishes.
-pub const SCOPE_NOTE: &str = "this proof establishes EXISTENCE and nothing else (VDS S-7(5)). A record at `proposed` or \
+pub const SCOPE_NOTE: &str = "this proof establishes EXISTENCE, AND THE MEASUREMENT COVERAGE OF A DIRECTED RECORD \
+     (VDS S-7(5) and S-5(9); the widening is recorded by [2026] VJS-CA-VDS 1 order 18 rather \
+     than left standing in a scope note the proof has outgrown). A record at `proposed` or \
      `designed` satisfies it and fails `composition`, which is why they are two proofs: W1 \
      REGISTER-COMPLETE is granted on existence alone, before any design work has happened. A \
      warrant citing this run has evidence that the register covers the surface, and no evidence \
@@ -72,7 +82,11 @@ pub const BOUND_NOTE: &str = "the claim is bounded by [surface] screen_globs and
      screen outside those globs, a reference imported from outside those prefixes, and a \
      reference whose import the ledger could not resolve are each counted and not enforced. \
      This proof cannot say `no unregistered component anywhere`, only `no absent record among \
-     the references it reached`.";
+     the references it reached`. R2 reaches only records that carry `directedAt`. A record \
+     naming no direction and no measure is outside this clause, and the count of such records \
+     is printed on every run: a rule that fires only on the rows that armed it has a \
+     denominator, and an unreported denominator is the defect this clause was written \
+     against ([2026] VJS-CA-VDS 1 order 17).";
 
 pub const RESERVED_NOTE: &str = "relies on VDS S-9(10) RESERVED (SUBMISSION-VDS-005): bare HTML elements are informational \
      rows only, excluded from rows_enforced. Any warrant citing this proof must record that \
@@ -262,11 +276,171 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
         ));
     }
 
+    // Draft S-5(9), ENACTMENT PENDING (SUBMISSION-VDS-015): measurement
+    // coverage of DIRECTED records, and hygiene of the measures themselves.
+    // One row per record that carries the metadata; a record carrying none is
+    // outside the drafted clause and adds no row.
+    //
+    // The clock is the ledger's `generated_at` and never the wall clock
+    // (VDS S-7(2)(1)). It is normally excluded from this proof's evidence
+    // digest precisely because it moves on a no-op regeneration; the grace
+    // rule READS it, so where a directed record exists it becomes an input and
+    // is digested, keeping findings a function of inputs.
+    let directed_exists = index
+        .records()
+        .iter()
+        .any(|r| r.value.directed_at.is_some());
+    if directed_exists {
+        run.input_named(
+            "<screens ledger generated_at>",
+            vds_core::Digest::of_text(ledger.generated_at.as_str()),
+        );
+    }
+    // I4's population, counted BEFORE the rules run, so the denominator is a
+    // fact about the register and not a by-product of what happened to fail.
+    let mut unarmed: Vec<String> = Vec::new();
+    let lock_paths: Vec<String> = ctx
+        .store()
+        .read_lock()?
+        .map(|lock| lock.entries.iter().map(|e| e.path.clone()).collect())
+        .unwrap_or_default();
+
+    for record in index.records() {
+        let value = &record.value;
+        let has_metadata = value.directed_at.is_some() || !value.measured_by.is_empty();
+        if !has_metadata {
+            if value.status.is_enforceable() {
+                unarmed.push(value.id.to_string());
+            }
+            continue;
+        }
+        run.row(Verdict::Enforced);
+        let location = format!("{} [{}]", value.id, value.name);
+
+        // R3, the hygiene rule, checked for EVERY measure regardless of grace:
+        // a measure pointing at a plan or an internal doc is measured by
+        // prose, and prose is not enforcement. Measures read shipped code or
+        // rendered artefacts.
+        for measure in &value.measured_by {
+            let lowered = measure.to_lowercase();
+            let doc_like = lowered.ends_with(".md")
+                || lowered.contains("internal-docs/")
+                || lowered.starts_with("docs/")
+                || lowered.contains("/docs/")
+                || lowered.contains("plans/")
+                || lowered.contains("readme");
+            // R4 ([2026] VJS-CA-VDS 1 order 16): a measure must RESOLVE. An
+            // ALLOWLIST, because the denylist below refuses the document
+            // paths it happens to know and admits a sentence: `measuredBy:
+            // "the enhancement charter"` passed every check this rule had.
+            let resolves = vds_core::ProofKind::parse(measure).is_some()
+                || project.root.join(measure).exists()
+                || lock_paths.iter().any(|p| p == measure);
+            if !resolves {
+                run.fail(Violation::fatal(
+                    location.clone(),
+                    RULE_MEASURE_UNRESOLVED,
+                    "a measure naming a proof kind in the S-7(5) registry, a path that \
+                     exists in this repository, or a path pinned in the enforcement lock",
+                    format!(
+                        "measuredBy names {measure:?}, which resolves to nothing. Without \
+                         resolution R2 is discharged by typing a word, and a rule measured \
+                         by a word is measured by prose."
+                    ),
+                ));
+            }
+            if doc_like {
+                run.fail(Violation::fatal(
+                    location.clone(),
+                    RULE_MEASURE_HYGIENE,
+                    "every measuredBy entry to name shipped code or a rendered-artefact \
+                     reader (a gate path, a proof kind, a reader command)",
+                    format!(
+                        "measuredBy names {measure:?}, which is a document. A rule measured \
+                         by a plan is measured by prose: the plan can promise anything and \
+                         the row stays green. Point the measure at the gate that reads the \
+                         artefact, or remove it and let R2 say the record is unmeasured."
+                    ),
+                ));
+            }
+        }
+
+        // R2, the grace rule: directed, unmeasured, and out of grace.
+        if let Some(directed_at) = &value.directed_at
+            && value.measured_by.is_empty()
+        {
+            let grace = i64::from(value.grace_days.unwrap_or(0));
+            match crate::geometry::days_between(directed_at.as_str(), ledger.generated_at.as_str())
+            {
+                None => run.fail(Violation::fatal(
+                    location.clone(),
+                    RULE_UNMEASURED,
+                    "two readable UTC dates",
+                    format!(
+                        "directedAt is {:?} and the ledger's generated_at is {:?}, and the \
+                         distance between them could not be computed, so the grace rule is \
+                         UNKNOWN rather than met.",
+                        directed_at.as_str(),
+                        ledger.generated_at.as_str()
+                    ),
+                )),
+                Some(days) if days > grace => run.fail(Violation::fatal(
+                    location.clone(),
+                    RULE_UNMEASURED,
+                    format!(
+                        "measuredBy to name at least one measure within {grace} day(s) of \
+                         the directive"
+                    ),
+                    format!(
+                        "directed {} day(s) ago (at {}) and measured by NOTHING. A directed \
+                         record with an empty measuredBy is a promise nobody checks: it was \
+                         registered, it reads as governed, and no instrument would ever say \
+                         it failed. This is the row class that shipped structurally-green \
+                         pages that looked nothing like their frames.",
+                        days,
+                        directed_at.as_str()
+                    ),
+                )),
+                Some(_) => {}
+            }
+        }
+    }
+
+    // I4: the DENOMINATOR, counted and named on every run. Informational, not
+    // fatal: these records predate the clause and reddening them would be the
+    // flag day the neighbouring regime forbids. What may not happen is that
+    // the reach goes unreported, because a green over an unstated denominator
+    // is indistinguishable from a green over the whole register.
+    if !unarmed.is_empty() {
+        run.note(format!(
+            "[I4] {} enforceable register record(s) carry neither directedAt nor \
+             measuredBy, so S-5(9) R2 does not reach them{}. This is COVERAGE OWED and not \
+             a failure ([2026] VJS-CA-VDS 1 order 17).",
+            unarmed.len(),
+            if unarmed.len() <= 12 {
+                format!(": {}", unarmed.join(", "))
+            } else {
+                String::new()
+            }
+        ));
+        for id in unarmed.iter().take(12) {
+            run.inform(Violation::fatal(
+                id.clone(),
+                RULE_UNARMED,
+                "directedAt, or a measure naming what holds this record's conformance",
+                "outside S-5(9) R2 entirely: nothing measures this record and nothing \
+                 will ever report it as unmeasured."
+                    .to_owned(),
+            ));
+        }
+    }
+
     run.finish(&ctx.capture_options()?, out)
 }
 
 #[cfg(test)]
 mod tests {
+    use super::RULE_UNARMED;
     use crate::testing::{Harness, run_kind};
     use vds_core::{
         EXIT_PASSED, EXIT_VACUOUS, EXIT_VIOLATION, ProofKind, ProofStatus, Severity, Status,
@@ -285,8 +459,12 @@ mod tests {
         assert_eq!(outcome.exit_code, EXIT_PASSED);
         assert!(outcome.rows_enforced > 0);
         assert!(
-            h.last_proof(KIND).violations.is_empty(),
-            "a complete register produces no finding of any severity"
+            h.last_proof(KIND)
+                .violations
+                .iter()
+                .all(|v| v.rule == RULE_UNARMED),
+            "a complete register produces no finding except the I4 coverage census, which \
+             every unarmed record earns by construction ([2026] VJS-CA-VDS 1 order 17)"
         );
     }
 
@@ -343,7 +521,16 @@ mod tests {
         assert_eq!(outcome.status, ProofStatus::Passed);
 
         let record = h.last_proof(KIND);
-        assert_eq!(record.violations.len(), 1, "{:?}", record.violations);
+        assert_eq!(
+            record
+                .violations
+                .iter()
+                .filter(|v| v.rule != RULE_UNARMED)
+                .count(),
+            1,
+            "{:?}",
+            record.violations
+        );
         assert_eq!(record.violations[0].severity, Severity::Informational);
         assert!(
             record.violations[0].actual.contains("composition"),
@@ -436,17 +623,29 @@ mod tests {
         assert!(text.contains("were NOT reached"), "{text}");
 
         let record = h.last_proof(KIND);
-        assert_eq!(record.violations.len(), 1, "{:?}", record.violations);
-        assert_eq!(record.violations[0].severity, Severity::Informational);
-        assert!(
-            record.violations[0].location.contains("app/dash/page.tsx"),
+        assert_eq!(
+            record
+                .violations
+                .iter()
+                .filter(|v| v.rule != RULE_UNARMED)
+                .count(),
+            1,
             "{:?}",
-            record.violations[0]
+            record.violations
+        );
+        let finding = record
+            .violations
+            .iter()
+            .find(|v| v.rule != RULE_UNARMED)
+            .expect("the I2 finding");
+        assert_eq!(finding.severity, Severity::Informational);
+        assert!(
+            finding.location.contains("app/dash/page.tsx"),
+            "{finding:?}"
         );
         assert!(
-            record.violations[0].actual.contains("not imported"),
-            "the row must say WHY it could not be reached: {:?}",
-            record.violations[0]
+            finding.actual.contains("not imported"),
+            "the row must say WHY it could not be reached: {finding:?}"
         );
     }
 
@@ -469,11 +668,24 @@ mod tests {
         assert!(text.contains("ROOT binding only"), "{text}");
 
         let record = h.last_proof(KIND);
-        assert_eq!(record.violations.len(), 1, "{:?}", record.violations);
-        assert!(
-            record.violations[0].actual.contains("Card.Header"),
+        assert_eq!(
+            record
+                .violations
+                .iter()
+                .filter(|v| v.rule != RULE_UNARMED)
+                .count(),
+            1,
             "{:?}",
-            record.violations[0]
+            record.violations
+        );
+        assert!(
+            record
+                .violations
+                .iter()
+                .filter(|v| v.rule != RULE_UNARMED)
+                .any(|v| v.actual.contains("Card.Header")),
+            "{:?}",
+            record.violations
         );
     }
 
@@ -515,9 +727,7 @@ mod tests {
             "{notes:?}"
         );
         assert!(
-            notes
-                .iter()
-                .any(|n| n.contains("EXISTENCE and nothing else")),
+            notes.iter().any(|n| n.contains("establishes EXISTENCE")),
             "a reader of this record must not mistake W1 evidence for W2 evidence: {notes:?}"
         );
         assert!(
@@ -544,5 +754,144 @@ mod tests {
             first, second,
             "a digest that moves on a no-op regeneration makes every warrant look spent"
         );
+    }
+
+    // -- draft S-5(9): measurement coverage and measure hygiene ---------------
+
+    /// THE failing-direction seed for R2: the row class that shipped
+    /// structurally-green pages. Directed, registered, measured by nothing,
+    /// and out of grace.
+    #[test]
+    fn a_directed_record_measured_by_nothing_goes_red_after_its_grace() {
+        let h = Harness::new();
+        h.screen("dash", &["Button"]);
+        let id = h.register("Button", Status::Registered);
+        h.amend(&id, |r| {
+            r.directed_at = Some(vds_core::Timestamp::fixed(2026, 7, 1, 10, 0, 0));
+            r.grace_days = Some(14);
+        });
+        h.ledger();
+        let (outcome, text) = run_kind(&h, KIND);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("measured by NOTHING"), "{text}");
+    }
+
+    #[test]
+    fn a_directed_record_inside_its_grace_does_not_fail_yet() {
+        let h = Harness::new();
+        h.screen("dash", &["Button"]);
+        let id = h.register("Button", Status::Registered);
+        h.amend(&id, |r| {
+            // Directed "now": the ledger regenerates below, so its
+            // generated_at sits within any non-trivial grace of today.
+            r.directed_at = Some(vds_core::Timestamp::now());
+            r.grace_days = Some(14);
+        });
+        h.ledger();
+        let (outcome, text) = run_kind(&h, KIND);
+        assert_eq!(outcome.status, ProofStatus::Passed, "{text}");
+    }
+
+    #[test]
+    fn a_directed_record_with_a_real_measure_passes() {
+        let h = Harness::new();
+        h.screen("dash", &["Button"]);
+        let id = h.register("Button", Status::Registered);
+        h.amend(&id, |r| {
+            r.directed_at = Some(vds_core::Timestamp::fixed(2026, 7, 1, 10, 0, 0));
+            r.grace_days = Some(14);
+            // A measure that RESOLVES: a proof kind in the closed registry
+            // (order 16). A path is equally lawful and must exist in the
+            // subject tree, which a fixture's does not.
+            r.measured_by = vec!["contrast".into()];
+        });
+        h.ledger();
+        let (outcome, text) = run_kind(&h, KIND);
+        assert_eq!(outcome.status, ProofStatus::Passed, "{text}");
+    }
+
+    /// THE failing-direction seed for R3: a measure pointing at a plan
+    /// document is measured by prose, whatever the grace says.
+    /// THE SEED for order 16: R3 was a denylist, so a measure that is a
+    /// SENTENCE walked through the front door. `measuredBy: "the enhancement
+    /// charter"` named no file, no proof kind and no gate, and passed.
+    #[test]
+    fn a_measure_that_resolves_to_nothing_is_refused() {
+        let h = Harness::new();
+        h.screen("dash", &["Button"]);
+        let id = h.register("Button", Status::Registered);
+        h.amend(&id, |r| {
+            r.measured_by = vec!["the enhancement charter".into()];
+        });
+        h.ledger();
+        let (outcome, text) = run_kind(&h, KIND);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("resolves to nothing"), "{text}");
+        assert!(text.contains("measured by prose"), "{text}");
+    }
+
+    #[test]
+    fn a_measure_naming_a_proof_kind_resolves() {
+        let h = Harness::new();
+        h.screen("dash", &["Button"]);
+        let id = h.register("Button", Status::Registered);
+        h.amend(&id, |r| {
+            r.measured_by = vec!["contrast".into()];
+        });
+        h.ledger();
+        let (outcome, text) = run_kind(&h, KIND);
+        assert_eq!(outcome.status, ProofStatus::Passed, "{text}");
+    }
+
+    /// The DENOMINATOR (order 17). A register whose records carry neither
+    /// field is exactly the population the clause was written about, and a run
+    /// over it must say so rather than printing a clean pass.
+    #[test]
+    fn records_outside_the_clause_are_counted_and_named_on_every_run() {
+        let h = Harness::new();
+        h.screen("dash", &["Button"]);
+        h.register("Button", Status::Registered);
+        h.ledger();
+        let (outcome, text) = run_kind(&h, KIND);
+        assert_eq!(
+            outcome.status,
+            ProofStatus::Passed,
+            "an unarmed record is not a failure: {text}"
+        );
+        assert!(
+            text.contains("[I4] 1 enforceable register record"),
+            "{text}"
+        );
+        assert!(text.contains("COVERAGE OWED"), "{text}");
+        assert!(
+            text.contains("CMP-0001"),
+            "twelve or fewer are named, not merely counted: {text}"
+        );
+    }
+
+    #[test]
+    fn a_measure_pointing_at_a_plan_document_is_refused() {
+        let h = Harness::new();
+        h.screen("dash", &["Button"]);
+        let id = h.register("Button", Status::Registered);
+        h.amend(&id, |r| {
+            r.measured_by = vec!["internal-docs/design-migration-plan.md".into()];
+        });
+        h.ledger();
+        let (outcome, text) = run_kind(&h, KIND);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("measured by prose"), "{text}");
+    }
+
+    #[test]
+    fn an_undirected_unmeasured_record_is_outside_the_drafted_clause() {
+        // The clause reaches records that were DIRECTED. A record with neither
+        // field is the pre-draft world and must not be retroactively red.
+        let h = Harness::new();
+        h.screen("dash", &["Button"]);
+        h.register("Button", Status::Registered);
+        h.ledger();
+        let (outcome, text) = run_kind(&h, KIND);
+        assert_eq!(outcome.status, ProofStatus::Passed, "{text}");
     }
 }

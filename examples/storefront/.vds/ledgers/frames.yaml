@@ -1,10 +1,10 @@
 schema_version: 1
-generated_at: 2026-07-30T18:42:44Z
+generated_at: 2026-08-01T14:05:36Z
 generated_by: vds figma frames
 file_key: SFDEMO
 capture_depth: 4
 truncated_leaves: 4
-content_digest: sha256:cc81c5707b1f33656bdeed94426d9def27fb215b34e7d2a6c15a7028b0530b4e
+content_digest: sha256:37b413cd611180495bf39c6477a4a22393099a78e61908f403bbdd7c9402635c
 frames:
 - node_id: 100:1
   frame_name: Screen · /
@@ -16,6 +16,7 @@ frames:
   - body
   columns: 1
   truncated: false
+  content_digest: sha256:d73c05faac84d12f813f129160c9ccce0da621870db28b5f82f0afc93bdca586
 - node_id: 100:2
   frame_name: Screen · /settings
   authority_layer: Screen · /settings
@@ -27,6 +28,7 @@ frames:
   - body
   columns: 2
   truncated: false
+  content_digest: sha256:695d06aa08f1efb7dd7a810bb16a00fdca9294aeb227bb2e16ed438780cc1e57
 - node_id: 100:3
   frame_name: Screen · /checkout
   authority_layer: CURRENT SOURCE · /checkout · single form
@@ -38,6 +40,7 @@ frames:
   - body
   columns: 1
   truncated: false
+  content_digest: sha256:5592063b01c52d2dec980fe743b64b75edfc8e61ece58d37c71939774adc3ba7
 - node_id: 100:4
   frame_name: LEGACY / TARGET REFERENCE · /experiments · NOT SOURCE CURRENT
   authority_layer: LEGACY / TARGET REFERENCE · /experiments · NOT SOURCE CURRENT
@@ -48,6 +51,7 @@ frames:
   - body
   columns: 2
   truncated: false
+  content_digest: sha256:ce58a9f0e49eae32f20d53f7d5ecf5d08472daeedbd7926be14349aefb314f3c
 - node_id: 100:5
   frame_name: Screen · /returns
   authority_layer: Screen · /returns
@@ -58,6 +62,7 @@ frames:
   - body
   columns: 1
   truncated: false
+  content_digest: sha256:d8ded304e994678a794d8cb5eee90c42f97ed4f79ae27b07abc6d845a114640e
 notes:
 - derived from a saved nodes response at examples/storefront/figma/frames-SFDEMO.json
 - 'This ledger records frame names, layer names, region names and a COUNT of content columns. It records no width, height, colour, font or radius: those stay in the Figma file, which [2026] VJS-CC-OPBOX 3 D1 makes the system of record for what is decided, and a length under `.vds/**` is the storing form VDS S-2(2) prohibits.'

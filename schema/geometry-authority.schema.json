@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "GeometryAuthority",
+  "description": "The authority side of the two-sided geometry proof: a snapshot binding a Figma node's DECIDED values (fetched via REST, out of band, saved as a capture file) to the artefact reading in force when the comparison ran.\n\nA ledger under VDS S-4(2). The proof never re-derives the agreement - that would need the values - it verifies the BINDING: both input hashes must still match what is on disk, or the snapshot is STALE, visibly, and proves nothing (draft S-7A(5)).",
+  "type": "object",
+  "required": [
+    "capture",
+    "captureDigest",
+    "comparator",
+    "comparatorDigest",
+    "contentDigest",
+    "fetchedAt",
+    "fileKey",
+    "generatedBy",
+    "nodeId",
+    "readingDigest",
+    "rows",
+    "schemaVersion"
+  ],
+  "properties": {
+    "capture": {
+      "description": "The saved REST capture the authority side was read from, repository-relative. It holds realisations, so it lives in the project tree and NEVER under `.vds/` (VDS S-2(2)).",
+      "type": "string"
+    },
+    "captureDigest": {
+      "description": "Digest of the capture file at comparison time: the AUTHORITY side's input hash. The capture moving on disk stales this snapshot.",
+      "type": "string"
+    },
+    "comparator": {
+      "description": "The out-of-band program that produced the agreement rows, repository-relative. REQUIRED by [2026] VJS-CA-VDS 1 order 6.\n\nThe engine cannot re-derive an agreement bit - re-deriving needs the values, which VDS S-2(2) and [2026] VJS-CC-OPBOX 3 forbid it to hold - so the one input that decides the verdict was the one input carrying no witness at all. A comparator rewritten to return agreement unconditionally produced an identical `generatedBy` NAME, regenerated cleanly through the front door, and turned the whole limb green with nothing measured.",
+      "type": "string"
+    },
+    "comparatorDigest": {
+      "description": "That file's digest at the moment the comparison ran, entering `contentDigest`. A comparator that moved after the comparison is a third expired input (geometry R14).",
+      "type": "string"
+    },
+    "contentDigest": {
+      "description": "A digest over every other field, for the reason the reading carries one: this snapshot is the proof's only record of the comparison.",
+      "type": "string"
+    },
+    "fetchedAt": {
+      "description": "When the authority values were FETCHED from the design file's API. The fetch date is part of the claim: an old capture is an old decision.",
+      "$ref": "#/definitions/Timestamp"
+    },
+    "fileKey": {
+      "type": "string"
+    },
+    "generatedBy": {
+      "type": "string"
+    },
+    "nodeId": {
+      "description": "The node the authority values were read from, `12:34` spelling.",
+      "type": "string"
+    },
+    "readingDigest": {
+      "description": "The geometry reading's content digest at comparison time: the ARTEFACT side's input hash. The reading regenerating stales this snapshot.",
+      "type": "string"
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/AuthorityAgreement"
+      }
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "AgreementState": {
+      "description": "What the comparator found for one surface kind. THREE-VALUED.\n\nDraft S-7A(5A), ENACTMENT PENDING (SUBMISSION-VDS-019). This was a `bool` and the shape was the defect: [2026] VJS-SC-OPBOX 1 order 6 binds a frame \"only for what it draws in the states it draws\" and order 14 forbids manufacturing conformance from what was never drawn, and a two-valued field has nowhere to record that the frame drew NOTHING on a dimension. A comparator that finds nothing to compare then has one honest-looking value to write, writes `true`, and the proof records conformance against silence. That is an order defeated by a datatype.\n\nRecorded as Schedule B item 1 of [2026] VJS-CA-VDS 1 (Fidelity J, 012-A, commanding one judge and therefore NOT CARRIED). It is implemented here behind its own pending submission, on this lane's standing posture: the code ships marked as drafted and no warrant may cite it until the ruling lands.",
+      "oneOf": [
+        {
+          "description": "The shipped reading and the decided values agree on this dimension.",
+          "type": "string",
+          "enum": [
+            "agrees"
+          ]
+        },
+        {
+          "description": "They disagree. `because` is then required: a bare state names no work.",
+          "type": "string",
+          "enum": [
+            "disagrees"
+          ]
+        },
+        {
+          "description": "THE SIGNED FRAME DRAWS NOTHING on this dimension. Resolves to no_authority for that surface kind and can never contribute conformance, because a frame binds only for what it draws.",
+          "type": "string",
+          "enum": [
+            "not_drawn"
+          ]
+        }
+      ]
+    },
+    "AuthorityAgreement": {
+      "description": "One surface kind's agreement between the authority and the artefact.\n\nAn AGREEMENT STATE and never a value, per the S-2(7) pin amendment: a Figma `cornerRadius` is a realisation and has no field to live in here. The generator that compared the two sides holds the values; this row holds only what it concluded and where to look when the two disagreed.",
+      "type": "object",
+      "required": [
+        "agrees",
+        "surfaceKind"
+      ],
+      "properties": {
+        "agrees": {
+          "description": "What the out-of-band comparator found: agrees, disagrees, or the frame drew nothing here.",
+          "$ref": "#/definitions/AgreementState"
+        },
+        "because": {
+          "description": "Where the disagreement lives, in the comparator's words. Required by the proof when the state is `disagrees`: a bare state names no work.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "surfaceKind": {
+          "$ref": "#/definitions/SurfaceKind"
+        }
+      },
+      "additionalProperties": false
+    },
+    "SurfaceKind": {
+      "description": "The shapes a bound may be declared over. CLOSED, and closed on purpose.\n\nVDS S-7A(3): the bound is per SURFACE KIND and never one number for the estate. The subscriber project's instrument reported \"561 hand-rolled card-geometry containers, pin 561\", and that number names no work: it cannot be assigned to anybody, it cannot be finished, and it hides which shapes are worst. An enum rather than a free string is the strongest available form of that rule, because one undifferentiated bucket is then unrepresentable rather than merely discouraged.",
+      "oneOf": [
+        {
+          "description": "Corner radius.",
+          "type": "string",
+          "enum": [
+            "radius"
+          ]
+        },
+        {
+          "description": "The weight of a surface's boundary: a border, a ring, a divider.",
+          "type": "string",
+          "enum": [
+            "boundary_weight"
+          ]
+        },
+        {
+          "description": "Control density: the spacing step a surface sets its own padding and gaps from.",
+          "type": "string",
+          "enum": [
+            "density"
+          ]
+        },
+        {
+          "description": "Type scale: the size and leading step a surface sets its text from.",
+          "type": "string",
+          "enum": [
+            "type_scale"
+          ]
+        }
+      ]
+    },
+    "Timestamp": {
+      "description": "UTC, second resolution, trailing Z. The one canonical form VDS writes.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    }
+  }
+}

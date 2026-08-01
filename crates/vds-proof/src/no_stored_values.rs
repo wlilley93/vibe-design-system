@@ -64,7 +64,36 @@
 //! through it by being moved one field to the left. A note that must discuss a
 //! realisation names its class instead, which is what every note this proof
 //! writes does.
+//!
+//! ## The third decision: a limb-1 hit is a report of SHAPE
+//!
+//! Added by [2026] VJS-FI-VDS 1, which held that limb 1 is a shape test and a
+//! shape test cannot tell a design value from a string shaped like one. The
+//! ruling arose on two sites in a Court of Appeal judgment filed under
+//! `.vds/court/`: a compiler's elapsed time quoted in a judge's account of what
+//! he measured, and an issue tracker's ordinal written with the number sign,
+//! whose three digits are also three hexadecimal digits.
+//!
+//! Three things that ruling did NOT do, because each is the tempting one:
+//!
+//! - it did not exempt `.vds/court/**`, by path or by artefact class. S-2(8) is
+//!   directory-scoped and S-3(9) closes the exceptions at two, and the carve-out
+//!   would have been named after the room the arguments happen in;
+//! - it did not tighten a pattern. The two readings of each string are lexically
+//!   identical, so any predicate that admits the collision admits the value:
+//!   dropping an all-decimal three-digit run blinds R1 to the shorthand spelling
+//!   of black, and dropping a fractional-second duration blinds R4 to every
+//!   motion duration written in seconds;
+//! - it did not order the judgment edited. A judge at first instance has no
+//!   power over a superior court's text.
+//!
+//! What it created instead is the ADJUDICATED COLLISION: one court, one file,
+//! one digest, one line, one column, one limb-1 shape class. See
+//! [`ADJUDICATED`]. The disposal is reported as a warning and counted on the
+//! face of the record, never suppressed, and it dies the moment the artefact it
+//! names moves by one byte.
 
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use regex::Regex;
@@ -100,6 +129,12 @@ const RULE_MANY: &str =
     "VDS S-2(8): one file holds more realisations than this record lists individually";
 const RULE_SYMLINK: &str =
     "VDS S-3(9) W1: a symlink under the record, which this scan counts and does not follow";
+const RULE_DISPOSED: &str = "VDS S-2(8) limb 1, DISPOSED: a shape match a court has measured against the VDS S-2(5) \
+     limbs and found to hold no design value ([2026] VJS-FI-VDS 1)";
+const RULE_ADJUDICATION_SPENT: &str = "[2026] VJS-FI-VDS 1 A1: an adjudicated collision whose artefact has moved since the court \
+     measured it. An artefact whose bytes changed is a fresh artefact and no ruling has seen it";
+const RULE_ADJUDICATION_INERT: &str = "[2026] VJS-FI-VDS 1 A2: an adjudicated collision that disposes of nothing. A suppression \
+     that suppresses nothing is a suppression waiting for something to suppress";
 
 /// What right would have looked like, for every rule that finds a realisation.
 ///
@@ -172,7 +207,121 @@ pub const SELF_SUBJECT_NOTE: &str = "[self-reference] this proof captures its ow
      tree therefore cite different evidence digests. That is the subject moving, not the check \
      (VDS S-7(2)(1)).";
 
+pub const SHAPE_NOTE: &str = "[shape] a limb 1 match is a report that a string in the record is SHAPED like a design \
+     value. Whether the record is in the STORING FORM is answered by the four limbs of VDS \
+     S-2(5), which no pattern evaluates: delete the artefact and see whether a shipped or \
+     decided value is lost; change a named record and see whether it serves a second opinion; \
+     ask whether a reader can move a shipped pixel by editing it alone; ask whether it carries \
+     a value a named record also carries. Limb 1 is a lawful and necessary FLOOR and is not a \
+     sufficient test, and this gate must not be read as asserting more than it measured \
+     ([2026] VJS-FI-VDS 1 order 6).";
+
+pub const ADJUDICATION_NOTE: &str = "[adjudicated] where a court has applied the VDS S-2(5) limbs to a NAMED SITE and found no \
+     design value there, the site is DISPOSED: reported as a warning naming the ruling and the \
+     ground, and counted here, never suppressed and never omitted. A disposal binds one file, \
+     at one digest, at one line and column, for one limb 1 shape class, and it dies the moment \
+     any of those moves. It reaches only the three classes whose spellings collide with \
+     ordinary prose, and never a field name, an encoding, an undecodable file or a preimage \
+     recovery: a value behind an encoding is concealment and no court disposes of concealment. \
+     The distinction from a carve-out is measurable rather than rhetorical - a carve-out's \
+     reach grows with the tree, and this one is the integer printed below.";
+
+/// One site a court has adjudicated to be a lexical collision rather than a
+/// design value.
+///
+/// Held in the GATE and deliberately not in data under `.vds/`. That placement is
+/// most of the safety: this file is `permit_required` under VDS S-3(8), it is
+/// digest-pinned in `.vds/enforcement.lock` under VDS S-8(1) so a new row trips
+/// the drift finding and forces a deliberate re-pin with a recorded rationale
+/// under VDS S-8(4), and every row is a line in a diff a reviewer reads rather
+/// than a file a script can append to.
+///
+/// A row NEVER carries the matched text, for the same reason a finding does not.
+pub(crate) struct Adjudicated {
+    /// Project-relative path, as this proof spells a location.
+    pub location: &'static str,
+    pub line: usize,
+    /// 1-based character column, matching [`Hit::column`].
+    pub column: usize,
+    /// The finding class, which must be one of [`ADJUDICABLE_CLASSES`].
+    pub class: &'static str,
+    /// The sha256 of the whole file as the court measured it. Any change to any
+    /// byte of the artefact spends every adjudication over it.
+    pub file_digest: &'static str,
+    /// The ruling that disposed of this site, by citation.
+    pub ruling: &'static str,
+    /// The ground, by class, never quoting the matched text.
+    pub because: &'static str,
+}
+
+/// The limb 1 classes a court may dispose of.
+///
+/// Exactly the three whose spellings genuinely collide with ordinary English:
+/// the number sign followed by three or six digits, and a numeral carrying a
+/// letter that is also a CSS unit. A CSS colour function, an easing curve and a
+/// generic font family keyword are words with one meaning, so a collision is not
+/// credible and none may be adjudicated. Neither may R7 (a field name), R8 (an
+/// encoding), R9 (an undecodable file) or R10 (a preimage recovery).
+pub(crate) const ADJUDICABLE_CLASSES: &[&str] =
+    &["colour_literal", "length_literal", "duration_literal"];
+
+/// Every adjudicated collision in force. Two.
+///
+/// Both are in the Court of Appeal's enactment judgment, and both were disposed
+/// by [2026] VJS-FI-VDS 1 order 5 on the VDS S-2(5) analysis at section IV of
+/// that judgment: delete the artefact and no shipped or decided design value is
+/// lost, it serves no second opinion about any token, no reader can move a
+/// shipped pixel by editing it, and it carries intent rather than value.
+///
+/// Neither could be cured any other way. The scan could not be narrowed
+/// (VDS S-2(8) is directory-scoped and VDS S-3(9) closes the exceptions at two),
+/// the matcher could not be tightened (the two readings of each string are
+/// lexically identical), and the judgment could not be edited (a judge at first
+/// instance has no power over a superior court's text).
+pub(crate) const ADJUDICATED: &[Adjudicated] = &[
+    Adjudicated {
+        location: ".vds/court/2026-VJS-CA-VDS-1-enactment.md",
+        line: 337,
+        column: 212,
+        class: "duration_literal",
+        file_digest: "sha256:78e0b9fce5ae47ce0c182c3618e01ccd6b05a50ef43ef08870fedfc88c658c5b",
+        ruling: "[2026] VJS-FI-VDS 1 order 5",
+        because: "the elapsed wall-clock time of a workspace type-check, reported by a judge in \
+                  his account of what he measured. No design answers a duty with the time a \
+                  compiler took (VDS S-2(4)), and a numeral is not automatically a value \
+                  (VDS S-2(6)). The gate already holds this same quantity out of R7 under the \
+                  excluded field names, on the same ground",
+    },
+    Adjudicated {
+        location: ".vds/court/2026-VJS-CA-VDS-1-enactment.md",
+        line: 375,
+        column: 56,
+        class: "colour_literal",
+        file_digest: "sha256:78e0b9fce5ae47ce0c182c3618e01ccd6b05a50ef43ef08870fedfc88c658c5b",
+        ruling: "[2026] VJS-FI-VDS 1 order 5",
+        because: "an ordinal allocated by a subscriber project's issue tracker, written with the \
+                  number sign. It reads as a colour only by an accident of the hexadecimal \
+                  alphabet, and the sentence around it settles which reading is meant. \
+                  VDS S-2(6) speaks of a literal with one reading; this string has two, and \
+                  VDS S-2(5) chooses between them",
+    },
+];
+
 pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
+    run_with(ctx, out, ADJUDICATED)
+}
+
+/// The scan, over a named table of adjudicated collisions.
+///
+/// Production always passes [`ADJUDICATED`]; the seeded controls pass their own
+/// rows. The seam takes DATA and not behaviour, so every line of the mechanism a
+/// control exercises is the same line production runs. It exists because the
+/// shipped rows name a court record of a hundred thousand-odd bytes that no
+/// fixture can reproduce, and a control that could only be written against the
+/// real artefact could not seed the failing directions at all. The shipped ROWS
+/// are held separately, by `every_shipped_adjudication_is_well_formed` and by
+/// the three controls that copy the real artefact in byte for byte.
+fn run_with(ctx: &ProofContext, out: &mut dyn Write, acks: &[Adjudicated]) -> Result<Outcome> {
     let project = ctx.project;
     let mut run = ctx.new_run(ProofKind::NoStoredValues, GATE);
 
@@ -194,6 +343,15 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
     run.note(preimage::SPACE_NOTE);
     run.note(PATTERN_FLOOR_NOTE);
     run.note(SELF_SUBJECT_NOTE);
+    run.note(SHAPE_NOTE);
+    run.note(ADJUDICATION_NOTE);
+
+    // Which adjudicated rows this run actually disposed of, and which files it
+    // saw. Both are needed at the end: a row that disposed of nothing in a
+    // present file is a fatal finding, and a row naming a file this tree does
+    // not hold is inapplicable rather than either.
+    let mut disposed: HashSet<usize> = HashSet::new();
+    let mut seen: HashSet<&str> = HashSet::new();
 
     // Every digest-shaped run in the record, gathered across the whole walk and
     // swept ONCE at the end. The sweep costs one pass of the candidate space
@@ -244,16 +402,78 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
             ));
         }
 
+        // Digested from the bytes already in hand rather than re-read from
+        // disk: an adjudication is bound to the artefact the court measured, and
+        // a second read could witness a different file than the one just
+        // scanned.
+        let digest = vds_core::Digest::of_bytes(&bytes);
+        for row in acks {
+            if row.location == location {
+                seen.insert(row.location);
+            }
+        }
+
         let text = String::from_utf8_lossy(&bytes);
-        report(&mut run, &location, &text, &patterns);
+        report(
+            &mut run,
+            &location,
+            &text,
+            &patterns,
+            digest.as_str(),
+            acks,
+            &mut disposed,
+        );
         if sites.len() < MAX_DIGEST_SITES {
             sites.extend(preimage::harvest(&location, &text));
         }
     }
 
     report_preimage(&mut run, &sites);
+    report_adjudications(&mut run, acks, &disposed, &seen);
 
     run.finish(&ctx.capture_options()?, out)
+}
+
+/// The totals for the adjudicated collisions, on the face of the record.
+///
+/// The count is the whole difference between an adjudication and a carve-out. A
+/// carve-out's reach grows with the tree and is visible only as an absence; this
+/// one is an integer a reader can compare against the ruling that authorised it.
+/// A row naming a file this tree does not hold is INAPPLICABLE and is counted as
+/// such, which is what keeps a subscriber project - which holds none of this
+/// repository's court records - from inheriting either a disposal or a spurious
+/// failure.
+fn report_adjudications(
+    run: &mut ProofRun,
+    acks: &[Adjudicated],
+    disposed: &HashSet<usize>,
+    seen: &HashSet<&str>,
+) {
+    let inapplicable = acks
+        .iter()
+        .filter(|row| !seen.contains(row.location))
+        .count();
+    let rulings = {
+        let mut named: Vec<&str> = acks.iter().map(|row| row.ruling).collect();
+        named.sort_unstable();
+        named.dedup();
+        named.join(", ")
+    };
+    run.note(format!(
+        "[adjudicated-run] {} adjudicated site(s) in force, {} disposed in this run, {} naming \
+         an artefact this tree does not hold. Authorised by: {}. Each disposal is named \
+         individually above as a warning, with its file, line, column, class, ruling and \
+         ground. A disposal that stopped matching would be a fatal finding and not a silent \
+         absence.",
+        acks.len(),
+        disposed.len(),
+        inapplicable,
+        if rulings.is_empty() {
+            "no ruling, because no site is adjudicated".to_owned()
+        } else {
+            rulings
+        }
+    ));
 }
 
 /// The most digests one run will sweep for.
@@ -368,18 +588,51 @@ fn outside_the_record(root: &Path, path: &Path) -> bool {
 }
 
 /// Emit one file's findings, capped, with the remainder counted rather than
-/// dropped.
-fn report(run: &mut ProofRun, location: &str, text: &str, patterns: &Patterns) {
-    let mut found: Vec<(usize, Hit)> = Vec::new();
+/// dropped, and with any site a court has adjudicated reported as disposed.
+fn report(
+    run: &mut ProofRun,
+    location: &str,
+    text: &str,
+    patterns: &Patterns,
+    digest: &str,
+    acks: &[Adjudicated],
+    disposed: &mut HashSet<usize>,
+) {
+    let mut all: Vec<(usize, Hit)> = Vec::new();
     for (index, line) in text.lines().enumerate() {
         for hit in literals_in(line, patterns) {
-            found.push((index + 1, hit));
+            all.push((index + 1, hit));
         }
         for hit in recovered_in(line, patterns) {
-            found.push((index + 1, hit));
+            all.push((index + 1, hit));
         }
     }
-    found.sort_by_key(|(line, hit)| (*line, hit.column));
+    all.sort_by_key(|(line, hit)| (*line, hit.column));
+
+    // Split before capping, so a disposed site never consumes one of the twenty
+    // slots a genuine leak needs.
+    let mut found: Vec<(usize, Hit)> = Vec::new();
+    for (line, hit) in all {
+        match adjudication_for(acks, location, digest, line, &hit) {
+            Some(index) => {
+                disposed.insert(index);
+                let row = &acks[index];
+                run.warn(Violation::fatal(
+                    format!("{location}:{line}:{}", hit.column),
+                    RULE_DISPOSED,
+                    EXPECTED_REALISATION,
+                    format!(
+                        "{}, {} characters, DISPOSED by {}: {}. The text is not repeated here; \
+                         see the redaction note.",
+                        hit.class, hit.span, row.ruling, row.because
+                    ),
+                ));
+            }
+            None => found.push((line, hit)),
+        }
+    }
+
+    audit_adjudications(run, location, digest, acks, disposed);
 
     let total = found.len();
     for (line, hit) in found.into_iter().take(MAX_FINDINGS_PER_FILE) {
@@ -405,6 +658,89 @@ fn report(run: &mut ProofRun, location: &str, text: &str, patterns: &Patterns) {
                 total - MAX_FINDINGS_PER_FILE
             ),
         ));
+    }
+}
+
+// -- the adjudicated collisions ----------------------------------------------
+
+/// The index of the row that disposes of this hit, if any.
+///
+/// Every one of the five conditions is necessary. The digest is what makes the
+/// disposal die when the artefact moves; the coordinates are what make it a site
+/// rather than a file; and the class check against [`ADJUDICABLE_CLASSES`] is
+/// defence in depth, so that even a badly drafted row that shipped could not
+/// dispose of an encoding, a field name or a preimage recovery.
+fn adjudication_for(
+    acks: &[Adjudicated],
+    location: &str,
+    digest: &str,
+    line: usize,
+    hit: &Hit,
+) -> Option<usize> {
+    acks.iter().position(|row| {
+        row.location == location
+            && row.line == line
+            && row.column == hit.column
+            && row.class == hit.class
+            && row.file_digest == digest
+            && ADJUDICABLE_CLASSES.contains(&row.class)
+    })
+}
+
+/// The two ways an adjudication over a PRESENT file fails, both fatal.
+///
+/// SPENT: the artefact's bytes are not the bytes the court measured. The
+/// disposal does not apply, the underlying findings have already come back as
+/// fatal above, and the mismatch is reported in its own right so that an author
+/// who edits an adjudicated file gets a red light rather than a quiet
+/// re-arming.
+///
+/// INERT: the artefact is present at the pinned digest and the row matched
+/// nothing. Unreachable while the shipped rows and the matcher agree, which is
+/// exactly why it is here: it is the alarm that fires if a future change to a
+/// pattern silently orphans a row, rather than leaving a suppression in the tree
+/// with nothing left to suppress.
+fn audit_adjudications(
+    run: &mut ProofRun,
+    location: &str,
+    digest: &str,
+    acks: &[Adjudicated],
+    disposed: &HashSet<usize>,
+) {
+    for (index, row) in acks.iter().enumerate() {
+        if row.location != location {
+            continue;
+        }
+        if row.file_digest != digest {
+            run.fail(Violation::fatal(
+                format!("{location}:{}:{}", row.line, row.column),
+                RULE_ADJUDICATION_SPENT,
+                "the artefact holds the bytes the court measured, so the ruling that disposed of \
+                 this site is a ruling about THIS text. A disposal is bound to one digest \
+                 ([2026] VJS-FI-VDS 1 order 4, bound 2).",
+                format!(
+                    "an artefact whose digest is not the one {} measured, so every adjudication \
+                     over it is SPENT and the findings it disposed of are fatal again. Re-measure \
+                     the artefact and return to the court; the digest is not repeated here.",
+                    row.ruling
+                ),
+            ));
+        } else if !disposed.contains(&index) {
+            run.fail(Violation::fatal(
+                format!("{location}:{}:{}", row.line, row.column),
+                RULE_ADJUDICATION_INERT,
+                "every adjudication in force disposes of a finding this run made. A row that \
+                 disposes of nothing is withdrawn through the court that made it, not left in \
+                 the gate ([2026] VJS-FI-VDS 1 order 4, bound 3).",
+                format!(
+                    "a {} adjudication at this position that matched no finding, while the \
+                     artefact is present at the digest {} measured. Either a pattern changed and \
+                     orphaned the row, or the row was drafted against coordinates that never \
+                     held a finding.",
+                    row.class, row.ruling
+                ),
+            ));
+        }
     }
 }
 
@@ -1434,6 +1770,294 @@ mod tests {
             "the carve-out that was NOT taken is as much a note as one that was: {:?}",
             record.notes
         );
+    }
+
+    // -- the adjudicated collisions, and the controls that keep them honest ---
+    //
+    // [2026] VJS-FI-VDS 1 order 7. A narrowing without a control is a gate
+    // switched off, so the ruling names four seeded tests by name and makes
+    // orders 4 and 5 conditional on them. They are these, in the order the
+    // judgment lists them, plus the static test the ruling required alongside.
+
+    /// The path of the artefact the two shipped rows name, relative to a project
+    /// root. Named once, because three controls copy it in and a typo would make
+    /// all three test a file the table has never heard of.
+    const ADJUDICATED_ARTEFACT: &str = ".vds/court/2026-VJS-CA-VDS-1-enactment.md";
+
+    /// The real adjudicated artefact's bytes, read from this repository.
+    ///
+    /// The controls copy the REAL file rather than a stand-in, because an
+    /// adjudication is bound to a digest and a stand-in has a different one. A
+    /// test against a fixture the table does not name would prove that the
+    /// mechanism works on something nobody ships.
+    fn the_adjudicated_artefact() -> Vec<u8> {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../..")
+            .join(ADJUDICATED_ARTEFACT);
+        std::fs::read(&path).unwrap_or_else(|e| {
+            panic!(
+                "the artefact the shipped adjudications name is not readable at {}: {e}. Two \
+                 rows in ADJUDICATED point at it, so if it has moved or been deleted the rows \
+                 are stale and must go back to the court that made them.",
+                path.display()
+            )
+        })
+    }
+
+    /// Control 1. The positive direction: the two adjudicated sites are DISPOSED,
+    /// named individually as warnings citing the ruling, and counted in the run's
+    /// note. Nothing is suppressed and nothing is silently absent.
+    #[test]
+    fn an_adjudicated_collision_is_disposed_and_named_rather_than_suppressed() {
+        let h = Harness::new();
+        h.write_bytes(ADJUDICATED_ARTEFACT, &the_adjudicated_artefact());
+
+        let (outcome, text) = run_kind(&h, ProofKind::NoStoredValues);
+        assert_eq!(
+            outcome.exit_code, EXIT_PASSED,
+            "the two sites [2026] VJS-FI-VDS 1 order 5 disposed of are still fatal:\n{text}"
+        );
+
+        let record = h.last_proof(ProofKind::NoStoredValues);
+        let disposals: Vec<_> = record
+            .violations
+            .iter()
+            .filter(|v| v.actual.contains("DISPOSED"))
+            .collect();
+        assert_eq!(disposals.len(), 2, "{:?}", record.violations);
+        for finding in &disposals {
+            assert_eq!(
+                finding.severity,
+                Severity::Warning,
+                "a disposal is a reported finding, not an omission: {finding:?}"
+            );
+            assert!(
+                finding.actual.contains("[2026] VJS-FI-VDS 1"),
+                "{finding:?}"
+            );
+            assert!(
+                finding.location.starts_with(ADJUDICATED_ARTEFACT),
+                "{finding:?}"
+            );
+            let whole = format!("{finding:?}");
+            assert!(
+                !whole.contains("ebebeb"),
+                "a disposal must not repeat the text it disposed of: {whole}"
+            );
+        }
+        assert!(
+            record
+                .notes
+                .iter()
+                .any(|n| n.starts_with("[adjudicated-run]") && n.contains("2 disposed")),
+            "the count is the whole difference between an adjudication and a carve-out, and it \
+             has to be on the face of the record: {:?}",
+            record.notes
+        );
+    }
+
+    /// Control 2, and the one that decides whether this mechanism is safe.
+    ///
+    /// An author must not be able to inherit a disposal by editing an
+    /// adjudicated file. One appended byte moves the digest, every adjudication
+    /// over the artefact is SPENT, the two findings return as FATAL, and the
+    /// spending is itself a fatal finding rather than a quiet re-arming.
+    #[test]
+    fn an_adjudication_dies_when_the_artefact_it_names_moves() {
+        let h = Harness::new();
+        let mut bytes = the_adjudicated_artefact();
+        bytes.push(b'\n');
+        h.write_bytes(ADJUDICATED_ARTEFACT, &bytes);
+
+        let (outcome, text) = run_kind(&h, ProofKind::NoStoredValues);
+        assert_eq!(
+            outcome.exit_code, EXIT_VIOLATION,
+            "an adjudication survived an edit to the artefact it names, so a disposal can be \
+             inherited by content no court has read:\n{text}"
+        );
+
+        let record = h.last_proof(ProofKind::NoStoredValues);
+        let fatal: Vec<_> = record.fatal_violations().collect();
+        assert!(
+            fatal.iter().any(|v| v.rule.contains("A1")),
+            "the spending has to be a finding in its own right: {fatal:?}"
+        );
+        for class in ["duration_literal", "colour_literal"] {
+            assert!(
+                fatal
+                    .iter()
+                    .any(|v| v.actual.contains(class) && !v.actual.contains("DISPOSED")),
+                "the {class} finding did not come back as fatal once the disposal was spent: \
+                 {fatal:?}"
+            );
+        }
+        assert!(
+            !record
+                .violations
+                .iter()
+                .any(|v| v.actual.contains("DISPOSED")),
+            "a spent adjudication still disposed of something: {:?}",
+            record.violations
+        );
+    }
+
+    /// Control 3. The adjudication disposes of a SITE and never switches a rule
+    /// off. With the adjudicated artefact present and unmodified, a genuine
+    /// colour literal seeded anywhere else is still fatal.
+    #[test]
+    fn an_adjudication_does_not_switch_limb_one_off() {
+        let h = Harness::new();
+        h.write_bytes(ADJUDICATED_ARTEFACT, &the_adjudicated_artefact());
+        let id = h.register("Button", Status::Registered);
+        h.amend(&id, |record| record.notes = Some("#ebebeb".into()));
+
+        let (outcome, text) = run_kind(&h, ProofKind::NoStoredValues);
+        assert_eq!(
+            outcome.exit_code, EXIT_VIOLATION,
+            "limb 1 stopped finding a real colour while an adjudication was in force:\n{text}"
+        );
+        assert!(text.contains(".vds/register/CMP-0001.yaml"), "{text}");
+
+        let record = h.last_proof(ProofKind::NoStoredValues);
+        assert_eq!(
+            record
+                .violations
+                .iter()
+                .filter(|v| v.actual.contains("DISPOSED"))
+                .count(),
+            2,
+            "the two adjudicated sites should still be disposed: {:?}",
+            record.violations
+        );
+    }
+
+    /// Control 4. A row that disposes of nothing is fatal.
+    ///
+    /// Unreachable while the shipped rows and the matcher agree, which is the
+    /// point: it is the alarm that fires if a future change to a pattern
+    /// silently orphans a row, leaving a suppression in the gate with nothing
+    /// left to suppress. Seeded with a row whose column is one to the left of a
+    /// real finding, at the artefact's true digest.
+    #[test]
+    fn an_adjudication_that_disposes_of_nothing_is_fatal() {
+        let h = Harness::new();
+        let body = "id: CMP-0001\nnotes: '#ebebeb'\n";
+        h.write(".vds/register/CMP-0001.yaml", body);
+
+        // Column 9 is where the finding really is (`notes: '` is eight
+        // characters, so the sigil is the ninth). One to the left holds nothing,
+        // which is exactly the orphaned row this control seeds.
+        let acks = vec![Adjudicated {
+            location: ".vds/register/CMP-0001.yaml",
+            line: 2,
+            column: 8,
+            class: "colour_literal",
+            file_digest: leaked(vds_core::Digest::of_text(body).as_str()),
+            ruling: "[2026] VJS-FI-VDS 1, seeded control",
+            because: "a seeded row at coordinates that hold no finding",
+        }];
+
+        let (outcome, text) = run_with_acks(&h, &acks);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+
+        let record = h.last_proof(ProofKind::NoStoredValues);
+        let fatal: Vec<_> = record.fatal_violations().collect();
+        assert!(
+            fatal.iter().any(|v| v.rule.contains("A2")),
+            "an inert adjudication passed unreported: {fatal:?}"
+        );
+        assert!(
+            fatal
+                .iter()
+                .any(|v| v.actual.contains("colour_literal") && !v.actual.contains("DISPOSED")),
+            "the seeded colour must still be fatal: {fatal:?}"
+        );
+    }
+
+    /// The same seam in the passing direction, so control 4 is not the only
+    /// evidence that a hand-built row can dispose of anything at all. Without
+    /// this, control 4 would pass equally well against a mechanism that ignored
+    /// its table entirely.
+    #[test]
+    fn a_seeded_adjudication_at_the_right_coordinates_disposes() {
+        let h = Harness::new();
+        let body = "id: CMP-0001\nnotes: '#ebebeb'\n";
+        h.write(".vds/register/CMP-0001.yaml", body);
+
+        let acks = vec![Adjudicated {
+            location: ".vds/register/CMP-0001.yaml",
+            line: 2,
+            column: 9,
+            class: "colour_literal",
+            file_digest: leaked(vds_core::Digest::of_text(body).as_str()),
+            ruling: "[2026] VJS-FI-VDS 1, seeded control",
+            because: "a seeded row at the coordinates the finding actually holds",
+        }];
+        // The column the scan reports for this fixture, proved rather than
+        // assumed: `notes: '` is eight characters, so the sigil is the ninth.
+        let (outcome, text) = run_with_acks(&h, &acks);
+        assert_eq!(
+            outcome.exit_code, EXIT_PASSED,
+            "a well-aimed seeded row disposed of nothing, so control 4 proves nothing:\n{text}"
+        );
+    }
+
+    /// Every shipped row, held to the ruling's bounds.
+    ///
+    /// The three controls above exercise the MECHANISM. This holds the DATA: a
+    /// row outside the three permitted classes, or carrying a malformed digest,
+    /// or duplicating another's coordinates, is refused here rather than
+    /// discovered when it disposes of something it should not have.
+    #[test]
+    fn every_shipped_adjudication_is_well_formed() {
+        let mut coordinates = std::collections::HashSet::new();
+        for row in ADJUDICATED {
+            assert!(
+                ADJUDICABLE_CLASSES.contains(&row.class),
+                "{:?} is outside the three classes [2026] VJS-FI-VDS 1 permits a court to \
+                 adjudicate. A field name, an encoding, an undecodable file and a preimage \
+                 recovery may never be disposed of: a value behind an encoding is concealment.",
+                row.class
+            );
+            assert!(
+                vds_core::Digest::parse(row.file_digest).is_ok(),
+                "{:?} is not a digest, so the row is bound to nothing",
+                row.file_digest
+            );
+            assert!(
+                row.ruling.starts_with('[') && row.ruling.contains(']'),
+                "{:?} does not cite a ruling. A disposal with no authority behind it is a \
+                 carve-out with a comment.",
+                row.ruling
+            );
+            assert!(
+                !row.because.trim().is_empty(),
+                "a row must state its ground: {:?}",
+                row.location
+            );
+            assert!(
+                coordinates.insert((row.location, row.line, row.column, row.class)),
+                "two rows adjudicate the same site: {:?}",
+                row.location
+            );
+        }
+    }
+
+    /// A `'static` string built at test time, so a control can pin a digest it
+    /// only learns by computing it.
+    fn leaked(value: &str) -> &'static str {
+        Box::leak(value.to_owned().into_boxed_str())
+    }
+
+    /// Run the scan against a harness with a seeded adjudication table.
+    ///
+    /// Calls the same [`run_with`] production calls, so the mechanism under test
+    /// is the mechanism that ships; only the rows differ.
+    fn run_with_acks(harness: &Harness, acks: &[Adjudicated]) -> (crate::Outcome, String) {
+        let ctx = harness.context();
+        let mut out: Vec<u8> = Vec::new();
+        let outcome = run_with(&ctx, &mut out, acks).expect("the scan ran");
+        (outcome, String::from_utf8(out).expect("utf-8 output"))
     }
 
     // -- properties the pattern set rests on ----------------------------------

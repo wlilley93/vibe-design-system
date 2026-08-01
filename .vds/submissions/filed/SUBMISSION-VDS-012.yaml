@@ -1,0 +1,40 @@
+id: SUBMISSION-VDS-012
+status: answered
+question: "May the geometry proof kind grow a TWO-SIDED limb (draft S-7A(5)): an authority snapshot binding the shipped reading to a signed frame's decided values by input hashes, holding while both sides agree and going STALE visibly when either side's input hash changes?"
+trigger: first_impression
+why_first_impression: |
+  No authority reaches a proof whose subject is the BINDING between two readings rather
+  than either reading. [2026] VJS-CC-VIBE-DESIGN-SYSTEM 3 admitted the design-file
+  reading as its own subject and refused it as the shipped bound's subject; nothing yet
+  says whether the two subjects may be held to each other, or what expires the holding.
+  The question became live because the motivating migration shipped 28 source-side
+  gates and none reading the artefact against the frame, and because the sign-off
+  mandate (S-7D draft) now supplies the missing authority predicate.
+citator_checked:
+  - citation: "[2026] VJS-CC-VIBE-DESIGN-SYSTEM 3"
+    why_not_on_all_fours: "Admits the design-file reading as a distinct SUBJECT and forbids reporting it under the shipped bound. This draft does not report it under the shipped bound: it binds the two subjects with both named, which is the question 3 left open."
+  - citation: "[2026] VJS-CC-OPBOX 3"
+    why_not_on_all_fours: "Fixes the storing/deriving line. The snapshot stores agreement bits and input hashes, never values, so the line is respected and does not decide the question."
+options:
+  - option: "Enact draft S-7A(5) as implemented: agreement bits + two input hashes, stale-on-either-side fatal, sign-off authority gating."
+    consequence: "The binding expires visibly. Cost: an out-of-band comparator per consuming repo, and a snapshot regeneration on every reading change."
+  - option: "Refuse: keep the shipped reading and the design reading as unrelated subjects."
+    consequence: "The engine can never say 'what shipped is what was decided'; the class of defect this lane was commissioned against stays unmeasurable."
+  - option: "Enact but stale only on the AUTHORITY side."
+    consequence: "An edited shipped artefact would keep citing an agreement measured against its predecessor: a silently green stale binding, the 561-pin-561 instrument again."
+evidence:
+  - "crates/vds-core/src/types/geometry.rs"
+  - "crates/vds-proof/src/geometry.rs"
+  - "VDS.md"
+case_file_digest: sha256:18c25b60b4b790d1b749bcc2a7eb834d9988785c03481360ad7ce063c29a6ca9
+reserved_clause: null
+fail_closed_interim: "ENACTMENT PENDING. The code is built and marked as drafted on its face (geometry R11-R13/W2 cite 'draft S-7A(5)'); no warrant may cite the limb until the ruling lands, and VDS is not commenced (S-15) so none can. Deferred deliberately: extending figma_property/parity with authority states - the ledger is file-scoped where sign-offs are frame-scoped, and forcing the shape was worse than deferring it; recorded in DECISION-0007. DIGEST PROVENANCE: case_file_digest is derived by scripts/case-file-digest.sh over the evidence files named above, at drafting."
+filed_to: vjs
+vjs_submission_id: "[2026] VJS-CA-VDS 1"
+created_at: 2026-08-01T12:00:00Z
+filed_at: 2026-08-01T12:30:00Z
+answer:
+  citation: "[2026] VJS-CA-VDS 1"
+  ratio: >-
+    ENACTED AS AMENDED on option 1 (unanimous). The two-sided binding stands: a binding stale only on the authority side reproduces the 561-pin-561 instrument. AMENDED by orders 6-9: the snapshot must NAME the comparator and its digest, both entering the content digest; the front door refuses an unreadable or moved comparator; R14 makes the comparator a third staleness side, fatal; W3 warns where the comparator carries no seeded negative control and recites that no warrant may claim primacy for this limb. Fidelity J's three-valued agreement (012-A) and commencement clause (012-B) were NOT CARRIED and are Schedule B items 1 and 2.
+  answered_at: 2026-08-01T13:00:00Z

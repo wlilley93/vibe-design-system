@@ -19,10 +19,12 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use vds_core::{
-    BreachReport, ComponentId, ComponentRecord, DecisionLog, Digest, EnforcementLock,
-    GeometryBound, GeometryId, LOCK_FILE_NAME, LOCK_SCHEMA_VERSION, PathRole, Pin, Project,
-    ProofId, ProofKind, ProofResult, Result, ScreenId, ScreenRecord, Stage, Submission, Timestamp,
-    VdsError, Warrant, WarrantId, WarrantStatus, write_text_atomically, yaml_files,
+    BreachReport, BurndownId, BurndownRecord, ComponentId, ComponentRecord, DecisionLog, Digest,
+    DirectionId, DirectionRecord, EnforcementLock, GeometryBound, GeometryId, LOCK_FILE_NAME,
+    LOCK_SCHEMA_VERSION, PathRole, Pin, ProhibitionId, ProhibitionRecord, Project, ProofId,
+    ProofKind, ProofResult, RedrawId, RedrawRecord, Result, ReviewId, ScreenId, ScreenRecord,
+    SignOff, SignoffId, Stage, Submission, Timestamp, VdsError, VisualReviewRecord, Warrant,
+    WarrantId, WarrantStatus, write_text_atomically, yaml_files,
 };
 
 pub mod lock;
@@ -251,6 +253,135 @@ impl<'a> Store<'a> {
             }
         }
         Ok(records)
+    }
+
+    // -- the draft S-7B/S-7C/S-7D series -------------------------------------
+    //
+    // One generic reader for the five new record families, with the SAME two
+    // guards as `read_register`/`read_screens`/`read_geometry`: refuse the
+    // entries `yaml_files` would not pick up, and refuse a file whose name and
+    // carried id disagree. Generic rather than copied a fourth, fifth and
+    // sixth time, because the three existing copies are already one copy and
+    // two chances to drift.
+
+    fn read_named_series<T: DeserializeOwned>(
+        &self,
+        dir: &Path,
+        what: &str,
+        id_of: impl Fn(&T) -> String,
+    ) -> Result<Vec<Located<T>>> {
+        self.refuse_unreadable_entries(dir, what)?;
+        let records: Vec<Located<T>> = self.read_all(dir)?;
+        for record in &records {
+            let expected = format!("{}.yaml", id_of(&record.value));
+            let actual = record
+                .path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or_default();
+            if actual != expected {
+                return Err(VdsError::Artefact {
+                    path: self.project.rel(&record.path),
+                    message: format!(
+                        "is filed as {actual} and carries id {}. One of those is the \
+                         identifier and nothing says which, so this is refused rather than \
+                         guessed (VDS S-4(4)). Rename the file to {expected}.",
+                        id_of(&record.value)
+                    ),
+                });
+            }
+        }
+        Ok(records)
+    }
+
+    pub fn prohibitions_dir(&self) -> PathBuf {
+        self.project.path(PathRole::Prohibitions)
+    }
+
+    pub fn prohibition_path(&self, id: &ProhibitionId) -> PathBuf {
+        self.prohibitions_dir().join(format!("{id}.yaml"))
+    }
+
+    pub fn read_prohibitions(&self) -> Result<Vec<Located<ProhibitionRecord>>> {
+        self.read_named_series(
+            &self.prohibitions_dir(),
+            "prohibition",
+            |r: &ProhibitionRecord| r.id.to_string(),
+        )
+    }
+
+    pub fn burndowns_dir(&self) -> PathBuf {
+        self.project.path(PathRole::Burndowns)
+    }
+
+    pub fn burndown_path(&self, id: &BurndownId) -> PathBuf {
+        self.burndowns_dir().join(format!("{id}.yaml"))
+    }
+
+    pub fn read_burndowns(&self) -> Result<Vec<Located<BurndownRecord>>> {
+        self.read_named_series(&self.burndowns_dir(), "burndown", |r: &BurndownRecord| {
+            r.id.to_string()
+        })
+    }
+
+    pub fn signoffs_dir(&self) -> PathBuf {
+        self.project.path(PathRole::Signoffs)
+    }
+
+    pub fn signoff_path(&self, id: &SignoffId) -> PathBuf {
+        self.signoffs_dir().join(format!("{id}.yaml"))
+    }
+
+    pub fn read_signoffs(&self) -> Result<Vec<Located<SignOff>>> {
+        self.read_named_series(&self.signoffs_dir(), "sign-off", |r: &SignOff| {
+            r.id.to_string()
+        })
+    }
+
+    pub fn redraws_dir(&self) -> PathBuf {
+        self.project.path(PathRole::Redraws)
+    }
+
+    pub fn redraw_path(&self, id: &RedrawId) -> PathBuf {
+        self.redraws_dir().join(format!("{id}.yaml"))
+    }
+
+    pub fn read_redraws(&self) -> Result<Vec<Located<RedrawRecord>>> {
+        self.read_named_series(&self.redraws_dir(), "redraw", |r: &RedrawRecord| {
+            r.id.to_string()
+        })
+    }
+
+    pub fn reviews_dir(&self) -> PathBuf {
+        self.project.path(PathRole::Reviews)
+    }
+
+    pub fn review_path(&self, id: &ReviewId) -> PathBuf {
+        self.reviews_dir().join(format!("{id}.yaml"))
+    }
+
+    pub fn read_reviews(&self) -> Result<Vec<Located<VisualReviewRecord>>> {
+        self.read_named_series(
+            &self.reviews_dir(),
+            "visual review",
+            |r: &VisualReviewRecord| r.id.to_string(),
+        )
+    }
+
+    pub fn directions_dir(&self) -> PathBuf {
+        self.project.path(PathRole::Directions)
+    }
+
+    pub fn direction_path(&self, id: &DirectionId) -> PathBuf {
+        self.directions_dir().join(format!("{id}.yaml"))
+    }
+
+    pub fn read_directions(&self) -> Result<Vec<Located<DirectionRecord>>> {
+        self.read_named_series(
+            &self.directions_dir(),
+            "direction",
+            |r: &DirectionRecord| r.id.to_string(),
+        )
     }
 
     pub fn read_screen(&self, id: &ScreenId) -> Result<Located<ScreenRecord>> {
@@ -635,6 +766,9 @@ mod tests {
             superseded_by: None,
             amendments: vec![],
             basis: vec!["ACT-VDS-001:s5".into()],
+            measured_by: vec![],
+            directed_at: None,
+            grace_days: None,
             deprecated_at: None,
             retired_at: None,
             retirement_proof_id: None,

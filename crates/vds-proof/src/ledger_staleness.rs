@@ -52,6 +52,8 @@ const RULE_FIGMA_LEDGER: &str = "VDS S-4(2) ledger_staleness R3: the figma ledge
      the register names, and is not older than the records that read it";
 const RULE_GEOMETRY_READING: &str =
     "VDS S-4(2) ledger_staleness R5: the geometry reading witnesses its own content";
+const RULE_NEW_LEDGER: &str = "VDS S-4(2) ledger_staleness R7: the ledgers added by [2026] VJS-CA-VDS 1 witness their \
+     own content";
 const RULE_FRAME_LEDGER: &str = "VDS S-4(2) ledger_staleness R4: the frame ledger is self-consistent, agrees with the file \
      the screen register names, and is not older than the screen records that read it";
 const RULE_CI_LEDGER: &str = "VDS S-4(2) ledger_staleness R6: the CI run ledger's own numbers agree with each other, \
@@ -100,6 +102,17 @@ pub const FRAME_LEDGER_NOTE: &str = "[frame-ledger] the frame ledger's staleness
      capture went DEEP ENOUGH: the ledger records the depth it derived and marks every reading \
      taken at the boundary, and `screen_parity` refuses to enforce those rows, which is the \
      furthest an offline test can go.";
+
+/// What R7's settlement does and does not establish, in the same terms R3, R4
+/// and R5 use, because a settlement stated in weaker terms than its neighbours
+/// reads as a stronger one.
+pub const NEW_LEDGER_NOTE: &str = "[new-ledgers] the geometry authority snapshot, the burndown reading and the route \
+     manifest are settled here for SELF-CONSISTENCY only: each witnesses its own content, so \
+     a hand edit is caught. CURRENCY is settled elsewhere and per ledger - the snapshot by \
+     geometry R12 and R14 against its three input hashes, the reading by burndown R10 against \
+     the run's freshest independent input, and the manifest by visual_review's three \
+     populations. This arm exists because all three default inside the ledgers directory and \
+     would otherwise fall to R2 ([2026] VJS-CA-VDS 1 order 39).";
 
 pub const GEOMETRY_LEDGER_NOTE: &str = "[geometry-reading] the geometry reading's staleness test settles two things and cannot \
      settle the third. It settles that the reading is SELF-CONSISTENT (its content digest \
@@ -223,6 +236,17 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
     let frame_rel = project.rel(&vds_figma::frames::ledger_path(project));
     let geometry_rel = project.rel(&vds_core::reading_path(project));
     let ci_rel = project.rel(&project.path(vds_core::PathRole::Ledgers).join("ci.yaml"));
+    // R7. The three ledgers this lane added all default INSIDE the ledgers
+    // directory, so without an arm each falls to R2 and fails as "a ledger with
+    // no staleness test in this build" - turning an enacted proof red in every
+    // project that adopts the kinds, for a reason that is not a defect. That is
+    // the collision [2026] VJS-CA-VDS 1 order 39 required the implementer to
+    // resolve, and the election recorded in DECISION-0008 is to ADD THE ARMS
+    // rather than move the defaults: a ledger belongs with the ledgers, and a
+    // default moved to dodge a gate is the gate teaching the layout.
+    let authority_rel = project.rel(&vds_core::authority_path(project));
+    let burndown_rel = project.rel(&vds_core::burndown_reading_path(project));
+    let routes_rel = project.rel(&vds_core::route_manifest_path(project));
 
     for rel in &ledgers {
         run.row(Verdict::Enforced);
@@ -268,6 +292,51 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
         if rel == &ci_rel {
             run.note(CI_LEDGER_NOTE);
             report_ci_ledger(&mut run, ctx, rel)?;
+            continue;
+        }
+
+        if rel == &authority_rel {
+            run.note(NEW_LEDGER_NOTE);
+            if let Some(snapshot) = vds_core::read_authority(project)?
+                && let Some(why) = snapshot.untrustworthy_because()?
+            {
+                run.fail(Violation::fatal(
+                    rel.clone(),
+                    RULE_NEW_LEDGER,
+                    "a geometry authority snapshot whose content digest matches its contents",
+                    why,
+                ));
+            }
+            continue;
+        }
+
+        if rel == &burndown_rel {
+            run.note(NEW_LEDGER_NOTE);
+            if let Some(reading) = vds_core::read_burndown_reading(project)?
+                && let Some(why) = reading.untrustworthy_because()?
+            {
+                run.fail(Violation::fatal(
+                    rel.clone(),
+                    RULE_NEW_LEDGER,
+                    "a burndown reading whose content digest matches its contents",
+                    why,
+                ));
+            }
+            continue;
+        }
+
+        if rel == &routes_rel {
+            run.note(NEW_LEDGER_NOTE);
+            if let Some(manifest) = vds_core::read_route_manifest(project)?
+                && let Some(why) = manifest.untrustworthy_because()?
+            {
+                run.fail(Violation::fatal(
+                    rel.clone(),
+                    RULE_NEW_LEDGER,
+                    "a route manifest whose content digest matches its contents",
+                    why,
+                ));
+            }
             continue;
         }
 
@@ -712,6 +781,66 @@ mod tests {
         let (outcome, text) = run_kind(&h, ProofKind::LedgerStaleness);
         assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
         assert!(text.contains("screen_globs changed"), "{text}");
+    }
+
+    /// R7's seeds ([2026] VJS-CA-VDS 1 order 39). Two directions, because the
+    /// arm exists to answer BOTH: a hand-edited snapshot must fail, and an
+    /// untouched one must not fall into R2 and report "no staleness test in
+    /// this build" - which is what turned an enacted proof red for a reason
+    /// that was not a defect.
+    #[test]
+    fn the_new_ledgers_have_a_staleness_test_and_do_not_fall_into_r2() {
+        let h = Harness::new();
+        h.screen("dash", &["Button"]);
+        h.ledger();
+        h.geometry_reading(
+            "2026-07-31",
+            vds_core::ReadFrom::ShippedStylesheet,
+            &[(vds_core::SurfaceKind::Radius, 900, 540, 0)],
+        );
+        h.geometry_authority(
+            "KEY",
+            "1:2",
+            &[(
+                vds_core::SurfaceKind::Radius,
+                vds_core::AgreementState::Agrees,
+            )],
+        );
+        h.burndown_reading("2026-08-01", &[("legacy_rule_blocks", 200)]);
+        h.route_manifest(&["app/dash/page.tsx"]);
+        let (outcome, text) = run_kind(&h, ProofKind::LedgerStaleness);
+        assert_eq!(outcome.status, ProofStatus::Passed, "{text}");
+        assert!(
+            !text.contains("no staleness test in this build"),
+            "the three ledgers this lane added must not fall into R2: {text}"
+        );
+        assert!(text.contains("[new-ledgers]"), "{text}");
+    }
+
+    #[test]
+    fn a_hand_edited_burndown_reading_fails_r7() {
+        let h = Harness::new();
+        h.screen("dash", &["Button"]);
+        h.ledger();
+        let path = h.burndown_reading("2026-08-01", &[("legacy_rule_blocks", 200)]);
+        let original = std::fs::read_to_string(&path).unwrap();
+        std::fs::write(&path, original.replace("value: 200", "value: 20")).unwrap();
+        let (outcome, text) = run_kind(&h, ProofKind::LedgerStaleness);
+        assert_eq!(outcome.exit_code, vds_core::EXIT_VIOLATION, "{text}");
+        assert!(text.contains("edited after it was generated"), "{text}");
+    }
+
+    #[test]
+    fn a_hand_edited_route_manifest_fails_r7() {
+        let h = Harness::new();
+        h.screen("dash", &["Button"]);
+        h.ledger();
+        let path = h.route_manifest(&["app/dash/page.tsx", "app/inbox/page.tsx"]);
+        let original = std::fs::read_to_string(&path).unwrap();
+        std::fs::write(&path, original.replace("- app/inbox/page.tsx\n", "")).unwrap();
+        let (outcome, text) = run_kind(&h, ProofKind::LedgerStaleness);
+        assert_eq!(outcome.exit_code, vds_core::EXIT_VIOLATION, "{text}");
+        assert!(text.contains("stops being reported as owed"), "{text}");
     }
 
     /// R2, the half of VDS S-4(2) that gets forgotten. The file is untouched and

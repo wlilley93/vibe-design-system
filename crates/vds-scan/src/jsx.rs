@@ -240,18 +240,66 @@ pub fn blank_non_code_checked(source: &str) -> (String, Option<String>) {
     #[derive(PartialEq)]
     enum Brace {
         /// A `{ ... }` expression container entered FROM JsxText. Its closing brace returns
-        /// the scanner to content rather than leaving it in code for the rest of the file.
+        /// the scanner to content rather than leaving it in content mode.
         JsxExpression,
         /// A `${ ... }` interpolation. Its closing brace returns the scanner to the template.
         Interpolation,
+        /// A `{ ... }` ATTRIBUTE expression, opened between a tag's `<` and its `>`:
+        /// `onToggle={() => setOpen(true)}`. Inside it the scanner is in ordinary code and
+        /// NOT in the tag, so the arrow's `>` cannot close the tag; its closing brace
+        /// restores the tag state it suspended, including whether the tag was a CLOSING
+        /// tag, because a nested tag inside the expression (`label={<b>hi</b>}`) would
+        /// otherwise overwrite that answer.
+        Attribute { closing: bool },
         /// Any other `{`, tracked only so it cannot be mistaken for one of the above.
         Plain,
     }
-    let mut braces: Vec<Brace> = Vec::new();
+    /// One open brace, carrying the ELEMENT DEPTH at the moment it opened.
+    ///
+    /// The depth is what decides where the scanner lands when a tag ends. A tag
+    /// ending above its innermost frame's depth is inside an element's children,
+    /// which is content; a tag ending AT that depth just closed the root of a
+    /// JSX subtree that lives inside an expression (`badge={<Badge>x</Badge>}`,
+    /// `value: <Stamp />`), and what follows is expression code, not content.
+    /// Without the recorded depth every such root landed in JsxText, where the
+    /// expression's closing `}` is unreachable - JsxText treats `}` as content -
+    /// so the brace stack leaked one frame per subtree, and the file's LAST
+    /// top-level `}` popped a stale frame and stranded the scanner in content
+    /// for the rest of the file.
+    struct Frame {
+        brace: Brace,
+        depth: usize,
+    }
+    let mut braces: Vec<Frame> = Vec::new();
     // Depth of open template literals, so a nested one is not closed by the wrong backtick.
     let mut template_stack: Vec<u32> = Vec::new();
     // Whether we are between a `<` that opened a tag and its `>`.
     let mut in_tag = false;
+    // How many braces were open when the current tag opened. A `>` may close the
+    // tag ONLY at this depth, because a `>` at a deeper depth is inside an
+    // attribute expression: `onToggle={() => setOpen(true)}` carries a `>` (the
+    // arrow's) between the tag's `<` and its real `>`. Before this existed, that
+    // arrow closed the tag, the scanner fell into JsxText mid-attributes, and a
+    // later line comment containing a backtick opened a phantom template literal
+    // that never closed. Because the scanner fails closed, one arrow function in
+    // an attribute refused a whole ledger and took four proofs down with it,
+    // blaming a file that is valid TypeScript. Found by delta-debugging a
+    // 349-line dashboard component down to four lines.
+    let mut tag_brace_floor: usize = 0;
+    // Whether the tag currently open is a CLOSING tag (`</div>`), decided at its
+    // `<` where the `/` is still adjacent, because by the `>` the last
+    // significant character is the tag name and cannot answer.
+    let mut tag_closing = false;
+    // How many JSX elements are open. The `>` of an opening tag increments it, a
+    // closing tag decrements it, a self-closing tag leaves it alone, and the
+    // scanner is in CONTENT only while it is positive. Without it, the file's
+    // OUTERMOST closing tag dropped the scanner into JsxText permanently, and
+    // every line of ordinary code after the component - where a doc comment is
+    // not a comment and a backtick is "content" until a `<` re-enters code - was
+    // read under content rules. A doc comment quoting `` `Record<string,
+    // unknown>` `` re-entered code at the `<`, took the closing backtick as
+    // OPENING a template literal, and refused a well-formed 573-line file.
+    let mut element_depth: usize = 0;
     // The last non-whitespace character emitted as CODE, which is how a `/` is told apart
     // from a division sign. JavaScript cannot do this lexically without it: `a / b` and
     // `replace(/b/)` differ only in what precedes the slash.
@@ -261,10 +309,20 @@ pub fn blank_non_code_checked(source: &str) -> (String, Option<String>) {
     let mut last_word = String::new();
     // Whether the regex scanner is inside a `[...]` character class.
     let mut in_char_class = false;
+    // Whether the `<` the Code arm is about to read was handed back by JsxText.
+    // Content only returns to code AT a `<`, and that `<` is always in tag
+    // position there, whatever character preceded it: `{describe(r)}</span>`
+    // ends its expression with `)`, which reads as a value, and the
+    // value-precedes heuristic then took `</span>` for a comparison. The
+    // closing tag went unseen, the element depth never fell, and the file's
+    // trailing code was read as content for the rest of the scan.
+    let mut lt_from_content = false;
 
     while i < chars.len() {
         let ch = chars[i];
         let next = chars.get(i + 1).copied();
+        let from_content = lt_from_content;
+        lt_from_content = false;
 
         match region {
             Region::Code => {
@@ -360,15 +418,47 @@ pub fn blank_non_code_checked(source: &str) -> (String, Option<String>) {
                     || last_significant == '$';
                 if ch == '<'
                     && matches!(next, Some(c) if is_ident_start(c) || c == '/' || c == '>')
-                    && (!value_precedes || TAG_POSITION_KEYWORDS.contains(&last_word.as_str()))
+                    && (from_content
+                        || !value_precedes
+                        || TAG_POSITION_KEYWORDS.contains(&last_word.as_str()))
                 {
                     in_tag = true;
+                    tag_brace_floor = braces.len();
+                    tag_closing = next == Some('/');
                 }
-                // The `>` that ends it. `/>` self-closes and still returns to
-                // the parent's children, so both spellings land in JsxText.
-                if ch == '>' && in_tag {
+                // The `>` that ends a tag.
+                //
+                // ONLY AT THE TAG'S OWN BRACE DEPTH. A `>` while an attribute
+                // expression's brace is open belongs to that expression - an
+                // arrow, a comparison, a generic - and never to the tag. `<=`
+                // rather than `==` so that a stray `}` in malformed source,
+                // which pops nothing, cannot leave the tag unclosable forever.
+                if ch == '>' && in_tag && braces.len() <= tag_brace_floor {
                     in_tag = false;
-                    region = Region::JsxText;
+                    // What this tag did to the element depth decides where the
+                    // scanner lands. Content is only content INSIDE an element:
+                    // after the outermost closing tag the file is ordinary code
+                    // again, and treating it as content is how a doc comment's
+                    // backtick became an unclosed template literal.
+                    if tag_closing {
+                        element_depth = element_depth.saturating_sub(1);
+                    } else if last_significant != '/' {
+                        // An opening tag. A self-closing `<Foo />` opens nothing,
+                        // and its trailing `/` is still `last_significant` here
+                        // because a tag name cannot end in `/`.
+                        element_depth += 1;
+                    }
+                    // Above the innermost open brace's recorded depth means
+                    // inside an element's children: content. AT that depth means
+                    // this tag closed the root of a JSX subtree living inside an
+                    // expression, and what follows - `) : (`, `}`, `,` - is the
+                    // expression's own code.
+                    let content_floor = braces.last().map_or(0, |f| f.depth);
+                    region = if element_depth > content_floor {
+                        Region::JsxText
+                    } else {
+                        Region::Code
+                    };
                     // Record the `>` as what precedes. This arm returns early, so without
                     // it `last_significant` stays on the last letter of the tag NAME (the
                     // `v` of `<div>`), and the expression-position test above then reads a
@@ -384,10 +474,27 @@ pub fn blank_non_code_checked(source: &str) -> (String, Option<String>) {
                 }
 
                 if ch == '{' {
-                    braces.push(Brace::Plain);
+                    if in_tag {
+                        // An attribute expression. The tag state is SUSPENDED,
+                        // not kept: inside `onToggle={() => ...}` the scanner is
+                        // in ordinary code, and leaving `in_tag` set is how the
+                        // arrow's `>` closed the tag mid-attributes.
+                        braces.push(Frame {
+                            brace: Brace::Attribute {
+                                closing: tag_closing,
+                            },
+                            depth: element_depth,
+                        });
+                        in_tag = false;
+                    } else {
+                        braces.push(Frame {
+                            brace: Brace::Plain,
+                            depth: element_depth,
+                        });
+                    }
                 } else if ch == '}' {
                     // The innermost open brace owns this one, whatever kind it is.
-                    match braces.pop() {
+                    match braces.pop().map(|f| f.brace) {
                         Some(Brace::JsxExpression) => {
                             region = Region::JsxText;
                             out.push(ch);
@@ -400,6 +507,20 @@ pub fn blank_non_code_checked(source: &str) -> (String, Option<String>) {
                             }
                             region = Region::Template;
                             out.push(' ');
+                            i += 1;
+                            continue;
+                        }
+                        Some(Brace::Attribute { closing }) => {
+                            // Back between the tag's `<` and its `>`, with the
+                            // answer to "was this a closing tag" restored rather
+                            // than trusted to have survived a nested tag inside
+                            // the expression.
+                            in_tag = true;
+                            tag_brace_floor = braces.len();
+                            tag_closing = closing;
+                            last_significant = '}';
+                            last_word.clear();
+                            out.push(ch);
                             i += 1;
                             continue;
                         }
@@ -425,12 +546,16 @@ pub fn blank_non_code_checked(source: &str) -> (String, Option<String>) {
             Region::JsxText => {
                 if ch == '<' {
                     region = Region::Code;
+                    lt_from_content = true;
                     // Do not consume: the Code arm decides whether this opens a
                     // tag, so `a < b` written in content is handled once.
                     continue;
                 }
                 if ch == '{' {
-                    braces.push(Brace::JsxExpression);
+                    braces.push(Frame {
+                        brace: Brace::JsxExpression,
+                        depth: element_depth,
+                    });
                     region = Region::Code;
                     out.push(ch);
                     i += 1;
@@ -545,7 +670,10 @@ pub fn blank_non_code_checked(source: &str) -> (String, Option<String>) {
                 }
                 if ch == '$' && next == Some('{') {
                     region = Region::Code;
-                    braces.push(Brace::Interpolation);
+                    braces.push(Frame {
+                        brace: Brace::Interpolation,
+                        depth: element_depth,
+                    });
                     if let Some(depth) = template_stack.last_mut() {
                         *depth += 1;
                     }
@@ -1242,6 +1370,123 @@ export default function P() { return <Button />; }
                       const f = () => \"<Ghost />\";\n\
                       const x = <A />;\n";
         assert_eq!(components(source), vec!["A"]);
+    }
+
+    /// An arrow function inside a JSX ATTRIBUTE expression. Found by running the
+    /// scanner over a real dashboard component (a 349-line file, delta-debugged
+    /// to the four lines this fixture reproduces).
+    ///
+    /// The arrow's `>` arrived while `in_tag` was set, and the tag-closing test
+    /// was `ch == '>' && in_tag` with no notion of depth, so the arrow CLOSED the
+    /// tag. The scanner fell into JsxText in the middle of the attribute list,
+    /// the next attribute's `{` pushed a JsxExpression, its `}` returned to
+    /// JsxText, and a line comment further down - which JsxText does not treat as
+    /// a comment - contained `` `<StatusBarSlot/>` ``, whose `<` re-entered code
+    /// AFTER a value, so the backtick following the `/>` opened a phantom
+    /// template literal that never closed. The scan then reported "a template
+    /// literal was opened and never closed" against a file that is valid
+    /// TypeScript, and REFUSED to build the screens ledger at all, which took out
+    /// four proofs that depend on it.
+    ///
+    /// Both directions are asserted: the shape scans clean, AND references after
+    /// the arrow are still seen. A scanner that stops erroring by blanking more
+    /// is not fixed.
+    #[test]
+    fn an_arrow_in_an_attribute_does_not_close_the_tag() {
+        let src = "import { Cluster, After } from '@/components/ui/cluster'\n\
+                   export default function P() {\n\
+                   return (\n\
+                   <Cluster\n\
+                     onPresentationMode={() => setIsPresenting(true)}\n\
+                     onToggleEdit={() => setIsEditing((v) => !v)}\n\
+                   />\n\
+                   )\n\
+                   }\n\
+                   // the chrome - it renders `<StatusBarSlot/>` as a sibling of [data-app-main]\n\
+                   export function Q() { return <After /> }\n";
+        let (_, unbalanced) = blank_non_code_checked(src);
+        assert_eq!(
+            unbalanced, None,
+            "an arrow function in an attribute is ordinary code, and reporting it as an \
+             unclosed template literal refuses a whole ledger over a well-formed file"
+        );
+        let scanned = scan(src);
+        assert!(
+            scanned.tags.iter().any(|t| t.name == "Cluster"),
+            "the tag itself must be seen"
+        );
+        assert!(
+            scanned.tags.iter().any(|t| t.name == "After"),
+            "a reference AFTER the arrow and the backticked comment must still be seen: a \
+             reference the scanner does not see is not skipped, not counted and not reported"
+        );
+    }
+
+    /// Code after a component's OUTERMOST closing tag is code, not content.
+    /// Found in a real 573-line component: the scanner stayed in JsxText for the
+    /// rest of the file after the last `</div>`, so a later doc comment was not
+    /// a comment, its `` `Record<string, unknown>` `` re-entered code at the
+    /// `<`, and the CLOSING backtick opened a phantom template literal that
+    /// never closed. The scan refused the file and blamed it.
+    #[test]
+    fn code_after_the_outermost_closing_tag_is_code_again() {
+        let src = "import { Late } from '@/components/ui/late'\n\
+                   export function P({ r }: { r: R }) {\n\
+                   return (\n\
+                   <div>\n\
+                     <span>{describe(r)}</span>\n\
+                   </div>\n\
+                   )\n\
+                   }\n\
+                   type RowSpec = { label: string; value: React.ReactNode }\n\
+                   /**\n\
+                    * reading from a typed `StepConfig` instead of `Record<string, unknown>`.\n\
+                    */\n\
+                   export function Q() { return <Late /> }\n";
+        let (_, unbalanced) = blank_non_code_checked(src);
+        assert_eq!(
+            unbalanced, None,
+            "a backtick inside an ordinary doc comment after the component is not a template \
+             literal"
+        );
+        assert!(
+            scan(src).tags.iter().any(|t| t.name == "Late"),
+            "a component in a LATER export must still be seen"
+        );
+    }
+
+    /// A JSX subtree whose root sits inside an EXPRESSION - an attribute value
+    /// (`badge={<Badge>x</Badge>}`) or an object literal (`value: <Stamp />`) -
+    /// returns to the EXPRESSION when its root closes, not to content. Landing
+    /// in content there makes the expression's closing `}` unreachable (JsxText
+    /// treats `}` as content), so the brace stack leaked one frame per subtree
+    /// and the file's last top-level `}` popped a stale frame, stranding the
+    /// scanner in content for everything after the component.
+    #[test]
+    fn a_jsx_subtree_inside_an_expression_returns_to_the_expression() {
+        let src = "import { Hero, Stamp, Badge, Tail } from '@/components/ui/kit'\n\
+                   export function P({ row }: { row: Row }) {\n\
+                   return (\n\
+                   <div>\n\
+                     <Hero\n\
+                       badge={<Badge>{row.label}</Badge>}\n\
+                       rows={[{ label: 'Expires', value: <Stamp date={row.expiresAt} /> }]}\n\
+                     />\n\
+                   </div>\n\
+                   )\n\
+                   }\n\
+                   // a later comment quoting `code`\n\
+                   export function Q() { return <Tail /> }\n";
+        let (_, unbalanced) = blank_non_code_checked(src);
+        assert_eq!(unbalanced, None);
+        let scanned = scan(src);
+        for name in ["Hero", "Badge", "Stamp", "Tail"] {
+            assert!(
+                scanned.tags.iter().any(|t| t.name == name),
+                "{name} must be seen: a leaked brace frame hides every reference after the \
+                 subtree"
+            );
+        }
     }
 
     /// A template literal with an interpolation, inside an object, inside a JSX CHILD

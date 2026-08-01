@@ -41,6 +41,26 @@ pub struct ComponentRecord {
     /// The authorities this registration rests on.
     pub basis: Vec<String>,
 
+    /// What MEASURES this record: the gates, proofs or readers that hold its
+    /// conformance (draft S-5(9), ENACTMENT PENDING, SUBMISSION-VDS-015).
+    ///
+    /// Each entry names shipped code or a rendered-artefact reader, never a
+    /// plan. The defect this closes was observed: rule rows registered with an
+    /// empty measuredBy stayed green forever, and rows "measured" by pointing
+    /// at a plan document were measured by prose. A measure pointing at
+    /// internal-docs or a `.md` plan is refused by register_completeness R3.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub measured_by: Vec<String>,
+    /// When the directive behind this record was given. With `grace_days`, the
+    /// clock on register_completeness R2: a directed record whose measuredBy
+    /// is still empty after the grace goes red.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub directed_at: Option<Timestamp>,
+    /// How long a directed record may stand unmeasured, in days. Declared by
+    /// the project; what VDS fixes is that expiry is fatal.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grace_days: Option<u32>,
+
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub deprecated_at: Option<Timestamp>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -537,6 +557,9 @@ mod tests {
             superseded_by: None,
             amendments: vec![],
             basis: vec!["ACT-VDS-001:s5".into()],
+            measured_by: vec![],
+            directed_at: None,
+            grace_days: None,
             deprecated_at: None,
             retired_at: None,
             retirement_proof_id: None,

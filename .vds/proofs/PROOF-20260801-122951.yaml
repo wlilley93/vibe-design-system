@@ -1,0 +1,23 @@
+id: PROOF-20260801-122951
+kind: ledger_staleness
+status: passed
+warrant_id: null
+command: vds proof ledger_staleness
+script: crates/vds-proof/src/ledger_staleness.rs
+script_digest: sha256:ac8bcfe5bc40a170db00dcf26d360657616d2fc0ec398c08f4c6fa3b38d03cf2
+exit_code: 0
+rows_considered: 2
+rows_enforced: 2
+rows_skipped_reasons: {}
+violations: []
+notes:
+- the screens ledger's staleness test REGENERATES the ledger from its sources and compares the content, rather than comparing the source digest the ledger records. A source-digest comparison answers only whether the screens moved, so it certifies a hand-edited ledger clean, and a proof reading that ledger can then be flipped from failing to passing without touching a screen (VDS S-2(5)(4)).
+- 'what this run does NOT reach: this build holds one REGENERATING staleness test, the screens ledger''s. The figma ledger (R3), the frame ledger (R4) and the CI run ledger (R6) have self-consistency tests instead, because their source is behind a network call and there is no generator here to re-run against it. For every other file in the ledgers directory it establishes only that no staleness test exists, never that the file is current. It reaches nothing outside the configured ledgers directory. And where the declared screens ledger is absent the run is a precondition failure at exit 2, so the other files in that directory go unexamined rather than passing.'
+- '[ci-ledger] the CI run ledger''s source is `gh run list`, a network fact, so no gate can regenerate it offline - the same settlement as the figma (R3) and frame (R4) ledgers. What IS checked: every internal cross-total (histogram vs runs_concluded, successes vs the success bucket, the never_succeeded flag vs the numbers beside it, window ordering), because those are what a hand-edit breaks - an editor flipping `successes` to make D4 read better does not also rebuild the histogram derive() builds with it. What is NOT checked: currency. A stale-but-consistent ledger passes; `generated_at` is the reader''s signal, and D4''s own text says a ledger is evidence of the runs it recorded, not of runs since.'
+inputs_digest: sha256:f7ccd973bfeffc96cd14bc04de7ecf45135b7a2dd82ac81ae4883675065ef24e
+digest: sha256:7cc0a409c858103f38ad7da3655022f52fe1ccfdd3406d5fd2b8acaec5f2d7ec
+designpack_digest: sha256:f9c369f3175c15169dafde47c01d7efc2f45c64090444f17f5b3f480e710ec5a
+captured_at: 2026-08-01T12:29:43Z
+capture_mode: automatic
+invoked_by: package_script
+duration_ms: 0

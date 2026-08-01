@@ -166,6 +166,14 @@ pub struct FrameRow {
     /// to enforce the row rather than reporting a number it cannot stand behind.
     #[serde(default)]
     pub truncated: bool,
+    /// Digest of the frame's captured document subtree: the frame's CURRENT
+    /// content hash, which the sign-off register (draft S-7D) compares against
+    /// the hash recorded at sign-off. `Option` because ledgers generated before
+    /// this field existed carry none, and that absence resolves fail-closed:
+    /// a frame with no measurable current content is UNSIGNED, since it cannot
+    /// be shown to match any sign-off row.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content_digest: Option<Digest>,
 }
 
 /// A frame in the capture that no screen record claims.
@@ -388,7 +396,11 @@ pub fn build_ledger(
     let mut truncated_leaves = 0u32;
     for (node_id, document) in &raw {
         let node = read_node(document, capture_depth, 0, &mut truncated_leaves);
-        frames.push(row_for(node_id, &node, config));
+        let mut row = row_for(node_id, &node, config);
+        // The frame's current content hash, over the captured subtree as the
+        // API returned it. What the sign-off register compares against.
+        row.content_digest = Some(Digest::of_value(document)?);
+        frames.push(row);
     }
     frames.sort_by(|a, b| a.node_id.cmp(&b.node_id));
 
@@ -587,6 +599,10 @@ fn row_for(node_id: &str, frame: &Node, config: &ScreensConfig) -> FrameRow {
         regions,
         columns,
         truncated,
+        // Filled by `build_ledger`, which holds the raw document this row was
+        // derived from; `row_for` reads the derived tree and cannot digest
+        // bytes it never saw.
+        content_digest: None,
     }
 }
 

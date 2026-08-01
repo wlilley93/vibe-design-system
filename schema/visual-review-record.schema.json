@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "VisualReviewRecord",
+  "description": "One recorded visual pass, against one frame.",
+  "type": "object",
+  "required": [
+    "fileKey",
+    "frameDigest",
+    "frameImageDigest",
+    "id",
+    "nodeId",
+    "reviewedAt",
+    "reviewedBy",
+    "routes",
+    "shippedScreenshotDigest",
+    "shippedSourceDigest",
+    "verdict"
+  ],
+  "properties": {
+    "basis": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "contractSignoff": {
+      "description": "THE STAGE-1 CONTRACT VERSION this verdict was taken against: the sign-off row whose hash is the signed frame the reviewer compared to.\n\nThe pipeline is four stages in fixed order - contract JSON, then Figma AND code built to it, then source-side gates, then this artefact-side visual check - and the stages must be LINKED, not parallel. A verdict that cannot name its contract version is how \"we checked it\" survives a contract change with nobody noticing: the frame is redrawn, the contract moves, and a verdict rendered against the old one keeps reading as coverage.\n\n`Option` because a `no_authority` verdict is precisely the state of having NO contract to cite, and forcing a citation there would teach a pipeline to invent one. Any other verdict without it is invalid.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/SignoffId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "deltas": {
+      "description": "What differed, one delta per line. Required non-empty for `deviate` and required EMPTY for `conform`: a verdict and its evidence may not disagree.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "fileKey": {
+      "type": "string"
+    },
+    "frameDigest": {
+      "description": "The frame's content digest at review time, as the frames ledger computes it. The frame side's input hash.",
+      "type": "string"
+    },
+    "frameImageDigest": {
+      "description": "Hash of the exported frame image the reviewer saw.",
+      "type": "string"
+    },
+    "id": {
+      "$ref": "#/definitions/ReviewId"
+    },
+    "nodeId": {
+      "description": "The frame reviewed against, in the `12:34` spelling.",
+      "type": "string"
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "regions": {
+      "description": "Which bands of the pair were examined, and what was found in each.\n\nRequired non-empty. A verdict with no region checklist is a verdict about \"the page\", and a finding about the page cannot be told apart from a glance at the page.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/RegionFinding"
+      }
+    },
+    "reviewedAt": {
+      "$ref": "#/definitions/Timestamp"
+    },
+    "reviewedBy": {
+      "description": "The reviewing agent's identity: model, harness, prompt version.",
+      "type": "string"
+    },
+    "routes": {
+      "description": "The route(s) this pass covered, as the screens ledger spells them.\n\nA LIST so a grouped verdict is representable and refusable by name. Read the module note: a single-route field would have made the family review that motivated this amendment impossible to write down and impossible to catch. Exactly one route confers coverage; more confers none.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "shippedScreenshotDigest": {
+      "description": "Hash of the shipped screenshot artefact itself.",
+      "type": "string"
+    },
+    "shippedSourceDigest": {
+      "description": "The screens-ledger digest of the route's SOURCE at review time. The shipped side's input hash: when the route's source moves, this no longer matches the ledger and the verdict is STALE.",
+      "type": "string"
+    },
+    "verdict": {
+      "description": "The reviewer's verdict. `no_authority` is recordable - a pipeline that found the frame unsigned says so honestly - and the proof also DERIVES authority itself; a recorded `conform` against a frame the register shows unsigned is refused, not trusted.",
+      "$ref": "#/definitions/AuthorityVerdict"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "AuthorityVerdict": {
+      "description": "The verdict vocabulary of every frame-bound proof. CLOSED at three.\n\nThere is deliberately no fourth variant for an accepted deviation. An acceptance state is taste exercised downstream of sign-off, which the constitutional direction forbids: the resolution path for a deviation is a new signed frame version, recorded as a [`RedrawRecord`].",
+      "oneOf": [
+        {
+          "description": "The shipped artefact matches the signed frame.",
+          "type": "string",
+          "enum": [
+            "conform"
+          ]
+        },
+        {
+          "description": "The shipped artefact differs from the signed frame. An ADDITION the frame omits is a deviation exactly like a missing element; direction carries no excuse.",
+          "type": "string",
+          "enum": [
+            "deviate"
+          ]
+        },
+        {
+          "description": "The frame is unsigned, parked, or a proposal: there is no authority to conform to. Never green, never red; reported as coverage owed.",
+          "type": "string",
+          "enum": [
+            "no_authority"
+          ]
+        }
+      ]
+    },
+    "RegionFinding": {
+      "description": "What the reviewer found in one region, or that they did not look.",
+      "type": "object",
+      "required": [
+        "examined",
+        "finding",
+        "region"
+      ],
+      "properties": {
+        "examined": {
+          "description": "Whether this region of the PAIR was actually compared.\n\n`false` is a first-class, recordable answer and is the whole point: \"capture debt, needs seeded data\" is a legitimate thing to conclude about a region, and it has to be readable as a region that was not studied rather than disappearing into a verdict about the page.",
+          "type": "boolean"
+        },
+        "finding": {
+          "description": "The finding, or the reason the region was not examined. Required either way: a region row carrying neither is a row that says nothing.",
+          "type": "string"
+        },
+        "region": {
+          "$ref": "#/definitions/ReviewRegion"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ReviewId": {
+      "description": "A visual review verdict: automated eyes over a shipped screen against its signed frame (draft S-7D).",
+      "type": "string",
+      "pattern": "^VRW-[0-9]{4}$"
+    },
+    "ReviewRegion": {
+      "description": "The bands of a screen a visual pass is expected to account for. CLOSED.\n\nClosed for the reason [`super::SurfaceKind`] is: an open set of region names lets one undifferentiated \"the page\" bucket back in, and \"the page looks fine\" is exactly the finding that missed a counted facet row, a counted eyebrow, date-group bands and a footer window statement on one route.\n\nThese are ANATOMY names and hold no design value (VDS S-2(4)): a region is a place to look, never a size, a colour or a spacing.",
+      "oneOf": [
+        {
+          "description": "The page header band: title, eyebrow, counts, primary actions.",
+          "type": "string",
+          "enum": [
+            "header"
+          ]
+        },
+        {
+          "description": "The filter/facet band, and whatever counts it carries.",
+          "type": "string",
+          "enum": [
+            "facets"
+          ]
+        },
+        {
+          "description": "The body rows or cards, and their internal anatomy.",
+          "type": "string",
+          "enum": [
+            "body_rows"
+          ]
+        },
+        {
+          "description": "The side rail, where the frame draws one.",
+          "type": "string",
+          "enum": [
+            "rail"
+          ]
+        },
+        {
+          "description": "The footer band, and any window or scope statement in it.",
+          "type": "string",
+          "enum": [
+            "footer"
+          ]
+        },
+        {
+          "description": "The empty state, which is a drawn state and not an absence.",
+          "type": "string",
+          "enum": [
+            "empty_state"
+          ]
+        },
+        {
+          "description": "Keyboard affordances drawn in the frame: focus rings, hints, shortcuts.",
+          "type": "string",
+          "enum": [
+            "keyboard"
+          ]
+        }
+      ]
+    },
+    "SignoffId": {
+      "description": "A frame sign-off: the frame's content hash at the moment taste was exercised (draft S-7D).",
+      "type": "string",
+      "pattern": "^SGN-[0-9]{4}$"
+    },
+    "Timestamp": {
+      "description": "UTC, second resolution, trailing Z. The one canonical form VDS writes.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    }
+  }
+}

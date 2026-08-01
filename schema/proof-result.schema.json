@@ -267,6 +267,27 @@
           "enum": [
             "geometry"
           ]
+        },
+        {
+          "description": "A registered pattern is ABSENT from its enumerated scope, and the scope cannot silently narrow. Draft S-7B, enactment pending.",
+          "type": "string",
+          "enum": [
+            "prohibition"
+          ]
+        },
+        {
+          "description": "A pinned numeric reading whose only lawful direction is down: red on any increase AND on a decrease that was not re-pinned. Draft S-7C, enactment pending.",
+          "type": "string",
+          "enum": [
+            "burndown"
+          ]
+        },
+        {
+          "description": "The recorded visual verdicts hold: shipped screenshot against signed frame, stale on either side moving, no conformance claim without authority. Draft S-7D, enactment pending.",
+          "type": "string",
+          "enum": [
+            "visual_review"
+          ]
         }
       ]
     },

@@ -1,0 +1,21 @@
+id: PROOF-20260801-140546
+kind: prohibition
+status: vacuous
+warrant_id: null
+command: vds proof prohibition
+script: crates/vds-proof/src/prohibition.rs
+script_digest: sha256:328c26c522078d73a6def8c4e8c47144e19b03207d565b45ad5dba2c28f99a0e
+exit_code: 0
+rows_considered: 0
+rows_enforced: 0
+rows_skipped_reasons: {}
+violations: []
+notes:
+- '[scope] no prohibition is registered, so every row is skipped and this run is vacuous. That is the honest state of a project with no absence directives, and it is NOT evidence (VDS S-7(2)(4)).'
+inputs_digest: sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945
+digest: sha256:ecf1143393ce1faa14035071d880e8d8c1396c0afae9321252e629d3074ea047
+designpack_digest: sha256:f9c369f3175c15169dafde47c01d7efc2f45c64090444f17f5b3f480e710ec5a
+captured_at: 2026-08-01T14:05:35Z
+capture_mode: automatic
+invoked_by: package_script
+duration_ms: 0

@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "DirectionRecord",
+  "description": "A PRINCIPAL DIRECTION that disposes of a surface's conformance: the second row kind of the sign-off register.\n\n[2026] VJS-CA-VDS 1 order 26, giving effect to [2026] VJS-SC-OPBOX 1 orders 15, 30 and 31. The register as first built could not record one, and the consequence was not cosmetic: a direction is not a frame - it has no file key, no node id and no frame content hash - so the four founding directions order 32 requires could not pass through the door at all, and a register that cannot execute the order that founds it is not the condition precedent order 23 requires.\n\nA direction is taste exercised AT the register, hash-bound, by the only person entitled to exercise it. It is not taste exercised downstream by an engine, which is what the constitutional direction forbids, and the distinction is the whole reason this row kind is lawful.",
+  "type": "object",
+  "required": [
+    "decisionDigest",
+    "directedAt",
+    "direction",
+    "id",
+    "logId",
+    "magnitude",
+    "surface"
+  ],
+  "properties": {
+    "decisionDigest": {
+      "description": "That entry's content digest when the direction was registered.\n\nThe direction's authority holds while, and only while, this equals the log entry's current digest: staleness by hash, never by trust, on the same terms as a [`SignOff`]. A direction edited after registration is a different direction.",
+      "type": "string"
+    },
+    "directedAt": {
+      "$ref": "#/definitions/Timestamp"
+    },
+    "direction": {
+      "description": "The [2026] VJS-CC-OPBOX 155 O2 form: what was directed, and how much. Preserved rather than summarised, because it becomes the redraw brief.",
+      "type": "string"
+    },
+    "id": {
+      "$ref": "#/definitions/DirectionId"
+    },
+    "logId": {
+      "description": "The decision-log entry the direction was given in.",
+      "type": "string"
+    },
+    "magnitude": {
+      "type": "string"
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "surface": {
+      "description": "The surface directed: a route, or a frame.",
+      "$ref": "#/definitions/DirectedSurface"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "DirectedSurface": {
+      "description": "What a direction touches: a route where it names no frame, a frame where it does. Two variants rather than three optional fields, so \"a direction that names neither\" is unrepresentable.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "route"
+          ],
+          "properties": {
+            "route": {
+              "type": "object",
+              "required": [
+                "route"
+              ],
+              "properties": {
+                "route": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "frame"
+          ],
+          "properties": {
+            "frame": {
+              "type": "object",
+              "required": [
+                "file_key",
+                "node_id"
+              ],
+              "properties": {
+                "file_key": {
+                  "type": "string"
+                },
+                "node_id": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "DirectionId": {
+      "description": "A registered Principal direction: the sign-off register's second row kind, hash-bound to its logged decision ([2026] VJS-CA-VDS 1 order 26).",
+      "type": "string",
+      "pattern": "^DIR-[0-9]{4}$"
+    },
+    "Timestamp": {
+      "description": "UTC, second resolution, trailing Z. The one canonical form VDS writes.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    }
+  }
+}

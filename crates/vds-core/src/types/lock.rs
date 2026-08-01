@@ -115,6 +115,38 @@ pub struct FailingDirectionTest {
     pub seeds: Option<String>,
 }
 
+/// Accept one test or a list of them, so a lock written before
+/// [2026] VJS-CA-VDS 1 order 3 keeps loading.
+fn one_or_many_tests<'de, D>(
+    deserializer: D,
+) -> std::result::Result<Vec<FailingDirectionTest>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum OneOrMany {
+        One(Box<FailingDirectionTest>),
+        Many(Vec<FailingDirectionTest>),
+    }
+    Ok(match OneOrMany::deserialize(deserializer)? {
+        OneOrMany::One(one) => vec![*one],
+        OneOrMany::Many(many) => many,
+    })
+}
+
+/// Always written as a LIST, including a list of one. A field whose shape
+/// depends on its length is a field two readers parse differently.
+fn serialize_tests<S>(
+    tests: &[FailingDirectionTest],
+    serializer: S,
+) -> std::result::Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    tests.serialize(serializer)
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct LockEntry {
@@ -126,7 +158,28 @@ pub struct LockEntry {
     /// because an uninvoked gate is not enforcement.
     pub invoked_by: Vec<Invocation>,
     pub proves: Vec<ProofKind>,
-    pub failing_direction_test: FailingDirectionTest,
+    /// The seeded negative controls for this gate. A LIST since
+    /// [2026] VJS-CA-VDS 1 order 3: `geometry.rs` and
+    /// `register_completeness.rs` are blocking gates whose single recorded
+    /// control pinned only their original rule while the same file acquired
+    /// live limbs under orders 5 to 8 and 14 to 16, so one slot recorded a
+    /// negative control for a fraction of what the gate now decides. Order 2
+    /// makes the recorded seed the thing primacy rests on, and a seed that
+    /// covers one rule of five is a negative control nothing performs for the
+    /// other four.
+    ///
+    /// A single object still deserialises, so every lock written before the
+    /// order keeps loading and is rewritten as a list on the next re-pin.
+    /// Structurally non-empty: the field has no default, so an entry without
+    /// one does not parse (VDS S-7(2)(2)), and an EMPTY list is refused by
+    /// [`LockEntry::defects`] rather than read as "no seed required".
+    #[serde(
+        rename = "failing_direction_test",
+        alias = "failing_direction_tests",
+        deserialize_with = "one_or_many_tests",
+        serialize_with = "serialize_tests"
+    )]
+    pub failing_direction_tests: Vec<FailingDirectionTest>,
     pub pinned_at: Timestamp,
     pub pinned_by: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -300,11 +353,11 @@ mod tests {
             kind: LockKind::ProofScript,
             invoked_by: surfaces,
             proves: vec![ProofKind::Composition],
-            failing_direction_test: FailingDirectionTest {
+            failing_direction_tests: vec![FailingDirectionTest {
                 path: "crates/vds-proof/src/composition.rs".into(),
                 test_name: "composition_fails_on_an_unregistered_component".into(),
                 seeds: Some("a screen importing a component with no register record".into()),
-            },
+            }],
             pinned_at: Timestamp::fixed(2026, 7, 25, 10, 0, 0),
             pinned_by: "tester".into(),
             supersedes_digest: None,

@@ -1,0 +1,41 @@
+id: SUBMISSION-VDS-015
+status: answered
+question: "May the component register grow measurement-coverage metadata (draft S-5(9)): measuredBy / directedAt / graceDays, with register_completeness going red on a directed record measured by nothing after its grace (R2) and refusing a measure that points at a plan or doc artefact (R3)?"
+trigger: first_impression
+why_first_impression: |
+  No authority reaches the question of whether a REGISTER ROW must name what measures
+  it. The defect is measured, not imagined: on the motivating migration, rule rows
+  registered with nothing measuring them stayed green forever, and rows 'measured' by
+  pointing at plan documents were measured by prose. The docs-bind-nothing principle
+  (docs/ is outside the authority hierarchy) is settled for WARRANTS and ORDERS;
+  whether it also invalidates a MEASURE is first impression, as is the grace mechanism
+  and the choice of register_completeness as the home despite its existence-only scope
+  note.
+citator_checked:
+  - citation: "VDS S-5(1) ('a field no proof reads is a field that rots')"
+    why_not_on_all_fours: "Requires every register field to be read by a proof; the draft satisfies it (R2/R3 read all three fields) and it does not decide whether these fields should exist."
+  - citation: "VDS authority hierarchy (docs/ binds nothing)"
+    why_not_on_all_fours: "Settled for instruments citing docs; extending it to measures is the extension proposed, not one already made."
+options:
+  - option: "Enact draft S-5(9) as implemented, housed in register_completeness."
+    consequence: "Directed-but-unmeasured rows go loud after grace. Cost: register_completeness's scope note widens from existence-only, recorded openly."
+  - option: "Enact, housed in a new sixteenth proof kind."
+    consequence: "Keeps register_completeness pure at the cost of another registry amendment and a kind with two rules; refused as the draft's default for economy, the bench may prefer it."
+  - option: "Refuse: measurement coverage stays a consuming-repo concern."
+    consequence: "The row class that shipped structurally-green pages stays representable with nothing in the engine to redden it."
+evidence:
+  - "crates/vds-core/src/types/component.rs"
+  - "crates/vds-proof/src/register_completeness.rs"
+  - "VDS.md"
+case_file_digest: sha256:771a2e521ff65a9fbf77eeb26de96449c4361819c5376dc705047129ae95c946
+reserved_clause: null
+fail_closed_interim: "ENACTMENT PENDING. Fields are serde-defaulted so every existing record parses; records carrying neither field are outside the clause, so nothing reddens retroactively; no warrant may cite R2/R3 before the ruling. DIGEST PROVENANCE: case_file_digest is derived by scripts/case-file-digest.sh over the evidence files named above, at drafting."
+filed_to: vjs
+vjs_submission_id: "[2026] VJS-CA-VDS 1"
+created_at: 2026-08-01T12:00:00Z
+filed_at: 2026-08-01T12:30:00Z
+answer:
+  citation: "[2026] VJS-CA-VDS 1"
+  ratio: >-
+    ENACTED AS AMENDED on option 1, housed in register_completeness and not as a sixteenth kind (two of three; Engine J dissenting, his reasoning recorded in full at Schedule B item 6). AMENDED by orders 16-18: every measure must RESOLVE to a proof kind, an existing repository path, or a lock-pinned path, the rule being an allowlist and never a denylist of document-shaped strings; an I4 census counts and names the records carrying neither field, because a rule that fires only on the rows that armed it has a denominator; and the scope note is widened in the specification and the lock rather than left standing.
+  answered_at: 2026-08-01T13:00:00Z
