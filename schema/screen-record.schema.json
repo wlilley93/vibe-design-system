@@ -65,6 +65,14 @@
         "columns"
       ],
       "properties": {
+        "bands": {
+          "description": "Which of the CLOSED review bands this screen has, for the one question [`Self::regions`] structurally cannot answer.\n\nA visual review's checklist is closed ([`ReviewRegion`], seven bands) and this contract's regions are open free strings, so the two cannot be compared: an open set cannot refuse a name that is not a band, and a correspondence check keyed on `regions` would answer \"is `keyboard` in the list\" with silence for every screen that spells its bands differently. Both halves are right as they stand: closing `regions` would make VDS the authority on what a screen is made of, and opening the review checklist would let one undifferentiated \"the page\" bucket back in. So the correspondence needs its own declaration, in the closed vocabulary, made by the SCREEN.\n\nNOT required, and empty is the honest default: a screen that has not declared its bands makes the correspondence rule UNRUNNABLE rather than passed, and the proof reports that as a rule that did not run. See [`ScreenRecord::band_correspondence_unrunnable_because`].",
+          "default": [],
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ReviewRegion"
+          }
+        },
         "columns": {
           "description": "How many side-by-side content PANES the screen requires, left to right.\n\nA count, not a width. See the module note: a width is a realisation and has nowhere to live here.",
           "type": "integer",
@@ -103,6 +111,60 @@
         }
       },
       "additionalProperties": false
+    },
+    "ReviewRegion": {
+      "description": "The bands of a screen a visual pass is expected to account for. CLOSED.\n\nClosed for the reason [`super::SurfaceKind`] is: an open set of region names lets one undifferentiated \"the page\" bucket back in, and \"the page looks fine\" is exactly the finding that missed a counted facet row, a counted eyebrow, date-group bands and a footer window statement on one route.\n\nThese are ANATOMY names and hold no design value (VDS S-2(4)): a region is a place to look, never a size, a colour or a spacing.",
+      "oneOf": [
+        {
+          "description": "The page header band: title, eyebrow, counts, primary actions.",
+          "type": "string",
+          "enum": [
+            "header"
+          ]
+        },
+        {
+          "description": "The filter/facet band, and whatever counts it carries.",
+          "type": "string",
+          "enum": [
+            "facets"
+          ]
+        },
+        {
+          "description": "The body rows or cards, and their internal anatomy.",
+          "type": "string",
+          "enum": [
+            "body_rows"
+          ]
+        },
+        {
+          "description": "The side rail, where the frame draws one.",
+          "type": "string",
+          "enum": [
+            "rail"
+          ]
+        },
+        {
+          "description": "The footer band, and any window or scope statement in it.",
+          "type": "string",
+          "enum": [
+            "footer"
+          ]
+        },
+        {
+          "description": "The empty state, which is a drawn state and not an absence.",
+          "type": "string",
+          "enum": [
+            "empty_state"
+          ]
+        },
+        {
+          "description": "Keyboard affordances drawn in the frame: focus rings, hints, shortcuts.",
+          "type": "string",
+          "enum": [
+            "keyboard"
+          ]
+        }
+      ]
     },
     "ScreenId": {
       "description": "A registered screen: one route's ARRANGEMENT requirement, allocated as the highest on disk plus one (VDS S-4(4)).",

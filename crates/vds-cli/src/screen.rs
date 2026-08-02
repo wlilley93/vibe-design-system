@@ -18,8 +18,8 @@
 
 use clap::{Args as ClapArgs, Subcommand};
 use vds_core::{
-    ArrangementContract, EXIT_VIOLATION, FigmaFrame, Result, ScreenId, ScreenRecord, Status,
-    Timestamp, VdsError,
+    ArrangementContract, EXIT_VIOLATION, FigmaFrame, Result, ReviewRegion, ScreenId, ScreenRecord,
+    Status, Timestamp, VdsError,
 };
 use vds_store::Store;
 
@@ -62,6 +62,15 @@ pub struct AddArgs {
     /// read one list.
     #[arg(long, value_delimiter = ',')]
     regions: Vec<String>,
+    /// Which of the CLOSED review bands this screen has.
+    ///
+    /// A different list from `--regions` and not a duplicate of it: regions are
+    /// this project's own vocabulary and are open, and a correspondence check
+    /// needs a vocabulary that can refuse a name. Left empty, the visual
+    /// review's band correspondence reports that it COULD NOT RUN on this
+    /// screen, which is not the same answer as a pass.
+    #[arg(long = "band", value_delimiter = ',')]
+    bands: Vec<String>,
     /// The decided-target file holding the frame that draws this screen.
     #[arg(long)]
     file_key: Option<String>,
@@ -143,9 +152,32 @@ fn add(store: &Store, args: &AddArgs) -> Result<i32> {
         ))
     })?;
 
+    // Parsed at the door, and refused by name. A band nobody can spell is a
+    // band the correspondence rule silently never checks, so an unknown name
+    // stops here rather than being dropped into an empty declaration.
+    let mut bands = Vec::new();
+    for raw in &args.bands {
+        let band = ReviewRegion::parse(raw).ok_or_else(|| {
+            VdsError::precondition(format!(
+                "{raw:?} is not one of the seven review bands: {}. The band vocabulary is \
+                 CLOSED (draft S-7D(8)) because an open one lets \"the page\" back in as a \
+                 band, and a finding about the page cannot be told apart from a glance at it.",
+                ReviewRegion::ALL
+                    .iter()
+                    .map(|r| r.as_str())
+                    .collect::<Vec<&str>>()
+                    .join(", ")
+            ))
+        })?;
+        if !bands.contains(&band) {
+            bands.push(band);
+        }
+    }
+
     let arrangement = ArrangementContract {
         columns: args.columns,
         regions: args.regions.clone(),
+        bands,
     };
     // Refused at the DOOR as well as at the wall. A record written here and
     // refused by every run of the proof is a record whose author was told at
@@ -293,6 +325,14 @@ fn adopt(project: &vds_core::Project, store: &Store, args: &AdoptArgs) -> Result
             arrangement: ArrangementContract {
                 columns: row.columns,
                 regions: row.regions.clone(),
+                // Never derived here. Which CLOSED review bands a screen has is
+                // a statement about the screen, and a frame's layer names are
+                // the project's own vocabulary: mapping one onto the other
+                // would make adoption invent a declaration nobody made, and the
+                // correspondence rule would then run against a guess. Empty
+                // means the rule reports that it COULD NOT RUN, which is the
+                // true state of a screen adopted in bulk.
+                bands: vec![],
             },
             basis: args.basis.clone(),
             // The reading's own caveats travel WITH the record. A truncated

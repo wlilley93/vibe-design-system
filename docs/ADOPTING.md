@@ -215,6 +215,13 @@ Three things `adopt` will refuse to do, each because doing them cost somebody re
 - **It does not hide a truncated reading.** Where the capture stopped at the depth boundary,
   the record's own note says WE DID NOT LOOK, so an empty region list is never mistaken for
   a frame that draws nothing.
+- **It does not invent a band declaration.** An adopted record's `bands` is EMPTY, because
+  which of the closed review bands a screen has is a statement about the screen and a
+  frame's layer names are the project's own vocabulary. The consequence is visible rather
+  than assumed: `visual_review`'s region correspondence reports that it COULD NOT RUN on
+  that route and counts it, so an adopted estate can see how much of its checklist is
+  unchecked. Declare them per screen with `vds screen add --band header,body_rows` (or by
+  amending the record) as each screen is ratified.
 
 ### Recapture before you re-derive, and check the DATE
 

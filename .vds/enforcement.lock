@@ -1,5 +1,5 @@
 schema_version: 1
-generated_at: 2026-08-01T14:02:52Z
+generated_at: 2026-08-02T21:13:33Z
 entries:
 - path: crates/vds-cli/src/doctor.rs
   digest: sha256:61a4c86e2fe16925c8eabc4869925b3a1559f14fb270629d4904cedbe93791c9
@@ -333,7 +333,7 @@ entries:
   pinned_at: 2026-07-25T13:58:22Z
   pinned_by: jellytot
 - path: crates/vds-proof/src/screen_parity.rs
-  digest: sha256:2aa81b074e90449f71ece63c466bb83580265bf65e6f1ce40aa01ea85ecb04c0
+  digest: sha256:28e05c602d02d054e95d57005f0dfcbef95177a15159e3cf4a97589d857fe198
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -348,10 +348,10 @@ entries:
   - path: crates/vds-proof/src/screen_parity.rs
     test_name: screen_parity_fails_on_a_screen_with_a_column_its_frame_does_not_draw
     seeds: a screen requiring three content columns whose authoritative frame draws two, with every component on it registered
-  pinned_at: 2026-07-30T16:38:22Z
+  pinned_at: 2026-08-02T21:13:33Z
   pinned_by: jellytot
-  supersedes_digest: sha256:9edc31840d63b2bbb25e4ee44b717c4e0df90d3ccccbe2575cec90f3da814c58
-  relock_rationale: 'Pinned before the lint pass. The only change to the gate since is Coverage::line''s percentage, which computed scored*100/total behind a manual zero check and now uses checked_div. The behaviour is identical, including the deliberate choice that a run over zero screens reports 0% rather than 100%: nothing was there to score is not everything was scored.'
+  supersedes_digest: sha256:2aa81b074e90449f71ece63c466bb83580265bf65e6f1ce40aa01ea85ecb04c0
+  relock_rationale: 'SUBMISSION-VDS-019: screen_parity is re-pinned for a TEST FIXTURE line only. ArrangementContract gained the closed band declaration S-7D(14) needs, so the one struct literal in this gate''s own tests names the new field. No rule of screen_parity changed: R5 is a CONTRACT-versus-DRAWING check over the OPEN region vocabulary and is untouched, and the band correspondence deliberately lives in visual_review, which already reads every ledger it needs and walks the coverage denominator once.'
 - path: crates/vds-proof/src/states.rs
   digest: sha256:ea03399e412866c99fa577ddc7dea8238ec393697bcf109e92cde079621fcb22
   kind: proof_script
@@ -393,7 +393,7 @@ entries:
   supersedes_digest: sha256:6ab1121588fe85ac187c06962a7b03e553c86117d8145565e4f646cbeb3b4d61
   relock_rationale: 'Adversarial review found all three new gates unsound; four criticals and five highs are closed. contrast: unclassified_palette_scopes returned empty on a sheet with no :root, so R6 was structurally dead and a palette nothing measured passed at exit 0 (the founding defect through the gate written to catch it); the redactor covered three of six realisation shapes and redacted only a colour function''s head; two findings named the default stylesheet rather than the one read. parity: an extends/intersection props type reported a SUBSET as complete, so R6 fired on inherited props or credited the row as enforced. token_pin: the redaction screen closed hex and left base64 open, the locator was never screened, the evidence digest was keyed on pin.id (which carries generated_at), coverage was reported before the currency check, and Store::read_pins never refused an unreadable entry.'
 - path: crates/vds-proof/src/visual_review.rs
-  digest: sha256:efb7b4d2025ed4156c458079560a26fda69ab5dafdcf4f6010066d0a7e6ce395
+  digest: sha256:e69b2b54567de59b7eb01906eb92797eee6945b84aa1aaeb85a25d73cce6904d
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -429,10 +429,28 @@ entries:
   - path: crates/vds-proof/src/visual_review.rs
     test_name: a_stale_verdict_on_a_signed_surface_still_blocks
     seeds: the same staleness on a REGISTERED surface, which must still block
-  pinned_at: 2026-08-01T13:24:30Z
+  - path: crates/vds-proof/src/visual_review.rs
+    test_name: a_conform_verdict_naming_no_screenshot_has_earned_nothing
+    seeds: a MINTED conform record naming no screenshot, so nothing in it can be re-hashed (R13)
+  - path: crates/vds-proof/src/visual_review.rs
+    test_name: a_screenshot_whose_bytes_moved_no_longer_backs_the_verdict
+    seeds: a screenshot present at its path whose bytes are not the ones reviewed (R13)
+  - path: crates/vds-proof/src/visual_review.rs
+    test_name: a_deviate_verdict_missing_every_earning_condition_fails_r5_and_never_r13
+    seeds: the same missing evidence on a DEVIATE verdict, which the earning rule must not reach
+  - path: crates/vds-proof/src/visual_review.rs
+    test_name: an_examined_band_the_screen_does_not_declare_is_foreign_and_fails
+    seeds: a checklist claiming study of five bands the screen record does not declare (R14)
+  - path: crates/vds-proof/src/visual_review.rs
+    test_name: a_screen_declaring_no_bands_reports_that_the_rule_did_not_run
+    seeds: a screen with no band declaration, where R14 could not run and must say so (W7)
+  - path: crates/vds-proof/src/visual_review.rs
+    test_name: an_uncited_delta_confers_no_coverage_and_its_route_reads_as_owed
+    seeds: a delta dispositioned shipped_is_better citing no redraw row
+  pinned_at: 2026-08-02T21:13:26Z
   pinned_by: jellytot
-  supersedes_digest: sha256:0b81afd349522ac042912813afe629df3069024d84b5f2f35ed83400e097cd08
-  relock_rationale: '[2026] VJS-CA-VDS 1 orders 3, 19-22, 27 and 38.'
+  supersedes_digest: sha256:efb7b4d2025ed4156c458079560a26fda69ab5dafdcf4f6010066d0a7e6ce395
+  relock_rationale: 'SUBMISSION-VDS-019 draft S-7D(12) to (14). R13: a conform verdict earns its claim (a screenshot path that still re-hashes, a served build, one band examined); three of the four conditions were demonstrated downstream by MINTING a passing record and the fourth was found in landed records, and the whole conform branch was one line marking the row enforced. R14 and W7: region correspondence against the screen record''s new closed band declaration, asked in two steps so a rule that COULD NOT RUN never reads as a rule that ran, with the reach reported in a note. Deltas become classified rows (S-7D(13)); an invalid delta refuses the record and its route returns to the owed population. Seeds added for every new rule, and both directions of R13 and R14.'
 - path: crates/vds-scan/src/glob.rs
   digest: sha256:ab8189e8d4d8e56cfbf0a4eca9d738b3c13438ae190ad6179e057368ceea40d3
   kind: ledger_generator

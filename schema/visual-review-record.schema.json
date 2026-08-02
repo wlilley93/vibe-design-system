@@ -36,11 +36,11 @@
       ]
     },
     "deltas": {
-      "description": "What differed, one delta per line. Required non-empty for `deviate` and required EMPTY for `conform`: a verdict and its evidence may not disagree.",
+      "description": "What differed, one row per difference. Required non-empty for `deviate` and required EMPTY for `conform`: a verdict and its evidence may not disagree.\n\nRows and not strings. A bare list answered \"what differs\" and left every difference reading as work owed by the code, which is false of most of them; see [`DeltaDisposition`] for what the classification buys and for why it can never dispose of anything.",
       "default": [],
       "type": "array",
       "items": {
-        "type": "string"
+        "$ref": "#/definitions/ReviewDelta"
       }
     },
     "fileKey": {
@@ -89,6 +89,20 @@
         "type": "string"
       }
     },
+    "screenshotPath": {
+      "description": "Where the screenshot IS, project-relative, so the hash above can be RE-COMPUTED rather than believed.\n\nA conform verdict with no path rests on two hashes of three, and the missing one is the picture of the product: nothing in the record can be re-derived from the artefact, so the whole parity claim is a field somebody typed. Three of the four earning conditions were found on the downstream estate by MINTING a passing record, and each one alone conjured a route at parity out of nothing.\n\n`Option` because a `deviate` verdict claims no parity and must not be held to a parity standard: hold it there and people stop recording deviations, which costs more than the field buys.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "servedBuild": {
+      "description": "The build the screenshot was taken OF, in the estate's own spelling: a commit, a tag, an image digest.\n\n[`Self::shipped_source_digest`] is computed from the LOCAL TREE, so on its own it can describe code the screenshot never ran: a reviewer captures a deployed page, digests the working copy, and the record links a picture of one build to the hash of another. Naming the served build is the only thing in the record that says which one was on the screen.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "shippedScreenshotDigest": {
       "description": "Hash of the shipped screenshot artefact itself.",
       "type": "string"
@@ -130,6 +144,60 @@
         }
       ]
     },
+    "DeltaDisposition": {
+      "description": "What a recorded difference IS, in the reviewer's own analysis. CLOSED.\n\nA bare delta list answered \"what differs\" and nothing else, so every difference read as one kind of thing: work owed by the code. On the estate this lane was written for, that is false of most of them. A frame drawn before a product decision, an annotation layer the exporter drew into the image, a shipped surface the design has since preferred, a band that needs data nobody seeded, chrome that belongs to the shell and not the route, and a difference a policy forbids closing are six different facts, and a list that cannot tell them apart routes all six to the same queue.\n\n# There is no `accepted` and no `wont_fix`, and there never will be\n\nAn acceptance state is TASTE, and taste is exercised once, at frame sign-off ([2026] VJS-SC-OPBOX 1, and the repeal recorded in [`crate::AuthorityVerdict`]). A fourth value here would be a fourth [`AuthorityVerdict`] wearing a different field name, reachable by the recorder rather than by the signer, and it would be the whole repeal undone one enum away from the one that carries it.\n\nSo EVERY disposition leaves the verdict `deviate` and leaves the deviation rule RED. A disposition CLASSIFIES and never DISPOSES: it says what kind of work the difference is, and the three routes out of a deviation are unchanged (a covering sign-off, a registered direction, or a deletion that independently discharges [2026] VJS-CC-OPBOX 155 O7).",
+      "oneOf": [
+        {
+          "description": "The code does not draw what the signed frame draws. The default kind, and the only one that needs no citation: it is a claim about the two artefacts the verdict already names.",
+          "type": "string",
+          "enum": [
+            "code_defect"
+          ]
+        },
+        {
+          "description": "The frame is behind the product: the shipped surface implements a later decision the drawing has not caught up with. Owed by a redraw.",
+          "type": "string",
+          "enum": [
+            "frame_behind_product"
+          ]
+        },
+        {
+          "description": "The difference is in the FRAME IMAGE and not in the design: a redline, a spec callout, a comment pin the export drew. Owed by a redraw, because the cure is a clean frame and not a code change.",
+          "type": "string",
+          "enum": [
+            "frame_draws_annotation"
+          ]
+        },
+        {
+          "description": "The shipped surface is preferred to the drawing. Still a deviation, and still red: the resolution is a redraw adopting it, never this field.",
+          "type": "string",
+          "enum": [
+            "shipped_is_better"
+          ]
+        },
+        {
+          "description": "The band could not be compared because the capture had no data in it. Needs no citation: it is a fact about the capture the verdict names.",
+          "type": "string",
+          "enum": [
+            "needs_absent_data"
+          ]
+        },
+        {
+          "description": "The difference is drawn by the application shell rather than by this route, so the subject of the finding is another screen. Owed by the SCREEN record that does own it.",
+          "type": "string",
+          "enum": [
+            "belongs_to_app_chrome"
+          ]
+        },
+        {
+          "description": "Closing the difference is forbidden: a registered prohibition or a Principal direction stands in the way. Owed by that row.",
+          "type": "string",
+          "enum": [
+            "forbidden_by_policy"
+          ]
+        }
+      ]
+    },
     "RegionFinding": {
       "description": "What the reviewer found in one region, or that they did not look.",
       "type": "object",
@@ -149,6 +217,32 @@
         },
         "region": {
           "$ref": "#/definitions/ReviewRegion"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ReviewDelta": {
+      "description": "One recorded difference: what it is, what KIND of thing it is, and the row that carries the work where the kind asserts one exists.",
+      "type": "object",
+      "required": [
+        "describes",
+        "disposition"
+      ],
+      "properties": {
+        "describes": {
+          "description": "The difference, in the reviewer's own words.\n\nProse, and NOT exempt from VDS S-2(2): `.vds/**` is scanned in full by `no_stored_values` and the two ignored directories are closed at two (VDS S-3(9)), so a delta that spells a length, a duration or a colour literal puts that value under the record permanently. Name the CLASS - \"the row gutter is tighter than the frame draws\", \"the border reads at a lower contrast than the floor\" - exactly as every note this engine writes does.",
+          "type": "string"
+        },
+        "disposition": {
+          "description": "What kind of difference this is. Required, and a non-`Option` field under `deny_unknown_fields`, so a record that omits it is refused by the DESERIALISER rather than by a rule: an unclassified delta is not a weaker delta, it is the old bare string back.",
+          "$ref": "#/definitions/DeltaDisposition"
+        },
+        "owedBy": {
+          "description": "The row that carries the work, where the disposition asserts one exists. See [`DeltaDisposition::owed_by_prefixes`].",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "additionalProperties": false

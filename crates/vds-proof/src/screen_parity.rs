@@ -1420,6 +1420,7 @@ mod tests {
         let contract = ArrangementContract {
             columns: 1,
             regions: vec![],
+            bands: vec![],
         };
         let record = vds_core::ScreenRecord {
             id: ScreenId::parse("SCR-0001").unwrap(),

@@ -54,6 +54,21 @@
 //!       `resolved_by` absent, naming a missing row, naming another frame, or
 //!       naming a sign-off whose hash is not the frame's CURRENT hash. The
 //!       band comes back through the design, never through the word "signed".
+//!   R13 a CONFORM verdict that earned nothing: no screenshot on disk to
+//!       re-hash, a screenshot whose bytes are not the ones reviewed, no
+//!       served build, or a checklist in which no band was examined. Fatal in
+//!       every authority state, because it is a defect in the RECORD and
+//!       curable by the recorder: three of the four were demonstrated on the
+//!       downstream estate by MINTING a passing record, and each alone
+//!       conjured a route at parity out of nothing.
+//!   R14 a reviewer examined a band the SCREEN RECORD does not declare. A
+//!       finding about a rail on a screen that has none is a finding about
+//!       another screen.
+//!   W7  the band correspondence COULD NOT RUN: no screen record for the
+//!       route, or one that declares no bands. Counted and reported per route
+//!       and summarised in a note, because a rule that cannot run must not
+//!       read as a rule that ran - on the estate this was written for, the
+//!       same check could only run on 17 rows of 160.
 //!   W1  a review whose frame carries NO AUTHORITY (and whose verdict honestly
 //!       says `no_authority`, or predates the sign-off register). Coverage
 //!       owed: the route has eyes on it and nothing to hold it to.
@@ -104,6 +119,12 @@ const RULE_PARKED: &str = "[2026] VJS-SC-OPBOX 1 order 29, visual_review W6: par
      reported, never counted a violation";
 const RULE_CONTRACT_CITATION: &str = "draft S-7D(10) visual_review R11: a stage-4 verdict cites the stage-1 contract version \
      it was taken against";
+const RULE_UNEARNED_CONFORM: &str = "draft S-7D(12) visual_review R13: a conform verdict EARNS its parity claim, or it is not \
+     one";
+const RULE_BAND_CORRESPONDENCE: &str = "draft S-7D(14) visual_review R14: a reviewer's examined band is one the screen record \
+     declares";
+const RULE_CORRESPONDENCE_UNRUNNABLE: &str = "draft S-7D(14) visual_review W7: the band correspondence COULD NOT RUN on this route, \
+     which is not the same answer as a pass";
 
 /// The four-stage pipeline, stated on every run, and the sentence that would
 /// have prevented the estate's failure.
@@ -148,7 +169,11 @@ const RESERVED_NOTE: &str = "[reserved] This kind validates, stores and stales V
                              conform | deviate | no_authority, and there is NO ACCEPTANCE \
                              STATE: an addition the frame omits is a deviation exactly like a \
                              missing element, and its resolution path is a new signed frame \
-                             version recorded as a redraw, never an engine-side excusal. \
+                             version recorded as a redraw, never an engine-side excusal. A \
+                             delta's DISPOSITION classifies a difference and never disposes of \
+                             it: the taxonomy carries no `accepted` and no `wont_fix`, because \
+                             either would be a fourth verdict wearing a different field name, \
+                             reachable by the recorder rather than by the signer. \
                              BEFORE a surface's frame is entered in the sign-off register \
                              this kind REPORTS AND NEVER BLOCKS ([2026] VJS-SC-OPBOX 1 \
                              orders 20, 23 and 24): registration is the moment a surface \
@@ -199,6 +224,16 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
     if let Some(ledger) = &frames {
         vds_figma::frames::check_fresh(ledger, None)?;
         run.input_named("frames-ledger", ledger.content_digest.clone());
+    }
+
+    // The SCREEN REGISTER, read here rather than in a sixteenth kind. This
+    // proof already reads every input the band correspondence needs, and it
+    // already walks the coverage denominator once; a second kind would walk it
+    // again and the two could disagree about which routes exist, which is the
+    // two-sources-of-truth failure the manifest limb exists to prevent.
+    let screen_records = store.read_screens()?;
+    for located in &screen_records {
+        run.input_file(&located.path)?;
     }
 
     // The ESTATE's enumeration. Read before any verdict is looked at, because
@@ -293,6 +328,11 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
     let mut population_current = 0u32;
     let mut population_stale = 0u32;
     let mut population_missing = 0u32;
+    // The band correspondence's own two numbers, kept apart for the reason W7
+    // exists: "found no foreign band" and "had no basis to look" are different
+    // facts, and one number holding both reports the second as the first.
+    let mut correspondence_ran = 0u32;
+    let mut correspondence_unrunnable = 0u32;
     // Counted independently of `rows_considered` so the two can be compared:
     // a check that derives its own denominator from its own numerator cannot
     // fail (draft S-7D(9), and the vacuity discipline at VDS S-7(2)(4)).
@@ -560,6 +600,141 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
             }
         }
 
+        // R13: A CONFORM VERDICT EARNS ITS CLAIM, OR IT IS NOT ONE.
+        //
+        // Sited with R11 rather than in the conform arm below, and fatal in
+        // every authority state, for the reason `a_record_level_defect_stays_
+        // fatal_on_an_unsigned_surface` holds: order 20 degrades the rules that
+        // are FACTS ABOUT A SURFACE, and a minted record is not one. It is a
+        // defect in the RECORD, curable by the recorder.
+        //
+        // The whole conform branch below used to be one line marking the row
+        // enforced, so a record naming no screenshot, naming no build and
+        // examining no band read exactly like a route at parity - and three of
+        // the four conditions were demonstrated downstream by writing such a
+        // record, each one alone enough.
+        let screenshot_rehashed = match &review.screenshot_path {
+            None => false,
+            Some(relative) => {
+                let path = project.root.join(relative);
+                if path.is_file() {
+                    // Recorded as an INPUT as well as re-hashed, so the
+                    // evidence digest witnesses the picture the verdict rests
+                    // on: a warrant citing this run then cites the screenshot,
+                    // and a screenshot swapped after the fact moves the run.
+                    run.input_file(&path)?;
+                    vds_core::Digest::of_file(&path)? == review.shipped_screenshot_digest
+                } else {
+                    false
+                }
+            }
+        };
+        let unearned = review.unearned_conformance(screenshot_rehashed);
+        if !unearned.is_empty() {
+            run.row(Verdict::Enforced);
+            for actual in unearned {
+                run.fail(Violation::fatal(
+                    location.clone(),
+                    RULE_UNEARNED_CONFORM,
+                    "a conform verdict to name a screenshot that still re-hashes to the digest \
+                     it records, to name the build that screenshot was taken of, and to have \
+                     examined at least one band",
+                    format!("UNEARNED CONFORMANCE: the record {actual}"),
+                ));
+            }
+            continue;
+        }
+
+        // R14 and W7: THE BAND CORRESPONDENCE, and the declaration it needs.
+        //
+        // Asked in two steps, and the order is the rule. First: CAN this run?
+        // A route with no screen record, or one that declares no bands, has no
+        // basis for the comparison, and that is reported as a rule that DID NOT
+        // RUN rather than as a rule that found nothing. Only then: did the
+        // reviewer study a band this screen does not have?
+        //
+        // The key is the screen record's `bands` and never its `regions`: the
+        // region vocabulary is deliberately OPEN (it is the subject's own, and
+        // closing it would make VDS the authority on what a screen is made of),
+        // and an open set cannot refuse a name that is not a band.
+        let screen = screen_records
+            .iter()
+            .map(|located| &located.value)
+            .find(|screen| screen.route == *route);
+        let unrunnable = match screen {
+            None => Some(format!(
+                "no screen record names {route}, so nothing declares which bands this screen \
+                 has and the reviewer's checklist can be compared to nothing. Register the \
+                 screen with `vds screen add --route {route} --band <band>,<band>`."
+            )),
+            Some(screen) => screen.band_correspondence_unrunnable_because(),
+        };
+        match unrunnable {
+            Some(why) => {
+                correspondence_unrunnable += 1;
+                run.row(Verdict::Skipped("region_correspondence_did_not_run"));
+                run.warn(Violation::fatal(
+                    location.clone(),
+                    RULE_CORRESPONDENCE_UNRUNNABLE,
+                    "a screen record for this route declaring the bands it has",
+                    format!(
+                        "REGION CORRESPONDENCE DID NOT RUN on {route}: {why} This route's \
+                         checklist is therefore unchecked against the screen, and that is a \
+                         gap in what this run measured, not a clean result."
+                    ),
+                ));
+            }
+            None => {
+                let screen = screen.expect("a runnable correspondence has a screen record");
+                correspondence_ran += 1;
+                let examined = review.examined_regions();
+                let foreign = screen.bands_not_drawn(&examined);
+                if !foreign.is_empty() {
+                    // A row here and none on the clean path, exactly as R1, R6
+                    // and R11 do it: this route already gets its row from the
+                    // verdict below, and adding a second enforced row for a
+                    // rule that found nothing would put a GREEN row on a
+                    // surface whose frame may carry no authority at all. The
+                    // reach of the rule is reported in the note instead.
+                    //
+                    // Fatal in every authority state, with R1/R6/R11: a
+                    // checklist claiming study of a band nothing says the
+                    // screen has is a defect in the RECORD, curable by the
+                    // recorder, and not a fact about the surface. Order 20
+                    // degrades the rules that ARE facts about a surface.
+                    run.row(Verdict::Enforced);
+                    run.fail(Violation::fatal(
+                        location.clone(),
+                        RULE_BAND_CORRESPONDENCE,
+                        format!(
+                            "every EXAMINED band to be one {} declares: {}",
+                            screen.id,
+                            screen
+                                .arrangement
+                                .bands
+                                .iter()
+                                .map(|b| b.to_string())
+                                .collect::<Vec<String>>()
+                                .join(", ")
+                        ),
+                        format!(
+                            "the reviewer examined {} band(s) this screen does not have: {}. A \
+                             finding about a band the screen does not draw is a finding about \
+                             another screen, and it reads in the ledger as depth. The rule \
+                             reads STUDY and not paperwork: a row recorded `examined: false` \
+                             is a lawful answer about a band and is never foreign.",
+                            foreign.len(),
+                            foreign
+                                .iter()
+                                .map(|b| b.to_string())
+                                .collect::<Vec<String>>()
+                                .join(", ")
+                        ),
+                    ));
+                }
+            }
+        }
+
         // Neither side moved and the contract citation resolves: this verdict
         // still describes the pair it was rendered over, against the contract
         // version it names.
@@ -633,7 +808,11 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
                     ),
                     format!(
                         "{} deviation(s), reviewed by {} at {}: {}. An addition the frame \
-                         omits is a deviation exactly like a missing element. THIS FINDING \
+                         omits is a deviation exactly like a missing element. Each delta \
+                         carries a DISPOSITION saying what KIND of difference it is, and no \
+                         disposition closes one: there is no `accepted` and no `wont_fix`, \
+                         because an acceptance state is taste exercised after sign-off and \
+                         taste is exercised once, AT sign-off. THIS FINDING \
                          CLASSIFIES AND DOES NOT DISPOSE: it is a docket entry and never an \
                          execution order, the difference remains LIVE pending disposition, \
                          no instrument may auto-remove, auto-hide or unrender the surface on \
@@ -648,7 +827,12 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
                         review.deltas.len(),
                         review.reviewed_by,
                         review.reviewed_at.as_str(),
-                        review.deltas.join("; ")
+                        review
+                            .deltas
+                            .iter()
+                            .map(|delta| delta.to_string())
+                            .collect::<Vec<String>>()
+                            .join("; ")
                     ),
                 ));
             }
@@ -839,6 +1023,20 @@ pub fn run(ctx: &ProofContext, out: &mut dyn Write) -> Result<Outcome> {
              routes --from <list>`.",
         ),
     }
+    // THE REACH OF THE BAND CORRESPONDENCE, on every run, passing or not.
+    //
+    // Load-bearing and not decoration: a rule that could not run must not read
+    // as a rule that ran and found nothing. On the estate this lane was written
+    // for, the same check could only run on 17 rows of 160, and a report that
+    // printed one number would have described 143 unmeasured routes as clean.
+    run.note(format!(
+        "[region correspondence] R14 ran on {correspondence_ran} route(s) and COULD NOT RUN \
+         on {correspondence_unrunnable} route(s), each named above. It runs only where a \
+         screen record claims the route AND declares its bands, so a route missing either has \
+         an UNCHECKED checklist rather than a clean one. The key is the screen record's \
+         `bands` and never its `regions`: the region vocabulary is the subject's own and is \
+         deliberately open, and an open set cannot refuse a name that is not a band.",
+    ));
     run.note(PIPELINE_NOTE);
 
     if reviews.is_empty() && redraws.is_empty() && manifest.is_none() {
@@ -881,12 +1079,33 @@ mod unit_tests {
 mod proof_tests {
     use crate::testing::{Harness, run_kind};
     use vds_core::{
-        AuthorityVerdict, Digest, EXIT_PASSED, EXIT_VACUOUS, EXIT_VIOLATION, ProofKind,
-        ProofStatus, RedrawRecord, RedrawStatus, RegionFinding, ReviewId, ReviewRegion, SignoffId,
-        Timestamp, VisualReviewRecord,
+        AuthorityVerdict, DeltaDisposition, Digest, EXIT_PASSED, EXIT_VACUOUS, EXIT_VIOLATION,
+        ProofKind, ProofStatus, RedrawRecord, RedrawStatus, RegionFinding, ReviewDelta, ReviewId,
+        ReviewRegion, SignoffId, Timestamp, VisualReviewRecord,
     };
 
     const ROUTE: &str = "app/dash/page.tsx";
+    /// Where `record_review` writes the screenshot the earning rule re-hashes.
+    const SHOT: &str = "design/captures/dash.png";
+
+    /// A delta of the only kind that needs no citation, so a test whose subject
+    /// is something else does not have to register a redraw to say "it differs".
+    fn delta(describes: &str) -> ReviewDelta {
+        ReviewDelta {
+            describes: describes.to_owned(),
+            disposition: DeltaDisposition::CodeDefect,
+            owed_by: None,
+        }
+    }
+
+    /// Edit a review record in place, through the store.
+    fn amend_review(h: &Harness, id: &ReviewId, edit: impl FnOnce(&mut VisualReviewRecord)) {
+        let store = h.store();
+        let path = store.review_path(id);
+        let mut record: VisualReviewRecord = store.read(&path).unwrap();
+        edit(&mut record);
+        store.replace(&path, &record).unwrap();
+    }
 
     /// A full region checklist, every band examined. The shape a complete pass
     /// produces, spelled out so a partial one is visibly different.
@@ -901,11 +1120,32 @@ mod proof_tests {
             .collect()
     }
 
-    /// The estate: one screen, its ledger, one captured frame.
+    /// The estate: one screen, its ledger, one captured frame, and the SCREEN
+    /// RECORD whose band declaration the correspondence rule reads.
+    ///
+    /// The band list is spelled out and it is all seven, because these fixtures
+    /// review all seven. That is not padding: when R14 first ran over this
+    /// suite the estate declared `[header, body_rows]` and the rule went red on
+    /// five bands - facets, rail, footer, empty state and keyboard - in VDS's
+    /// own fixtures, on every test that used `every_region`. The fixtures were
+    /// claiming to have studied bands nothing said the screen had, which is
+    /// precisely the finding the rule exists to make, and the cure is the one
+    /// the rule asks for: declare the bands, or stop claiming to examine them.
     fn estate(h: &Harness) {
         h.screen("dash", &["Button"]);
         h.ledger();
         h.frames(&[Harness::frame("1:2", "dash frame", &["body"], 1)]);
+        h.screen_record("SCR-0001", ROUTE, 1, &["body"], Some("1:2"));
+        h.amend_screen("SCR-0001", |record| {
+            record.arrangement.bands = ReviewRegion::ALL.to_vec();
+        });
+    }
+
+    /// Narrow the estate's band declaration, for the correspondence seeds.
+    fn declare_bands(h: &Harness, bands: &[ReviewRegion]) {
+        h.amend_screen("SCR-0001", |record| {
+            record.arrangement.bands = bands.to_vec();
+        });
     }
 
     /// Record a verdict against the CURRENT ledgers.
@@ -924,6 +1164,12 @@ mod proof_tests {
         let row = screens.screens.iter().find(|s| s.route == ROUTE).unwrap();
         let frames = vds_figma::frames::read(&project).unwrap().unwrap();
         let frame = frames.row("1:2").unwrap();
+        // A REAL FILE on disk, digested from its bytes. The earning rule
+        // re-hashes it, so a fixture that recorded a digest of nothing would
+        // test the rule against a case no pipeline can produce - and the two
+        // seeds below (an absent file, and bytes that moved) would then have
+        // nothing to be different from.
+        let shot = h.write_bytes(SHOT, b"the shipped screenshot, as reviewed\n");
         let store = h.store();
         let id = ReviewId::allocate(&store.reviews_dir()).unwrap();
         h.review(VisualReviewRecord {
@@ -931,13 +1177,15 @@ mod proof_tests {
             routes: routes.iter().map(|r| (*r).to_owned()).collect(),
             file_key: "KEY".into(),
             node_id: "1:2".into(),
-            shipped_screenshot_digest: Digest::of_text("screenshot-png"),
+            shipped_screenshot_digest: Digest::of_file(&shot).unwrap(),
+            screenshot_path: Some(SHOT.to_owned()),
+            served_build: Some("build 3a4a316d".into()),
             shipped_source_digest: row.digest.clone(),
             frame_image_digest: Digest::of_text("frame-png"),
             frame_digest: frame.content_digest.clone().unwrap(),
             verdict,
             regions,
-            deltas: deltas.iter().map(|d| (*d).to_owned()).collect(),
+            deltas: deltas.iter().map(|d| delta(d)).collect(),
             contract_signoff: contract,
             reviewed_by: "claude-fable-5 visual pass v1".into(),
             reviewed_at: Timestamp::fixed(2026, 8, 1, hour, 0, 0),
@@ -1160,6 +1408,307 @@ mod proof_tests {
             text.contains("facets") && text.contains("footer"),
             "the bands accounted for in neither direction must be named: {text}"
         );
+    }
+
+    // -- draft S-7D(12): a conform verdict earns its claim ---------------------
+
+    /// SEED R13(a). The minted record: a conform verdict naming no screenshot,
+    /// so the one hash that could be re-derived from an artefact is absent and
+    /// the verdict rests on two fields somebody typed.
+    #[test]
+    fn a_conform_verdict_naming_no_screenshot_has_earned_nothing() {
+        let h = Harness::new();
+        let (_, review) = signed_and_reviewed(&h, AuthorityVerdict::Conform, &[]);
+        amend_review(&h, &review, |record| record.screenshot_path = None);
+        let (outcome, text) = run_kind(&h, ProofKind::VisualReview);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("UNEARNED CONFORMANCE"), "{text}");
+        assert!(text.contains("names no screenshot"), "{text}");
+        assert!(text.contains("MINTED"), "{text}");
+    }
+
+    /// SEED R13(b), and DISTINCT from the one above: the path is there, the
+    /// file is there, and its bytes are not the bytes that were reviewed. A
+    /// rule that only checked for the field would call this green, and this is
+    /// the case where the field is present and the evidence is gone.
+    #[test]
+    fn a_screenshot_whose_bytes_moved_no_longer_backs_the_verdict() {
+        let h = Harness::new();
+        signed_and_reviewed(&h, AuthorityVerdict::Conform, &[]);
+        h.write_bytes(SHOT, b"a different capture, taken later\n");
+        let (outcome, text) = run_kind(&h, ProofKind::VisualReview);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("does not re-hash"), "{text}");
+        assert!(
+            text.contains("picture nobody can now produce"),
+            "the finding says what is gone, not merely that a hash differs: {text}"
+        );
+    }
+
+    /// SEED R13(c). A checklist where every row says `examined: false` is a
+    /// WELL-FORMED record - full checklist, a reason on every row - and it says
+    /// nobody looked. The record-validation rules pass it, which is exactly why
+    /// the earning rule has to be the one that catches it.
+    #[test]
+    fn a_conform_verdict_that_examined_no_band_is_refused_though_the_record_is_valid() {
+        let h = Harness::new();
+        estate(&h);
+        let signoff = h.signoff("KEY", "1:2");
+        let review = record_review(
+            &h,
+            &[ROUTE],
+            AuthorityVerdict::Conform,
+            &[],
+            ReviewRegion::ALL
+                .into_iter()
+                .map(|region| RegionFinding {
+                    region,
+                    examined: false,
+                    finding: "not examined: capture debt, needs seeded data".into(),
+                })
+                .collect(),
+            Some(signoff),
+            12,
+        );
+        let store = h.store();
+        let record: VisualReviewRecord = store.read(&store.review_path(&review)).unwrap();
+        assert!(
+            record.defects().is_empty(),
+            "the record is WELL FORMED and says nobody looked, which is the whole difficulty: \
+             {:?}",
+            record.defects()
+        );
+        let (outcome, text) = run_kind(&h, ProofKind::VisualReview);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("examined NO band"), "{text}");
+    }
+
+    /// SEED R13(d), the one found in LANDED records rather than by minting one:
+    /// the shipped source digest is taken from the local tree, so with no
+    /// served build the record can pair a picture of one build with the hash of
+    /// another and nothing in it says so.
+    #[test]
+    fn a_conform_verdict_naming_no_served_build_has_earned_nothing() {
+        let h = Harness::new();
+        let (_, review) = signed_and_reviewed(&h, AuthorityVerdict::Conform, &[]);
+        amend_review(&h, &review, |record| record.served_build = None);
+        let (outcome, text) = run_kind(&h, ProofKind::VisualReview);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("LOCAL TREE"), "{text}");
+    }
+
+    /// THE OTHER DIRECTION, and the one that keeps the rule switched on: a
+    /// DEVIATE verdict claims no parity, so none of the four conditions is
+    /// asked of it. A rule that fired on verdicts claiming nothing would make
+    /// recording a deviation dearer than recording nothing, and an estate that
+    /// learns that stops recording deviations.
+    #[test]
+    fn a_deviate_verdict_missing_every_earning_condition_fails_r5_and_never_r13() {
+        let h = Harness::new();
+        let (_, review) = signed_and_reviewed(
+            &h,
+            AuthorityVerdict::Deviate,
+            &["the counted facet row is drawn in the frame and not shipped"],
+        );
+        amend_review(&h, &review, |record| {
+            record.screenshot_path = None;
+            record.served_build = None;
+            for finding in &mut record.regions {
+                finding.examined = false;
+                finding.finding = "not examined: capture debt".into();
+            }
+        });
+        let (outcome, text) = run_kind(&h, ProofKind::VisualReview);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("deviation(s), reviewed by"), "{text}");
+        assert!(
+            !text.contains("UNEARNED"),
+            "the earning rule must not reach a verdict that claims no parity: {text}"
+        );
+    }
+
+    // -- draft S-7D(14): the band correspondence ------------------------------
+
+    /// SEED R14. A reviewer examines five bands this screen does not have. In
+    /// the ledger that reads as depth; what it is, is a finding about another
+    /// screen.
+    #[test]
+    fn an_examined_band_the_screen_does_not_declare_is_foreign_and_fails() {
+        let h = Harness::new();
+        signed_and_reviewed(&h, AuthorityVerdict::Conform, &[]);
+        declare_bands(&h, &[ReviewRegion::Header, ReviewRegion::BodyRows]);
+        let (outcome, text) = run_kind(&h, ProofKind::VisualReview);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(
+            text.contains("5 band(s) this screen does not have"),
+            "{text}"
+        );
+        assert!(text.contains("rail") && text.contains("keyboard"), "{text}");
+    }
+
+    /// The rule reads STUDY and not PAPERWORK. The same five bands, recorded
+    /// as not examined with a reason, are a lawful triage answer and not a
+    /// claim about anything, so nothing is foreign.
+    #[test]
+    fn a_foreign_band_recorded_as_unexamined_is_lawful_and_passes() {
+        let h = Harness::new();
+        estate(&h);
+        declare_bands(&h, &[ReviewRegion::Header, ReviewRegion::BodyRows]);
+        let signoff = h.signoff("KEY", "1:2");
+        record_review(
+            &h,
+            &[ROUTE],
+            AuthorityVerdict::Conform,
+            &[],
+            ReviewRegion::ALL
+                .into_iter()
+                .map(|region| RegionFinding {
+                    region,
+                    examined: matches!(region, ReviewRegion::Header | ReviewRegion::BodyRows),
+                    finding: "matches the frame, or: this screen has no such band".into(),
+                })
+                .collect(),
+            Some(signoff),
+            12,
+        );
+        let (outcome, text) = run_kind(&h, ProofKind::VisualReview);
+        assert_eq!(
+            outcome.status,
+            ProofStatus::Passed,
+            "a band recorded as NOT examined is a lawful answer about a band the screen does \
+             not have: {text}"
+        );
+        assert!(!text.contains("does not have"), "{text}");
+    }
+
+    /// SEED W7, and the reason this rule is asked in two steps. A screen that
+    /// declares no bands makes the correspondence UNRUNNABLE, and the run must
+    /// SAY SO: a rule that cannot run and says nothing is indistinguishable
+    /// from one that ran and found nothing.
+    #[test]
+    fn a_screen_declaring_no_bands_reports_that_the_rule_did_not_run() {
+        let h = Harness::new();
+        signed_and_reviewed(&h, AuthorityVerdict::Conform, &[]);
+        declare_bands(&h, &[]);
+        let (outcome, text) = run_kind(&h, ProofKind::VisualReview);
+        assert_eq!(
+            outcome.status,
+            ProofStatus::Passed,
+            "an unrunnable rule is not a failure; it is an unrunnable rule: {text}"
+        );
+        assert!(text.contains("REGION CORRESPONDENCE DID NOT RUN"), "{text}");
+        // THE NOTE, not merely the exit code. The reach is the load-bearing
+        // half: on the estate this was written for the same check could only
+        // run on 17 rows of 160, and one number holding both facts would have
+        // reported 143 unmeasured routes as clean.
+        assert!(
+            text.contains("R14 ran on 0 route(s)"),
+            "the run must report what the rule could NOT do, on its own face: {text}"
+        );
+        assert!(text.contains("COULD NOT RUN on 1 route(s)"), "{text}");
+    }
+
+    /// The other unrunnable shape: no screen record claims the route at all.
+    #[test]
+    fn a_route_no_screen_record_claims_reports_that_the_rule_did_not_run() {
+        let h = Harness::new();
+        signed_and_reviewed(&h, AuthorityVerdict::Conform, &[]);
+        h.amend_screen("SCR-0001", |record| {
+            record.route = "app/somewhere/else/page.tsx".into();
+        });
+        let (outcome, text) = run_kind(&h, ProofKind::VisualReview);
+        assert_eq!(outcome.status, ProofStatus::Passed, "{text}");
+        assert!(text.contains("no screen record names"), "{text}");
+        assert!(text.contains("R14 ran on 0 route(s)"), "{text}");
+    }
+
+    // -- draft S-7D(13): a delta is classified, and cites its row -------------
+
+    /// An uncited delta REFUSES THE RECORD, and the consequence is the one that
+    /// matters: the record confers no coverage, so its route falls back into
+    /// the never-reviewed population by name. A rule that only warned would
+    /// leave the route reading as covered by a verdict nobody can act on.
+    #[test]
+    fn an_uncited_delta_confers_no_coverage_and_its_route_reads_as_owed() {
+        let h = Harness::new();
+        let (_, review) = signed_and_reviewed(
+            &h,
+            AuthorityVerdict::Deviate,
+            &["the shipped empty state is preferred to the drawn one"],
+        );
+        amend_review(&h, &review, |record| {
+            record.deltas = vec![ReviewDelta {
+                describes: "the shipped empty state is preferred to the drawn one".into(),
+                disposition: DeltaDisposition::ShippedIsBetter,
+                owed_by: None,
+            }];
+        });
+        h.route_manifest(&[ROUTE]);
+        let (outcome, text) = run_kind(&h, ProofKind::VisualReview);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("cites no row"), "{text}");
+        assert!(
+            text.contains("NEVER REVIEWED"),
+            "an invalid record confers no coverage, so the route is owed and NAMED: {text}"
+        );
+        assert!(text.contains("1 NEVER REVIEWED"), "{text}");
+    }
+
+    #[test]
+    fn a_delta_citing_the_wrong_series_is_refused() {
+        let h = Harness::new();
+        let (_, review) = signed_and_reviewed(
+            &h,
+            AuthorityVerdict::Deviate,
+            &["the command bar belongs to the shell, not to this route"],
+        );
+        amend_review(&h, &review, |record| {
+            record.deltas = vec![ReviewDelta {
+                describes: "the command bar belongs to the shell, not to this route".into(),
+                disposition: DeltaDisposition::BelongsToAppChrome,
+                owed_by: Some("RDW-0001".into()),
+            }];
+        });
+        let (outcome, text) = run_kind(&h, ProofKind::VisualReview);
+        assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+        assert!(text.contains("not a SCR- row"), "{text}");
+    }
+
+    /// A disposition CLASSIFIES and never DISPOSES. Every one of the seven
+    /// leaves the verdict deviate and leaves R5 red, and the finding says so on
+    /// its face, because the face of the finding is the interface an agent acts
+    /// on.
+    #[test]
+    fn every_disposition_still_leaves_the_deviation_red() {
+        for disposition in DeltaDisposition::ALL {
+            let h = Harness::new();
+            let (_, review) = signed_and_reviewed(
+                &h,
+                AuthorityVerdict::Deviate,
+                &["the footer window statement is not shipped"],
+            );
+            let owed_by = disposition.owed_by_prefixes().first().map(|prefix| {
+                // A citation in the right series. Whether the row it names
+                // EXISTS is another rule's question; this test is about
+                // whether a well-cited disposition can close a deviation, and
+                // the answer must be no in all seven.
+                format!("{prefix}0001")
+            });
+            amend_review(&h, &review, |record| {
+                record.deltas = vec![ReviewDelta {
+                    describes: "the footer window statement is not shipped".into(),
+                    disposition,
+                    owed_by,
+                }];
+            });
+            let (outcome, text) = run_kind(&h, ProofKind::VisualReview);
+            assert_eq!(
+                outcome.exit_code, EXIT_VIOLATION,
+                "{disposition} closed a deviation, and no disposition may: {text}"
+            );
+            assert!(text.contains(disposition.as_str()), "{text}");
+            assert!(text.contains("CLASSIFIES AND DOES NOT DISPOSE"), "{text}");
+        }
     }
 
     // -- draft S-7D(10): the stage link ---------------------------------------

@@ -38,6 +38,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::Status;
+use super::review::ReviewRegion;
 use crate::ids::ScreenId;
 use crate::timestamp::Timestamp;
 
@@ -105,6 +106,26 @@ pub struct ArrangementContract {
     /// one list.
     #[serde(default)]
     pub regions: Vec<String>,
+    /// Which of the CLOSED review bands this screen has, for the one question
+    /// [`Self::regions`] structurally cannot answer.
+    ///
+    /// A visual review's checklist is closed ([`ReviewRegion`], seven bands) and
+    /// this contract's regions are open free strings, so the two cannot be
+    /// compared: an open set cannot refuse a name that is not a band, and a
+    /// correspondence check keyed on `regions` would answer "is `keyboard` in
+    /// the list" with silence for every screen that spells its bands
+    /// differently. Both halves are right as they stand: closing `regions`
+    /// would make VDS the authority on what a screen is made of, and opening
+    /// the review checklist would let one undifferentiated "the page" bucket
+    /// back in. So the correspondence needs its own declaration, in the closed
+    /// vocabulary, made by the SCREEN.
+    ///
+    /// NOT required, and empty is the honest default: a screen that has not
+    /// declared its bands makes the correspondence rule UNRUNNABLE rather than
+    /// passed, and the proof reports that as a rule that did not run. See
+    /// [`ScreenRecord::band_correspondence_unrunnable_because`].
+    #[serde(default)]
+    pub bands: Vec<ReviewRegion>,
 }
 
 /// The largest column count this type will admit.
@@ -166,6 +187,52 @@ impl ArrangementContract {
 }
 
 impl ScreenRecord {
+    /// Why the band correspondence cannot be run against this screen, or
+    /// `None`.
+    ///
+    /// Asked FIRST, and separately from [`Self::bands_not_drawn`], because the
+    /// two answers a caller could otherwise confuse are "no foreign band" and
+    /// "no basis for the question". A rule that cannot run must not read as a
+    /// rule that ran: on the estate this was written for the same check could
+    /// only run on 17 rows of 160, and a single empty-list answer would have
+    /// reported the other 143 as clean.
+    pub fn band_correspondence_unrunnable_because(&self) -> Option<String> {
+        self.arrangement.bands.is_empty().then(|| {
+            format!(
+                "{} declares no review bands (arrangement.bands is empty), so there is nothing \
+                 to compare a reviewer's checklist against. This is not a pass: it is the \
+                 correspondence rule having no basis to run on. Declare the bands this screen \
+                 has, in the closed review vocabulary: {}.",
+                self.id,
+                ReviewRegion::ALL
+                    .iter()
+                    .map(|r| r.as_str())
+                    .collect::<Vec<&str>>()
+                    .join(", ")
+            )
+        })
+    }
+
+    /// The bands a reviewer EXAMINED that this screen does not declare.
+    ///
+    /// Empty where the screen declares nothing, so a caller that skipped
+    /// [`Self::band_correspondence_unrunnable_because`] gets a clean answer and
+    /// no finding, which is exactly why that method exists and why it is asked
+    /// first. The alternative - returning every examined band as foreign for an
+    /// undeclared screen - would make the rule permanently red on every screen
+    /// registered before this field existed, and a permanently red gate is one
+    /// people switch off.
+    pub fn bands_not_drawn(&self, examined: &[ReviewRegion]) -> Vec<ReviewRegion> {
+        if self.arrangement.bands.is_empty() {
+            return Vec::new();
+        }
+        examined
+            .iter()
+            .filter(|band| !self.arrangement.bands.contains(band))
+            .copied()
+            .collect()
+    }
+
     /// The regions this screen requires that `drawn` does not contain, in the
     /// order the contract declares them.
     pub fn required_regions_missing_from(&self, drawn: &[String]) -> Vec<String> {
@@ -186,7 +253,64 @@ mod tests {
         ArrangementContract {
             columns,
             regions: vec![],
+            bands: vec![],
         }
+    }
+
+    fn screen(bands: Vec<ReviewRegion>) -> ScreenRecord {
+        ScreenRecord {
+            id: ScreenId::parse("SCR-0001").unwrap(),
+            route: "app/dash/page.tsx".into(),
+            status: Status::Registered,
+            contract_version: 1,
+            frame: None,
+            arrangement: ArrangementContract {
+                columns: 1,
+                regions: vec!["body".into()],
+                bands,
+            },
+            basis: vec![],
+            notes: None,
+        }
+    }
+
+    /// The caller must ask "can this run" BEFORE "did it find anything", and
+    /// this test is the pair of answers that makes the ordering load-bearing.
+    #[test]
+    fn a_screen_with_no_declared_bands_makes_the_rule_unrunnable_and_not_clean() {
+        let undeclared = screen(vec![]);
+        let why = undeclared
+            .band_correspondence_unrunnable_because()
+            .expect("a reason");
+        assert!(why.contains("not a pass"), "{why}");
+        assert!(
+            why.contains("keyboard"),
+            "a refusal that does not say what to write instead is a wall: {why}"
+        );
+        assert!(
+            undeclared
+                .bands_not_drawn(&[ReviewRegion::Rail, ReviewRegion::Keyboard])
+                .is_empty(),
+            "an undeclared screen answers the second question with silence, which is why the \
+             first one exists"
+        );
+    }
+
+    #[test]
+    fn an_examined_band_the_screen_does_not_declare_is_foreign() {
+        let declared = screen(vec![ReviewRegion::Header, ReviewRegion::BodyRows]);
+        assert!(declared.band_correspondence_unrunnable_because().is_none());
+        assert!(
+            declared
+                .bands_not_drawn(&[ReviewRegion::Header, ReviewRegion::BodyRows])
+                .is_empty()
+        );
+        assert_eq!(
+            declared.bands_not_drawn(&[ReviewRegion::BodyRows, ReviewRegion::Rail]),
+            vec![ReviewRegion::Rail],
+            "a reviewer who studied a rail on a screen that has none has studied something \
+             else"
+        );
     }
 
     /// The R7 move, transplanted: a record "fixed" into something no
@@ -230,6 +354,7 @@ mod tests {
             arrangement: ArrangementContract {
                 columns: 2,
                 regions: vec!["rail".into(), "cmdbar".into(), "body".into()],
+                bands: vec![],
             },
             basis: vec![],
             notes: None,
@@ -267,6 +392,7 @@ mod tests {
             arrangement: ArrangementContract {
                 columns: 2,
                 regions: vec!["rail".into(), "body".into()],
+                bands: vec![ReviewRegion::Rail, ReviewRegion::BodyRows],
             },
             basis: vec!["ACT-VDS-001:s5a".into()],
             notes: None,

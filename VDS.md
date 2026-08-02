@@ -403,8 +403,11 @@ seen it, because the two proof kinds that say the word "screen" read a screen's 
 record holds: the screen's own name for itself (a route, a path), a lifecycle status from
 S-5(4), the frame in the decided-target file that DRAWS it, and an arrangement contract.
 
-**S-5A(3)** The arrangement contract holds a COUNT of side-by-side content panes and a list of
-region NAMES. It may not hold a width, a height or any other length, because S-2(4) admits a
+**S-5A(3)** The arrangement contract holds a COUNT of side-by-side content panes, a list of
+region NAMES, and (under S-7D(14)) an optional list of the CLOSED review BANDS the screen has.
+The two lists are not duplicates of one another: region names are the subject's own open
+vocabulary, and the band list exists because a correspondence check needs a vocabulary that
+can refuse a name. It may not hold a width, a height or any other length, because S-2(4) admits a
 requirement and refuses a realisation and a width is the design's own answer. The prior art
 this is drawn from records a frame's columns as `[924, 420]`; under `.vds/**` that is the
 storing form S-2(2) prohibits, `no_stored_values` would fail on it, and it would go on failing
@@ -836,8 +839,10 @@ proposal was abandoned and the deviation stands, and is never used to record a d
 
 **S-7D(6)** THE VISUAL REVIEW RECORD. The verdict artefact of an automated visual pass:
 shipped-screenshot hash, the route's source digest at review time, frame-image hash, the
-frame's content digest at review time, a delta list, the reviewing agent's identity, and
-the date. The engine validates, stores and stales the record; the capture and review
+frame's content digest at review time, a delta list (each delta CLASSIFIED under S-7D(13)),
+the reviewing agent's identity, and the date. A `conform` verdict also carries the
+screenshot's PATH and the SERVED BUILD it was taken of, and must earn its claim under
+S-7D(12). The engine validates, stores and stales the record; the capture and review
 pipeline lives in the consuming repo, because a proof may not call a network or a model
 (S-7(2)(1)). A verdict is evidence only while the shipped side, the frame side, AND the
 authority all still hash to what was reviewed; any of the three moving ENDS the verdict,
@@ -912,6 +917,63 @@ is inert until register records carry `directedAt` or `measuredBy`; the I4 censu
 instrument that keeps that inertness visible. While the register is empty every frame-bound
 verdict resolves no_authority - coverage owed, never green - which is the correct posture
 between the judgment and the register's first row.
+
+**S-7D(12) - A CONFORM VERDICT EARNS ITS CLAIM, OR IT IS NOT ONE.** A `conform` verdict is
+refused unless it names a SCREENSHOT PATH whose file still hashes to the screenshot digest
+it records, names the SERVED BUILD the screenshot was taken of, and examined at least one
+band. The defect is measured, not imagined: the whole conform branch of the proof was one
+line marking the row enforced, and three of these four conditions were demonstrated on the
+downstream estate by MINTING a passing record, each one alone enough to conjure a route at
+parity out of nothing; the fourth was found in landed records. Each limb closes a different
+hole. Without the path nothing in the record can be re-derived from an artefact, so the
+verdict rests on two hashes of three and the missing one is the picture of the product.
+Without a matching re-hash the field is present and the evidence is gone. Without the served
+build the shipped source digest is computed from the LOCAL TREE and can describe code the
+screenshot never ran. And a checklist in which every row says `examined: false` is a
+perfectly well-formed record that says NOBODY LOOKED. The rule reaches `conform` and NOTHING
+ELSE: a deviate verdict claims no parity, and holding it to a parity standard would make
+recording a deviation dearer than recording nothing, which is how an estate stops recording
+deviations. It is a defect in the RECORD, curable by the recorder, so it is fatal in every
+authority state, with R1, R6 and R11.
+
+**S-7D(13) - A DELTA IS CLASSIFIED, AND THE CLASS CITES ITS ROW.** Each delta carries a
+DISPOSITION from a closed set of seven - `code_defect`, `frame_behind_product`,
+`frame_draws_annotation`, `shipped_is_better`, `needs_absent_data`, `belongs_to_app_chrome`,
+`forbidden_by_policy` - and the field is required, so an unclassified delta is refused by the
+DESERIALISER rather than disapproved of by a rule. A bare list answered "what differs" and
+nothing else, so a frame drawn before a product decision, an annotation the exporter drew
+into the image, a band nobody seeded data for and a genuine code defect were one population
+with one queue. Every disposition that asserts the work lives SOMEWHERE ELSE must cite the
+row that carries it - a redraw (`RDW-`) for the three frame-side kinds, a screen record
+(`SCR-`) for app chrome, a prohibition or direction (`PRB-`/`DIR-`) for a policy bar - and
+the two that are claims about the artefacts the verdict already names cite nothing. Without
+the citation the taxonomy is seven synonyms for "not now".
+
+There is deliberately NO `accepted` and NO `wont_fix`, and there never will be. An acceptance
+state is taste exercised after sign-off, and taste is exercised once, AT sign-off: a fourth
+value here would be a fourth `AuthorityVerdict` wearing a different field name, reachable by
+the recorder rather than by the signer. EVERY disposition leaves the verdict `deviate` and
+leaves R5 RED. A DISPOSITION CLASSIFIES AND NEVER DISPOSES. An invalid delta refuses the
+whole record, and an invalid record CONFERS NO COVERAGE, so its route returns to the
+never-reviewed population by name.
+
+**S-7D(14) - REGION CORRESPONDENCE, AND THE DECLARATION IT NEEDS.** A screen record's
+arrangement contract gains `bands`: which of the CLOSED review bands that screen has. It is a
+different list from `regions` and not a duplicate: `regions` is the SUBJECT's own vocabulary
+and is deliberately open (S-5A), and an open set cannot refuse a name that is not a band, so
+it cannot be the correspondence key. A reviewer who EXAMINED a band the screen does not
+declare has made a finding about another screen, and in the ledger that reads as depth; that
+is R14 and it is fatal. A band recorded `examined: false` is never foreign: the rule reads
+STUDY, not paperwork.
+
+The rule is asked in two steps and the ORDER is part of it. Where no screen record claims the
+route, or the record declares no bands, the correspondence CANNOT RUN: that is reported per
+route, counted as a skipped row, and summarised on the face of every run as "ran on N, could
+not run on M". A rule that cannot run must not read as a rule that ran and found nothing - on
+the estate this was written for the same check could only run on 17 rows of 160 - and one
+number holding both facts would have reported 143 unmeasured routes as clean. `bands` is NOT
+required and empty is the honest default, because a rule that went permanently red on every
+screen registered before the field existed is a rule people switch off.
 
 **S-7(6)** Adding a proof kind is an amendment to this specification and to the invariant
 registry, not a script anyone may drop in. The registry is closed for the same reason VJS

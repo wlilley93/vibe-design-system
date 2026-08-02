@@ -265,6 +265,62 @@ mod tests {
         assert_eq!(schemas().unwrap(), schemas().unwrap());
     }
 
+    /// A closed vocabulary and a new field reach the PUBLISHED contract, or the
+    /// JSON and the Rust are two opinions about one shape.
+    ///
+    /// Named values rather than a count, for the reason the test above records:
+    /// a count rots the moment a type gains a member and the failure message
+    /// still explains why the old number was right. These two are the ones a
+    /// consumer validates against - a delta the engine will refuse to
+    /// deserialise, and the band declaration without which the correspondence
+    /// rule cannot run - so a subscriber that reads only the schema must be
+    /// able to see both.
+    #[test]
+    fn the_published_schemas_carry_the_delta_vocabulary_and_the_band_declaration() {
+        let generated = schemas().unwrap();
+        let review = &generated["visual-review-record"];
+        for disposition in vds_core::DeltaDisposition::ALL {
+            assert!(
+                review.contains(&format!("\"{}\"", disposition.as_str())),
+                "the visual review schema does not publish the {disposition} disposition, so a \
+                 consumer validating against it would accept a record this engine refuses"
+            );
+        }
+        assert!(
+            review.contains("forbidden_by_policy"),
+            "the closed disposition vocabulary is not in the published contract"
+        );
+        // Read as VALUES and not as text. Both words appear, correctly, in the
+        // prose explaining why neither is a member, and a substring test would
+        // have failed on the sentence that says they do not exist.
+        let parsed: serde_json::Value = serde_json::from_str(review).unwrap();
+        // One `oneOf` branch per variant, because every variant carries its own
+        // documentation: the member is the branch's single-valued `enum`.
+        let members: Vec<String> = parsed["definitions"]["DeltaDisposition"]["oneOf"]
+            .as_array()
+            .expect("the disposition vocabulary is published as a closed set")
+            .iter()
+            .filter_map(|branch| branch["enum"][0].as_str().map(str::to_owned))
+            .collect();
+        assert_eq!(
+            members.len(),
+            vds_core::DeltaDisposition::ALL.len(),
+            "the published vocabulary and the Rust one are different sizes: {members:?}"
+        );
+        for absent in ["accepted", "wont_fix"] {
+            assert!(
+                !members.iter().any(|m| m == absent),
+                "{absent:?} has reached the published contract, and an acceptance state is \
+                 taste exercised downstream of sign-off"
+            );
+        }
+        assert!(
+            generated["screen-record"].contains("\"bands\""),
+            "the screen record schema does not publish `bands`, and a screen that cannot \
+             declare its bands makes the band correspondence permanently unrunnable"
+        );
+    }
+
     /// VDS S-2(4): an artefact may hold a requirement and never a realisation.
     /// The published contract must not name one either.
     #[test]

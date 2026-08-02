@@ -697,6 +697,11 @@ impl Harness {
             arrangement: ArrangementContract {
                 columns,
                 regions: regions.iter().map(|r| (*r).to_owned()).collect(),
+                // Empty, and declared through `amend_screen` where a test's
+                // subject is the band correspondence. A helper that supplied a
+                // plausible band list for every screen would decide the answer
+                // to the one question that rule asks.
+                bands: vec![],
             },
             basis: vec!["ACT-VDS-001:s5a".into()],
             notes: None,
