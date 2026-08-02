@@ -112,6 +112,34 @@ progress against a denominator of 199.
 S-7C `burndown` bounds how fast a population is drained. It does not ask whether the population
 CAN reach zero, and a ratchet on the numerator is silent when the ceiling is in the denominator.
 
+## 9. The headline number is carried by excuses that never expire and are never printed
+
+The subscriber's column gate ended the day reporting:
+
+    2 column deviation(s) owed, 26 accepted, 2 pinned in the baseline.
+
+That is the whole report on the 26. They are not named, not dated, and not reviewable:
+
+- **None of the 26 carries a review date.** Not one. The gate's source contains no
+  `reviewBy` handling of any kind, so there is no date for it to read and nothing that
+  could lapse.
+- **They are printed as a count and never as a list** on a normal run. A reader sees one
+  numeral where 26 individual judgements are standing.
+- The estate's OWN neighbouring gates do better. Three of them read a `reviewBy` and fail
+  when the window lapses, and the commit that built that mechanism wrote down the reason in
+  terms: "an acceptance nobody can see becomes permanent; an acceptance with no expiry
+  becomes forever." Both halves of that sentence are true of the gate next door, and the
+  same author wrote both.
+
+The honest reading of that line is that 28 rows are not at parity and 26 of them have been
+excused in perpetuity. The reported figure fell from 13 to 2 in a single run, and 8 of the
+11 that left the owed column moved into the accepted column rather than being built.
+
+S-7A(2) requires a bound to carry a DIRECTION, a target and a review date, not merely a
+floor. This population has neither, and S-7C `burndown` reads the numerator that the
+acceptances drain into. A kind that bounds a number cannot see a number falling because its
+overflow has somewhere silent to go.
+
 ## What this is not
 
 It is not an argument that the answer is a sixteenth kind. The applicant authored one,
@@ -125,6 +153,6 @@ It is the record of what one estate found in a single day when it stopped treati
 green count as a statement about a screen, offered so that whatever the court decides is
 decided on facts somebody has.
 
-Findings 7 and 8 were added the same day, after the first six had been filed. Both were found
+Findings 7, 8 and 9 were added the same day, after the first six had been filed. Both were found
 by reading the register the parity definition depends on, which nothing in the programme had
 done either: it had been read as an input for years and never as an artefact.
