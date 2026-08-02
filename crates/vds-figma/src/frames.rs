@@ -676,12 +676,71 @@ fn content_columns(container: &Node) -> (u32, bool) {
             reached_boundary = true;
             continue;
         }
-        let children: Vec<&Node> = band.children.iter().filter(|c| c.visible).collect();
+        // A band holding one full-width box is a WRAPPER: the columns are
+        // inside it. See `unwrap_wrapper` for why this is bounded rather than
+        // a blanket descent.
+        let inner = unwrap_wrapper(band);
+        let children: Vec<&Node> = inner.children.iter().filter(|c| c.visible).collect();
         if let Some(count) = cluster(&children) {
             return (count, false);
         }
     }
     (1, reached_boundary)
+}
+
+/// Descend through a lone child that FILLS its parent, because that is a
+/// wrapper and not content.
+///
+/// A band whose visible children are exactly one box filling the band draws
+/// nothing itself: the columns are that box's children. Clustering the band
+/// hands [`cluster`] a single box, it needs two, it returns `None`, and the
+/// derivation falls through to 1. The drawing has three columns and the ledger
+/// says one, with no sign that anything was missed.
+///
+/// MEASURED, NOT SUPPOSED. In the subject this was derived from, nine entity
+/// detail frames draw three columns each. Eight nest them in a 1304-wide
+/// wrapper inside a 1344 band and derived 1; the ninth's wrapper fills its band
+/// exactly at 1344 and derived three. Same family, same drawing, and the only
+/// difference between a right answer and a wrong one was 20px of inset. The
+/// eight were recorded as deviating in the WRONG DIRECTION for weeks, because a
+/// count that is confidently wrong reads exactly like a count that is right.
+///
+/// A LONE CHILD IS NOT ALWAYS A WRAPPER, so this is bounded three ways and each
+/// bound is load-bearing:
+///
+/// - it must fill BOTH axes. A single narrow card in a wide band is content,
+///   and descending into it would report that card's internals as the screen's
+///   columns.
+/// - it must HAVE children. Descending into a leaf replaces a box we measured
+///   with nothing, which manufactures "the frame draws nothing here" out of a
+///   frame that plainly draws something.
+/// - it must not be TRUNCATED. Below the capture boundary an empty child list
+///   means we did not look, and unwrapping into it converts our own blindness
+///   into a statement about the drawing. That is the prior art's founding
+///   defect and it must not be reintroduced one function along.
+fn unwrap_wrapper(band: &Node) -> &Node {
+    /// The share of each axis a child must span before it is a wrapper rather
+    /// than content. Not 1.0: a wrapper commonly carries a small inset.
+    const FILL: f64 = 0.9;
+
+    let mut node = band;
+    loop {
+        let kids: Vec<&Node> = node.children.iter().filter(|c| c.visible).collect();
+        let [only] = kids[..] else { return node };
+        let (Some(outer), Some(inner)) = (node.box_of, only.box_of) else {
+            return node;
+        };
+        if outer.width <= 0.0 || outer.height <= 0.0 {
+            return node;
+        }
+        if inner.width < outer.width * FILL || inner.height < outer.height * FILL {
+            return node;
+        }
+        if only.truncated || only.children.iter().all(|c| !c.visible) {
+            return node;
+        }
+        node = only;
+    }
 }
 
 /// The number of x-disjoint clusters among these nodes, or `None` where there
@@ -1178,6 +1237,112 @@ mod tests {
             ledger.row("1:1").unwrap().columns,
             2,
             "counting the header as a column reports ONE, every time, on the majority of screens"
+        );
+    }
+
+    /// THE WRAPPER CASE, and it cost a subscriber estate weeks of wrong record.
+    ///
+    /// Nine entity detail frames drew three columns each. Eight nested them in
+    /// a 1304-wide wrapper inside a 1344 band and derived ONE; the ninth's
+    /// wrapper filled its band exactly and derived three. Same family, same
+    /// drawing, and the only difference was 20px of inset. The eight were then
+    /// recorded as deviating in the wrong DIRECTION, because a confidently
+    /// wrong count reads exactly like a right one.
+    #[test]
+    fn a_lone_full_width_child_is_a_wrapper_and_not_a_column() {
+        let frame = band(
+            "Screen · /entities/files/[id]",
+            0.0,
+            1344.0,
+            900.0,
+            serde_json::json!([band(
+                "body",
+                0.0,
+                1344.0,
+                824.0,
+                // One child, inset 20px each side: a wrapper, not content.
+                serde_json::json!([band(
+                    "wrapper",
+                    20.0,
+                    1304.0,
+                    784.0,
+                    serde_json::json!([
+                        band("nav", 20.0, 300.0, 700.0, serde_json::json!([])),
+                        band("record", 340.0, 676.0, 700.0, serde_json::json!([])),
+                        band("ledger", 1030.0, 300.0, 700.0, serde_json::json!([])),
+                    ])
+                )])
+            )]),
+        );
+        let ledger = build_ledger(
+            "KEY",
+            &[capture(serde_json::json!({"1:1": {"document": frame}}))],
+            &config(),
+            "a test",
+        )
+        .unwrap();
+        assert_eq!(
+            ledger.row("1:1").unwrap().columns,
+            3,
+            "the columns are inside the wrapper; clustering the band sees one box, \
+             needs two, and falls through to 1"
+        );
+    }
+
+    /// The bound that keeps the descent honest. A single NARROW child is
+    /// content, and descending into it reports that card's own internals as the
+    /// screen's columns.
+    ///
+    /// THE SHAPE HERE IS DELIBERATE AND THE FIRST DRAFT GOT IT WRONG. Written
+    /// with the card as a direct child of `body`, the card becomes the tallest
+    /// BAND and the pre-existing descent reads its children, so the test
+    /// returned 2 and proved nothing about the fill bound. The card has to be
+    /// the lone child OF a tall band for `unwrap_wrapper` to be the code under
+    /// test at all. A test that passes through the path it is not testing is
+    /// the same defect as a seed that never lands.
+    #[test]
+    fn a_lone_narrow_child_is_content_and_is_not_unwrapped() {
+        let frame = band(
+            "Screen · /x",
+            0.0,
+            1344.0,
+            900.0,
+            serde_json::json!([band(
+                "body",
+                0.0,
+                1344.0,
+                824.0,
+                serde_json::json!([band(
+                    "section",
+                    0.0,
+                    1344.0,
+                    784.0,
+                    // One child spanning under a third of the section: a card,
+                    // not a wrapper. Its own two panes are NOT the screen's.
+                    serde_json::json!([band(
+                        "card",
+                        0.0,
+                        400.0,
+                        700.0,
+                        serde_json::json!([
+                            band("a", 0.0, 180.0, 600.0, serde_json::json!([])),
+                            band("b", 200.0, 180.0, 600.0, serde_json::json!([])),
+                        ])
+                    )])
+                )])
+            )]),
+        );
+        let ledger = build_ledger(
+            "KEY",
+            &[capture(serde_json::json!({"1:1": {"document": frame}}))],
+            &config(),
+            "a test",
+        )
+        .unwrap();
+        assert_eq!(
+            ledger.row("1:1").unwrap().columns,
+            1,
+            "a narrow card's internals are not the screen's columns"
         );
     }
 
