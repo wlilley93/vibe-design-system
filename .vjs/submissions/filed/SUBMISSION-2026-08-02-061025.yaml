@@ -1,0 +1,54 @@
+id: SUBMISSION-2026-08-02-061025
+court_requested: appeal
+jurisdiction: default
+question: Is 'the registry is CLOSED AT FIFTEEN' (VDS.md:596, citing [2026] VJS-CA-VDS 1 order 15) the RATIO of that order or a RECITAL of what it did? Order 15 decided only where to house the measurement-coverage clause, 2-1 against Engine J who would have made it a sixteenth kind.
+facts: |
+  # Is "the registry is CLOSED AT FIFTEEN" a ratio, or a recital of what one order did?
+
+  ## The blind spot that prompts this
+
+  VDS S-7(5) `screen_parity` R4 reads: "the frame draws a different number of content
+  columns than the record requires". It compares COUNTS.
+
+  In the subscriber estate that is concrete. A route's ledger entry records the frame's
+  column boxes as [924, 420]; the gate takes len() and compares the number 2 against a
+  code side that also reads 2. The widths are in the same file and are discarded, and so
+  is every child the frame draws inside those columns: for that one route, a header band
+  holding four named facet chips, a date range and a filter cluster, and a 420px rail
+  holding five label/value pairs above a CTA. All measured, all recorded, compared
+  against nothing. The route scores clean on the only kind that scores it.
+
+  A local instrument (D32) now reads that band content. Its verdict is FOUR-valued: of 382
+  claims, 52 satisfied, 45 present but off the screen's path, 273 UNDECIDED, 12 missing,
+  plus 1363 children named literally "Frame" counted silent and never satisfied. No enacted
+  kind can express it: none of the fifteen carries a bucket for "I cannot judge this".
+
+  ## The bar
+
+  VDS.md:596 states "The registry is CLOSED AT FIFTEEN and no sixteenth kind was created",
+  citing [2026] VJS-CA-VDS 1 order 15. S-14A(3) and AGENTS.md:102-105 repeat it, and
+  `crates/vds-core/src/types/proof.rs` asserts the numeral so a variant cannot appear
+  without an amendment.
+
+  ## The question this turns on
+
+  Order 15 decided ONE thing: where to house the measurement-coverage clause. It housed it
+  in `register_completeness`, two to one, against Engine J, who would have made it a
+  sixteenth kind `measurement_coverage`. Schedule B item 6 records the exposure as REAL,
+  NOT CURED by the enactment, and names an express reopen condition.
+
+  So the applicant asks whether the closure sentence is the RATIO of order 15 or a RECITAL
+  of what that judgment happened to do. If a ratio, it bars a kind nobody argued about on facts nobody had. If a recital, S-7(6)
+  already supplies the route - itself worth recording, because three readers have treated
+  the sentence as binding.
+
+  The applicant states no preference and asks the court to decide which it is, and if it
+  is a ratio, whether it should be displaced on this evidence.
+
+  ## Not asked
+
+  No implementation. An authored kind exists and was adversarially refuted on four grounds,
+  so it is not before the court.
+requested_order: TBD
+private_boundary: local
+word_count: 465
