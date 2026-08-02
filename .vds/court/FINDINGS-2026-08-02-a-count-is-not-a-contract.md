@@ -12,9 +12,10 @@ columns than the record requires." This is what that comparison could not see.
 ## 1. A route can be at parity on every count and not resemble its drawing
 
 The subscriber's `/dashboards` scores 2 columns against a frame of 2, and its measured
-widths agree exactly (924 and 420 against `flex-1` beside `w-[420px]` in a 1344 content
-width). It is not at parity. Established by exporting the PNG and looking at it, which
-nothing in the programme had done:
+column widths agree exactly with the frame's: a flexible first column beside a second at a
+fixed width, the same pair in the code and in the drawing, over the same content width. It
+is not at parity. Established by exporting the PNG and looking at it, which nothing in the
+programme had done:
 
 - the page boots with a facet filter ON that the frame draws OFF. The frame's own
   subtitle is "cleared-facet variant" and draws all four chips unselected; the code is
@@ -156,3 +157,35 @@ decided on facts somebody has.
 Findings 7, 8 and 9 were added the same day, after the first six had been filed. Both were found
 by reading the register the parity definition depends on, which nothing in the programme had
 done either: it had been read as an input for years and never as an artefact.
+
+## Restatement note, 2026-08-02
+
+Section 1 as first filed QUOTED a length literal: the subscriber's fixed second-column width,
+written as a utility class, beside the two measured widths and the content width as bare
+numerals. `no_stored_values` read them where they lay and reported the quoted literal as a
+fatal R3 finding under VDS S-2(8) limb 1. That is the trap DECISION-0009 stepped in and
+[2026] VJS-FI-VDS 1 recorded at its section I: a governance record that discusses a realisation
+by quoting it adds a finding, permanently, to an append-only tree, and the count around it
+keeps rising.
+
+The sentence is restated by its author so that the two columns are named by CLASS and by their
+relation, which is what this finding was always arguing about: the counts agree, the widths
+agree, and the route is still not at parity. Nothing the finding asserts is lost, no other
+party's words are touched, and the original wording is in git (VDS S-4(5)), at commit 54776d2.
+
+Restatement is the instrument the ruling prefers and the lesser one. [2026] VJS-FI-VDS 1
+section VI holds that where an author may lawfully restate their own record, restatement
+disposes of the finding, and that the court disposes of the site itself only where no lawful
+restatement exists. The jurisdictional bar that refused restatement there does not reach this
+document: it is the engineer's own evidence, not a superior court's text. Order 1 of that
+judgment makes the class-naming discipline binding on every governance record under `.vds/**`,
+a submission and a findings document alike, so this restatement is compliance with an existing
+order and not a new dispensation.
+
+No adjudicated collision was sought and none would have lain. The mechanism at section VII
+reaches a string with TWO readings that are lexically identical, and the string here had one:
+it was a width utility quoted from the code, asserted by the sentence around it AS the width
+the code draws. Adjudicating it would have disposed of a real value, which order 11 names as a
+ground for returning to the court, and no court has ruled on this site in any event: section
+VIII records that the judgment authorises no adjudication beyond the two at order 5 and that a
+future site needs a future ruling.
