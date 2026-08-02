@@ -78,6 +78,40 @@ subscriber's screen index cites by number. Not an export failure: the API answer
 answers that there is no image. A corpus that cites what it cannot produce is the defect
 the spec citation validator exists for, one level up.
 
+## 7. The register denied, in prose, the signatures it carried in its rows
+
+The subscriber's sign-off register carries a `_note` field describing its own state. It stated
+in terms that nothing in the file was signed and that the signature field was empty on every
+entry. Every one of its 21 rows carried `signedBy: Principal`, `status: registered`, lawfully,
+on a Principal instruction of the previous day.
+
+The consequence is not cosmetic. Two standing orders in that estate turn on signature: an
+unsigned route has no authority, and its findings are advisory rather than blocking. A reader
+who trusted the sentence over the rows would have concluded the entire estate was
+unauthoritative and every design finding report-only, while standing inside the file that
+proves otherwise.
+
+Nothing in the fifteen kinds compares a contract artefact's own prose to its own data. It is
+not `schema` (the file is valid), not `presence` (the field is there), and not `ratchet` (no
+number moved).
+
+## 8. The parity ceiling is set by the register, not by the reviews
+
+A route reaches parity in that estate only on a signed frame plus a current conform verdict,
+and a frame row signs exactly ONE route: a verdict cited against another route's frame is
+refused as a family-scoped verdict wearing a route-scoped shape.
+
+    signed frame rows        17
+    tracked routes          199
+
+So at most 17 of 199 routes can reach parity today, whatever any review pass finds. The other
+182 are not failing review. They have no frame to be reviewed against, and no amount of looking
+changes that. Nobody had written this number down, and the programme's own burndown reports
+progress against a denominator of 199.
+
+S-7C `burndown` bounds how fast a population is drained. It does not ask whether the population
+CAN reach zero, and a ratchet on the numerator is silent when the ceiling is in the denominator.
+
 ## What this is not
 
 It is not an argument that the answer is a sixteenth kind. The applicant authored one,
@@ -90,3 +124,7 @@ more shells.
 It is the record of what one estate found in a single day when it stopped treating a
 green count as a statement about a screen, offered so that whatever the court decides is
 decided on facts somebody has.
+
+Findings 7 and 8 were added the same day, after the first six had been filed. Both were found
+by reading the register the parity definition depends on, which nothing in the programme had
+done either: it had been read as an input for years and never as an artefact.
