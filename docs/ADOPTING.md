@@ -170,6 +170,82 @@ vds figma pull                  # measure what it actually drew
 vds impl CMP-0001               # hand to an implementing agent BEFORE it writes
 ```
 
+## 9b. Register your SCREENS, or `screen_parity` proves nothing
+
+Nine kinds reason about components. `screen_parity` is the only one whose subject is a
+SCREEN, and it needs a record joining a route to the arrangement its frame requires. With
+none, every run reports
+
+```
+rows_considered: 0
+N frame(s) in the capture are claimed by no screen record.
+VACUOUS: this proof cannot currently fail.
+```
+
+which is evidence for no warrant (VDS S-7(2)(4)). **A subscriber estate sat in exactly that
+state for weeks while publishing parity numbers from its own private instruments**, because
+`screen add` registers one screen at a time and the estate has 192.
+
+```bash
+# 1. Derive what the design file draws. Out of band: the capture is saved, never fetched
+#    inside a proof (VDS S-7(2)(1)).
+vds figma frames --from nodes-1.json --from nodes-2.json --file-key <KEY>
+
+# 2. Adopt every frame no record claims. Dry-run first and READ IT.
+vds screen adopt --dry-run
+vds screen adopt
+
+# 3. Now it can fail.
+vds proof screen_parity
+```
+
+**Everything lands at `proposed`, and that is not a formality.** A screen at a proposed
+status is EXCLUDED from the proof, and an exclusion is never a pass. Move one on when
+somebody has ratified its drawing. A bulk command must not manufacture that act, which is
+why `--status` exists and why passing it is a human decision rather than a default.
+
+Three things `adopt` will refuse to do, each because doing them cost somebody real work:
+
+- **It does not adopt a self-disclaiming frame.** A drawing whose authority layer says it is
+  not source-current states no contract, so registering one raises a requirement against a
+  screen the designer has already withdrawn.
+- **It does not guess a route.** The route is the first middot segment beginning with a
+  slash. A frame naming none is printed and skipped, because a record filed against the
+  wrong route makes the proof compare two unrelated screens, which is worse than no record.
+- **It does not hide a truncated reading.** Where the capture stopped at the depth boundary,
+  the record's own note says WE DID NOT LOOK, so an empty region list is never mistaken for
+  a frame that draws nothing.
+
+### Recapture before you re-derive, and check the DATE
+
+`vds figma frames` reads a saved capture. If that capture predates a redraw, re-deriving
+**silently reverts the redraw** in your ledger: the derived artefact was current and the
+source snapshot was stale, which is the direction nobody checks for. One estate lost most of
+a day to it, across 21 routes, and the tell was subtle. A frame that had columns lost them.
+
+> A fresher input does not lose rows. If a re-derivation makes a frame draw LESS than the
+> ledger already said, suspect the capture before you suspect the ledger.
+
+Any currency gate you build must compare against the DESIGN FILE, not against the snapshot
+on your disk. A gate that fails whenever the ledger is newer than the capture is a ratchet
+pointing backwards, because newer-than-the-snapshot is the normal and desirable state.
+
+### If your design is signed WITH VARIATION
+
+A signature may be qualified: the drawing binds, but the shipped screen is allowed to carry
+more than it. That makes the comparison asymmetric, and the asymmetry is worth stating in
+each record's `notes` so a later reader cannot mistake it:
+
+| | |
+|---|---|
+| screen has **less** than the frame draws | deviation; the frame binds; the gap is owed work |
+| screen has **more** | not a defect, never closed by deleting; accommodate it on the page |
+
+Without that second row written down, a parity number can be improved by removing working
+features until the code matches a drawing that was never a complete specification of the
+product. That is the failure this qualification exists to prevent, and it is the one a
+count-based gate rewards.
+
 ## 10. Warrants, when you are ready
 
 **VDS grants nothing.** W1, W2 and W4 are VJS's on a referred submission, and W3 is the
