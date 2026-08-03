@@ -949,7 +949,8 @@ body > .otable {
    four-column stats row on a phone is four columns of one word. */
 @media (max-width: 900px) {
   :root { --gutter: calc(var(--space) * 6); }
-  .stats__row, .gallery__grid, .logos__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stats__row, .stats__grid, .gallery__grid, .logos__grid, .pricing__grid,
+  .faq--columns .faq__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .features__gridInner, .testimonials__gridInner, .team__gridInner { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   /* hero-2's root IS the grid (.hero--split); there is no inner wrapper. The first
      version of this rule targeted .hero__inner, which hero-1 has and hero-2 does not, so
@@ -962,9 +963,14 @@ body > .otable {
 }
 @media (max-width: 600px) {
   :root { --gutter: calc(var(--space) * 4); }
-  .stats__row, .gallery__grid, .logos__grid,
+  /* .faq__grid and .footer__grid are written with their parent because their base rules
+     are .faq--columns .faq__grid and .footer--columns .footer__grid. A bare class here
+     is LOWER specificity than the rule it means to override, so it loses despite coming
+     later, and the footer stayed four columns on a phone with nothing in the diff to see. */
+  .stats__row, .stats__grid, .gallery__grid, .logos__grid, .pricing__grid,
   .features__gridInner, .testimonials__gridInner, .team__gridInner,
-  .footer__cols, .pricing__grid { grid-template-columns: minmax(0, 1fr); }
+  .faq--columns .faq__grid,
+  .footer--columns .footer__grid { grid-template-columns: minmax(0, 1fr); }
   .nav { flex-wrap: wrap; gap: calc(var(--space) * 3); }
   .nav__links { flex-wrap: wrap; }
   .otable { overflow-x: auto; }

@@ -260,6 +260,12 @@ function placeholderContent(type) {
         { name: 'email', label: 'Email', type: 'email', required: true, help: 'We only use this to reply.' },
         { name: 'kind', label: 'Kind', type: 'select', options: ['Replace this option', 'And this one'] },
         { name: 'notes', label: 'Notes', type: 'textarea', placeholder: 'Replace this placeholder' },
+        // The FIFTH field exists to reach the fifth branch. formfield renders four input
+        // shapes and the placeholder exercised three, so `.field__check` was styled by the
+        // stylesheet, emitted by the block, and produced by no test - which reads as dead
+        // CSS from one end and as covered from the other. A placeholder that skips a branch
+        // is a branch nothing renders.
+        { name: 'consent', label: 'Email me the write-up', type: 'checkbox' },
       ],
     },
     emptystate: {

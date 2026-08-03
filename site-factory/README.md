@@ -54,7 +54,7 @@ brief ──▶ suggest.js ──▶ config (36 fields) ──▶ compose.js ─
 | `figma-prompts.json` | MEASURED: the fingerprint of every prompt written into Figma verbatim |
 | `figma-variants.json` | MEASURED: every set's variant AXIS and values, and whether the code varies the same question |
 | `figma-draw.js` | Redraws the library from the register - deterministic, amends in place, binds variables by name |
-| `vendor/uber-base-*.json` | The Uber Base harvest (92 sets, 3,211 variants) and each set's tier |
+| `vendor/uber-base-*.json` | Four readings of Uber Base and the inventory that consolidates them (>=168 sets, >=4,335 variants). The 92/3,211 line here was one of the four crops; see `uber-base-inventory.json` |
 | `docs/FIGMA-MASTER-FILE.md` | What is on each Figma page, and the traps the file has sprung |
 | `docs/REFERENCES.md` | Every external system looked at, what was taken, and the three access blockers |
 | `docs/DESIGN-TWIN.md` | Why the Figma and code components are twins, and which direction automates |

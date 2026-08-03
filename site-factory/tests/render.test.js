@@ -240,6 +240,124 @@ test('every page-level section takes the page frame, and none centres nothing', 
     `section(s) centring with no max-width, which does nothing: ${dead.join(', ')}`);
 });
 
+test('no rule targets a class no block emits', () => {
+  // THE MIRROR of "every class the blocks emit has a rule", and the direction that
+  // actually bit. Three responsive rules were written against selectors that match
+  // nothing: `.hero__inner` (hero-1 has it, hero-2 - the split one being collapsed - does
+  // not), `.footer__cols` (the class is `.footer__grid`), and two grids simply never
+  // named. Each looked right, each was in a media query nobody renders in review, and each
+  // silently did nothing. A selector that matches nothing is the CSS spelling of a control
+  // the renderer ignores.
+  const { STRUCTURE_CSS, BLOCKS } = require('../build.js');
+  const { placeholderContent } = require('../scaffold.js');
+  const { renderPage } = require('../build.js');
+
+  // Every class any variant can put in the DOM, gathered by rendering them all.
+  const emitted = new Set();
+  for (const type of Object.keys(BLOCKS)) {
+    const content = placeholderContent(type);
+    for (const variant of Object.keys(BLOCKS[type])) {
+      const { html } = renderPage({ title: 't', page: [{ block: type, variant, content }] }, PACKS[0], null);
+      for (const m of html.matchAll(/class="([^"]+)"/g)) {
+        for (const c of m[1].split(/\s+/)) if (c) emitted.add(c);
+      }
+    }
+  }
+
+  const targeted = new Set();
+  for (const m of STRUCTURE_CSS.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/\.([a-zA-Z][a-zA-Z0-9_-]*)/g)) {
+    targeted.add(m[1]);
+  }
+
+  // A MODIFIER (`block--variant`) is reachable whenever its base is emitted: it appears
+  // only for particular content - a banner with tone "danger", a badge with a warning
+  // status - and one placeholder per variant cannot produce every tone. A BEM ELEMENT
+  // (`block__part`) is different: it is structural, so if it never appears in any render
+  // it appears nowhere. That distinction is the whole test. `.hero__inner` and
+  // `.footer__cols`, the two that actually shipped broken, are elements and stay caught.
+  const reachable = (c) => {
+    if (emitted.has(c)) return true;
+    const cut = c.lastIndexOf('--');
+    return cut > 0 && emitted.has(c.slice(0, cut));
+  };
+  // The page shell, which renderPage owns rather than any block. Named, so it cannot grow.
+  const SHELL = new Set(['shell', 'shell__main']);
+
+  const phantom = [...targeted].filter((c) => !reachable(c) && !SHELL.has(c)).sort();
+  assert.deepEqual(phantom, [],
+    `stylesheet rules target ${phantom.length} class(es) no block emits, so they style ` +
+    `nothing: ${phantom.join(', ')}`);
+});
+
+test('no responsive rule is outranked by the rule it means to override', () => {
+  // The third way a rule can do nothing, after "wrong class" and "class nobody emits":
+  // RIGHT class, LOWER specificity. `.footer__grid` inside a media query cannot beat
+  // `.footer--columns .footer__grid` outside one, however far down the file it sits,
+  // because specificity is decided before source order. The footer stayed four columns
+  // on a phone and the diff looked correct. Same for `.faq__grid`.
+  //
+  // This compares CLASS COUNT, which is the whole of specificity for this stylesheet:
+  // it has no ids, no inline styles and no !important.
+  const { STRUCTURE_CSS } = require('../build.js');
+  const css = STRUCTURE_CSS.replace(/\/\*[\s\S]*?\*\//g, '');
+
+  // The first version took `base` as everything before the FIRST @media, and the first
+  // @media in this sheet is `prefers-reduced-motion` - which sits above the breakpoints.
+  // So the base map was built from a fraction of the sheet, the footer's own base rule was
+  // never in it, and the test passed against the exact bug it was written for. Strip the
+  // at-rule blocks instead of slicing at one.
+  const mediaBlocks = [...css.matchAll(/@media[^{]+\{([\s\S]*?)\n\}/g)];
+  const media = mediaBlocks
+    .filter((m) => /max-width|min-width/.test(m[0].slice(0, m[0].indexOf('{'))))
+    .map((m) => m[1]).join('\n');
+  let base = css;
+  for (const m of mediaBlocks) base = base.replace(m[0], '');
+
+  // Index by the SUBJECT of the selector - the last compound - not by every class in it.
+  // `.cta--signup .cta__form { gap }` sets gap on the FORM; a media rule setting gap on
+  // `.cta--signup` targets a different element and does not compete with it. Indexing
+  // ancestors too reported that as a conflict, which is a check that cries wolf.
+  const subjectClasses = (sel) => {
+    const last = sel.trim().split(/\s+|>/).filter(Boolean).pop() || '';
+    return last.match(/\.[a-zA-Z][a-zA-Z0-9_-]*/g) || [];
+  };
+  const strongestBase = new Map();
+  for (const m of base.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const selectors = m[1].split(',').map((x) => x.trim()).filter(Boolean);
+    const props = [...m[2].matchAll(/([a-z-]+)\s*:/g)].map((p) => p[1]);
+    for (const sel of selectors) {
+      const all = (sel.match(/\.[a-zA-Z][a-zA-Z0-9_-]*/g) || []).length;
+      for (const c of subjectClasses(sel)) {
+        for (const prop of props) {
+          const key = `${c}|${prop}`;
+          strongestBase.set(key, Math.max(strongestBase.get(key) || 0, all));
+        }
+      }
+    }
+  }
+
+  const outranked = [];
+  for (const m of media.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const selectors = m[1].split(',').map((x) => x.trim()).filter(Boolean);
+    const props = [...m[2].matchAll(/([a-z-]+)\s*:/g)].map((p) => p[1]);
+    for (const sel of selectors) {
+      const classes = sel.match(/\.[a-zA-Z][a-zA-Z0-9_-]*/g) || [];
+      if (!classes.length) continue;
+      for (const prop of props) {
+        for (const c of subjectClasses(sel)) {
+          const need = strongestBase.get(`${c}|${prop}`) || 0;
+          if (need > classes.length) {
+            outranked.push(`${sel} { ${prop} } is ${classes.length} class(es) against a base rule of ${need}`);
+          }
+        }
+      }
+    }
+  }
+  assert.deepEqual([...new Set(outranked)], [],
+    'responsive rule(s) that cannot win against their own base rule:\n  ' +
+    [...new Set(outranked)].join('\n  '));
+});
+
 test('the page frame is overridable, and the override reaches the CSS', () => {
   // A token a project cannot set is the same as a hard-coded value with extra steps.
   // --container was literally `1100px` in the emitter, so a brand drawn to a different
