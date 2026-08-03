@@ -70,6 +70,64 @@ pub struct FigmaApi {
     pub token: String,
 }
 
+/// How long `curl` may take before the pull is abandoned.
+///
+/// Sixty seconds cannot fetch a real design file. Measured 2026-08-03: the decided
+/// target's 136 MB document took 312 s on a gigabit line, so a 60 s ceiling did not
+/// slow that pull down, it made it impossible. Ten minutes is chosen to be longer
+/// than any observed pull rather than to be tight, because the failure this bounds
+/// is a hung connection, and a hung connection is not distinguishable from a slow
+/// one in under a minute.
+const MAX_TIME_SECONDS: &str = "600";
+
+/// Whether a body stops before the JSON document it claims to be does.
+///
+/// `GET /v1/files/:key` on a large file answers **HTTP 200, sends no
+/// `content-length`** because the response is chunked, and then stops mid-string.
+/// `curl --fail` cannot see it: the status line said 200 and the stream ended, so
+/// curl exits 0 and hands back a body that is simply short.
+///
+/// Measured 2026-08-03 on one 136,114,759 B file, fetched twice: 102,744,823 B and
+/// 62,846,637 B arrived, both HTTP 200, neither valid JSON, truncated at two
+/// DIFFERENT points. That last detail is the dangerous one. Comparing two such
+/// bodies showed a 38 MB difference between two files whose documents are
+/// byte-identical, and every count taken from either would have been short without
+/// anything anywhere reporting an error.
+///
+/// The check is the cheapest one that is exact: a whole JSON document ends with its
+/// closing brace, and a body cut mid-string cannot. It costs two trims on a string
+/// already in memory, so it can run on every fetch rather than only when something
+/// downstream already looks wrong.
+///
+/// It requires the OPENING brace as well, and that is not decoration. A rate-limit
+/// page or a proxy's error HTML also fails to end in a brace, and calling that
+/// "truncated" would send the reader to chunk a request that was never answered
+/// with a document at all. This predicate says one thing: a JSON object began and
+/// did not finish.
+fn looks_truncated(body: &str) -> bool {
+    let body = body.trim();
+    body.starts_with('{') && !body.ends_with('}')
+}
+
+/// The error for a body that arrived short.
+fn truncated_error(body: &str, what: &str) -> VdsError {
+    VdsError::precondition(format!(
+        "the Figma response for {what} is truncated: {} bytes that do not end in a closing \
+         brace.\n  \
+         The request SUCCEEDED. `GET /v1/files/:key` on a large file answers HTTP 200, sends no \
+         content-length because the response is chunked, and then stops mid-string, so neither \
+         the status code nor curl's exit code can see it.\n  \
+         Do not retry the same call and do not compare this body with another one: two truncated \
+         pulls of one file stop at different points, so they differ from each other while the \
+         file does not.\n  \
+         Fetch it in pieces instead: GET /v1/files/:key?depth=2 for the page shells, then GET \
+         /v1/files/:key/nodes?ids=<id> once per top-level frame, parsing each response before \
+         going on, then derive from the reassembled document with: vds figma pull --from <file>",
+        body.len(),
+        what = what
+    ))
+}
+
 impl FigmaApi {
     /// Read the token from the environment.
     ///
@@ -103,7 +161,7 @@ impl FigmaApi {
             .arg("--show-error")
             .arg("--fail")
             .arg("--max-time")
-            .arg("60")
+            .arg(MAX_TIME_SECONDS)
             .arg("--header")
             .arg(format!("X-Figma-Token: {}", self.token))
             .arg(url)
@@ -124,9 +182,13 @@ impl FigmaApi {
                 String::from_utf8_lossy(&output.stderr).trim()
             )));
         }
-        String::from_utf8(output.stdout).map_err(|e| {
+        let body = String::from_utf8(output.stdout).map_err(|e| {
             VdsError::precondition(format!("the Figma API returned invalid UTF-8: {e}"))
-        })
+        })?;
+        if looks_truncated(&body) {
+            return Err(truncated_error(&body, what));
+        }
+        Ok(body)
     }
 }
 
@@ -139,33 +201,15 @@ impl FigmaSource for FigmaApi {
     }
 
     fn fetch_file(&self, file_key: &str) -> Result<String> {
-        let output = std::process::Command::new("curl")
-            .arg("--silent")
-            .arg("--show-error")
-            .arg("--fail")
-            .arg("--max-time")
-            .arg("60")
-            .arg("--header")
-            .arg(format!("X-Figma-Token: {}", self.token))
-            .arg(format!("https://api.figma.com/v1/files/{file_key}"))
-            .output()
-            .map_err(|e| {
-                VdsError::precondition(format!(
-                    "could not run curl to reach the Figma API: {e}\n  \
-                     Install curl, or derive the ledger from a saved response: \
-                     vds figma pull --from response.json"
-                ))
-            })?;
-        if !output.status.success() {
-            return Err(VdsError::precondition(format!(
-                "the Figma API refused the request for file {file_key}: {}\n  \
-                 Check FIGMA_TOKEN and that the token can read this file.",
-                String::from_utf8_lossy(&output.stderr).trim()
-            )));
-        }
-        String::from_utf8(output.stdout).map_err(|e| {
-            VdsError::precondition(format!("the Figma API returned invalid UTF-8: {e}"))
-        })
+        // Deliberately the same call path as the variables endpoint. This used to be
+        // its own copy of the curl invocation, and the copy is how it came to carry
+        // its own timeout: the two drifted, and the truncation check has to hold on
+        // the file endpoint above all, because that is the response large enough to
+        // be cut.
+        self.get(
+            &format!("https://api.figma.com/v1/files/{file_key}"),
+            &format!("file {file_key}"),
+        )
     }
 
     fn describe(&self) -> String {
@@ -181,6 +225,14 @@ pub fn build_ledger(
     source_description: &str,
 ) -> Result<FigmaLedger> {
     let document: serde_json::Value = serde_json::from_str(body).map_err(|e| {
+        // Truncation and corruption both land here and they are not the same problem.
+        // A body that ends early is a TRANSPORT failure that a retry may fix and that
+        // says nothing about the file; a body that is malformed part-way through is
+        // not. serde_json classifies the first as Eof, so say which one happened
+        // rather than making the reader guess from a byte offset.
+        if e.classify() == serde_json::error::Category::Eof || looks_truncated(body) {
+            return truncated_error(body, &format!("file {file_key}"));
+        }
         VdsError::precondition(format!(
             "the Figma response is not JSON: {e}. A partial parse would produce a ledger \
              claiming fewer nodes than the file has, and every proof reading it would be \
@@ -650,6 +702,55 @@ mod tests {
             error.to_string().contains("narrower than it looks"),
             "{error}"
         );
+    }
+
+    /// The real shape of the 2026-08-03 failure: a whole response cut at a byte
+    /// boundary inside a string, which is what `GET /v1/files/:key` hands back on a
+    /// large file under an HTTP 200 with no content-length.
+    #[test]
+    fn a_response_cut_mid_string_is_named_as_truncated_not_as_malformed() {
+        let f = Fixture::new();
+        let store = f.store();
+        let whole = response();
+        let cut = &whole[..whole.len() - 40];
+        let error = build_ledger(&store, "KEY", cut, "a test").unwrap_err();
+        let text = error.to_string();
+        assert!(text.contains("truncated"), "{error}");
+        assert!(text.contains("The request SUCCEEDED"), "{error}");
+        // The route out has to be in the message. A reader who is told only that the
+        // body is short will retry the identical call, which is the one thing that
+        // reproduces it.
+        assert!(text.contains("/nodes?ids="), "{error}");
+    }
+
+    /// The negative control. Without this the truncation test passes just as well
+    /// against a predicate that calls every response truncated.
+    #[test]
+    fn a_whole_response_is_not_called_truncated() {
+        assert!(!looks_truncated(&response()));
+        assert!(looks_truncated(&response()[..response().len() - 40]));
+        // An error page is not a truncated document, and must not be sent down the
+        // chunk-the-request route.
+        assert!(!looks_truncated("<html>rate limited</html>"));
+        assert!(!looks_truncated(""));
+    }
+
+    /// Two truncated pulls of ONE file stop at different points, so they disagree
+    /// with each other while the file does not. This is the property that made the
+    /// original failure dangerous rather than merely annoying, and it is why the
+    /// refusal has to happen before anything compares two bodies.
+    #[test]
+    fn two_truncations_of_one_response_differ_from_each_other() {
+        let f = Fixture::new();
+        let store = f.store();
+        let whole = response();
+        let short = &whole[..whole.len() - 200];
+        let shorter = &whole[..whole.len() - 400];
+        assert_ne!(short.len(), shorter.len());
+        for body in [short, shorter] {
+            let error = build_ledger(&store, "KEY", body, "a test").unwrap_err();
+            assert!(error.to_string().contains("truncated"), "{error}");
+        }
     }
 
     #[test]

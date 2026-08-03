@@ -115,6 +115,49 @@ In the worked example in the commit history: the register claimed `default` and 
 drawn, the file agreed, and `focus` (required, drawn by nothing) came out as the one thing
 still to draw. That is the loop closing.
 
+### A read has a REACH, and a reading that does not state its reach is not a measurement
+
+This is the failure mode the pull path is built against, and it has now bitten this programme
+four times on one file.
+
+**The transport truncates silently.** `GET /v1/files/:key` on a large file answers **HTTP 200**,
+sends **no `content-length`** because the response is chunked, and then stops mid-string.
+`curl --fail` cannot see it: the status was 200 and the stream ended, so curl exits 0. Measured
+2026-08-03 on a 136,114,759 B file fetched twice: 102,744,823 B arrived, then 62,846,637 B.
+Neither parsed. **The two stopped at different points**, so comparing them showed a 38 MB
+difference between two files whose documents are byte-identical.
+
+`FigmaApi` now refuses a body that begins a JSON object and does not finish one, and says so in
+those words rather than "not JSON", because the two have different fixes. The route out is in
+the message: `?depth=2` for the page shells, then `/nodes?ids=<id>` per top-level frame,
+parsing each response before requesting the next, then `vds figma pull --from` the reassembled
+document. The old 60 s timeout is 600 s: the file that exposed this took 312 s, so a one-minute
+ceiling did not make the pull slow, it made it impossible.
+
+**A depth limit crops the same way, and leaves no error at all.** The Uber Base gallery was read
+four times, each reading correcting its predecessor's count:
+
+| reading | how it reached the file | sets |
+|---|---|---|
+| the redrawn page | hand-drawn | 16 |
+| `uber-base-keys.json` | top-level page walk | 92 |
+| `uber-base-contracts.json` | instance walk, 19,406 of 32,123 instances | 126 |
+| `uber-base-real.json` | `/nodes?ids=…&depth=4` | 131 |
+| `uber-base-inventory.json` | per-frame, no depth limit, every chunk parsed | **168** |
+
+The tree is **18 levels deep**. A depth-4 read reaches **19.6%** of its nodes and can see 3,512
+distinct components; `uber-base-real.json` recorded a components map of 3,516. It was not
+approximately cropped, it was cropped exactly where its own request said to stop, and **208
+components sit below the limit.**
+
+Every one of those readings announced the previous number as wrong, and every one was wrong in
+the same way. **The defect was never the count. It was that no reading stated its own reach**,
+so each looked like a correction rather than another sample. A reading that records its depth,
+its instance denominator and its byte length can be ranked against the next one. A reading that
+records only a total cannot be, and will be believed until something expensive disagrees with it.
+
+So: **state the reach, and call a total a floor unless you can say what would have been missed.**
+
 ### Variant values are mapped conservatively
 
 `Pressed` does not become `active`. Only the nine state names are recognised, plus spellings

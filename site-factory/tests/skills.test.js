@@ -1940,10 +1940,21 @@ test('the ds-contracts harvest is internally consistent', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Uber Base, harvested from the Principal's own duplicate. This replaces two
-// weaker readings, and the guard's job is to stop either coming back as the
-// authority: 16 hand-drawn sets and a 72-of-a-guessed-126 instance walk.
-test('the real Base harvest is complete and self-consistent', () => {
+// Uber Base, harvested from the Principal's own duplicate at `?depth=4`.
+//
+// THIS READING IS NOT COMPLETE, and this guard used to say it was. Measured
+// 2026-08-03 against a depth-unlimited export of the same file: the tree is 18
+// levels deep, a depth-4 read reaches 19.6% of its nodes, and 208 distinct
+// components sit below the limit. The reading recorded a components map of
+// 3,516; a depth-4 read of that page can see 3,512. So it was cropped exactly
+// where its own request said to stop.
+//
+// What survives is what this test actually checks: every row is internally
+// consistent and carries a key and an axis set, and the reconciliation still
+// lands. Completeness is now uber-base-inventory.json's claim to make, and the
+// test below makes it. Left in place rather than deleted because the rows are
+// the best source of component KEYS in the vendor set.
+test('the depth-4 Base harvest is self-consistent, and does not claim to be the library', () => {
   const dir = path.join(__dirname, '..', 'vendor');
   const b = JSON.parse(fs.readFileSync(path.join(dir, 'uber-base-real.json'), 'utf8'));
   const rec = JSON.parse(fs.readFileSync(path.join(dir, 'base-axis-reconciliation.json'), 'utf8'));
@@ -1952,8 +1963,12 @@ test('the real Base harvest is complete and self-consistent', () => {
     'the stated set count disagrees with the rows');
   assert.equal(b.totals.variants, b.sets.reduce((n, s) => n + s.variants, 0),
     'the stated variant total disagrees with the rows');
-  assert.ok(b.totals.componentSets > 120,
-    `only ${b.totals.componentSets} sets - this reading is partial and must not be called the library`);
+  // Deliberately NOT a completeness assertion any more. `> 120` was one, and it
+  // passed against a reading that saw a fifth of the tree, which is the whole
+  // reason a threshold on a cropped number is worse than no threshold: it reads
+  // as coverage. The inventory carries the real count and the test below guards
+  // that this file is ranked below it.
+  assert.ok(b.totals.componentSets > 0, 'the harvest records no sets at all');
 
   // EVERY set carries a key and at least one axis. A set with neither is a row
   // that cannot be looked up or compared, and counting it flatters the total.
@@ -1983,6 +1998,61 @@ test('the real Base harvest is complete and self-consistent', () => {
     'the harvest must also say what SURVIVED; a correction that only demolishes teaches nothing');
   assert.ok(b._what_this_is_not.some((l) => /Principal action|not subscribed/i.test(l)),
     'the harvest must state that it draws nothing and cannot place an instance');
+});
+
+// ---------------------------------------------------------------------------
+// The consolidated inventory, and the crop chain it closes.
+//
+// Four readings of Uber Base each corrected its predecessor's count and was
+// cropped in the same way while doing it: 92 sets from a top-level page walk,
+// 126 from an instance walk that reached 19,406 of 32,123 instances, 131 from a
+// `?depth=4` node read, each announcing the last as wrong. The defect was never
+// the number. It was that no reading asked whether its own reach was the file.
+test('the Base inventory reconciles every reading and states its own reach', () => {
+  const dir = path.join(__dirname, '..', 'vendor');
+  const inv = JSON.parse(fs.readFileSync(path.join(dir, 'uber-base-inventory.json'), 'utf8'));
+
+  // The accounting must close. Every distinct component the page instantiates is
+  // either a variant of a set or a bare component, exactly once. If this drifts,
+  // some component is being counted twice or dropped, and a total that does not
+  // decompose is the shape every cropped reading here already had.
+  const t = inv.totals;
+  assert.equal(t.set_variants_instantiated + t.bare_component_ids, t.distinct_componentIds_instantiated,
+    'the inventory total does not decompose into set variants plus bare components');
+  assert.equal(Object.keys(inv.sets).length, t.named_component_sets,
+    'the stated set count disagrees with the rows');
+  assert.equal(Object.values(inv.sets).reduce((n, s) => n + s.variants_floor, 0), t.variants_floor,
+    'the stated variant floor disagrees with the rows');
+
+  // It must be at least as large as EVERY reading it supersedes, per set. A union
+  // that is smaller than one of its inputs somewhere has silently dropped that
+  // input, which is how a consolidation becomes the next crop.
+  const shrunk = Object.entries(inv.sets).filter(([, s]) =>
+    Math.max(...Object.values(s.per_reading)) > s.variants_floor);
+  assert.deepEqual(shrunk.map(([n]) => n), [],
+    'a set records a floor below one of the readings it consolidates');
+
+  // NOT A COUNT. Every earlier reading stated a total as though it were one, and
+  // each was wrong in the same direction. This file must keep saying floor.
+  assert.match(inv._this_total_is_a_floor_and_here_is_why, /floor/,
+    'the inventory must state that its total is a floor, not a count');
+
+  // The reach has to be on the record, because that is the fact every superseded
+  // reading omitted. A future reading that does not state its depth cannot be
+  // ranked against this one.
+  const crop = inv.the_depth_4_crop_measured;
+  assert.ok(crop.real_tree_depth_below_the_requested_node > 4,
+    'the inventory does not record how deep the tree actually is');
+  assert.ok(crop.distinct_componentIds_only_below_depth_4 > 0,
+    'the inventory claims a depth limit cost nothing, which is why it would not be worth recording');
+
+  // Each superseded reading must still be named with what survives of it. A
+  // correction that only demolishes leaves four files side by side and nothing
+  // ranking them, which is the state this one was written to end.
+  const survives = inv._what_survives_from_the_earlier_readings;
+  for (const f of ['uber-base-tiers.json', 'uber-base-contracts.json', 'uber-base-real.json']) {
+    assert.ok(survives[f], `the inventory does not say what survives of ${f}`);
+  }
 });
 
 // ---------------------------------------------------------------------------

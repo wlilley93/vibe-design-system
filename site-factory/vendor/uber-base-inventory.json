@@ -1,0 +1,3458 @@
+{
+  "_what": "The consolidated Uber Base inventory. Every named component set this repository has any reading of, with the count each reading gave, and the per-set maximum taken as a FLOOR. It supersedes uber-base-keys.json, uber-base-tiers.json (as a count), uber-base-contracts.json and uber-base-real.json as the authority on how much of Base there is, and leaves each of them standing as the record of what it measured.",
+  "_the_crop_chain": "Four readings, each of which corrected its predecessor and was cropped in the same way while doing it. 16 hand-drawn sets (a style study) -> 92 sets / 3,211 variants from a TOP-LEVEL PAGE WALK -> 126 sets / 4,280 from an INSTANCE WALK that reached 19,406 of the page's 32,123 instances -> 131 sets / 3,425 from a `?depth=4` node read -> this. Every one of them announced the previous number as wrong. None of them asked whether its own reach was the whole file, and each therefore inherited a smaller version of the same defect.",
+  "_how": "GET /v1/files/<key>?depth=2 for the page shells, then GET /v1/files/<key>/nodes?ids=<id> once per top-level frame with NO depth limit, each response parsed before the next was requested, reassembled and re-read from disk. 139,442 nodes reconstructed against 139,442 fetched. Every INSTANCE carries componentId, and the VARIANT-typed entries of componentProperties name the set's axes, so the inventory needs no plugin, no library subscription and no Figma UI.",
+  "_why_the_one_shot_pull_is_not_used": "GET /v1/files/<key> on this file answers HTTP 200, sends no content-length because the response is chunked, and stops mid-string. It returned 102,744,823 B against a true 136,114,759 B, and on a second attempt 62,846,637 B. Neither parsed; curl exited 0 both times. Two such bodies compared with each other show a 38 MB difference between files whose documents are byte-identical. vds-figma now refuses a body that begins a JSON object and does not finish one.",
+  "measured_at": "2026-08-03",
+  "source": {
+    "file_key": "l2llhOXNz1bM4aoLKKb5qi",
+    "file_name": "\u274b Base Gallery (Community)",
+    "document_sha256": "73ff429b1ee8704c17d41a7523c44837cd5e75a3b6e044b905bf9ca94287297c",
+    "duplicate_verified_identical": "4mz4UC3nacI6UFEXnyzFJc, same sha256 over 124,571,411 canonical bytes. The duplicate is a true copy; the only difference in the whole file is ' (Copy)' in the name field.",
+    "archive": "~/Backups/figma/2026-08-03/full-base-gallery-BASE.json"
+  },
+  "the_depth_4_crop_measured": {
+    "_what": "Why uber-base-real.json, the reading this repository currently guards as complete, is a crop. Not an inference: the numbers are taken from the complete export by re-imposing its depth limit.",
+    "real_tree_depth_below_the_requested_node": 18,
+    "nodes_at_depth_le_4": 27254,
+    "nodes_total": 139324,
+    "share_of_nodes_a_depth_4_read_can_see": "19.6%",
+    "distinct_componentIds_at_depth_le_4": 3512,
+    "distinct_componentIds_only_below_depth_4": 208,
+    "distinct_componentIds_total": 3720,
+    "and_what_that_predicts": "uber-base-real.json recorded a components map of 3,516. A depth-4 read of this page can see 3,512. The reading is not approximately cropped, it is cropped exactly where its depth limit falls, and 208 components sit below it."
+  },
+  "totals": {
+    "named_component_sets": 168,
+    "variants_floor": 4335,
+    "distinct_componentIds_instantiated": 3720,
+    "set_variants_instantiated": 3488,
+    "bare_components": 222,
+    "bare_component_ids": 232,
+    "accounting_check": "3488 set variants + 232 bare component ids = 3720 = every distinct componentId, each counted once",
+    "instances_walked": 32122,
+    "sets_carrying_a_State_axis": 67,
+    "sets_by_number_of_readings_that_saw_them": {
+      "1": 52,
+      "4": 64,
+      "3": 34,
+      "2": 18
+    },
+    "sets_largest_in_each_reading": {
+      "rest_complete": 125,
+      "instance_walk_contracts": 24,
+      "depth4_real": 18,
+      "page_walk_keys": 1
+    },
+    "untiered_sets": 76,
+    "untiered_variants": 698,
+    "sets_with_no_component_key": 49
+  },
+  "_this_total_is_a_floor_and_here_is_why": "A set's variant grid can exceed what the gallery page instantiates, because siblings that were never placed leave no instance to be counted. The floor is the per-set maximum across four readings, so it is at least as large as any of them and cannot be smaller than the truth. Where a reading is larger than the complete export, that reading reached a set's full grid through its parent set; where the complete export is larger, that reading simply did not see the set. Both happen, which is why no single reading is the authority and the union is.",
+  "_what_survives_from_the_earlier_readings": {
+    "base-axis-reconciliation.json": "SOUND, and re-checked here: its rows record axis sets that exist in this inventory.",
+    "uber-base-tiers.json": "the TIER ASSIGNMENT survives as judgement about 92 sets. Its counts do not: it is the 92-set page walk, and 73 named sets are outside it.",
+    "uber-base-contracts.json": "its axis CONTRACTS survive and are the best prose in the vendor set. Its denominator does not.",
+    "uber-base-real.json": "its component KEYS survive and are used here. Its claim to be the full library does not: it read depth=4."
+  },
+  "untiered_backlog": [
+    {
+      "name": "Flags",
+      "variants_floor": 217,
+      "axes": [
+        "Country"
+      ]
+    },
+    {
+      "name": "Input element / Select",
+      "variants_floor": 92,
+      "axes": [
+        "Behavior",
+        "Select",
+        "Size",
+        "State"
+      ]
+    },
+    {
+      "name": "Input element / Text field",
+      "variants_floor": 74,
+      "axes": [
+        "Size",
+        "State"
+      ]
+    },
+    {
+      "name": "Input element / PIN slot",
+      "variants_floor": 72,
+      "axes": [
+        "Secure",
+        "Size",
+        "State"
+      ]
+    },
+    {
+      "name": "Lifestyle photos",
+      "variants_floor": 38,
+      "axes": [
+        "Content"
+      ]
+    },
+    {
+      "name": "Artwork container",
+      "variants_floor": 30,
+      "axes": [
+        "Aspect ratio",
+        "Inset",
+        "Preloading",
+        "Size"
+      ]
+    },
+    {
+      "name": "_Input element / Content / Text",
+      "variants_floor": 8,
+      "axes": [
+        "Secure",
+        "Size"
+      ]
+    },
+    {
+      "name": "Status bar",
+      "variants_floor": 8,
+      "axes": [
+        "Color",
+        "Phone",
+        "Platform"
+      ]
+    },
+    {
+      "name": "_Input element / Progress circle",
+      "variants_floor": 7,
+      "axes": [
+        "Size"
+      ]
+    },
+    {
+      "name": "_Input element / Content",
+      "variants_floor": 7,
+      "axes": [
+        "Behavior",
+        "Class",
+        "Platform / Device",
+        "Size"
+      ]
+    },
+    {
+      "name": "_Pagination elements / Row selector",
+      "variants_floor": 6,
+      "axes": [
+        "Size",
+        "State"
+      ]
+    },
+    {
+      "name": "_Elements/Rating Star",
+      "variants_floor": 6,
+      "axes": [
+        "size",
+        "state"
+      ]
+    },
+    {
+      "name": "Sunday",
+      "variants_floor": 6,
+      "axes": [
+        "Layout",
+        "Size",
+        "State"
+      ]
+    },
+    {
+      "name": "Next button",
+      "variants_floor": 6,
+      "axes": [
+        "Behavior",
+        "Hierarchy",
+        "Layout",
+        "Shape",
+        "Size",
+        "State"
+      ]
+    },
+    {
+      "name": "Input element / Label",
+      "variants_floor": 6,
+      "axes": [
+        "Size"
+      ]
+    },
+    {
+      "name": "_Input element / Content / Secure PIN Slot",
+      "variants_floor": 5,
+      "axes": [
+        "Complete",
+        "Size"
+      ]
+    },
+    {
+      "name": "Start date",
+      "variants_floor": 5,
+      "axes": [
+        "Size",
+        "State"
+      ]
+    },
+    {
+      "name": "Previous button",
+      "variants_floor": 5,
+      "axes": [
+        "Behavior",
+        "Hierarchy",
+        "Layout",
+        "Shape",
+        "Size",
+        "State"
+      ]
+    },
+    {
+      "name": "_Path / Artwork large",
+      "variants_floor": 4,
+      "axes": [
+        "Bottom line",
+        "Content",
+        "Top line"
+      ]
+    },
+    {
+      "name": "_Page controls elements / Indicator",
+      "variants_floor": 4,
+      "axes": [
+        "Behavior"
+      ]
+    },
+    {
+      "name": "Month 1",
+      "variants_floor": 4,
+      "axes": [
+        "Label",
+        "Labels",
+        "Layout",
+        "View"
+      ]
+    },
+    {
+      "name": "Empty space",
+      "variants_floor": 4,
+      "axes": [
+        "Layout",
+        "Size",
+        "State"
+      ]
+    },
+    {
+      "name": "Calendar",
+      "variants_floor": 4,
+      "axes": [
+        "Behavior",
+        "Select",
+        "Size",
+        "State"
+      ]
+    },
+    {
+      "name": "_Path / Artwork x small",
+      "variants_floor": 3,
+      "axes": [
+        "Bottom line",
+        "Shape",
+        "Top line"
+      ]
+    },
+    {
+      "name": "_Input element / Stepper",
+      "variants_floor": 3,
+      "axes": [
+        "Size"
+      ]
+    },
+    {
+      "name": "Star 5",
+      "variants_floor": 3,
+      "axes": [
+        "size",
+        "state"
+      ]
+    },
+    {
+      "name": "Star 1",
+      "variants_floor": 3,
+      "axes": [
+        "size",
+        "state"
+      ]
+    },
+    {
+      "name": "Label",
+      "variants_floor": 3,
+      "axes": [
+        "Class",
+        "Size"
+      ]
+    },
+    {
+      "name": "warning",
+      "variants_floor": 2,
+      "axes": [
+        "Color"
+      ]
+    },
+    {
+      "name": "question",
+      "variants_floor": 2,
+      "axes": [
+        "Color"
+      ]
+    },
+    {
+      "name": "phone_info",
+      "variants_floor": 2,
+      "axes": [
+        "Color"
+      ]
+    },
+    {
+      "name": "circle_exclamation_mark",
+      "variants_floor": 2,
+      "axes": [
+        "Color"
+      ]
+    },
+    {
+      "name": "badge",
+      "variants_floor": 2,
+      "axes": [
+        "Color"
+      ]
+    },
+    {
+      "name": "_Path line",
+      "variants_floor": 2,
+      "axes": [
+        "State",
+        "Type"
+      ]
+    },
+    {
+      "name": "Tab 2",
+      "variants_floor": 2,
+      "axes": [
+        "Badge"
+      ]
+    },
+    {
+      "name": "Tab 1",
+      "variants_floor": 2,
+      "axes": [
+        "Badge"
+      ]
+    },
+    {
+      "name": "Previous month",
+      "variants_floor": 2,
+      "axes": [
+        "Behavior",
+        "Hierarchy",
+        "Layout",
+        "Shape",
+        "Size",
+        "State"
+      ]
+    },
+    {
+      "name": "Page 1",
+      "variants_floor": 2,
+      "axes": [
+        "Behavior",
+        "Hierarchy",
+        "Layout",
+        "Shape",
+        "Size",
+        "State"
+      ]
+    },
+    {
+      "name": "Month + Year selector",
+      "variants_floor": 2,
+      "axes": [
+        "Menu"
+      ]
+    },
+    {
+      "name": "Home indicator",
+      "variants_floor": 2,
+      "axes": [
+        "Color"
+      ]
+    },
+    {
+      "name": "Hint",
+      "variants_floor": 2,
+      "axes": [
+        "Class",
+        "Size"
+      ]
+    },
+    {
+      "name": "Heading",
+      "variants_floor": 2,
+      "axes": [
+        "Class",
+        "Size"
+      ]
+    },
+    {
+      "name": "Enhancer",
+      "variants_floor": 2,
+      "axes": [
+        "Size",
+        "State"
+      ]
+    },
+    {
+      "name": "End date + calendar",
+      "variants_floor": 2,
+      "axes": [
+        "Size"
+      ]
+    },
+    {
+      "name": "14th",
+      "variants_floor": 2,
+      "axes": [
+        "Layout",
+        "Size",
+        "State"
+      ]
+    },
+    {
+      "name": "star_shield",
+      "variants_floor": 1,
+      "axes": [
+        "Color"
+      ]
+    },
+    {
+      "name": "diamond",
+      "variants_floor": 1,
+      "axes": [
+        "Color"
+      ]
+    },
+    {
+      "name": "circle_check",
+      "variants_floor": 1,
+      "axes": [
+        "Color"
+      ]
+    },
+    {
+      "name": "_Path / Artwork small",
+      "variants_floor": 1,
+      "axes": [
+        "Background",
+        "Bottom line",
+        "Top line"
+      ]
+    },
+    {
+      "name": "_Path / Artwork medium",
+      "variants_floor": 1,
+      "axes": [
+        "Bottom line",
+        "Top line"
+      ]
+    },
+    {
+      "name": "UI/Cursor",
+      "variants_floor": 1,
+      "axes": [
+        "State"
+      ]
+    },
+    {
+      "name": "Tertiary button",
+      "variants_floor": 1,
+      "axes": [
+        "Behavior",
+        "Hierarchy",
+        "Layout",
+        "Shape",
+        "Size",
+        "State"
+      ]
+    },
+    {
+      "name": "Slot 5",
+      "variants_floor": 1,
+      "axes": [
+        "Behavior"
+      ]
+    },
+    {
+      "name": "Slot 4",
+      "variants_floor": 1,
+      "axes": [
+        "Behavior"
+      ]
+    },
+    {
+      "name": "Slot 3",
+      "variants_floor": 1,
+      "axes": [
+        "Behavior"
+      ]
+    },
+    {
+      "name": "Slot 1",
+      "variants_floor": 1,
+      "axes": [
+        "Behavior"
+      ]
+    },
+    {
+      "name": "Secondary",
+      "variants_floor": 1,
+      "axes": [
+        "Behavior",
+        "Hierarchy",
+        "Layout",
+        "Shape",
+        "Size",
+        "State"
+      ]
+    },
+    {
+      "name": "Rows Select",
+      "variants_floor": 1,
+      "axes": [
+        "Behavior",
+        "Select",
+        "Size",
+        "State"
+      ]
+    },
+    {
+      "name": "Progress element - Step item 4",
+      "variants_floor": 1,
+      "axes": [
+        "Active",
+        "Enabled",
+        "Layout",
+        "Progress"
+      ]
+    },
+    {
+      "name": "Progress element - Step item 2",
+      "variants_floor": 1,
+      "axes": [
+        "Active",
+        "Enabled",
+        "Layout",
+        "Progress"
+      ]
+    },
+    {
+      "name": "Progress element - Step item 1",
+      "variants_floor": 1,
+      "axes": [
+        "Active",
+        "Enabled",
+        "Layout",
+        "Progress"
+      ]
+    },
+    {
+      "name": "Page 9",
+      "variants_floor": 1,
+      "axes": [
+        "Behavior",
+        "Hierarchy",
+        "Layout",
+        "Shape",
+        "Size",
+        "State"
+      ]
+    },
+    {
+      "name": "Media",
+      "variants_floor": 1,
+      "axes": [
+        "Layout",
+        "Media",
+        "Size",
+        "State"
+      ]
+    },
+    {
+      "name": "Item / Medium / Controls / Expanded",
+      "variants_floor": 1,
+      "axes": [
+        "Expanded"
+      ]
+    },
+    {
+      "name": "Item / Large / Controls / Group",
+      "variants_floor": 1,
+      "axes": [
+        "Expanded"
+      ]
+    },
+    {
+      "name": "Input element / Hint",
+      "variants_floor": 1,
+      "axes": [
+        "Size"
+      ]
+    },
+    {
+      "name": "Ineterminate",
+      "variants_floor": 1,
+      "axes": [
+        "Layout",
+        "Size"
+      ]
+    },
+    {
+      "name": "Header",
+      "variants_floor": 1,
+      "axes": [
+        "Behavior",
+        "Device",
+        "Layout",
+        "State"
+      ]
+    },
+    {
+      "name": "Determinate",
+      "variants_floor": 1,
+      "axes": [
+        "Layout",
+        "Size"
+      ]
+    },
+    {
+      "name": "Date",
+      "variants_floor": 1,
+      "axes": [
+        "Size",
+        "State"
+      ]
+    },
+    {
+      "name": "Confirm",
+      "variants_floor": 1,
+      "axes": [
+        "Behavior",
+        "Hierarchy",
+        "Layout",
+        "Shape",
+        "Size",
+        "State"
+      ]
+    },
+    {
+      "name": "Calendar header",
+      "variants_floor": 1,
+      "axes": [
+        "Layout",
+        "Lines",
+        "State"
+      ]
+    },
+    {
+      "name": "Artwork Trailing",
+      "variants_floor": 1,
+      "axes": [
+        "Color"
+      ]
+    },
+    {
+      "name": "Artwork Top",
+      "variants_floor": 1,
+      "axes": [
+        "Content"
+      ]
+    },
+    {
+      "name": "Action left",
+      "variants_floor": 1,
+      "axes": [
+        "Behavior",
+        "Hierarchy",
+        "Layout",
+        "Shape",
+        "Size",
+        "State"
+      ]
+    },
+    {
+      "name": "1st",
+      "variants_floor": 1,
+      "axes": [
+        "Layout",
+        "Size",
+        "State"
+      ]
+    }
+  ],
+  "sets_with_no_component_key": [
+    "14th",
+    "1st",
+    "Action left",
+    "Artwork Top",
+    "Artwork Trailing",
+    "Calendar",
+    "Calendar header",
+    "Confirm",
+    "Date",
+    "Determinate",
+    "Empty space",
+    "End date + calendar",
+    "Enhancer",
+    "Header",
+    "Heading",
+    "Hint",
+    "Ineterminate",
+    "Label",
+    "Media",
+    "Month + Year selector",
+    "Month 1",
+    "Next button",
+    "Page 1",
+    "Page 9",
+    "Previous button",
+    "Previous month",
+    "Progress element - Step item 1",
+    "Progress element - Step item 2",
+    "Progress element - Step item 4",
+    "Rows Select",
+    "Secondary",
+    "Slot 1",
+    "Slot 3",
+    "Slot 4",
+    "Slot 5",
+    "Star 1",
+    "Star 5",
+    "Start date",
+    "Sunday",
+    "Tab 1",
+    "Tab 2",
+    "Tertiary button",
+    "UI/Cursor",
+    "_Input element / Content / Secure PIN Slot",
+    "_Path line",
+    "badge",
+    "diamond",
+    "phone_info",
+    "star_shield"
+  ],
+  "sets": {
+    "14th": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Layout",
+        "Size",
+        "State"
+      ],
+      "tier": null
+    },
+    "1st": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Layout",
+        "Size",
+        "State"
+      ],
+      "tier": null
+    },
+    "Accordion": {
+      "variants_floor": 16,
+      "per_reading": {
+        "rest_complete": 16,
+        "depth4_real": 16,
+        "instance_walk_contracts": 16,
+        "page_walk_keys": 16
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "5826dedab9cb8404361cdd6d3b0c59aecd9ae260",
+      "axes": [
+        "Artwork",
+        "Behavior",
+        "Size"
+      ],
+      "tier": "answered"
+    },
+    "Action left": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Behavior",
+        "Hierarchy",
+        "Layout",
+        "Shape",
+        "Size",
+        "State"
+      ],
+      "tier": null
+    },
+    "Artwork Top": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Content"
+      ],
+      "tier": null
+    },
+    "Artwork Trailing": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Color"
+      ],
+      "tier": null
+    },
+    "Artwork container": {
+      "variants_floor": 30,
+      "per_reading": {
+        "rest_complete": 2,
+        "depth4_real": 1,
+        "instance_walk_contracts": 30
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 3,
+      "component_key": "36d0835a869af21797ac948571483287c5c4b692",
+      "axes": [
+        "Aspect ratio",
+        "Inset",
+        "Preloading",
+        "Size"
+      ],
+      "tier": null
+    },
+    "Avatar": {
+      "variants_floor": 162,
+      "per_reading": {
+        "rest_complete": 162,
+        "depth4_real": 162,
+        "instance_walk_contracts": 162,
+        "page_walk_keys": 162
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "fbd527b07cebcd87353764270df8c6bcf27d53f8",
+      "axes": [
+        "Artwork",
+        "Size"
+      ],
+      "tier": "answered"
+    },
+    "Banner": {
+      "variants_floor": 72,
+      "per_reading": {
+        "rest_complete": 72,
+        "depth4_real": 72,
+        "instance_walk_contracts": 72,
+        "page_walk_keys": 72
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "ed7cc974227df5161fac0ec62a6b945801107074",
+      "axes": [
+        "Artwork",
+        "Hierarchy",
+        "Layout",
+        "Style"
+      ],
+      "tier": "tier1"
+    },
+    "Bottom navigation": {
+      "variants_floor": 10,
+      "per_reading": {
+        "rest_complete": 10,
+        "depth4_real": 10,
+        "instance_walk_contracts": 10,
+        "page_walk_keys": 10
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "d6c5211e667568f31b0cb300d22dcf1df2c45e96",
+      "axes": [
+        "Display",
+        "Selected index"
+      ],
+      "tier": "answered"
+    },
+    "Breadcrumbs element - link": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2,
+        "depth4_real": 2,
+        "instance_walk_contracts": 2,
+        "page_walk_keys": 2
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "fa7455fbbce4688c1b84df247c458c8de1309716",
+      "axes": [
+        "Class"
+      ],
+      "tier": "answered"
+    },
+    "Button": {
+      "variants_floor": 286,
+      "per_reading": {
+        "rest_complete": 243,
+        "depth4_real": 1,
+        "instance_walk_contracts": 286,
+        "page_walk_keys": 246
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 4,
+      "component_key": "b29c4a9498d22857b8abf0491654fbef88ce0f9d",
+      "axes": [
+        "Behavior",
+        "Hierarchy",
+        "Layout",
+        "Shape",
+        "Size",
+        "State"
+      ],
+      "tier": "answered"
+    },
+    "Button dock": {
+      "variants_floor": 16,
+      "per_reading": {
+        "rest_complete": 16,
+        "depth4_real": 16,
+        "instance_walk_contracts": 16,
+        "page_walk_keys": 16
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "345d33babd2d37eb206cbbf3f0c5e333ce2c8547",
+      "axes": [
+        "Accessory view",
+        "Display",
+        "Home indicator",
+        "Overflow"
+      ],
+      "tier": "answered"
+    },
+    "Button group": {
+      "variants_floor": 4,
+      "per_reading": {
+        "rest_complete": 4,
+        "depth4_real": 4,
+        "instance_walk_contracts": 4,
+        "page_walk_keys": 4
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "bfd0ce5ce4069814565c4c95feb11aed16d510ed",
+      "axes": [
+        "Shape",
+        "Size"
+      ],
+      "tier": "answered"
+    },
+    "Calendar": {
+      "variants_floor": 4,
+      "per_reading": {
+        "rest_complete": 4
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Behavior",
+        "Select",
+        "Size",
+        "State"
+      ],
+      "tier": null
+    },
+    "Calendar header": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Layout",
+        "Lines",
+        "State"
+      ],
+      "tier": null
+    },
+    "Card element - Button item": {
+      "variants_floor": 6,
+      "per_reading": {
+        "rest_complete": 6,
+        "depth4_real": 6,
+        "instance_walk_contracts": 6,
+        "page_walk_keys": 6
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "edfb5c9ce24a61294374e1569a7124ffb6efa7a5",
+      "axes": [
+        "Layout",
+        "State"
+      ],
+      "tier": "answered"
+    },
+    "Card element - Line item": {
+      "variants_floor": 10,
+      "per_reading": {
+        "rest_complete": 10,
+        "depth4_real": 10,
+        "instance_walk_contracts": 10,
+        "page_walk_keys": 10
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "0d6ad8288e47f77d0d68626f3d9aea08db39dd5c",
+      "axes": [
+        "Class",
+        "State"
+      ],
+      "tier": "answered"
+    },
+    "Card element - Media item": {
+      "variants_floor": 34,
+      "per_reading": {
+        "rest_complete": 33,
+        "depth4_real": 34,
+        "instance_walk_contracts": 34,
+        "page_walk_keys": 34
+      },
+      "largest_reading": "depth4_real",
+      "readings_that_saw_it": 4,
+      "component_key": "ddbf240277a7fe495b214d93360d58def701fe8a",
+      "axes": [
+        "Layout",
+        "Media",
+        "Size",
+        "State"
+      ],
+      "tier": "answered"
+    },
+    "Check": {
+      "variants_floor": 8,
+      "per_reading": {
+        "rest_complete": 8,
+        "depth4_real": 8,
+        "instance_walk_contracts": 8,
+        "page_walk_keys": 8
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "2ce7a7a8ca37b7dae7f5f727cbb98385dd18d163",
+      "axes": [
+        "Behavior",
+        "State"
+      ],
+      "tier": "tier1"
+    },
+    "Confirm": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Behavior",
+        "Hierarchy",
+        "Layout",
+        "Shape",
+        "Size",
+        "State"
+      ],
+      "tier": null
+    },
+    "Country field": {
+      "variants_floor": 4,
+      "per_reading": {
+        "rest_complete": 3,
+        "depth4_real": 3,
+        "instance_walk_contracts": 4,
+        "page_walk_keys": 3
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 4,
+      "component_key": "de8a1965f7d9c1dbe45f6f3c42a12c1ea6eb020d",
+      "axes": [
+        "Size"
+      ],
+      "tier": "answered"
+    },
+    "Date": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Size",
+        "State"
+      ],
+      "tier": null
+    },
+    "Date picker / Mobile": {
+      "variants_floor": 4,
+      "per_reading": {
+        "rest_complete": 4,
+        "depth4_real": 4,
+        "instance_walk_contracts": 4,
+        "page_walk_keys": 4
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "2e49da2005080fccc135c6f0acda304014953402",
+      "axes": [
+        "Layout",
+        "Size"
+      ],
+      "tier": "deferred"
+    },
+    "Date picker / Web": {
+      "variants_floor": 20,
+      "per_reading": {
+        "rest_complete": 20,
+        "depth4_real": 20,
+        "instance_walk_contracts": 20,
+        "page_walk_keys": 20
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "be4511a5c603a1246b29c60074012ae28951c962",
+      "axes": [
+        "Calendar active",
+        "Input 2 active",
+        "Input active",
+        "Second calendar",
+        "Second input",
+        "Size",
+        "State"
+      ],
+      "tier": "deferred"
+    },
+    "Date picker element - Calendar Date": {
+      "variants_floor": 44,
+      "per_reading": {
+        "rest_complete": 29,
+        "depth4_real": 40,
+        "instance_walk_contracts": 44,
+        "page_walk_keys": 40
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 4,
+      "component_key": "36adcec6e839014e9724d18557b37ae99f79517c",
+      "axes": [
+        "Layout",
+        "Size",
+        "State"
+      ],
+      "tier": "deferred"
+    },
+    "Date picker element - Calendar Date label": {
+      "variants_floor": 2,
+      "per_reading": {
+        "depth4_real": 2,
+        "page_walk_keys": 2
+      },
+      "largest_reading": "depth4_real",
+      "readings_that_saw_it": 2,
+      "component_key": "f98ddb940779c0e9aacd2be51944ec0d9dbdb3d1",
+      "axes": [
+        "Size"
+      ],
+      "tier": "deferred"
+    },
+    "Date picker element - Calendar modules / Mobile / Medium": {
+      "variants_floor": 4,
+      "per_reading": {
+        "rest_complete": 3,
+        "depth4_real": 4,
+        "page_walk_keys": 4
+      },
+      "largest_reading": "depth4_real",
+      "readings_that_saw_it": 3,
+      "component_key": "5d08b0330031c2529bbc48c83a3d30a697905449",
+      "axes": [
+        "Layout",
+        "View"
+      ],
+      "tier": "deferred"
+    },
+    "Date picker element - Calendar modules / Mobile / Small": {
+      "variants_floor": 4,
+      "per_reading": {
+        "rest_complete": 3,
+        "depth4_real": 4,
+        "page_walk_keys": 4
+      },
+      "largest_reading": "depth4_real",
+      "readings_that_saw_it": 3,
+      "component_key": "3c71ab3dde3bc92b5f57f947db4594afe73663cc",
+      "axes": [
+        "Label",
+        "View"
+      ],
+      "tier": "deferred"
+    },
+    "Date picker element - Calendar modules / Web / Medium": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 1,
+        "depth4_real": 2,
+        "page_walk_keys": 2
+      },
+      "largest_reading": "depth4_real",
+      "readings_that_saw_it": 3,
+      "component_key": "ec60e4145d5d7311b80d2c5e35753161bdf2dda5",
+      "axes": [
+        "Labels"
+      ],
+      "tier": "deferred"
+    },
+    "Date picker element - Calendar modules / Web / Small": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 1,
+        "depth4_real": 2,
+        "page_walk_keys": 2
+      },
+      "largest_reading": "depth4_real",
+      "readings_that_saw_it": 3,
+      "component_key": "f2002cec1a577a456f3f329a9568ec7ee62b0719",
+      "axes": [
+        "Labels"
+      ],
+      "tier": "deferred"
+    },
+    "Date picker element - Month Year selector / Medium": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 1,
+        "depth4_real": 2,
+        "page_walk_keys": 2
+      },
+      "largest_reading": "depth4_real",
+      "readings_that_saw_it": 3,
+      "component_key": "ae2358dc7ffacd51104a96c4939a0c124513e6a0",
+      "axes": [
+        "Menu"
+      ],
+      "tier": "deferred"
+    },
+    "Date picker element - Month Year selector / Small": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 1,
+        "depth4_real": 2,
+        "page_walk_keys": 2
+      },
+      "largest_reading": "depth4_real",
+      "readings_that_saw_it": 3,
+      "component_key": "7d972e420c4948b764164572e8d7776d59c50c5e",
+      "axes": [
+        "Menu"
+      ],
+      "tier": "deferred"
+    },
+    "Determinate": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Layout",
+        "Size"
+      ],
+      "tier": null
+    },
+    "Dialog": {
+      "variants_floor": 3,
+      "per_reading": {
+        "rest_complete": 3,
+        "depth4_real": 3,
+        "instance_walk_contracts": 3,
+        "page_walk_keys": 3
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "097dc1b2bc2879507b213df72a9bd7f5720534a8",
+      "axes": [
+        "Layout"
+      ],
+      "tier": "answered"
+    },
+    "Divider": {
+      "variants_floor": 3,
+      "per_reading": {
+        "rest_complete": 3,
+        "depth4_real": 3,
+        "instance_walk_contracts": 3,
+        "page_walk_keys": 3
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "c464e72237ab3bfe5007412a0657c95336de527f",
+      "axes": [
+        "Class"
+      ],
+      "tier": "tier1"
+    },
+    "Draggable list": {
+      "variants_floor": 10,
+      "per_reading": {
+        "rest_complete": 10,
+        "depth4_real": 10,
+        "instance_walk_contracts": 10,
+        "page_walk_keys": 10
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "7ebe9e797a12601e5f5b5b443a4f27ffba7a5e27",
+      "axes": [
+        "Artwork",
+        "State"
+      ],
+      "tier": "tier1"
+    },
+    "Empty space": {
+      "variants_floor": 4,
+      "per_reading": {
+        "rest_complete": 4
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Layout",
+        "Size",
+        "State"
+      ],
+      "tier": null
+    },
+    "Empty state": {
+      "variants_floor": 6,
+      "per_reading": {
+        "rest_complete": 5,
+        "depth4_real": 5,
+        "instance_walk_contracts": 6,
+        "page_walk_keys": 5
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 4,
+      "component_key": "3b27a780a93b5777c8ea75957004b434917fbf93",
+      "axes": [
+        "Class"
+      ],
+      "tier": "answered"
+    },
+    "End date + calendar": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Size"
+      ],
+      "tier": null
+    },
+    "Enhancer": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Size",
+        "State"
+      ],
+      "tier": null
+    },
+    "Field group": {
+      "variants_floor": 4,
+      "per_reading": {
+        "rest_complete": 3,
+        "depth4_real": 3,
+        "instance_walk_contracts": 4,
+        "page_walk_keys": 3
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 4,
+      "component_key": "ed6b0a8b4c67b519b4c382fcca6869582d137c02",
+      "axes": [
+        "Size"
+      ],
+      "tier": "answered"
+    },
+    "File drop": {
+      "variants_floor": 5,
+      "per_reading": {
+        "rest_complete": 5,
+        "depth4_real": 5,
+        "instance_walk_contracts": 5,
+        "page_walk_keys": 5
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "2db76a9bad5cbba70af3082021cdb6b25f6ef8e2",
+      "axes": [
+        "State"
+      ],
+      "tier": "answered"
+    },
+    "Flags": {
+      "variants_floor": 217,
+      "per_reading": {
+        "rest_complete": 1,
+        "instance_walk_contracts": 217
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 2,
+      "component_key": "cde6070dd4733f30d491b0712d28d0096c8aba4d",
+      "axes": [
+        "Country"
+      ],
+      "tier": null
+    },
+    "Grabber - List": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2,
+        "depth4_real": 2,
+        "instance_walk_contracts": 2,
+        "page_walk_keys": 2
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "e996320c525e616884b79b916da013c2e7cde19b",
+      "axes": [
+        "State"
+      ],
+      "tier": "deferred"
+    },
+    "Header": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Behavior",
+        "Device",
+        "Layout",
+        "State"
+      ],
+      "tier": null
+    },
+    "Heading": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Class",
+        "Size"
+      ],
+      "tier": null
+    },
+    "Hint": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Class",
+        "Size"
+      ],
+      "tier": null
+    },
+    "Hint badge": {
+      "variants_floor": 4,
+      "per_reading": {
+        "rest_complete": 4,
+        "depth4_real": 4,
+        "instance_walk_contracts": 4,
+        "page_walk_keys": 4
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "9aee7ee1b0d2dbec377cc6040746c9bc4ea81e91",
+      "axes": [
+        "Style"
+      ],
+      "tier": "tier2"
+    },
+    "Home indicator": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 1,
+        "depth4_real": 1,
+        "instance_walk_contracts": 2
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 3,
+      "component_key": "323cf4829deb4107d69f1970412ed3d4d429c075",
+      "axes": [
+        "Color"
+      ],
+      "tier": null
+    },
+    "Ineterminate": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Layout",
+        "Size"
+      ],
+      "tier": null
+    },
+    "Input element / Hint": {
+      "variants_floor": 1,
+      "per_reading": {
+        "depth4_real": 1
+      },
+      "largest_reading": "depth4_real",
+      "readings_that_saw_it": 1,
+      "component_key": "f1821527635f2684e3b374876e09c689e0e6d898",
+      "axes": [
+        "Size"
+      ],
+      "tier": null
+    },
+    "Input element / Label": {
+      "variants_floor": 6,
+      "per_reading": {
+        "rest_complete": 6,
+        "depth4_real": 3
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 2,
+      "component_key": "0839d6ea8a38df2e1ac39e4e743132f7dc24f2e9",
+      "axes": [
+        "Size"
+      ],
+      "tier": null
+    },
+    "Input element / PIN slot": {
+      "variants_floor": 72,
+      "per_reading": {
+        "rest_complete": 31,
+        "depth4_real": 31,
+        "instance_walk_contracts": 72
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 3,
+      "component_key": "62b9f60ede840b5d73cc1bc67eb943988d522b07",
+      "axes": [
+        "Secure",
+        "Size",
+        "State"
+      ],
+      "tier": null
+    },
+    "Input element / Select": {
+      "variants_floor": 92,
+      "per_reading": {
+        "rest_complete": 36,
+        "depth4_real": 34,
+        "instance_walk_contracts": 92
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 3,
+      "component_key": "e698dd9b32730a8977787445cb6d0838ad928cac",
+      "axes": [
+        "Behavior",
+        "Select",
+        "Size",
+        "State"
+      ],
+      "tier": null
+    },
+    "Input element / Text field": {
+      "variants_floor": 74,
+      "per_reading": {
+        "rest_complete": 74,
+        "depth4_real": 36,
+        "instance_walk_contracts": 48
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 3,
+      "component_key": "f517fa5b2e6c683b2825fd6383611abf2fefa161",
+      "axes": [
+        "Size",
+        "State"
+      ],
+      "tier": null
+    },
+    "Item / Large / Controls / Group": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1,
+        "depth4_real": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 2,
+      "component_key": "66cd3e238d1d29bbfaca537966033ac87026e0c2",
+      "axes": [
+        "Expanded"
+      ],
+      "tier": null
+    },
+    "Item / Medium / Controls / Expanded": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1,
+        "depth4_real": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 2,
+      "component_key": "67ec7d1f755d10f14b2b9b54b1c11ed9fb047a95",
+      "axes": [
+        "Expanded"
+      ],
+      "tier": null
+    },
+    "Label": {
+      "variants_floor": 3,
+      "per_reading": {
+        "rest_complete": 3
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Class",
+        "Size"
+      ],
+      "tier": null
+    },
+    "Lifestyle photos": {
+      "variants_floor": 38,
+      "per_reading": {
+        "rest_complete": 1,
+        "depth4_real": 1,
+        "instance_walk_contracts": 38
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 3,
+      "component_key": "d40509282508072e83a0f7ead190c816940d72c0",
+      "axes": [
+        "Content"
+      ],
+      "tier": null
+    },
+    "List item": {
+      "variants_floor": 116,
+      "per_reading": {
+        "rest_complete": 108,
+        "depth4_real": 108,
+        "instance_walk_contracts": 116,
+        "page_walk_keys": 108
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 4,
+      "component_key": "b4fea80421ccbc4ddfffc2628882e789279ad757",
+      "axes": [
+        "Artwork",
+        "Layout",
+        "Platform Device",
+        "Size",
+        "State"
+      ],
+      "tier": "answered"
+    },
+    "Media": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Layout",
+        "Media",
+        "Size",
+        "State"
+      ],
+      "tier": null
+    },
+    "Menu": {
+      "variants_floor": 16,
+      "per_reading": {
+        "rest_complete": 16,
+        "depth4_real": 12,
+        "instance_walk_contracts": 16,
+        "page_walk_keys": 12
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "a47fb86e6fc08ef0d16c46a5df4fa56d8effa41b",
+      "axes": [
+        "Class",
+        "Size"
+      ],
+      "tier": "tier1"
+    },
+    "Menu item": {
+      "variants_floor": 76,
+      "per_reading": {
+        "rest_complete": 59,
+        "depth4_real": 57,
+        "instance_walk_contracts": 76,
+        "page_walk_keys": 57
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 4,
+      "component_key": "a1fa854e8586376b8c4cb45f0df6cbed1f8d577c",
+      "axes": [
+        "Class",
+        "Layout",
+        "Size",
+        "State"
+      ],
+      "tier": "tier1"
+    },
+    "Message card": {
+      "variants_floor": 60,
+      "per_reading": {
+        "rest_complete": 60,
+        "depth4_real": 60,
+        "instance_walk_contracts": 60,
+        "page_walk_keys": 60
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "14371b4d0b76f83be0734e85dc9e4c43de46c643",
+      "axes": [
+        "Artwork",
+        "Layout",
+        "State",
+        "Style",
+        "Sub layout"
+      ],
+      "tier": "tier1"
+    },
+    "Message card - Carousel": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2,
+        "depth4_real": 2,
+        "page_walk_keys": 2
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 3,
+      "component_key": "4c0da07403cf5672fd054ca0f4d26e0ed8c5a8f3",
+      "axes": [
+        "Artwork"
+      ],
+      "tier": "tier2"
+    },
+    "Modal full screen": {
+      "variants_floor": 5,
+      "per_reading": {
+        "rest_complete": 5,
+        "depth4_real": 5,
+        "instance_walk_contracts": 5,
+        "page_walk_keys": 5
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "b7a6f56cae2a376ea7c6b0c1e1d866c9ca4a6552",
+      "axes": [
+        "Layout",
+        "Platform"
+      ],
+      "tier": "answered"
+    },
+    "Modal sheet": {
+      "variants_floor": 3,
+      "per_reading": {
+        "rest_complete": 3,
+        "depth4_real": 3,
+        "instance_walk_contracts": 3,
+        "page_walk_keys": 3
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "9f7a37adca780bf7eeb9e3f3537a292a3705ac03",
+      "axes": [
+        "Layout"
+      ],
+      "tier": "answered"
+    },
+    "Month + Year selector": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Menu"
+      ],
+      "tier": null
+    },
+    "Month 1": {
+      "variants_floor": 4,
+      "per_reading": {
+        "rest_complete": 4
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Label",
+        "Labels",
+        "Layout",
+        "View"
+      ],
+      "tier": null
+    },
+    "Navigation header": {
+      "variants_floor": 15,
+      "per_reading": {
+        "rest_complete": 14,
+        "depth4_real": 15,
+        "instance_walk_contracts": 15,
+        "page_walk_keys": 15
+      },
+      "largest_reading": "depth4_real",
+      "readings_that_saw_it": 4,
+      "component_key": "a8642c77005c177c9a163c2f1ab849780562fed9",
+      "axes": [
+        "Behavior",
+        "Device",
+        "Layout",
+        "State"
+      ],
+      "tier": "answered"
+    },
+    "Next button": {
+      "variants_floor": 6,
+      "per_reading": {
+        "rest_complete": 6
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Behavior",
+        "Hierarchy",
+        "Layout",
+        "Shape",
+        "Size",
+        "State"
+      ],
+      "tier": null
+    },
+    "Notification badge": {
+      "variants_floor": 16,
+      "per_reading": {
+        "rest_complete": 16,
+        "depth4_real": 16,
+        "instance_walk_contracts": 16,
+        "page_walk_keys": 16
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "ea205d082310aa6c22859ba51aef1f9407c1297c",
+      "axes": [
+        "Layout",
+        "Size",
+        "Style"
+      ],
+      "tier": "tier1"
+    },
+    "PIN code": {
+      "variants_floor": 88,
+      "per_reading": {
+        "rest_complete": 27,
+        "depth4_real": 27,
+        "instance_walk_contracts": 88,
+        "page_walk_keys": 27
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 4,
+      "component_key": "196a256df19a543b1c01a5a86b9985655c6635a1",
+      "axes": [
+        "Secure",
+        "Size",
+        "State"
+      ],
+      "tier": "answered"
+    },
+    "Page 1": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Behavior",
+        "Hierarchy",
+        "Layout",
+        "Shape",
+        "Size",
+        "State"
+      ],
+      "tier": null
+    },
+    "Page 9": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Behavior",
+        "Hierarchy",
+        "Layout",
+        "Shape",
+        "Size",
+        "State"
+      ],
+      "tier": null
+    },
+    "Page controls": {
+      "variants_floor": 162,
+      "per_reading": {
+        "rest_complete": 162,
+        "depth4_real": 162,
+        "instance_walk_contracts": 162,
+        "page_walk_keys": 162
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "08c93685786ba4404361e29a4330b24419ff664d",
+      "axes": [
+        "Layout",
+        "Selected index",
+        "State"
+      ],
+      "tier": "tier1"
+    },
+    "Pagination": {
+      "variants_floor": 423,
+      "per_reading": {
+        "rest_complete": 423,
+        "depth4_real": 423,
+        "instance_walk_contracts": 423,
+        "page_walk_keys": 423
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "e4b7d94628640533bab702f4b304cd8c12cd3b09",
+      "axes": [
+        "Class",
+        "Display",
+        "Layout",
+        "Selected index",
+        "Size",
+        "State",
+        "Substate"
+      ],
+      "tier": "tier1"
+    },
+    "Password field": {
+      "variants_floor": 72,
+      "per_reading": {
+        "rest_complete": 72,
+        "depth4_real": 72,
+        "instance_walk_contracts": 72,
+        "page_walk_keys": 72
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "f70ee1aff60e8246a10bd6189eed7d3360004e4b",
+      "axes": [
+        "Behavior",
+        "Size",
+        "State"
+      ],
+      "tier": "answered"
+    },
+    "Previous button": {
+      "variants_floor": 5,
+      "per_reading": {
+        "rest_complete": 5
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Behavior",
+        "Hierarchy",
+        "Layout",
+        "Shape",
+        "Size",
+        "State"
+      ],
+      "tier": null
+    },
+    "Previous month": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Behavior",
+        "Hierarchy",
+        "Layout",
+        "Shape",
+        "Size",
+        "State"
+      ],
+      "tier": null
+    },
+    "Progress bar - Determinate": {
+      "variants_floor": 6,
+      "per_reading": {
+        "rest_complete": 5,
+        "depth4_real": 6,
+        "instance_walk_contracts": 6,
+        "page_walk_keys": 6
+      },
+      "largest_reading": "depth4_real",
+      "readings_that_saw_it": 4,
+      "component_key": "548ce99e44d07250f4bbdf6feb4ede8e37eb017c",
+      "axes": [
+        "Layout",
+        "Size"
+      ],
+      "tier": "tier1"
+    },
+    "Progress bar - Indeterminate": {
+      "variants_floor": 6,
+      "per_reading": {
+        "rest_complete": 5,
+        "depth4_real": 6,
+        "instance_walk_contracts": 6,
+        "page_walk_keys": 6
+      },
+      "largest_reading": "depth4_real",
+      "readings_that_saw_it": 4,
+      "component_key": "2c791a7f4827bf493f5d73f1ef921017b3c62718",
+      "axes": [
+        "Layout",
+        "Size"
+      ],
+      "tier": "answered"
+    },
+    "Progress bar - Stepped": {
+      "variants_floor": 4,
+      "per_reading": {
+        "rest_complete": 4,
+        "depth4_real": 4,
+        "instance_walk_contracts": 4,
+        "page_walk_keys": 4
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "b1a5f1530ff709abe0d8f949b9e025c2619046ff",
+      "axes": [
+        "Layout",
+        "Size"
+      ],
+      "tier": "tier2"
+    },
+    "Progress circle": {
+      "variants_floor": 8,
+      "per_reading": {
+        "rest_complete": 8,
+        "depth4_real": 8,
+        "instance_walk_contracts": 8,
+        "page_walk_keys": 8
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "f0e6d6d93b8fb085faba6cb198498eab240f6d2d",
+      "axes": [
+        "Layout",
+        "Size"
+      ],
+      "tier": "answered"
+    },
+    "Progress element - Step item 1": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Active",
+        "Enabled",
+        "Layout",
+        "Progress"
+      ],
+      "tier": null
+    },
+    "Progress element - Step item 2": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Active",
+        "Enabled",
+        "Layout",
+        "Progress"
+      ],
+      "tier": null
+    },
+    "Progress element - Step item 4": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Active",
+        "Enabled",
+        "Layout",
+        "Progress"
+      ],
+      "tier": null
+    },
+    "Progress pill - Determinate": {
+      "variants_floor": 3,
+      "per_reading": {
+        "rest_complete": 3,
+        "depth4_real": 3,
+        "page_walk_keys": 3
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 3,
+      "component_key": "37dc24b3b6201d0667695da2d16a015fcd7c017c",
+      "axes": [
+        "Size"
+      ],
+      "tier": "tier2"
+    },
+    "Progress steps": {
+      "variants_floor": 3,
+      "per_reading": {
+        "rest_complete": 3,
+        "depth4_real": 3,
+        "instance_walk_contracts": 3,
+        "page_walk_keys": 3
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "707fe84a20ad32fe1a0fcec93082017915edb475",
+      "axes": [
+        "Layout",
+        "Sublayout"
+      ],
+      "tier": "tier1"
+    },
+    "Progress steps element - horizontal": {
+      "variants_floor": 10,
+      "per_reading": {
+        "rest_complete": 7,
+        "depth4_real": 4,
+        "page_walk_keys": 10
+      },
+      "largest_reading": "page_walk_keys",
+      "readings_that_saw_it": 3,
+      "component_key": "9c75193f29e7f6908724c8ac1157311df8634d01",
+      "axes": [
+        "Layout",
+        "State",
+        "Sub state"
+      ],
+      "tier": "tier2"
+    },
+    "Progress steps element - vertical": {
+      "variants_floor": 46,
+      "per_reading": {
+        "rest_complete": 46,
+        "depth4_real": 46,
+        "page_walk_keys": 46
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 3,
+      "component_key": "77a1d6758d314783f2c42a280bf0c20756efa0a1",
+      "axes": [
+        "Artwork",
+        "Layout",
+        "Size"
+      ],
+      "tier": "tier2"
+    },
+    "Radio": {
+      "variants_floor": 4,
+      "per_reading": {
+        "rest_complete": 4,
+        "depth4_real": 4,
+        "instance_walk_contracts": 4,
+        "page_walk_keys": 4
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "93a70a9778f3fa7925d77a0a0e9fed76973c076f",
+      "axes": [
+        "Selected Unselected",
+        "State"
+      ],
+      "tier": "tier1"
+    },
+    "Rich text_Beta": {
+      "variants_floor": 3,
+      "per_reading": {
+        "rest_complete": 3,
+        "depth4_real": 3,
+        "page_walk_keys": 3
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 3,
+      "component_key": "fd6e2481dd3c2609f37b0cc17e65fa410fdf27a2",
+      "axes": [
+        "Size"
+      ],
+      "tier": "tier2"
+    },
+    "Rows Select": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Behavior",
+        "Select",
+        "Size",
+        "State"
+      ],
+      "tier": null
+    },
+    "Search field": {
+      "variants_floor": 32,
+      "per_reading": {
+        "rest_complete": 25,
+        "depth4_real": 24,
+        "instance_walk_contracts": 32,
+        "page_walk_keys": 24
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 4,
+      "component_key": "9ce0bb11feaf70e3932cb8a91d986935d2998d82",
+      "axes": [
+        "Size",
+        "State"
+      ],
+      "tier": "answered"
+    },
+    "Secondary": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Behavior",
+        "Hierarchy",
+        "Layout",
+        "Shape",
+        "Size",
+        "State"
+      ],
+      "tier": null
+    },
+    "Section heading": {
+      "variants_floor": 12,
+      "per_reading": {
+        "rest_complete": 12,
+        "depth4_real": 12,
+        "instance_walk_contracts": 12,
+        "page_walk_keys": 12
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "a42d43ac0aa8b611c55e0646f682daaaafff487f",
+      "axes": [
+        "Layout",
+        "Lines",
+        "State"
+      ],
+      "tier": "answered"
+    },
+    "Segmented slider - Beta": {
+      "variants_floor": 22,
+      "per_reading": {
+        "rest_complete": 22,
+        "depth4_real": 22,
+        "page_walk_keys": 22
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 3,
+      "component_key": "61ed8d03fc7d3f73ce823a52298246f9b505feb5",
+      "axes": [
+        "Layout",
+        "State"
+      ],
+      "tier": "tier2"
+    },
+    "Select": {
+      "variants_floor": 44,
+      "per_reading": {
+        "rest_complete": 33,
+        "depth4_real": 33,
+        "instance_walk_contracts": 44,
+        "page_walk_keys": 33
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 4,
+      "component_key": "fafe2a1f6992d2c50942bed7b5e1f718ec267d04",
+      "axes": [
+        "Size",
+        "State"
+      ],
+      "tier": "answered"
+    },
+    "Sheet header": {
+      "variants_floor": 36,
+      "per_reading": {
+        "rest_complete": 36,
+        "depth4_real": 36,
+        "instance_walk_contracts": 36,
+        "page_walk_keys": 36
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "7c60fcdaace8c16469245025d8f6c4b08b1d8d26",
+      "axes": [
+        "Behavior",
+        "Buttons",
+        "Layout",
+        "State"
+      ],
+      "tier": "answered"
+    },
+    "Side navigation item": {
+      "variants_floor": 36,
+      "per_reading": {
+        "rest_complete": 36,
+        "depth4_real": 36,
+        "instance_walk_contracts": 36,
+        "page_walk_keys": 36
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "66400c73d3e9a6ffdb188c19c0ec1540e127e1fb",
+      "axes": [
+        "Behavior",
+        "Hierarchy",
+        "Layout",
+        "State"
+      ],
+      "tier": "answered"
+    },
+    "Slider - Beta": {
+      "variants_floor": 4,
+      "per_reading": {
+        "rest_complete": 4,
+        "depth4_real": 4,
+        "instance_walk_contracts": 4,
+        "page_walk_keys": 4
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "88ed61582a52394245546d4463043ed3765e0075",
+      "axes": [
+        "Layout",
+        "State"
+      ],
+      "tier": "tier2"
+    },
+    "Sliding button": {
+      "variants_floor": 5,
+      "per_reading": {
+        "rest_complete": 5,
+        "depth4_real": 5,
+        "instance_walk_contracts": 5,
+        "page_walk_keys": 5
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "e49b8c1a49928c78db1e8c1b99c9829324902b52",
+      "axes": [
+        "State"
+      ],
+      "tier": "answered"
+    },
+    "Slot 1": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Behavior"
+      ],
+      "tier": null
+    },
+    "Slot 3": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Behavior"
+      ],
+      "tier": null
+    },
+    "Slot 4": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Behavior"
+      ],
+      "tier": null
+    },
+    "Slot 5": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Behavior"
+      ],
+      "tier": null
+    },
+    "Snackbar": {
+      "variants_floor": 8,
+      "per_reading": {
+        "rest_complete": 6,
+        "depth4_real": 6,
+        "instance_walk_contracts": 8,
+        "page_walk_keys": 6
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 4,
+      "component_key": "2636ede481d4bd9f86058d1f3b274adcdd3c76aa",
+      "axes": [
+        "Button",
+        "Leading content",
+        "Leading content type"
+      ],
+      "tier": "answered"
+    },
+    "Spacer": {
+      "variants_floor": 15,
+      "per_reading": {
+        "rest_complete": 14,
+        "depth4_real": 14,
+        "instance_walk_contracts": 15,
+        "page_walk_keys": 13
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 4,
+      "component_key": "f546e8c0276078d709e7b7a380c7b8b57501977e",
+      "axes": [
+        "Size"
+      ],
+      "tier": "tier2"
+    },
+    "Star 1": {
+      "variants_floor": 3,
+      "per_reading": {
+        "rest_complete": 3
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "size",
+        "state"
+      ],
+      "tier": null
+    },
+    "Star 5": {
+      "variants_floor": 3,
+      "per_reading": {
+        "rest_complete": 3
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "size",
+        "state"
+      ],
+      "tier": null
+    },
+    "Star rating": {
+      "variants_floor": 18,
+      "per_reading": {
+        "rest_complete": 18,
+        "depth4_real": 18,
+        "instance_walk_contracts": 18,
+        "page_walk_keys": 18
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "72a5912cc410fc0b872852fb067755fa9fa4813b",
+      "axes": [
+        "Layout",
+        "Size"
+      ],
+      "tier": "answered"
+    },
+    "Start date": {
+      "variants_floor": 5,
+      "per_reading": {
+        "rest_complete": 5
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Size",
+        "State"
+      ],
+      "tier": null
+    },
+    "Status bar": {
+      "variants_floor": 8,
+      "per_reading": {
+        "rest_complete": 6,
+        "depth4_real": 6,
+        "instance_walk_contracts": 8
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 3,
+      "component_key": "e42040e1b66b5501dded46f4b081db4c3111cf9a",
+      "axes": [
+        "Color",
+        "Phone",
+        "Platform"
+      ],
+      "tier": null
+    },
+    "Stepper": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2,
+        "depth4_real": 1,
+        "instance_walk_contracts": 2,
+        "page_walk_keys": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "022c14b78f62bf0628f6a04c9c69105a297904ce",
+      "axes": [
+        "State"
+      ],
+      "tier": "answered"
+    },
+    "Stepper field": {
+      "variants_floor": 48,
+      "per_reading": {
+        "rest_complete": 36,
+        "depth4_real": 36,
+        "instance_walk_contracts": 48,
+        "page_walk_keys": 36
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 4,
+      "component_key": "3e5070b0883ef49c84670a669469dc7da7b46668",
+      "axes": [
+        "Size",
+        "State"
+      ],
+      "tier": "answered"
+    },
+    "Sunday": {
+      "variants_floor": 6,
+      "per_reading": {
+        "rest_complete": 6
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Layout",
+        "Size",
+        "State"
+      ],
+      "tier": null
+    },
+    "Switch": {
+      "variants_floor": 8,
+      "per_reading": {
+        "rest_complete": 8,
+        "depth4_real": 8,
+        "instance_walk_contracts": 8,
+        "page_walk_keys": 8
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "bb4524a40f0913c93447f1eb3d804b8c5c8e1046",
+      "axes": [
+        "Behavior",
+        "Platform / Device",
+        "State"
+      ],
+      "tier": "tier1"
+    },
+    "System banner": {
+      "variants_floor": 64,
+      "per_reading": {
+        "rest_complete": 64,
+        "depth4_real": 64,
+        "instance_walk_contracts": 64,
+        "page_walk_keys": 64
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "d3dd5cb3d754e4b8d0eebf970c920df6b97ab491",
+      "axes": [
+        "Artwork",
+        "Device",
+        "Layout",
+        "Style"
+      ],
+      "tier": "tier1"
+    },
+    "Tab 1": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Badge"
+      ],
+      "tier": null
+    },
+    "Tab 2": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Badge"
+      ],
+      "tier": null
+    },
+    "Tab element / Nerrow / Selected": {
+      "variants_floor": 3,
+      "per_reading": {
+        "rest_complete": 2,
+        "depth4_real": 3,
+        "page_walk_keys": 2
+      },
+      "largest_reading": "depth4_real",
+      "readings_that_saw_it": 3,
+      "component_key": "a6e907056ca6a20d47816522cabe484f10fb1605",
+      "axes": [
+        "Badge"
+      ],
+      "tier": "answered"
+    },
+    "Tab element / Nerrow / Unselected": {
+      "variants_floor": 3,
+      "per_reading": {
+        "rest_complete": 2,
+        "depth4_real": 3,
+        "page_walk_keys": 2
+      },
+      "largest_reading": "depth4_real",
+      "readings_that_saw_it": 3,
+      "component_key": "7b0654ab4b66889f2556ad920d2a4819a4652f2f",
+      "axes": [
+        "Badge"
+      ],
+      "tier": "answered"
+    },
+    "Tab element / Wide / Selected": {
+      "variants_floor": 3,
+      "per_reading": {
+        "rest_complete": 2,
+        "depth4_real": 3,
+        "page_walk_keys": 2
+      },
+      "largest_reading": "depth4_real",
+      "readings_that_saw_it": 3,
+      "component_key": "db0d845e4a2e71794e171e04bf986e6211d2ef56",
+      "axes": [
+        "Badge"
+      ],
+      "tier": "answered"
+    },
+    "Tab element / Wide / Unselected": {
+      "variants_floor": 3,
+      "per_reading": {
+        "rest_complete": 2,
+        "depth4_real": 3,
+        "page_walk_keys": 2
+      },
+      "largest_reading": "depth4_real",
+      "readings_that_saw_it": 3,
+      "component_key": "a3e45b76cfad7031d399172e2d5023c9a5bc926e",
+      "axes": [
+        "Badge"
+      ],
+      "tier": "answered"
+    },
+    "Tabs": {
+      "variants_floor": 11,
+      "per_reading": {
+        "rest_complete": 11,
+        "depth4_real": 11,
+        "instance_walk_contracts": 11,
+        "page_walk_keys": 11
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "70bf3d69c61bb1834bf16fe698cef858366b86a8",
+      "axes": [
+        "Selected index",
+        "Width"
+      ],
+      "tier": "answered"
+    },
+    "Tag": {
+      "variants_floor": 704,
+      "per_reading": {
+        "rest_complete": 477,
+        "depth4_real": 29,
+        "instance_walk_contracts": 704,
+        "page_walk_keys": 477
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 4,
+      "component_key": "3ec52f38cd367867879f80175f764465a5478d35",
+      "axes": [
+        "Behavior",
+        "Color",
+        "Hierarchy",
+        "Size",
+        "State"
+      ],
+      "tier": "answered"
+    },
+    "Tertiary button": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Behavior",
+        "Hierarchy",
+        "Layout",
+        "Shape",
+        "Size",
+        "State"
+      ],
+      "tier": null
+    },
+    "Text area": {
+      "variants_floor": 84,
+      "per_reading": {
+        "rest_complete": 84,
+        "depth4_real": 84,
+        "instance_walk_contracts": 84,
+        "page_walk_keys": 84
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "9afdc59100dd32e4f6863475f2c744cf96f113fb",
+      "axes": [
+        "Platform Device",
+        "Size",
+        "State"
+      ],
+      "tier": "answered"
+    },
+    "Text field": {
+      "variants_floor": 48,
+      "per_reading": {
+        "rest_complete": 31,
+        "depth4_real": 36,
+        "instance_walk_contracts": 48,
+        "page_walk_keys": 36
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 4,
+      "component_key": "e81d0eec8943b366ff2820bae8f49bdb9e4d0abf",
+      "axes": [
+        "Size",
+        "State"
+      ],
+      "tier": "answered"
+    },
+    "Tile": {
+      "variants_floor": 380,
+      "per_reading": {
+        "rest_complete": 380,
+        "depth4_real": 380,
+        "instance_walk_contracts": 380,
+        "page_walk_keys": 380
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "d99ea5a3b5639b1633cdd7822bcc360fa1959b3c",
+      "axes": [
+        "Behavior",
+        "Leading content",
+        "Platform / Device",
+        "Selected",
+        "State",
+        "Trailing content"
+      ],
+      "tier": "answered"
+    },
+    "Time picker / Mobile / Pinwheel": {
+      "variants_floor": 4,
+      "per_reading": {
+        "rest_complete": 4,
+        "depth4_real": 4,
+        "page_walk_keys": 4
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 3,
+      "component_key": "f267013f8b3881fc8f61ae1a313ad7ab63531281",
+      "axes": [
+        "Class",
+        "Size"
+      ],
+      "tier": "deferred"
+    },
+    "Time picker / Mobile / Stepper": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2,
+        "depth4_real": 2,
+        "page_walk_keys": 2
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 3,
+      "component_key": "07d1daf725eed147e456fb9ae9ea4ecba7846100",
+      "axes": [
+        "Size"
+      ],
+      "tier": "deferred"
+    },
+    "Time picker / Web / Select": {
+      "variants_floor": 20,
+      "per_reading": {
+        "rest_complete": 20,
+        "depth4_real": 20,
+        "page_walk_keys": 20
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 3,
+      "component_key": "9af109f29c004e1f40646f34f4c8b0afeb8231fc",
+      "axes": [
+        "Class",
+        "Size",
+        "State"
+      ],
+      "tier": "deferred"
+    },
+    "Time picker element - Pinwheel / Overlay": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2,
+        "depth4_real": 2,
+        "page_walk_keys": 2
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 3,
+      "component_key": "99a21274dd98d87757c6d3254f63bf5ffab3c4c4",
+      "axes": [
+        "Size"
+      ],
+      "tier": "deferred"
+    },
+    "Time picker element - Pinwheel / Scroller": {
+      "variants_floor": 8,
+      "per_reading": {
+        "rest_complete": 8,
+        "depth4_real": 8,
+        "page_walk_keys": 8
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 3,
+      "component_key": "99e7441d7e9168fd2d84ab220458d54bb51d4572",
+      "axes": [
+        "Size",
+        "Time unit"
+      ],
+      "tier": "deferred"
+    },
+    "Time picker element - Pinwheel / Unit": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2,
+        "depth4_real": 2,
+        "page_walk_keys": 2
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 3,
+      "component_key": "061b0b9e592bc02ade31cf979a0316ca69758a4a",
+      "axes": [
+        "Size"
+      ],
+      "tier": "deferred"
+    },
+    "Time picker element - Select / Delimiter": {
+      "variants_floor": 16,
+      "per_reading": {
+        "rest_complete": 16,
+        "depth4_real": 16,
+        "page_walk_keys": 16
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 3,
+      "component_key": "08b35544c372fc05d1fb19bffeb08372ab92dea7",
+      "axes": [
+        "Size",
+        "State",
+        "Type"
+      ],
+      "tier": "deferred"
+    },
+    "Time picker element - Select / Input": {
+      "variants_floor": 8,
+      "per_reading": {
+        "rest_complete": 8,
+        "depth4_real": 8,
+        "page_walk_keys": 8
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 3,
+      "component_key": "5c60d9803f5e9ea2d50abdedfa4e0817ad06db72",
+      "axes": [
+        "Size",
+        "State"
+      ],
+      "tier": "deferred"
+    },
+    "Time picker element - Select / Option": {
+      "variants_floor": 8,
+      "per_reading": {
+        "rest_complete": 8,
+        "depth4_real": 8,
+        "page_walk_keys": 8
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 3,
+      "component_key": "1a1f33882ba62b41a445a3cc47ddc7c4ca07d52d",
+      "axes": [
+        "Size",
+        "State"
+      ],
+      "tier": "deferred"
+    },
+    "Time picker element - Select / Period": {
+      "variants_floor": 16,
+      "per_reading": {
+        "rest_complete": 16,
+        "depth4_real": 16,
+        "page_walk_keys": 16
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 3,
+      "component_key": "174628dccaddb88a9a1357fd31f3b805e0ab66b8",
+      "axes": [
+        "Period",
+        "Size",
+        "State"
+      ],
+      "tier": "deferred"
+    },
+    "Time picker element - Select / Spacer": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2,
+        "depth4_real": 2,
+        "page_walk_keys": 2
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 3,
+      "component_key": "b233c43e40d0dd3820c8fe23d965525ecca0ddd4",
+      "axes": [
+        "Size"
+      ],
+      "tier": "deferred"
+    },
+    "Timed button": {
+      "variants_floor": 12,
+      "per_reading": {
+        "rest_complete": 4,
+        "depth4_real": 4,
+        "instance_walk_contracts": 12,
+        "page_walk_keys": 4
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 4,
+      "component_key": "51484346d4e17bdae3f2b3d3fcbe36f5d2e1b6ec",
+      "axes": [
+        "Hierarchy",
+        "States"
+      ],
+      "tier": "answered"
+    },
+    "Tooltip": {
+      "variants_floor": 8,
+      "per_reading": {
+        "rest_complete": 8,
+        "depth4_real": 8,
+        "instance_walk_contracts": 8,
+        "page_walk_keys": 8
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 4,
+      "component_key": "f5d9ddb5adb5e081caf0294f81a8f04719130c9d",
+      "axes": [
+        "Layout",
+        "Sub layout"
+      ],
+      "tier": "tier1"
+    },
+    "Typography": {
+      "variants_floor": 36,
+      "per_reading": {
+        "rest_complete": 32,
+        "depth4_real": 1,
+        "instance_walk_contracts": 36,
+        "page_walk_keys": 36
+      },
+      "largest_reading": "instance_walk_contracts",
+      "readings_that_saw_it": 4,
+      "component_key": "8aa601349e7d32f799601b14ae6fa237050cbaa5",
+      "axes": [
+        "Class",
+        "Size"
+      ],
+      "tier": "tier1"
+    },
+    "UI/Cursor": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "State"
+      ],
+      "tier": null
+    },
+    "_Elements/Rating Star": {
+      "variants_floor": 6,
+      "per_reading": {
+        "depth4_real": 6
+      },
+      "largest_reading": "depth4_real",
+      "readings_that_saw_it": 1,
+      "component_key": "6dd2dcf168ba08921685f644c2343c6cee2818ee",
+      "axes": [
+        "size",
+        "state"
+      ],
+      "tier": null
+    },
+    "_Input element / Content": {
+      "variants_floor": 7,
+      "per_reading": {
+        "rest_complete": 7,
+        "depth4_real": 6
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 2,
+      "component_key": "fd5e1b27dbdb683d27575bc2c6e4240290b64c06",
+      "axes": [
+        "Behavior",
+        "Class",
+        "Platform / Device",
+        "Size"
+      ],
+      "tier": null
+    },
+    "_Input element / Content / Secure PIN Slot": {
+      "variants_floor": 5,
+      "per_reading": {
+        "rest_complete": 5
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Complete",
+        "Size"
+      ],
+      "tier": null
+    },
+    "_Input element / Content / Text": {
+      "variants_floor": 8,
+      "per_reading": {
+        "rest_complete": 8,
+        "depth4_real": 3
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 2,
+      "component_key": "4badc0924c2335e0c12cec31c5886e249e072aed",
+      "axes": [
+        "Secure",
+        "Size"
+      ],
+      "tier": null
+    },
+    "_Input element / Progress circle": {
+      "variants_floor": 7,
+      "per_reading": {
+        "rest_complete": 7,
+        "depth4_real": 3
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 2,
+      "component_key": "e9723117eda48f45ee87e3afd57620efdba38531",
+      "axes": [
+        "Size"
+      ],
+      "tier": null
+    },
+    "_Input element / Stepper": {
+      "variants_floor": 3,
+      "per_reading": {
+        "rest_complete": 3,
+        "depth4_real": 3
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 2,
+      "component_key": "992bd158c28be9335393b5ee144f7e3bf2feac0d",
+      "axes": [
+        "Size"
+      ],
+      "tier": null
+    },
+    "_Page controls elements / Indicator": {
+      "variants_floor": 4,
+      "per_reading": {
+        "depth4_real": 4
+      },
+      "largest_reading": "depth4_real",
+      "readings_that_saw_it": 1,
+      "component_key": "51e088f4616e19c73208fce9d748d178413aac97",
+      "axes": [
+        "Behavior"
+      ],
+      "tier": null
+    },
+    "_Pagination elements / Row selector": {
+      "variants_floor": 6,
+      "per_reading": {
+        "rest_complete": 6,
+        "depth4_real": 6
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 2,
+      "component_key": "d3d1b49144d7b8ffeaef8d8923e442ac2cdd0882",
+      "axes": [
+        "Size",
+        "State"
+      ],
+      "tier": null
+    },
+    "_Path / Artwork large": {
+      "variants_floor": 4,
+      "per_reading": {
+        "rest_complete": 4,
+        "depth4_real": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 2,
+      "component_key": "b37f1e3b17e98345cad3c91e57438fa0fb426477",
+      "axes": [
+        "Bottom line",
+        "Content",
+        "Top line"
+      ],
+      "tier": null
+    },
+    "_Path / Artwork medium": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1,
+        "depth4_real": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 2,
+      "component_key": "35492973cccbbaf802be1b6019df41a7e6a9cf51",
+      "axes": [
+        "Bottom line",
+        "Top line"
+      ],
+      "tier": null
+    },
+    "_Path / Artwork small": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1,
+        "depth4_real": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 2,
+      "component_key": "13bedfba55925d7800128313bca6aca3aa4e18f2",
+      "axes": [
+        "Background",
+        "Bottom line",
+        "Top line"
+      ],
+      "tier": null
+    },
+    "_Path / Artwork x small": {
+      "variants_floor": 3,
+      "per_reading": {
+        "rest_complete": 3,
+        "depth4_real": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 2,
+      "component_key": "b04285f926748b3ee449cb92ce2c1e570dccf62b",
+      "axes": [
+        "Bottom line",
+        "Shape",
+        "Top line"
+      ],
+      "tier": null
+    },
+    "_Path line": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "State",
+        "Type"
+      ],
+      "tier": null
+    },
+    "badge": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Color"
+      ],
+      "tier": null
+    },
+    "circle_check": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1,
+        "depth4_real": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 2,
+      "component_key": "8868ba090370409da83dcc3bce9da3fbc4c8f4b0",
+      "axes": [
+        "Color"
+      ],
+      "tier": null
+    },
+    "circle_exclamation_mark": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2,
+        "depth4_real": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 2,
+      "component_key": "e0b49b1061889851d4687565afc89dfad3a9422e",
+      "axes": [
+        "Color"
+      ],
+      "tier": null
+    },
+    "diamond": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Color"
+      ],
+      "tier": null
+    },
+    "phone_info": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Color"
+      ],
+      "tier": null
+    },
+    "question": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2,
+        "depth4_real": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 2,
+      "component_key": "e3d99067b0811a1e6627bff3e9827e36c30cca08",
+      "axes": [
+        "Color"
+      ],
+      "tier": null
+    },
+    "star_shield": {
+      "variants_floor": 1,
+      "per_reading": {
+        "rest_complete": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 1,
+      "component_key": null,
+      "axes": [
+        "Color"
+      ],
+      "tier": null
+    },
+    "warning": {
+      "variants_floor": 2,
+      "per_reading": {
+        "rest_complete": 2,
+        "depth4_real": 1
+      },
+      "largest_reading": "rest_complete",
+      "readings_that_saw_it": 2,
+      "component_key": "25c8eb031de3a84d474d9af81b34fc7d7af7aa19",
+      "axes": [
+        "Color"
+      ],
+      "tier": null
+    }
+  }
+}

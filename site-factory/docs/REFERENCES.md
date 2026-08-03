@@ -10,7 +10,7 @@ Access states are MEASURED, not assumed. Each was probed and the error recorded 
 
 | Reference | What it is | Access | Taken |
 |---|---|---|---|
-| **Uber Base** ([Gallery `l2llhOXNz1bM4aoLKKb5qi`](https://www.figma.com/design/l2llhOXNz1bM4aoLKKb5qi)) | Uber's product design system. 92 component sets, 3,211 variants | READ ok, IMPORT blocked | The control and messaging baseline. Palette, the role-based type ramp, 16 sets redrawn |
+| **Uber Base** ([Gallery `l2llhOXNz1bM4aoLKKb5qi`](https://www.figma.com/design/l2llhOXNz1bM4aoLKKb5qi)) | Uber's product design system. **≥168 component sets, ≥4,335 variants** (`vendor/uber-base-inventory.json`; the 92/3,211 read below was one of four crops) | READ ok, IMPORT blocked | The control and messaging baseline. Palette, the role-based type ramp, 16 sets redrawn. 76 sets untiered |
 | **Relume Figma Kit v3.7** ([`NV8SrzLfRBiPfcwGyDGHJd`](https://www.figma.com/design/NV8SrzLfRBiPfcwGyDGHJd)) | Marketing section library. 74 pages, 1,799 sets, 3,634 variants, 58 categories | READ ok | The MARKETING SECTION baseline, and the four-view workspace pattern. Four sections built from its gaps |
 | **Material 3 Design Kit** (the LIBRARY, v1.25) | Google's Material 3 kit. Its component descriptions carry the semantic contract in prose | **SUBSCRIBED** on the master file. Search returns real component keys | Nothing yet. A denominator for W4, and a source of contract prose to compare against |
 | **Material You UI Kit** ([`iOwtVorRqWd8UlTDNTWxPf`](https://www.figma.com/design/iOwtVorRqWd8UlTDNTWxPf)) | The community FILE of the above | **BLOCKED** as a file, and it does not matter: the library is subscribed | See above. The file was never the way in |
@@ -47,6 +47,28 @@ walk could see and this counts what is actually referenced. See `vendor/uber-bas
 What remains true: the LIBRARY is still not subscribed and its keys still do not import. If you
 want to place a Base instance in a file, the subscription is still the answer. If you want its
 contract, it is already here.
+
+**Superseded on the counts, 2026-08-03: the 126 was cropped too, and so was the 131 that
+replaced it.** `vendor/uber-base-inventory.json` is now the authority: **at least 168 named
+component sets and 4,335 variants**, from a depth-unlimited per-frame export of the same file
+with every chunk parsed before the next was requested.
+
+| reading | how it reached the file | sets |
+|---|---|---|
+| the redrawn page | hand-drawn | 16 |
+| `uber-base-keys.json` | top-level page walk | 92 |
+| `uber-base-contracts.json` | instance walk, **19,406 of 32,123** instances | 126 |
+| `uber-base-real.json` | `/nodes?ids=…&**depth=4**` | 131 |
+| `uber-base-inventory.json` | per-frame, no depth limit, 139,442 nodes | **168** |
+
+The page holds **32,123** INSTANCE nodes, not 19,406; the 19,406 sweep saw about 60% of them.
+The tree is **18 levels deep**, so the depth-4 read reached **19.6%** of its nodes: it could see
+3,512 distinct components and recorded a map of 3,516, with **208 more below the limit**.
+
+Every one of those readings announced its predecessor's number as wrong, and every one was wrong
+the same way. **The count was never the defect. Not stating the reach was.** What survives of
+each is recorded in the inventory's `_what_survives_from_the_earlier_readings`, and it is a lot:
+the axis contracts, the component keys and the tier judgement all stand. Only the totals move.
 
 **Uber Base import.** `importComponentSetByKeyAsync` returns
 `Component set with key "..." not found` for a genuine harvested key AND for an impossible

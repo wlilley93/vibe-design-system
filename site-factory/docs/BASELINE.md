@@ -9,6 +9,21 @@ numbers here.
 **92 component sets, 3,211 variants.** That is the vocabulary a mature product design system
 declares, and it is the yardstick.
 
+> **The 92 is this document's TIERING SCOPE, not the size of Base.** Corrected 2026-08-03
+> against a depth-unlimited export: Base declares **at least 168 named component sets and
+> 4,335 variants** (`vendor/uber-base-inventory.json`). The 3,504 above is the count of
+> instances *not nested inside another instance*; the page holds **32,123** in total, and a
+> top-level walk cannot see the other 28,619. Four readings of this one file each corrected
+> the last and each was cropped the same way - see `docs/FIGMA-ROUND-TRIP.md`, "A read has a
+> REACH".
+>
+> Nothing in the tiering below is withdrawn. **76 further sets carrying 698 variants are
+> simply untiered**, listed in the inventory's `untiered_backlog`, and the largest of them -
+> `Input element / Text field` (74), `Input element / Select` (36), `Input element / PIN slot`
+> (31) - are form primitives, which is exactly where a SaaS surface needs an answer. The
+> judgement in this document is sound about the 92 it judged. It is silent, not negative,
+> about the rest.
+
 ## What Base is, and what it is not
 
 Base is Uber's product design system: Jeremy Mickel's typeface, a deep date/time layer, mobile
@@ -26,6 +41,8 @@ would trade a measured SaaS priority order for a travel-app one. The two are com
 the split is deliberate.
 
 ## 43 of 92 are already answered
+
+(43 of the 92 tiered here. Against Base's full 168 named sets, 76 are untiered and unassessed.)
 
 Each existing block, and the Base names it covers:
 
