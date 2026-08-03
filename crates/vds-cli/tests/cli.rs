@@ -151,9 +151,9 @@ impl Fixture {
         id
     }
 
-    /// A local frame ledger with one registrable row and one row for each
-    /// Order-31 refusal. Built only from a saved capture: no Figma transport is
-    /// available or exercised by these tests.
+    /// A local frame ledger with one registrable row, one row for each Order-25
+    /// refusal, and structural negative controls. Built only from a saved capture:
+    /// no Figma transport is available or exercised by these tests.
     fn signoff_ready(&self) -> &Self {
         self.ready();
         self.write(
@@ -173,9 +173,29 @@ impl Fixture {
                   "id": "3:2", "name": "Screen /unlabelled", "children": []
                 }},
                 "4:2": {"document": {
-                  "id": "4:2", "name": "Screen /proposal",
+                  "id": "4:2", "name": "Screen /single-body",
                   "children": [
                     {"id": "40:1", "name": "body", "children": []}
+                  ]
+                }},
+                "5:2": {"document": {
+                  "id": "5:2", "name": "Screen /multi-body",
+                  "children": [
+                    {"id": "50:1", "name": "body", "children": []},
+                    {"id": "50:2", "name": "rail", "children": []}
+                  ]
+                }},
+                "6:2": {"document": {
+                  "id": "6:2", "name": "Screen /depth-bounded",
+                  "absoluteBoundingBox": {"x": 0, "y": 0, "width": 1440, "height": 900},
+                  "children": [
+                    {"id": "60:1", "name": "body",
+                     "absoluteBoundingBox": {"x": 0, "y": 0, "width": 1440, "height": 900},
+                     "children": [
+                      {"id": "60:2", "name": "content",
+                       "absoluteBoundingBox": {"x": 0, "y": 0, "width": 1440, "height": 800},
+                       "children": []}
+                    ]}
                   ]
                 }}
               }
@@ -2271,11 +2291,11 @@ fn an_ordinary_signoff_keeps_the_existing_now_based_record_shape() {
     assert!(record.contains("signedAt: "), "{record}");
 }
 
-/// Order 31 is the eligibility wall for both the old door and the import door.
+/// Order 25 is the eligibility wall for both the old door and the import door.
 /// These are three separate seeded refusals because collapsing them into one
 /// generic "not current" branch would lose the fact each row actually carries.
 #[test]
-fn external_import_preserves_every_order_31_refusal() {
+fn external_import_preserves_every_order_25_refusal() {
     let f = Fixture::new();
     f.signoff_ready();
     for (node, refusal) in [
@@ -2296,12 +2316,67 @@ fn external_import_preserves_every_order_31_refusal() {
         .expect(PRECONDITION)
         .says(refusal);
     }
-    assert_eq!(f.signoff_count(), 0, "an Order-31 refusal wrote a row");
+    assert_eq!(f.signoff_count(), 0, "an Order-25 refusal wrote a row");
+}
+
+/// [2026] VJS-CC-OPBOX 6: extraction shape is evidence about structure and never
+/// authority. One body, multiple unlabelled bodies, and a depth-bounded body all
+/// remain refused until the selected locus carries a recognised current-source
+/// declaration or an already-authorised Principal label-resolution act.
+#[test]
+fn signoff_never_infers_authority_from_body_count_or_capture_shape() {
+    let f = Fixture::new();
+    f.signoff_ready();
+
+    let project = vds_core::Project::discover(Some(f.root())).expect("fixture project");
+    let ledger = vds_figma::frames::read(&project)
+        .expect("read frame ledger")
+        .expect("frame ledger exists");
+
+    let single = ledger.row("4:2").expect("single-body row");
+    assert_eq!(
+        single.authority_by,
+        vds_figma::frames::AuthorityBy::FrameOwnChildren
+    );
+    assert!(single.quarantined.is_empty());
+
+    let multiple = ledger.row("5:2").expect("multi-body row");
+    assert_eq!(
+        multiple.authority_by,
+        vds_figma::frames::AuthorityBy::FrameOwnChildren
+    );
+    assert!(multiple.quarantined.is_empty());
+
+    let depth_bounded = ledger.row("6:2").expect("depth-bounded row");
+    assert_eq!(
+        depth_bounded.authority_by,
+        vds_figma::frames::AuthorityBy::FrameOwnChildren
+    );
+    assert!(
+        depth_bounded.truncated,
+        "the negative control must actually reach the capture boundary"
+    );
+
+    for node in ["4:2", "5:2", "6:2"] {
+        f.vds(&[
+            "signoff",
+            "record",
+            "--file-key",
+            "KEY",
+            "--node-id",
+            node,
+            "--signed-by",
+            "Principal",
+        ])
+        .expect(PRECONDITION)
+        .says("not a CURRENT SOURCE label");
+    }
+    assert_eq!(f.signoff_count(), 0, "a structural inference wrote a row");
 }
 
 /// One negative-control table over every external-input failure mode. Each
 /// invocation reaches the registrable row and supplies the other half of the
-/// pair, so a refusal cannot pass accidentally because Order 31 fired first.
+/// pair, so a refusal cannot pass accidentally because Order 25 fired first.
 #[test]
 fn external_import_refuses_unbound_missing_outside_malformed_and_mismatched_evidence() {
     let f = Fixture::new();

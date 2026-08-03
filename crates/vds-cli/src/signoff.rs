@@ -98,7 +98,7 @@ fn record(store: &Store, args: &RecordArgs) -> Result<i32> {
             args.node_id
         ))
     })?;
-    // ORDER 31: only a CURRENT SOURCE frame is registrable. The ledger already
+    // ORDER 25: only a CURRENT SOURCE frame is registrable. The ledger already
     // carries what this needs (`disclaimed`, `authority_by`) and the door never
     // looked. A register entry over a frame that says in its own authoritative
     // layer that it is NOT source-current is a signed contradiction, and the
