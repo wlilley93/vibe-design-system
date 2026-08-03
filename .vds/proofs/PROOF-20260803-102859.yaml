@@ -1,0 +1,29 @@
+id: PROOF-20260803-102859
+kind: staged_write
+status: vacuous
+warrant_id: null
+command: vds proof staged_write
+script: crates/vds-proof/src/staged_write.rs
+script_digest: sha256:7074adf3213ce1d25958d0781a8fb7a0e3296a25eeb02bd8b63adc0bd71328cd
+exit_code: 3
+rows_considered: 0
+rows_enforced: 0
+rows_skipped_reasons: {}
+violations: []
+notes:
+- '[reach] this run establishes that every staged write VDS holds clears its four gates, and that every frame the estate names carries a content digest a sign-off or an applied stage accounts for. IT ESTABLISHES NOTHING ABOUT WHO MAY WRITE TO THE FIGMA FILE. The REST API cannot write document nodes, so VDS holds no privileged channel it could withhold; VDS needs a token to READ and the plugin bridge needs none to WRITE, so credential custody is the inverse of a control here; and the writer lock `vds stage apply` takes says on its own face that it is ADVISORY and cannot stop a writer that does not ask for it. What is new is that the operation list exists on disk before anything reaches the canvas, that the operation vocabulary is CLOSED, and that a write nobody staged is now visible after the fact.'
+- '[vocabulary] the operation set is CLOSED at six - create-band, set-box, set-name, set-paint, reorder and delete-band - and there is no page-level and no frame-level delete. The 2026-07-25 loss on the subscribing estate came from a build step whose correct and documented behaviour is to delete a page of a given name and recreate it; a second writer ran it and discarded work the first had landed. Neither agent was at fault and the step was not wrong: the destructive verb existed and two writers reached it. WIDENING THE VOCABULARY MAKES THAT LOSS REPEATABLE THROUGH THE SANCTIONED PATH. A delete reaches one band, and only where its name is in the closed review vocabulary AND the intent no longer declares it; a node VDS did not create and the intent does not name is never touched.'
+- '[authority] a machine act creates no authority ([2026] VJS-SC-OPBOX 1 order 16). VDS may stage, plan, apply and verify. It may not sign, may not set a signed status, and emits nothing that reads as a signature: an applied stage adds a digest to the set the bypass rule accepts and confers no taste on the drawing. Taste is exercised once, at frame sign-off, by the signer.'
+- '[atomicity] there is none, and this run does not claim any. The plugin bridge caps one call''s code at a fixed character budget and offers no transaction, so a large frame''s plan goes over in ordered, digest-pinned chunks and the third can fail after the first two landed. That is why an apply records an ATTEMPT and a separate re-capture declares success: idempotence is MEASURED AT THE DESTINATION and never asserted in a comment.'
+- '[gate contrast_floor] could not run on 0 of 0 staged write(s). A rule that cannot run is not a rule that ran and found nothing.'
+- '[gate band_naming] could not run on 0 of 0 staged write(s). A rule that cannot run is not a rule that ran and found nothing.'
+- '[gate canonical_geometry] could not run on 0 of 0 staged write(s). A rule that cannot run is not a rule that ran and found nothing.'
+- '[gate route_binding] could not run on 0 of 0 staged write(s). A rule that cannot run is not a rule that ran and found nothing.'
+- '[coverage] 0 of 0 staged write(s) and named frame(s) were SCORED (0%). 0 UNSCORED: a requirement exists and this run could not measure it, which is a finding and never a pass. 0 EXCLUDED: the design states nothing to measure against, which is a different fact from the code being wrong.'
+inputs_digest: sha256:6159c531f4675ef4abb801183964715c75452799cc38d4f20ecb87a12989a16f
+digest: sha256:4c97e7e2f9ca7c260c6533a3809c3ea4fe911ad788775694e81672b9f74e2e3f
+designpack_digest: sha256:f9c369f3175c15169dafde47c01d7efc2f45c64090444f17f5b3f480e710ec5a
+captured_at: 2026-08-03T10:28:59Z
+capture_mode: automatic
+invoked_by: manual
+duration_ms: 0

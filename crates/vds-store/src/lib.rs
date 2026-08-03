@@ -23,8 +23,8 @@ use vds_core::{
     DirectionId, DirectionRecord, EnforcementLock, GeometryBound, GeometryId, LOCK_FILE_NAME,
     LOCK_SCHEMA_VERSION, PathRole, Pin, ProhibitionId, ProhibitionRecord, Project, ProofId,
     ProofKind, ProofResult, RedrawId, RedrawRecord, Result, ReviewId, ScreenId, ScreenRecord,
-    SignOff, SignoffId, Stage, Submission, Timestamp, VdsError, VisualReviewRecord, Warrant,
-    WarrantId, WarrantStatus, write_text_atomically, yaml_files,
+    SignOff, SignoffId, Stage, StageId, StageRecord, Submission, Timestamp, VdsError,
+    VisualReviewRecord, Warrant, WarrantId, WarrantStatus, write_text_atomically, yaml_files,
 };
 
 pub mod lock;
@@ -382,6 +382,42 @@ impl<'a> Store<'a> {
             "direction",
             |r: &DirectionRecord| r.id.to_string(),
         )
+    }
+
+    pub fn stages_dir(&self) -> PathBuf {
+        self.project.path(PathRole::Stages)
+    }
+
+    pub fn stage_path(&self, id: &StageId) -> PathBuf {
+        self.stages_dir().join(format!("{id}.yaml"))
+    }
+
+    /// Every staged write, through the SAME two guards every other series gets.
+    ///
+    /// It matters more here than almost anywhere: the bypass rule builds the
+    /// set of digests a frame may lawfully carry out of the applied stages it
+    /// can see, so a stage record filed one directory down or saved as `.yml`
+    /// would not narrow the answer, it would INVERT it - the frame's real
+    /// digest would stop being accounted for and a legitimate VDS apply would
+    /// be reported as a bypass.
+    pub fn read_stages(&self) -> Result<Vec<Located<StageRecord>>> {
+        self.read_named_series(&self.stages_dir(), "staged write", |r: &StageRecord| {
+            r.id.to_string()
+        })
+    }
+
+    pub fn read_stage(&self, id: &StageId) -> Result<Located<StageRecord>> {
+        let path = self.stage_path(id);
+        if !path.is_file() {
+            return Err(VdsError::precondition(format!(
+                "no staged write at {}",
+                self.project.rel(&path)
+            )));
+        }
+        Ok(Located {
+            value: self.read(&path)?,
+            path,
+        })
     }
 
     pub fn read_screen(&self, id: &ScreenId) -> Result<Located<ScreenRecord>> {

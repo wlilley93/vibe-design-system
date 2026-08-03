@@ -1,0 +1,351 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "StagePlan",
+  "description": "The operation list, on disk, BEFORE anything reaches the canvas.\n\nThe genuinely new thing this whole capability buys. It lives in the SUBSCRIBER TREE beside the intent, because its operations carry boxes and resolved paints.",
+  "type": "object",
+  "required": [
+    "chunks",
+    "contentDigest",
+    "emittedAt",
+    "emittedBy",
+    "fileKey",
+    "intentDigest",
+    "nodeId",
+    "reading",
+    "readingDigest",
+    "route",
+    "schemaVersion",
+    "stage"
+  ],
+  "properties": {
+    "chunks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/PlanChunk"
+      }
+    },
+    "contentDigest": {
+      "type": "string"
+    },
+    "emittedAt": {
+      "$ref": "#/definitions/Timestamp"
+    },
+    "emittedBy": {
+      "type": "string"
+    },
+    "fileKey": {
+      "type": "string"
+    },
+    "intentDigest": {
+      "type": "string"
+    },
+    "nodeId": {
+      "type": "string"
+    },
+    "reading": {
+      "description": "The saved capture the diff was taken against, project-relative.",
+      "type": "string"
+    },
+    "readingDigest": {
+      "description": "That capture's digest, so a plan cannot be applied against a frame reading it was never computed from.",
+      "type": "string"
+    },
+    "route": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    },
+    "stage": {
+      "$ref": "#/definitions/StageId"
+    },
+    "untouched": {
+      "description": "The bands present in the reading whose names the closed vocabulary does NOT name. Recorded and never touched: a node VDS did not create and the intent does not name is out of reach of every operation above.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "BandBox": {
+      "description": "A rectangle, frame-relative.\n\nA REALISATION, and it is lawful here for exactly one reason: this type is only ever reached from [`StageIntent`] and [`StagePlan`], both of which live in the SUBSCRIBER TREE. Nothing under `.vds/**` holds one, and the stage record's own test holds that claim against its serialised bytes rather than against this paragraph.",
+      "type": "object",
+      "required": [
+        "height",
+        "width",
+        "x",
+        "y"
+      ],
+      "properties": {
+        "height": {
+          "type": "number",
+          "format": "double"
+        },
+        "width": {
+          "type": "number",
+          "format": "double"
+        },
+        "x": {
+          "type": "number",
+          "format": "double"
+        },
+        "y": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "additionalProperties": false
+    },
+    "PlanChunk": {
+      "description": "One chunk of a plan, digest-pinned.",
+      "type": "object",
+      "required": [
+        "digest",
+        "operations",
+        "ordinal"
+      ],
+      "properties": {
+        "digest": {
+          "description": "A digest over this chunk's operations, so a chunk cannot be reordered, dropped or edited between emission and apply without saying so.",
+          "type": "string"
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/StageOperation"
+          }
+        },
+        "ordinal": {
+          "description": "Position in the ordered sequence, from 1. The order is part of the plan: a create must precede the set-box that positions what it created.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "ReviewRegion": {
+      "description": "The bands of a screen a visual pass is expected to account for. CLOSED.\n\nClosed for the reason [`super::SurfaceKind`] is: an open set of region names lets one undifferentiated \"the page\" bucket back in, and \"the page looks fine\" is exactly the finding that missed a counted facet row, a counted eyebrow, date-group bands and a footer window statement on one route.\n\nThese are ANATOMY names and hold no design value (VDS S-2(4)): a region is a place to look, never a size, a colour or a spacing.",
+      "oneOf": [
+        {
+          "description": "The page header band: title, eyebrow, counts, primary actions.",
+          "type": "string",
+          "enum": [
+            "header"
+          ]
+        },
+        {
+          "description": "The filter/facet band, and whatever counts it carries.",
+          "type": "string",
+          "enum": [
+            "facets"
+          ]
+        },
+        {
+          "description": "The body rows or cards, and their internal anatomy.",
+          "type": "string",
+          "enum": [
+            "body_rows"
+          ]
+        },
+        {
+          "description": "The side rail, where the frame draws one.",
+          "type": "string",
+          "enum": [
+            "rail"
+          ]
+        },
+        {
+          "description": "The footer band, and any window or scope statement in it.",
+          "type": "string",
+          "enum": [
+            "footer"
+          ]
+        },
+        {
+          "description": "The empty state, which is a drawn state and not an absence.",
+          "type": "string",
+          "enum": [
+            "empty_state"
+          ]
+        },
+        {
+          "description": "Keyboard affordances drawn in the frame: focus rings, hints, shortcuts.",
+          "type": "string",
+          "enum": [
+            "keyboard"
+          ]
+        }
+      ]
+    },
+    "StageId": {
+      "description": "A staged write to one frame: the reviewable record of what was intended, which gates read on it, and what an apply then did (draft S-7E).",
+      "type": "string",
+      "pattern": "^STG-[0-9]{4}$"
+    },
+    "StageOperation": {
+      "description": "What a staged apply may do. CLOSED AT SIX, and the closure is the strongest thing in this module.\n\nTHERE IS NO PAGE-LEVEL AND NO FRAME-LEVEL DELETE, AND THERE MUST NEVER BE. The 2026-07-25 loss on the subscribing estate came from a build step whose correct and documented behaviour is to delete a page of a given name and recreate it; a second writer ran it and discarded work the first had landed. Neither agent was at fault and the step was not wrong: the destructive verb simply existed and two writers reached it. Widening this enum re-creates that verb inside the sanctioned path, and the loss becomes repeatable through the route that was built to prevent it. That is why the reason is written here in the code and not only in a design note.\n\n[`StageOperation::DeleteBand`] is admitted under two conditions checked together and never separately: the band's name is in the closed review vocabulary, AND the intent no longer declares it. A node VDS did not create and the intent does not name is never touched at all.",
+      "oneOf": [
+        {
+          "description": "The intent declares a band the frame does not have.",
+          "type": "object",
+          "required": [
+            "band",
+            "box_of",
+            "op"
+          ],
+          "properties": {
+            "band": {
+              "$ref": "#/definitions/ReviewRegion"
+            },
+            "box_of": {
+              "$ref": "#/definitions/BandBox"
+            },
+            "op": {
+              "type": "string",
+              "enum": [
+                "create_band"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "description": "The frame has the band and its rectangle is not the declared one.",
+          "type": "object",
+          "required": [
+            "band",
+            "box_of",
+            "op"
+          ],
+          "properties": {
+            "band": {
+              "$ref": "#/definitions/ReviewRegion"
+            },
+            "box_of": {
+              "$ref": "#/definitions/BandBox"
+            },
+            "op": {
+              "type": "string",
+              "enum": [
+                "set_box"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "description": "The band's layer name is a variant spelling of its own region.\n\nThe band's IDENTITY is the region parsed from its layer name, so this operation moves a spelling onto the canonical one and is idempotent by construction: once the name is canonical it parses to the same region and the comparison is equal.",
+          "type": "object",
+          "required": [
+            "band",
+            "op",
+            "to"
+          ],
+          "properties": {
+            "band": {
+              "$ref": "#/definitions/ReviewRegion"
+            },
+            "op": {
+              "type": "string",
+              "enum": [
+                "set_name"
+              ]
+            },
+            "to": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "description": "The band's paint is not the one the named custom property resolves to.",
+          "type": "object",
+          "required": [
+            "band",
+            "op",
+            "property",
+            "resolved"
+          ],
+          "properties": {
+            "band": {
+              "$ref": "#/definitions/ReviewRegion"
+            },
+            "op": {
+              "type": "string",
+              "enum": [
+                "set_paint"
+              ]
+            },
+            "property": {
+              "description": "The custom property the paint takes its value from. The NAME travels with the operation so a reader of the plan can see which token was staged, not only what it happened to resolve to.",
+              "type": "string"
+            },
+            "resolved": {
+              "description": "What that property resolves to in the base scope of the shipped stylesheet. A realisation, lawful because a plan lives in the subscriber tree.",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "description": "The band sits at a different index among the frame's bands.",
+          "type": "object",
+          "required": [
+            "band",
+            "op",
+            "to"
+          ],
+          "properties": {
+            "band": {
+              "$ref": "#/definitions/ReviewRegion"
+            },
+            "op": {
+              "type": "string",
+              "enum": [
+                "reorder"
+              ]
+            },
+            "to": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "description": "The frame carries a band whose name IS in the closed vocabulary and which the intent no longer declares. The only destructive verb, and its reach is one band.",
+          "type": "object",
+          "required": [
+            "band",
+            "op"
+          ],
+          "properties": {
+            "band": {
+              "$ref": "#/definitions/ReviewRegion"
+            },
+            "op": {
+              "type": "string",
+              "enum": [
+                "delete_band"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Timestamp": {
+      "description": "UTC, second resolution, trailing Z. The one canonical form VDS writes.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    }
+  }
+}

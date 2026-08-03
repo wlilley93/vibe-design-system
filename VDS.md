@@ -241,7 +241,7 @@ ignored. A governance record that is gitignored is not a record.
 
 ## S-4 The artefact set
 
-**S-4(1)** VDS holds exactly ten artefact kinds (nine before the retention log was enacted at S-4(5)). Seven have a JSON Schema under `schema/`,
+**S-4(1)** VDS holds exactly eleven artefact kinds (nine before the retention log was enacted at S-4(5); the eleventh, the STAGE RECORD, is DRAFTED at S-4(6) with SUBMISSION-VDS-020 pending). Eight have a JSON Schema under `schema/`,
 and a file that does not validate against its schema is not an artefact of that kind. The
 remaining two, the decision log and the breach report, are ADOPTED from VJS and are validated
 against VJS's schemas rather than redefined here; saying "each has a schema under `schema/`"
@@ -268,6 +268,7 @@ enforceable status, arranged in a way its frame does not draw, and every proof s
 | submission | `.vds/submissions/{draft,filed,docket}/<id>.yaml` | `submission.schema.json` | a question referred to VJS and the order that answered it |
 | decision log | `.vds/logs/decisions/<id>.yaml` | (VJS log schema, adopted) | a reversible call, recorded not adjudicated |
 | breach report | `.vds/logs/breaches/<id>.yaml` | (VJS breach schema, adopted) | a self-reported failure and its restorative remedy |
+| stage record | `.vds/stages/<id>.yaml` | `stage-record.schema.json` | one intended write to one frame, its gate readings and what an apply did (DRAFT S-4(6)) |
 
 **S-4(2)** Ledgers (`.vds/ledgers/`) are generated inventories, never hand-edited. Each
 ledger must have a staleness test that fails when its source changed and the generator was
@@ -295,6 +296,55 @@ the retention log, which lives in `.vds/`, is schema-governed like its nine sibl
 is never pruned by the run it explains. Prune never runs unattended - it stays out of every
 automated path, held there by an enforced test, because deletion is an act a person
 initiates with these rules in front of them.
+
+**S-4(6) THE STAGE RECORD - DRAFTED 2026-08-03, ENACTMENT PENDING (SUBMISSION-VDS-020)**
+
+The eleventh artefact kind. A staged write is one INTENDED write to one frame, recorded
+before it happens so it can be read by somebody other than the agent making it.
+
+The record SPLITS IN TWO, on law rather than on tidiness, and the split is the clause that
+matters. The INTENT carries realisation - the rectangles a band is to occupy and the token a
+band is to be painted from - so it lives in the SUBSCRIBER TREE under `[stage] intent_root`
+and NEVER under `.vds/**`, exactly as S-7A(5) already places a saved REST capture. Under the
+record it would fail `no_stored_values` R1 and R3 forever, on a file VDS wrote itself, and
+[2026] VJS-FI-VDS 1 orders 2 and 4 refused every narrowing that would rescue it. The refusal
+is enforced twice, at config load and inside the proof, because one gate on one artefact is
+one place it can be removed. The `.vds/stages/<id>.yaml` record carries NO realisation: a
+route, a target frame, the intent's path and digest, the input hashes, the three-valued gate
+readings and the apply outcome. It sits BESIDE the screen record and never on it: that
+record's own test forbids a length or a colour in its serialised form, and a stage is an
+EVENT where a screen record is a CONTRACT.
+
+WHAT A STAGED WRITE IS NOT. It is not a mechanism that makes VDS the only writer to a design
+file, and nothing in this specification, in the engine or in its help text may say that it
+is. Three measured facts settle it: the Figma REST API cannot write document nodes, so VDS
+holds no privileged channel it could withhold; VDS needs a credential to READ and the plugin
+bridge needs none to WRITE, so credential custody is the INVERSE of a control here; and the
+estate's writer lock says on its own face that it is advisory and cannot stop a writer that
+does not ask for it. What the kind buys, in descending order of strength, is a CLOSED
+operation vocabulary, an operation list on disk BEFORE anything reaches the canvas, and a
+bypass rule that makes a write nobody staged visible after the fact.
+
+THE OPERATION VOCABULARY IS CLOSED AT SIX: create-band, set-box, set-name, set-paint,
+reorder, and delete-band. There is no page-level and no frame-level delete and there must
+never be. The 2026-07-25 loss on the subscribing estate came from a build step whose correct
+and documented behaviour is to delete a page of a given name and recreate it; a second writer
+ran it and discarded work the first had landed. Neither agent was at fault and the step was
+not wrong: the destructive verb existed and two writers reached it. Widening the vocabulary
+makes that loss repeatable through the sanctioned path. A delete reaches ONE band, and only
+where its name is in the closed review vocabulary AND the intent no longer declares it; a
+node VDS did not create and the intent does not name is never touched.
+
+THERE IS NO ATOMICITY AND NO CLAUSE HERE CLAIMS ANY. The plugin bridge caps one call's code
+at a fixed character budget and offers no transaction, so a large frame's plan goes over in
+ordered, digest-pinned chunks and a partial apply is reachable. An apply therefore records an
+ATTEMPT, and only a re-capture that recomputes the delta and finds it EMPTY declares success.
+Idempotence is MEASURED at the destination and never asserted in a comment.
+
+A MACHINE ACT CREATES NO AUTHORITY ([2026] VJS-SC-OPBOX 1 order 16). VDS may stage, plan,
+apply and verify. It may not sign, may not set a signed status, and emits nothing that reads
+as a signature: an applied stage adds a digest to the set the bypass rule accepts and confers
+no taste on the drawing.
 
 ---
 
@@ -573,6 +623,7 @@ that is the honest description of where they stand.
 | `prohibition` | each registered pattern is ABSENT from its enumerated scope, and the scope has not narrowed since it was recorded, S-7B (ENACTED unamended, [2026] VJS-CA-VDS 1 order 10) |
 | `burndown` | each pinned metric reads exactly its pin: any increase is red, and a decrease not re-pinned is red too, S-7C (ENACTED as amended, [2026] VJS-CA-VDS 1 orders 12-14) |
 | `visual_review` | each recorded visual verdict still holds: shipped screenshot against SIGNED frame, stale the moment either side or the authority moves, S-7D (ENACTED as amended, [2026] VJS-CA-VDS 1 orders 19-22) |
+| `staged_write` | every UNAPPLIED staged write clears its four gates, and every frame the estate names carries a content digest a sign-off or an applied stage accounts for, S-7E (DRAFTED, SUBMISSION-VDS-020 pending) |
 
 The eleventh kind was added by amendment on 2026-07-30, by the route S-7(6) requires. The
 first ten all read a COMPONENT; `register_completeness` and `composition` say "screen" and
@@ -596,7 +647,7 @@ component library were all invisible to every proof in the registry.
 
 The thirteenth, fourteenth and fifteenth kinds were drafted on 2026-08-01 and ENACTED the
 same day by [2026] VJS-CA-VDS 1 (Court of Appeal; Fidelity, Engine and Estate JJ), five of
-the six submissions as amended. The registry is CLOSED AT FIFTEEN and no sixteenth kind was
+the six submissions as amended. The registry was then CLOSED AT FIFTEEN and no sixteenth kind was
 created: the measurement-coverage clause is housed in `register_completeness` by order 15,
 against Engine J's dissent, which is recorded in Schedule B of that judgment.
 They are drawn from the same migration's post-mortem, one level further out. The twelve
@@ -975,6 +1026,106 @@ number holding both facts would have reported 143 unmeasured routes as clean. `b
 required and empty is the honest default, because a rule that went permanently red on every
 screen registered before the field existed is a rule people switch off.
 
+### S-7E STAGED WRITE - DRAFTED 2026-08-03, ENACTMENT PENDING (SUBMISSION-VDS-020)
+
+**S-7E(1)** The sixteenth kind, and the first whose subject is an act that has not happened
+yet. Read S-4(6) first: it defines the artefact, states what a staged write is NOT, and
+closes the operation vocabulary. This section defines what the proof checks.
+
+**S-7E(2)** ONE KIND, NOT FOUR, though it carries four gates. Four kinds would walk the same
+enumeration four times and let the four disagree about which stages exist, which is the
+two-sources-of-truth failure S-7D avoids by folding the band correspondence into
+`visual_review` rather than filing a separate kind for it. One row is one staged write or one
+frame the bypass rule examines, one input set, and one SCORED / UNSCORED / EXCLUDED tally
+checked before anything prints.
+
+**S-7E(3)** THE GATES ARE RE-DERIVED BY THE PROOF AND NEVER READ OFF THE RECORD. A record
+that carried its own verdicts and was believed could be MINTED, and three of S-7D's four
+earning conditions were found on the downstream estate by exactly that act. A recorded
+reading the run does not reproduce is a finding, and a gate ABSENT from a record is a finding
+too: a gate absent and a gate that cleared are the same green to anybody counting refusals,
+which is how a gate stops running without anybody noticing.
+
+**S-7E(4) G1, CONTRAST FLOOR.** A staged paint whose role is `control_boundary` must clear
+3.0:1 in EVERY theme scope the shipped stylesheet declares. A paint names a CUSTOM PROPERTY,
+a role and the backdrop property it is measured against; a literal is refused, because a
+literal cannot be measured against the shipped record in any theme and a boundary spelled as
+a value is a boundary nothing can check. A property whose value in some theme a binding order
+has RESERVED is refused rather than resolved: this gate measures and never picks, and
+choosing a value a court reserved would be VDS legislating.
+
+**S-7E(5) G2, BAND NAMING.** Three limbs. (a) A band name outside the closed seven-value
+review vocabulary is UNREPRESENTABLE rather than refused, which is the strongest available
+form of the rule. (b) A band the SCREEN RECORD does not declare is refused: a staged rail on
+a screen that has none is a write about another screen. (c) The limb that makes the diff key
+stable, and it is load-bearing rather than cosmetic: THE DIFF IS KEYED ON BAND NAME AND NOT
+ON NODE ID, because node ids change when a node is recreated and a node-keyed diff sees every
+band as missing on the second run and recreates all of them. Keyed on the closed-vocabulary
+name, the second run finds what the first created and emits zero operations.
+
+**S-7E(6) G3, CANONICAL GEOMETRY.** The SAME derivation the frame ledger will run AFTER the
+write is run over the intent's boxes BEFORE it, and a derived column count differing from the
+count the intent declares is refused. Running a second derivation here would give the estate
+two arithmetics for one number and the gate would certify a frame against an arithmetic the
+ledger does not use, which is the same failure with a longer feedback loop: the disagreement
+only surfaces after the write.
+
+**S-7E(7) G4, ROUTE BINDING.** A staged write whose target frame is bound to a route ANOTHER
+artefact in the subscribing repository contradicts is refused, and BOTH claims are named. VDS
+DOES NOT DECIDE WHICH IS TRUE, because deciding needs eyes on the drawing and this engine
+reads names, node ids and digests. This is not hypothetical: an audit completed on 2026-08-02
+confirmed two false mappings out of thirty-three disputed on the subscribing estate, and one
+of them drove a live code change on a shipped route. Where no binding ledger exists the gate
+reports COULD NOT RUN, per row, and the coverage line says so out loud: a single unopposed
+self-claim must never read as agreement.
+
+**S-7E(8)** PER BAND, ONLY DECLARED FIELDS ARE COMPARED. A field the intent does not declare
+is neither compared nor written, so a designer's hand-added note inside a band survives an
+apply. This is `AgreementState::NotDrawn` generalised: a frame binds only for what it draws
+([2026] VJS-SC-OPBOX 1 order 6), and an intent binds only for what it declares.
+
+**S-7E(9)** A GATE READING IS THREE-VALUED: cleared, refused, or could-not-run. The third
+value is the whole point, and it is the same discipline S-7D(14) applies to the band
+correspondence: "it cleared" and "it had no basis to run" are different facts, and one field
+holding both reports the second as the first. `vds stage add` RUNS NO GATE as a condition of
+writing its record - the door is not the wall (S-11(5)) - and `vds stage plan` REFUSES to
+emit an operation list where any gate reads refused, because a plan is what an apply reads
+and emitting one over a refusal would put the refusal downstream of the act it exists to stop.
+
+**S-7E(10) THE BYPASS RULE.** For every frame the register or the manifest names, the frame's
+CURRENT content digest is compared against the union of the digest at its last sign-off and
+the digest after every applied and verified stage. A frame matching NEITHER was written by
+something that did not come through VDS. Fatal, named per frame, and NOT curable by
+re-running: it is cured by staging the state the frame is now in, or by reverting.
+
+(a) A frame with NO sign-off and NO applied stage has no baseline, so the rule CANNOT RUN on
+it. That is reported and is neither a bypass nor a pass. Reporting it as a bypass would redden
+every estate on the day it adopted the kind, and a permanently red gate is one people switch
+off.
+
+(b) THE RULE REFUSES ON AN OVER-AGE CAPTURE, and it measures the CAPTURE DATE and never the
+ledger's `generated_at`. Regenerating a ledger from an old capture moves `generated_at` to
+now and moves the capture date not at all, so a freshness rule reading the wrong one reports
+a stale reading as fresh every time, and this rule is otherwise SILENT against a stale
+capture. That is not hypothetical: it is how 23 of 188 routes on the subscribing estate were
+read against a stale capture on 2026-08-02. A ledger stating no capture date REFUSES rather
+than reporting no bypass, because a bypass check that is silent against a stale reading is a
+check that cannot fail.
+
+**S-7E(11)** ALL FOUR GATES ARE LOCAL FILE READS - the records, the intent, the shipped
+stylesheet, the ledgers and the register - so they are lawfully a proof under S-7(2)(1).
+`vds stage apply` re-captures the live frame and is therefore NOT a proof and can never be
+one. The network stays behind the Figma seam exactly as S-7A(4) puts it there, so nothing in
+the proof path can accidentally acquire a network dependency.
+
+**S-7E(12)** `vds stage apply` takes the subscribing estate's ADVISORY writer lock, in the
+same file and by the same holder protocol. Until now VDS was not a lock participant at all,
+so a co-operating VDS apply and a co-operating agent would not even have collided. It remains
+ADVISORY: it cannot stop a writer that does not ask for it, and no clause here may dress it
+up as something that can.
+
+---
+
 **S-7(6)** Adding a proof kind is an amendment to this specification and to the invariant
 registry, not a script anyone may drop in. The registry is closed for the same reason VJS
 closed its predicate registry: an open registry is a free-form script surface, and a
@@ -1229,7 +1380,7 @@ unrepresentable rather than invalid. Where a rule can be made structural it is m
 structural, because a rule enforced at runtime is a rule that can be reached with the check
 disabled.
 
-**S-14A(3)** All fifteen proof kinds at S-7(5) are implemented and enacted ([2026] VJS-CA-VDS 1; the registry is closed at fifteen and no sixteenth kind was created). `unimplemented_because` is kept on
+**S-14A(3)** All sixteen proof kinds at S-7(5) are implemented ([2026] VJS-CA-VDS 1 enacted the thirteenth to fifteenth; the sixteenth, `staged_write`, is DRAFTED at S-7E with SUBMISSION-VDS-020 pending and says so on its own face). `unimplemented_because` is kept on
 the type rather than deleted: a kind that later has to be withdrawn must record WHY, per kind,
 rather than disappearing from a match arm, and the difference between work and a dependency is
 what tells a reader which it is. What remains unbuilt is a pin GENERATOR: `token_pin` checks a

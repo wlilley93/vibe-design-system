@@ -1,4 +1,4 @@
-//! The artefact types. VDS holds exactly ten artefact kinds (VDS S-4(1); the tenth, the retention log, was enacted at S-4(5) by [2026] VJS-CC-VIBE-DESIGN-SYSTEM 6).
+//! The artefact types. VDS holds exactly eleven artefact kinds (VDS S-4(1); the tenth, the retention log, was enacted at S-4(5) by [2026] VJS-CC-VIBE-DESIGN-SYSTEM 6, and the eleventh, the STAGE RECORD, is DRAFTED at S-4(6) with SUBMISSION-VDS-020 pending).
 //!
 //! Every closed set in the specification is an `enum` here rather than a
 //! validated string. That is the strongest available form of the rule: VDS S-5(3)
@@ -26,6 +26,7 @@ mod proof;
 mod review;
 mod screen;
 mod signoff;
+mod stage;
 mod submission;
 mod warrant;
 
@@ -40,6 +41,7 @@ pub use proof::*;
 pub use review::*;
 pub use screen::*;
 pub use signoff::*;
+pub use stage::*;
 pub use submission::*;
 pub use warrant::*;
 

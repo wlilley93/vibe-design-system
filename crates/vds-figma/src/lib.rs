@@ -41,6 +41,7 @@ pub mod frames;
 pub mod ledger;
 pub mod pin;
 pub mod pull;
+pub mod stage;
 
 #[cfg(test)]
 pub mod testing;
@@ -50,3 +51,4 @@ pub use contract::{ImplementationContract, build as build_contract};
 pub use frames::{AuthorityBy, FrameLedger, FrameRow};
 pub use ledger::{FigmaLedger, FigmaNodeRow, check_fresh};
 pub use pull::{FigmaApi, FigmaSource, SavedResponse, build_ledger, declared_file_key, from_saved};
+pub use stage::{BandState, DiffInputs, FrameReading, diff, emit_plan, read_frame};

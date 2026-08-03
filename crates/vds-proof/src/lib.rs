@@ -1,6 +1,6 @@
 //! The proof kinds, and the engine that captures them.
 //!
-//! VDS S-7(5) fixes twelve kinds as a CLOSED registry and VDS S-7(6) makes
+//! VDS S-7(5) fixes sixteen kinds as a CLOSED registry and VDS S-7(6) makes
 //! adding one an amendment to the specification rather than a script anyone may
 //! drop in. That closure is enforced here by construction: [`run`] matches on
 //! [`ProofKind`], which is an enum, so a new kind cannot be dispatched without
@@ -30,6 +30,7 @@ pub mod register_completeness;
 pub mod retirement_drain;
 pub mod run;
 pub mod screen_parity;
+pub mod staged_write;
 pub mod states;
 pub mod token_pin;
 pub mod visual_review;
@@ -116,6 +117,7 @@ pub fn run(kind: ProofKind, ctx: &ProofContext, out: &mut dyn Write) -> Result<O
         ProofKind::Prohibition => prohibition::run(ctx, out),
         ProofKind::Burndown => burndown::run(ctx, out),
         ProofKind::VisualReview => visual_review::run(ctx, out),
+        ProofKind::StagedWrite => staged_write::run(ctx, out),
     }
 }
 
@@ -229,6 +231,7 @@ pub const GATE_PATHS: &[&str] = &[
     prohibition::GATE,
     burndown::GATE,
     visual_review::GATE,
+    staged_write::GATE,
 ];
 
 /// A timestamp helper for proofs that must record when they measured something.

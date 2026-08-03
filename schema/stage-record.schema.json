@@ -1,0 +1,289 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "StageRecord",
+  "description": "One staged write. The reviewable record.",
+  "type": "object",
+  "required": [
+    "id",
+    "intentDigest",
+    "intentPath",
+    "route",
+    "stagedAt",
+    "stagedBy",
+    "target"
+  ],
+  "properties": {
+    "apply": {
+      "description": "What an apply then did, or `None` while nothing has been applied.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ApplyOutcome"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "basis": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "gates": {
+      "description": "One verdict per gate that was asked. A gate missing from this list was never asked, which the proof reports rather than assuming cleared.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/GateVerdict"
+      }
+    },
+    "id": {
+      "$ref": "#/definitions/StageId"
+    },
+    "inputs": {
+      "description": "Every input the gates read, pinned.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/StageInput"
+      }
+    },
+    "intentDigest": {
+      "description": "The intent's digest when the gates read it, so a plan cannot be emitted from one intent and applied from another.",
+      "type": "string"
+    },
+    "intentPath": {
+      "description": "Where the INTENT lives, project-relative. Never under `.vds/`: it carries boxes and paints, and see the module note.",
+      "type": "string"
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "route": {
+      "description": "The route this write is about, as the screens ledger spells it.",
+      "type": "string"
+    },
+    "stagedAt": {
+      "$ref": "#/definitions/Timestamp"
+    },
+    "stagedBy": {
+      "type": "string"
+    },
+    "target": {
+      "$ref": "#/definitions/StageTarget"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "ApplyOutcome": {
+      "description": "What one apply attempt did.\n\nTHERE IS NO ATOMICITY HERE AND THIS TYPE MUST NOT CLAIM ANY. The plugin bridge caps a single call's code at a fixed character budget and offers no transaction, so a large frame's plan goes over in ordered chunks and a partial apply is reachable. That is why [`Self::verification`] is separate and optional: applying is an attempt, and only a re-capture that recomputes the delta and finds it EMPTY declares success.",
+      "type": "object",
+      "required": [
+        "appliedAt",
+        "appliedBy",
+        "chunks",
+        "lockHolder",
+        "operations",
+        "planDigest"
+      ],
+      "properties": {
+        "appliedAt": {
+          "$ref": "#/definitions/Timestamp"
+        },
+        "appliedBy": {
+          "type": "string"
+        },
+        "chunks": {
+          "description": "How many ordered chunks the plan went over in.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "lockHolder": {
+          "description": "The ADVISORY writer lock this apply held, by holder name.\n\nAdvisory, and the word is not decoration: the lock is a co-operating file protocol and cannot stop a writer that does not ask for it. What it converts is a silent collision into a loud refusal for every writer that does ask, and VDS taking it is VDS becoming one of those writers, which it was not before.",
+          "type": "string"
+        },
+        "operations": {
+          "description": "How many operations those chunks carried.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "planDigest": {
+          "description": "The plan's content digest at apply time, so an apply cannot claim a plan that has since been re-emitted.",
+          "type": "string"
+        },
+        "verification": {
+          "description": "The measurement that declares success, or `None` while none has been taken. Never defaulted to a success.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Verification"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "GateReading": {
+      "description": "What one gate READ. THREE-VALUED, and the third value is the whole point.\n\n\"Cleared\" and \"had no basis to run\" are different facts, and one field holding both reports the second as the first. On the estate this was written for, the same class of collapse reported 143 unmeasured routes as clean, and `screen_parity`'s coverage tally exists because a gate scored 32% of its subject and would have printed zero deviations.",
+      "oneOf": [
+        {
+          "description": "The gate ran, over something, and found nothing to refuse.",
+          "type": "string",
+          "enum": [
+            "cleared"
+          ]
+        },
+        {
+          "description": "The gate ran and refuses this staged write.",
+          "type": "string",
+          "enum": [
+            "refused"
+          ]
+        },
+        {
+          "description": "The gate had no basis to run: an input the estate has not supplied, or a declaration this intent does not make. NEVER a pass.",
+          "type": "string",
+          "enum": [
+            "could_not_run"
+          ]
+        }
+      ]
+    },
+    "GateVerdict": {
+      "description": "One gate's reading on one staged write, and why.",
+      "type": "object",
+      "required": [
+        "because",
+        "gate",
+        "reading"
+      ],
+      "properties": {
+        "because": {
+          "description": "The reason, in the gate's own words, and required in EVERY reading.\n\nA cleared reading with no sentence cannot be told apart from a gate that returned early, and a `could_not_run` with no sentence hides which input was missing. Prose, and NOT exempt from VDS S-2(2): this record lands under `.vds/**`, which `no_stored_values` scans in full, so a reason names the CLASS of a value and never spells one.",
+          "type": "string"
+        },
+        "gate": {
+          "$ref": "#/definitions/StageGate"
+        },
+        "reading": {
+          "$ref": "#/definitions/GateReading"
+        }
+      },
+      "additionalProperties": false
+    },
+    "StageGate": {
+      "description": "The four gates a staged write is read against. CLOSED.\n\nClosed for the reason [`ReviewRegion`] is: an open set lets one undifferentiated \"the checks passed\" bucket back in, and a gate nobody can name is a gate nobody can see did not run.\n\nAll four are limbs of ONE proof kind, `staged_write`, and never four kinds. Four kinds would walk the same enumeration four times and let the four disagree about which stages exist, which is the two-sources-of-truth failure `visual_review` names when it folds band correspondence in rather than filing a sixteenth kind for it.",
+      "oneOf": [
+        {
+          "description": "G1. A staged control boundary clears the contrast floor in every theme the shipped stylesheet declares.",
+          "type": "string",
+          "enum": [
+            "contrast_floor"
+          ]
+        },
+        {
+          "description": "G2. Every staged band is named from the CLOSED review vocabulary and is one the screen record declares. The limb that makes the diff key stable.",
+          "type": "string",
+          "enum": [
+            "band_naming"
+          ]
+        },
+        {
+          "description": "G3. The boxes about to be written derive the column count the intent declares, under the same derivation `vds figma frames` runs afterwards.",
+          "type": "string",
+          "enum": [
+            "canonical_geometry"
+          ]
+        },
+        {
+          "description": "G4. No other artefact in the subscribing repository contradicts this route's binding to this frame.",
+          "type": "string",
+          "enum": [
+            "route_binding"
+          ]
+        }
+      ]
+    },
+    "StageId": {
+      "description": "A staged write to one frame: the reviewable record of what was intended, which gates read on it, and what an apply then did (draft S-7E).",
+      "type": "string",
+      "pattern": "^STG-[0-9]{4}$"
+    },
+    "StageInput": {
+      "description": "One input a gate read, and its digest at the moment it read it.\n\nA NAME and a digest, never a path's contents. The stage record is the only place that says what the verdicts above were computed over, and a verdict whose inputs are not pinned is a verdict that silently survives them moving.",
+      "type": "object",
+      "required": [
+        "digest",
+        "name"
+      ],
+      "properties": {
+        "digest": {
+          "type": "string"
+        },
+        "name": {
+          "description": "Repository-relative, or a derived name for an input that is not a file.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "StageTarget": {
+      "description": "The frame a staged write aims at.\n\nDeliberately NOT [`super::FigmaFrame`], for the reason that type is deliberately not [`super::FigmaNode`]: a screen's frame carries a capture time because a screen record binds a contract to a drawing, and a stage target binds nothing. It names where the write is going, and the moment it was read is the PLAN's fact rather than the target's.",
+      "type": "object",
+      "required": [
+        "fileKey",
+        "nodeId"
+      ],
+      "properties": {
+        "fileKey": {
+          "type": "string"
+        },
+        "nodeId": {
+          "description": "A Figma node id, in either of the two spellings a designer copies.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Timestamp": {
+      "description": "UTC, second resolution, trailing Z. The one canonical form VDS writes.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "Verification": {
+      "description": "The re-capture that declares an apply finished. IDEMPOTENCE IS MEASURED AT THE DESTINATION, never asserted in a comment.",
+      "type": "object",
+      "required": [
+        "frameDigestAfter",
+        "residualOperations",
+        "verifiedAt"
+      ],
+      "properties": {
+        "frameDigestAfter": {
+          "description": "The frame's content digest as the RE-CAPTURE read it. This is the value the bypass rule adds to the set of digests a frame may lawfully carry.",
+          "type": "string"
+        },
+        "residualOperations": {
+          "description": "How many operations the diff STILL emits against the re-captured frame. Zero, or the apply did not finish.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "verifiedAt": {
+          "$ref": "#/definitions/Timestamp"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

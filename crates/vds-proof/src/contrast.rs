@@ -852,7 +852,7 @@ fn colour_error_class(error: &ColourError) -> &'static str {
 /// point: falling back to reading the field as a colour would MEASURE a value
 /// stored in the register, which is to reward the storing form VDS S-2(2)
 /// forbids. The register names things; the stylesheet holds them.
-fn custom_property(raw: &str) -> Option<String> {
+pub(crate) fn custom_property(raw: &str) -> Option<String> {
     let trimmed = raw.trim();
     let name = trimmed.strip_prefix("--").unwrap_or(trimmed);
     if name.is_empty()
@@ -868,7 +868,7 @@ fn custom_property(raw: &str) -> Option<String> {
 /// A ratio as it is recorded: truncated to two places, and bounded at the top.
 ///
 /// See [`MAX_RECORDED_RATIO`] for why the top of the scale is a bound.
-fn recorded_ratio(ratio: f64) -> String {
+pub(crate) fn recorded_ratio(ratio: f64) -> String {
     if ratio > MAX_RECORDED_RATIO {
         return format!("{} or more", colour::format_ratio(MAX_RECORDED_RATIO));
     }
@@ -888,7 +888,7 @@ fn recorded_ratio(ratio: f64) -> String {
 /// This is a guard on THIS proof's output and not a second `no_stored_values`. A
 /// realisation in the register is that proof's to find, at its source; the job
 /// here is only to avoid copying one into a record that is never deleted.
-fn redacted(text: &str) -> String {
+pub(crate) fn redacted(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     let chars: Vec<char> = text.chars().collect();
     let mut i = 0usize;

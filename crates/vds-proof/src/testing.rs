@@ -54,6 +54,7 @@ impl Harness {
             "signoffs",
             "redraws",
             "reviews",
+            "stages",
             "warrants",
             "proofs",
             "pins",
@@ -830,6 +831,102 @@ impl Harness {
             "absoluteBoundingBox": {"x": x, "y": 0, "width": width, "height": height},
             "children": children,
         })
+    }
+
+    // -- staged writes ---------------------------------------------------------
+
+    /// Write a stage intent into the SUBSCRIBER TREE, under `[stage]
+    /// intent_root`, and return its project-relative path.
+    ///
+    /// Never under `.vds/`: an intent carries boxes and paints, and the whole
+    /// point of the split is that a fixture cannot put one where the law says
+    /// it may not go. `vds_core::write_intent` refuses such a path outright, so
+    /// this helper cannot be misused into producing an unlawful fixture.
+    pub fn stage_intent(&self, id: &str, intent: &vds_core::StageIntent) -> String {
+        let project = self.project();
+        let path = vds_core::intent_path(&project, &vds_core::StageId::parse(id).unwrap());
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        vds_core::write_intent(&project, &path, intent).expect("a lawful intent path");
+        project.rel(&path)
+    }
+
+    /// A stage record pinned to an intent this helper has already written.
+    ///
+    /// The gate readings are supplied per call rather than derived, because the
+    /// whole subject of R7 is a record whose stored verdict disagrees with the
+    /// one the proof measures, and a helper that derived them would make that
+    /// disagreement unrepresentable.
+    pub fn stage_record(
+        &self,
+        id: &str,
+        route: &str,
+        node_id: &str,
+        intent_rel: &str,
+        gates: Vec<vds_core::GateVerdict>,
+    ) -> vds_core::StageId {
+        let id = vds_core::StageId::parse(id).unwrap();
+        let project = self.project();
+        let intent_digest =
+            vds_core::Digest::of_file(&project.root.join(intent_rel)).expect("a written intent");
+        let record = vds_core::StageRecord {
+            id: id.clone(),
+            route: route.into(),
+            target: vds_core::StageTarget {
+                file_key: "KEY".into(),
+                node_id: node_id.into(),
+            },
+            intent_path: intent_rel.into(),
+            intent_digest,
+            inputs: vec![],
+            gates,
+            apply: None,
+            staged_by: "a harness".into(),
+            staged_at: Timestamp::fixed(2026, 8, 3, 10, 0, 0),
+            basis: vec!["draft S-7E".into()],
+            notes: None,
+        };
+        let store = self.store();
+        let path = store.stage_path(&id);
+        if path.exists() {
+            store.replace(&path, &record).unwrap();
+        } else {
+            store.create(&path, &record).unwrap();
+        }
+        id
+    }
+
+    pub fn amend_stage(
+        &self,
+        id: &vds_core::StageId,
+        edit: impl FnOnce(&mut vds_core::StageRecord),
+    ) {
+        let store = self.store();
+        let mut record = store.read_stage(id).unwrap().value;
+        edit(&mut record);
+        store.replace(&store.stage_path(id), &record).unwrap();
+    }
+
+    /// The estate's route binding ledger: the SECOND opinion G4 needs.
+    pub fn route_bindings(&self, source: &str, rows: &[(&str, &str)]) -> PathBuf {
+        let mut ledger = vds_core::RouteBindingLedger {
+            schema_version: vds_core::ROUTE_BINDING_SCHEMA_VERSION,
+            generated_by: "vds ledger route-bindings --from -".into(),
+            taken_at: Timestamp::fixed(2026, 8, 3, 9, 0, 0),
+            source: source.into(),
+            rows: rows
+                .iter()
+                .map(|(route, node_id)| vds_core::RouteBinding {
+                    route: (*route).to_owned(),
+                    node_id: (*node_id).to_owned(),
+                    claimed_at: source.to_owned(),
+                })
+                .collect(),
+            does_not_cover: vec![],
+            content_digest: vds_core::Digest::of_text("placeholder"),
+        };
+        ledger.content_digest = ledger.compute_content_digest().expect("a digest");
+        let project = self.project();
+        vds_core::write_route_bindings(&project, &ledger).expect("a written ledger")
     }
 
     /// Generate the frame ledger from these frames.

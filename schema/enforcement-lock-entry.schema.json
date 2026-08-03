@@ -265,6 +265,13 @@
           "enum": [
             "visual_review"
           ]
+        },
+        {
+          "description": "Every UNAPPLIED staged write clears its four gates, and every frame the estate names carries a content digest something VDS holds accounts for. Draft S-7E, enactment pending.\n\nONE kind and never four, though it carries four gates. Four kinds would walk the same enumeration four times and let the four disagree about which stages exist, which is the two-sources-of-truth failure `visual_review` names when it folds the band correspondence in rather than filing a separate kind for it.",
+          "type": "string",
+          "enum": [
+            "staged_write"
+          ]
         }
       ]
     },

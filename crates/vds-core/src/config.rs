@@ -35,6 +35,8 @@ pub struct Config {
     #[serde(default)]
     pub review: ReviewConfig,
     #[serde(default)]
+    pub stage: StageConfig,
+    #[serde(default)]
     pub governance: Governance,
 }
 
@@ -78,6 +80,15 @@ pub struct Paths {
     /// kind ([2026] VJS-CA-VDS 1 order 26).
     #[serde(default = "default_directions_dir")]
     pub directions: PathBuf,
+    /// Staged writes: the eleventh artefact kind (draft S-7E). Defaulted for
+    /// the flag-day reason every kind after the eighth is.
+    ///
+    /// This directory holds the RECORD half only. The INTENT half carries boxes
+    /// and paints and lives in the subscriber tree under `[stage] intent_root`,
+    /// which is a rule of law and not of filing; see
+    /// [`crate::intent_path_defect`].
+    #[serde(default = "default_stages_dir")]
+    pub stages: PathBuf,
     pub warrants: PathBuf,
     pub proofs: PathBuf,
     pub pins: PathBuf,
@@ -119,6 +130,10 @@ fn default_directions_dir() -> PathBuf {
     PathBuf::from(".vds/directions")
 }
 
+fn default_stages_dir() -> PathBuf {
+    PathBuf::from(".vds/stages")
+}
+
 impl Default for Paths {
     fn default() -> Self {
         Self {
@@ -131,6 +146,7 @@ impl Default for Paths {
             redraws: default_redraws_dir(),
             reviews: default_reviews_dir(),
             directions: default_directions_dir(),
+            stages: default_stages_dir(),
             warrants: ".vds/warrants".into(),
             proofs: ".vds/proofs".into(),
             pins: ".vds/pins".into(),
@@ -345,6 +361,69 @@ impl Default for ReviewConfig {
     }
 }
 
+/// THE STAGED-WRITE SEAM (draft S-7E), and the one place in this file where a
+/// default is a matter of LAW rather than of convenience.
+///
+/// [`Self::intent_root`] must resolve OUTSIDE `.vds/`. An intent carries boxes
+/// and paints, so under the record it is the storing form VDS S-2(2) prohibits,
+/// `no_stored_values` R1 and R3 would fail on it forever on a file VDS wrote
+/// itself, and a record is never deleted, so there would be no lawful way back.
+/// [2026] VJS-FI-VDS 1 orders 2 and 4 refused every narrowing that would rescue
+/// it. `crate::intent_root_defect` is what enforces that, and the proof asks it
+/// before it reads anything.
+///
+/// What is NOT here, and deliberately: the canonical shell's dimensions, the
+/// contrast floor and the chunking budget. The first two are lengths and a
+/// ratio, and the third is a property of a bridge rather than of a project;
+/// they live as constants in code, exactly as the frame generator's clustering
+/// thresholds do and for the same reason.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct StageConfig {
+    /// Where stage INTENTS and PLANS live, in the subscriber tree.
+    pub intent_root: PathBuf,
+    /// The estate's own claims about which frame draws which route, for G4.
+    ///
+    /// Absent is lawful and is NOT "nothing contradicts": G4 reports that it
+    /// could not run, per row, and the coverage line says so out loud. A single
+    /// unopposed self-claim must never read as agreement.
+    pub route_bindings: PathBuf,
+    /// Custom properties whose value in some theme is RESERVED by a binding
+    /// order, so no staged write may name one.
+    ///
+    /// Property NAMES, never values: a name is not a realisation, which is why
+    /// this list can live in a file `no_stored_values` scans. The gate REFUSES a
+    /// paint naming one of these rather than choosing a value for it, because
+    /// choosing would be VDS legislating over a court's reservation.
+    ///
+    /// Empty by default. WHICH properties are reserved is the subscribing
+    /// estate's law and not VDS's, and a list shipped with names in it would be
+    /// VDS asserting the content of somebody else's docket.
+    #[serde(default)]
+    pub reserved_paint_properties: Vec<String>,
+    /// How stale the FRAME CAPTURE may be before the bypass rule refuses.
+    ///
+    /// Measured against the capture date the frame ledger records, and never
+    /// against the ledger's `generated_at`. Regenerating a ledger from a
+    /// four-day-old capture moves `generated_at` to now and moves the capture
+    /// date not at all, so a freshness rule reading the wrong one is a check
+    /// that cannot fail. That is not hypothetical: it is how 23 of 188 routes
+    /// on the subscribing estate were read against a stale capture on
+    /// 2026-08-02.
+    pub max_capture_age_days: u32,
+}
+
+impl Default for StageConfig {
+    fn default() -> Self {
+        Self {
+            intent_root: "design/stage".into(),
+            route_bindings: ".vds/ledgers/route-bindings.yaml".into(),
+            reserved_paint_properties: Vec::new(),
+            max_capture_age_days: 7,
+        }
+    }
+}
+
 /// Where the burndown reading is written, and nothing else. Thin for the
 /// reason [`GeometryConfig`] is: what a metric MEANS is the subject's
 /// generator talking, never VDS's.
@@ -405,6 +484,7 @@ pub enum PathRole {
     Redraws,
     Reviews,
     Directions,
+    Stages,
     Warrants,
     Proofs,
     Pins,
@@ -426,6 +506,7 @@ impl PathRole {
             PathRole::Redraws => "redraws",
             PathRole::Reviews => "reviews",
             PathRole::Directions => "directions",
+            PathRole::Stages => "stages",
             PathRole::Warrants => "warrants",
             PathRole::Proofs => "proofs",
             PathRole::Pins => "pins",
@@ -449,6 +530,7 @@ impl Config {
             PathRole::Redraws => &self.paths.redraws,
             PathRole::Reviews => &self.paths.reviews,
             PathRole::Directions => &self.paths.directions,
+            PathRole::Stages => &self.paths.stages,
             PathRole::Warrants => &self.paths.warrants,
             PathRole::Proofs => &self.paths.proofs,
             PathRole::Pins => &self.paths.pins,
@@ -497,6 +579,7 @@ impl Config {
             PathRole::Redraws,
             PathRole::Reviews,
             PathRole::Directions,
+            PathRole::Stages,
             PathRole::Warrants,
             PathRole::Proofs,
             PathRole::Pins,
@@ -514,6 +597,16 @@ impl Config {
                     path.display()
                 )));
             }
+        }
+        // THE ONE REFUSAL HERE THAT IS A MATTER OF LAW. A stage intent carries
+        // boxes and paints, so an intent root under `.vds/` puts a realisation
+        // under the record permanently, on a file VDS wrote itself, with no
+        // lawful way back because a record is never deleted. Refused at LOAD
+        // rather than at first use, so a project cannot reach the state at all.
+        if let Some(why) = crate::intent_path_defect(&self.stage.intent_root.to_string_lossy()) {
+            return Err(VdsError::precondition(format!(
+                "{where_from}: [stage] intent_root {why}"
+            )));
         }
         Ok(())
     }
@@ -594,6 +687,31 @@ name_separator = "\u00b7"
 region_names = ["rail", "cmdbar", "body", "statusbar"]
 frames_ledger = ".vds/ledgers/frames.yaml"
 
+[stage]
+# THE STAGED-WRITE SEAM (draft S-7E). A staged write is REVIEWABLE before it
+# reaches the canvas; it is not, and must never be described as, a mechanism
+# that stops anyone writing directly. The Figma REST API cannot write document
+# nodes at all, so VDS holds no privileged channel it could withhold, and its
+# own apply goes through the same plugin bridge every agent already has.
+#
+# intent_root MUST resolve OUTSIDE `.vds/`, and this is law rather than filing
+# preference: an intent carries boxes and paints, and under the record those are
+# the storing form VDS S-2(2) prohibits. A root under `.vds/` is refused at LOAD.
+intent_root = "design/stage"
+# The estate's OWN claims about which frame draws which route. Absent is lawful
+# and is NOT "nothing contradicts": G4 then reports that it could not run, per
+# row, and says so on the face of the coverage line.
+route_bindings = ".vds/ledgers/route-bindings.yaml"
+# Custom property NAMES whose value in some theme a binding order has reserved.
+# A staged paint naming one is refused rather than resolved: choosing a value a
+# court reserved would be VDS legislating. Names, never values.
+reserved_paint_properties = []
+# How stale the FRAME CAPTURE may be before the bypass rule refuses. Measured
+# against the capture date, never against the ledger's generated_at: regenerating
+# from an old capture moves the latter and not the former, so a rule reading the
+# wrong one is a check that cannot fail.
+max_capture_age_days = 7
+
 [governance]
 # VDS S-3(8): the enforcement machinery must not be editable without a permit.
 permit_required = [
@@ -625,7 +743,22 @@ mod tests {
         assert_eq!(config.paths, Paths::default());
         assert_eq!(config.surface, SurfaceConfig::default());
         assert_eq!(config.screens, ScreensConfig::default());
+        assert_eq!(config.stage, StageConfig::default());
         assert_eq!(config.governance, Governance::default());
+    }
+
+    /// The one config refusal that is a rule of law. An intent carries boxes
+    /// and paints; under `.vds/` they are the storing form VDS S-2(2)
+    /// prohibits, and a record is never deleted, so there is no way back.
+    #[test]
+    fn an_intent_root_under_the_record_is_refused_at_load() {
+        let text = default_config("demo", "DEMO").replace(
+            r#"intent_root = "design/stage""#,
+            r#"intent_root = ".vds/stages""#,
+        );
+        let err = Config::parse(&text, "c.toml").unwrap_err();
+        assert!(err.to_string().contains("no_stored_values"), "{err}");
+        assert!(err.to_string().contains("intent_root"), "{err}");
     }
 
     /// An amendment that adds an artefact kind must not be a flag day for every
@@ -653,6 +786,12 @@ permits = ".vds/permits"
         let config = Config::parse(text, "old.toml").expect("an older config still loads");
         assert_eq!(config.paths.screens, default_screens_dir());
         assert_eq!(config.screens, ScreensConfig::default());
+        assert_eq!(
+            config.stage,
+            StageConfig::default(),
+            "a config written before the staged write existed must keep loading, or an \
+             amendment that adds an artefact kind is a flag day for every adopting project"
+        );
     }
 
     /// The middot is a convention rather than a law, so it is configured. This

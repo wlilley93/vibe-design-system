@@ -1,6 +1,6 @@
 //! Proof kinds and proof results.
 //!
-//! VDS S-7(5) fixes eleven proof kinds as a CLOSED registry, and VDS S-7(6)
+//! VDS S-7(5) fixes sixteen proof kinds as a CLOSED registry, and VDS S-7(6)
 //! makes adding one an amendment to the specification and the invariant registry
 //! rather than a script anyone may drop in. [`ProofKind`] is therefore an enum:
 //! a kind outside the registry does not fail validation, it fails to compile.
@@ -70,10 +70,20 @@ pub enum ProofKind {
     /// frame, stale on either side moving, no conformance claim without
     /// authority. Draft S-7D, enactment pending.
     VisualReview,
+    /// Every UNAPPLIED staged write clears its four gates, and every frame the
+    /// estate names carries a content digest something VDS holds accounts for.
+    /// Draft S-7E, enactment pending.
+    ///
+    /// ONE kind and never four, though it carries four gates. Four kinds would
+    /// walk the same enumeration four times and let the four disagree about
+    /// which stages exist, which is the two-sources-of-truth failure
+    /// `visual_review` names when it folds the band correspondence in rather
+    /// than filing a separate kind for it.
+    StagedWrite,
 }
 
 impl ProofKind {
-    pub const ALL: [ProofKind; 15] = [
+    pub const ALL: [ProofKind; 16] = [
         ProofKind::RegisterCompleteness,
         ProofKind::Reconciliation,
         ProofKind::Composition,
@@ -89,6 +99,7 @@ impl ProofKind {
         ProofKind::Prohibition,
         ProofKind::Burndown,
         ProofKind::VisualReview,
+        ProofKind::StagedWrite,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -108,6 +119,7 @@ impl ProofKind {
             ProofKind::Prohibition => "prohibition",
             ProofKind::Burndown => "burndown",
             ProofKind::VisualReview => "visual_review",
+            ProofKind::StagedWrite => "staged_write",
         }
     }
 
@@ -159,6 +171,10 @@ impl ProofKind {
             ProofKind::VisualReview => {
                 "each recorded visual verdict still holds: shipped screenshot against SIGNED \
                  frame, stale the moment either side or the authority moves"
+            }
+            ProofKind::StagedWrite => {
+                "every unapplied staged write clears its four gates, and every frame the estate \
+                 names carries a content digest a sign-off or an applied stage accounts for"
             }
         }
     }
@@ -524,7 +540,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_registry_is_closed_at_fifteen() {
+    fn the_registry_is_closed_at_sixteen() {
         // Twelve enacted kinds, plus three DRAFTED on 2026-08-01 (prohibition,
         // burndown, visual_review) whose amendments are filed and pending
         // enactment; the code ships when the ruling lands, and the drafts say
@@ -532,7 +548,7 @@ mod tests {
         // purpose: VDS S-7(6) makes adding a kind an amendment to the
         // specification, so a variant appearing without one has to fail
         // somewhere, and this is where.
-        assert_eq!(ProofKind::ALL.len(), 15);
+        assert_eq!(ProofKind::ALL.len(), 16);
         assert!(serde_json::from_str::<ProofKind>("\"vibes\"").is_err());
     }
 
@@ -570,8 +586,8 @@ mod tests {
         assert_eq!(ProofKind::implemented().len(), ProofKind::ALL.len());
         assert_eq!(
             ProofKind::ALL.len(),
-            15,
-            "the registry is closed at fifteen"
+            16,
+            "the registry is closed at sixteen"
         );
 
         // The honest form, held in place for whenever a kind has to be

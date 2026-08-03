@@ -23,13 +23,13 @@ pub mod timestamp;
 pub mod types;
 
 pub use config::{
-    Config, Governance, PathRole, Paths, ScreensConfig, SurfaceConfig, default_config,
+    Config, Governance, PathRole, Paths, ScreensConfig, StageConfig, SurfaceConfig, default_config,
 };
 pub use digest::{Digest, canonical_json, digest_rows};
 pub use error::{EXIT_PASSED, EXIT_PRECONDITION, EXIT_VACUOUS, EXIT_VIOLATION, Result, VdsError};
 pub use ids::{
     BreachId, BurndownId, ComponentId, DecisionId, DirectionId, GeometryId, PinId, ProhibitionId,
-    ProofId, RedrawId, ReviewId, ScreenId, SignoffId, SubmissionId, WarrantId,
+    ProofId, RedrawId, ReviewId, ScreenId, SignoffId, StageId, SubmissionId, WarrantId,
 };
 pub use project::{Project, write_atomically, write_text_atomically, yaml_files};
 pub use timestamp::Timestamp;
@@ -117,6 +117,14 @@ mod tests {
             (
                 "screen-record",
                 serde_json::to_string(&generator.root_schema_for::<ScreenRecord>()).unwrap(),
+            ),
+            // The eleventh kind, and the one most at risk of all: a staged
+            // write is ABOUT boxes and paints. It holds none, because the
+            // record and the intent are split on law rather than on tidiness,
+            // and the intent lives in the subscriber tree.
+            (
+                "stage-record",
+                serde_json::to_string(&generator.root_schema_for::<StageRecord>()).unwrap(),
             ),
         ];
         // Property NAMES only. A description may legitimately use the word

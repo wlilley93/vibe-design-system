@@ -188,6 +188,23 @@ pub struct FrameLedger {
     /// Excluded from `content_digest`, so re-generating from an unchanged
     /// capture does not move a digest any proof cites.
     pub generated_at: Timestamp,
+    /// When the CAPTURE this ledger was derived from was taken.
+    ///
+    /// A DIFFERENT FACT from [`Self::generated_at`], and confusing the two is a
+    /// check that cannot fail. Regenerating from a four-day-old capture moves
+    /// `generated_at` to now and moves this not at all, so a freshness rule
+    /// reading `generated_at` reports a stale reading as fresh, every time.
+    /// That is not hypothetical: it is how 23 of 188 routes on the subscribing
+    /// estate were read against a stale capture on 2026-08-02.
+    ///
+    /// `Option` because it cannot be derived: a Figma `nodes` response carries
+    /// the FILE's last-modified time and nothing about when the request was
+    /// made, and taking the capture file's mtime would make a ledger's content
+    /// depend on when somebody last copied a file. So the caller states it, and
+    /// a rule that needs it REFUSES when it is absent rather than falling back
+    /// to a date that answers a different question.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub captured_at: Option<Timestamp>,
     pub generated_by: String,
     pub file_key: String,
     /// The deepest chain present in the capture.
@@ -218,6 +235,14 @@ impl FrameLedger {
             file_key: &'a str,
             capture_depth: u32,
             truncated_leaves: u32,
+            // COVERED by the digest where it is stated, and OMITTED where it is
+            // not. A freshness claim nothing witnesses is a field anyone can
+            // back-date; and omitting the absent case keeps every ledger
+            // generated before this field existed digesting to exactly what it
+            // digested to then, so an amendment that adds a field is not a flag
+            // day for every adopting project.
+            #[serde(skip_serializing_if = "Option::is_none")]
+            captured_at: Option<&'a Timestamp>,
             frames: &'a [FrameRow],
         }
         Digest::of_value(&Content {
@@ -226,6 +251,7 @@ impl FrameLedger {
             file_key: &self.file_key,
             capture_depth: self.capture_depth,
             truncated_leaves: self.truncated_leaves,
+            captured_at: self.captured_at.as_ref(),
             frames: &self.frames,
         })
     }
@@ -234,6 +260,19 @@ impl FrameLedger {
     pub fn row(&self, node_id: &str) -> Option<&FrameRow> {
         let key = normalise_node_id(node_id);
         self.frames.iter().find(|f| f.node_id == key)
+    }
+
+    /// Record WHEN the capture was taken, and re-digest.
+    ///
+    /// Separate from [`build_ledger`] because the date cannot be derived from
+    /// the payload: a `nodes` response says when the FILE last changed and
+    /// nothing about when the request was made. A caller that knows states it;
+    /// one that does not leaves it absent, and a rule that needs it refuses
+    /// rather than reading `generated_at`, which answers a different question.
+    pub fn with_capture_date(mut self, at: Timestamp) -> Result<Self> {
+        self.captured_at = Some(at);
+        self.content_digest = self.compute_content_digest()?;
+        Ok(self)
     }
 }
 
@@ -453,6 +492,7 @@ pub fn build_ledger(
     let mut ledger = FrameLedger {
         schema_version: LEDGER_SCHEMA_VERSION,
         generated_at: Timestamp::now(),
+        captured_at: None,
         generated_by: GENERATOR_COMMAND.to_owned(),
         file_key: file_key.to_owned(),
         capture_depth,
@@ -794,6 +834,28 @@ fn cluster(nodes: &[&Node]) -> Option<u32> {
         }
     }
     (groups.len() >= 2).then_some(groups.len() as u32)
+}
+
+/// The column count THIS derivation reads from one captured frame document, and
+/// whether it had to read the capture boundary to get there.
+///
+/// EXPOSED SO A STAGED WRITE CAN BE CHECKED BEFORE IT HAPPENS. The staged-write
+/// G3 gate runs the derivation `vds figma frames` will run AFTER the write over
+/// the boxes the write is ABOUT TO make, and refuses when the count it derives
+/// differs from the count the intent declares. Re-implementing the clustering
+/// there would give the estate two derivations of one number, and the gate would
+/// then certify a frame against an arithmetic the ledger does not use, which is
+/// the two-sources-of-truth failure with a longer feedback loop: the
+/// disagreement only shows up after the write.
+///
+/// It is literally the same code path - [`read_node`] then [`row_for`] then
+/// `content_columns` - and not a copy of it.
+pub fn columns_of(document: &serde_json::Value, config: &ScreensConfig) -> (u32, bool) {
+    let capture_depth = depth_of(document, 0);
+    let mut truncated_leaves = 0u32;
+    let node = read_node(document, capture_depth, 0, &mut truncated_leaves);
+    let row = row_for("0:0", &node, config);
+    (row.columns, row.truncated)
 }
 
 /// Figma writes a node id as `12:34` in a file URL and `12-34` in a deep link.

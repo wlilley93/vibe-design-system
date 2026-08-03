@@ -1,0 +1,10 @@
+id: DECISION-0011
+at: 2026-08-03T10:26:04Z
+by: jellytot
+decision: Re-pin contrast.rs and screen_parity.rs in the same act as the edit that moved them, and record it as a decision rather than as a breach.
+court_required: false
+why: 'A re-pin without a rationale is the act VDS S-8(4) exists to make visible, and BREACH-0003 records what it looks like when five gates move and nobody says so. This is the opposite case, and the distinction is worth writing down rather than collapsing. Both edits are VISIBILITY changes and not rule changes; both were made and pinned in one commit; and the failing-direction seeds of both gates are unchanged and still green. contrast.rs made three private helpers pub(crate) so the sixteenth kind (staged_write G1, drafted at S-7E with SUBMISSION-VDS-020 pending) measures a staged boundary through the SAME code that measures a registered one; copying them would have put two copies of one rule in the tree, and what they would eventually have disagreed about is whether a finding repeats the value it refused. screen_parity.rs split Coverage::line into line_for(subject), with line() delegating and printing the words it always printed; two coverage types would be two chances to disagree about what SCORED counts, which is the failure that type exists to make visible one level down. A reviewer who thinks a pub(crate) change IS a rule change should say so here: that argument is what this entry is for. No referral was needed for this call; the sixteenth kind itself went to the court as SUBMISSION-VDS-020.'
+basis:
+- VDS S-8(4)
+- VDS S-12(2)
+- '[2026] VJS-CA-VDS 1 order 3'

@@ -39,6 +39,7 @@ mod register;
 mod schema;
 mod screen;
 mod signoff;
+mod stage;
 mod warrant;
 
 #[derive(Parser)]
@@ -75,6 +76,15 @@ enum Command {
     /// Boxed: `register` takes more arguments than any other subcommand, and an
     /// unboxed variant makes every `Command` the size of this one.
     Register(Box<register::Args>),
+    /// Stage a write to a frame: review it, apply it, verify it (draft S-7E).
+    ///
+    /// NOT a control that stops anyone writing directly, and the help text must
+    /// never say it is: the REST API cannot write document nodes, so VDS holds
+    /// no privileged channel it could withhold, and its own apply goes through
+    /// the same plugin bridge every agent already has. What it buys is a CLOSED
+    /// operation vocabulary, an operation list on disk BEFORE anything reaches
+    /// the canvas, and a bypass rule that makes an unstaged write visible.
+    Stage(stage::Args),
     /// Register a screen's ARRANGEMENT requirement.
     ///
     /// A separate front door from `register`, because a screen and a component
@@ -154,6 +164,7 @@ fn dispatch(cli: &Cli) -> Result<i32> {
         Command::Ledger(args) => ledger::run(&ctx, args),
         Command::Register(args) => register::run(&ctx, args),
         Command::Screen(args) => screen::run(&ctx, args),
+        Command::Stage(args) => stage::run(&ctx, args),
         Command::Geometry(args) => geometry::run(&ctx, args),
         Command::Prohibition(args) => prohibition::run(&ctx, args),
         Command::Burndown(args) => burndown::run(&ctx, args),

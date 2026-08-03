@@ -1,0 +1,66 @@
+id: SUBMISSION-VDS-020
+status: filed
+question: "May VDS hold an ELEVENTH artefact kind, the STAGE RECORD, whose realisation-bearing half (the INTENT) lives in the SUBSCRIBER TREE and never under `.vds/**`; and a SIXTEENTH proof kind, `staged_write`, carrying four gates in one kind - a contrast floor on a staged control boundary, a closed-vocabulary band naming rule that is also the diff key, a canonical-geometry check running the frame ledger's OWN column derivation before the write, and a route-binding contradiction rule that REFUSES and names both claims rather than deciding - together with a bypass rule that names a frame whose current content matches neither its sign-off nor any applied stage, and which REFUSES on an over-age CAPTURE date rather than reporting no bypass?"
+trigger: first_impression
+why_first_impression: |
+  Three things here are new and none of the fifteen kinds reaches any of them.
+
+  FIRST, the subject is an act that has not happened yet. Every kind before this one reads a
+  record of something already done: a component that exists, a screen that is drawn, a
+  verdict that was rendered. A staged write is an INTENTION, and whether VDS may hold one at
+  all - and what a gate over one establishes - is unaddressed.
+
+  SECOND, and this is the part that most needs the bench: the brief this work was
+  commissioned from asked for a mechanism making VDS "the only writer" to the design file,
+  and the design phase REFUTED that framing on measured facts. The Figma REST API cannot
+  write document nodes, so VDS holds no privileged channel it could withhold; VDS needs a
+  credential to READ and the plugin bridge needs none to WRITE, so credential custody is the
+  inverse of a control; and the estate's own writer lock says on its face that it is advisory.
+  What was built instead is a closed operation vocabulary, an operation list on disk before
+  anything reaches the canvas, and a bypass rule. Whether an engine may ship a capability
+  whose commissioning brief it has contradicted, and whose statute must therefore say
+  plainly what the capability is NOT, is a question about VDS's relationship to its own
+  Principal that nothing in the citator settles.
+
+  THIRD, the record splits in two on law. S-2(2) and [2026] VJS-FI-VDS 1 orders 2 and 4 put
+  the boxes and paints in the subscriber tree, so the artefact this kind is ABOUT is one VDS
+  refuses to hold. S-7A(5) already places a saved REST capture that way, but a capture is an
+  input; an intent is the thing the record exists to govern, and a governed artefact living
+  outside the record is first impression.
+citator_checked:
+  - citation: "VDS S-4(1) (the artefact set, closed at ten)"
+    why_not_on_all_fours: "Closed at ten, so an eleventh is an amendment by construction. It supplies the ROUTE and not the answer: whether this artefact should exist, and whether its realisation-bearing half may live outside the record, are the open parts."
+  - citation: "VDS S-7(6) (adding a proof kind is an amendment)"
+    why_not_on_all_fours: "Same: the route, not the decision. It settles that a sixteenth kind needs an amendment and says nothing about whether this one is a good kind or whether four gates lawfully live in one."
+  - citation: "[2026] VJS-FI-VDS 1 orders 2 and 4 (no narrowing of the no_stored_values scan)"
+    why_not_on_all_fours: "ON ALL FOURS AND FOLLOWED, not distinguished. It is the authority that forces the intent OUT of `.vds/`, and it is cited as such rather than re-litigated: every narrowing that would have let an intent live under the record has already been refused. What is open is whether an artefact so placed is still a governed artefact."
+  - citation: "[2026] VJS-SC-OPBOX 1 order 16 (a machine act creates no authority)"
+    why_not_on_all_fours: "ON ALL FOURS AND FOLLOWED. It is why an applied stage adds a digest to a comparison set and confers no taste: VDS may stage, plan, apply and verify, and may not sign. Cited as a constraint the design obeys."
+  - citation: "[2026] VJS-SC-OPBOX 1 order 6 (a frame binds only for what it draws)"
+    why_not_on_all_fours: "Generalised rather than applied: an intent binds only for what it DECLARES, so an undeclared field is neither compared nor written. The extension from a drawing to an intention is the part that is new."
+  - citation: "VDS S-7D(14) (a rule that cannot run must not read as a rule that ran)"
+    why_not_on_all_fours: "ON ALL FOURS AND FOLLOWED for the three-valued gate reading and the per-gate coverage line. It reaches a rule about a RECORD; whether the same discipline governs a gate over an unperformed act is the extension, and it is granted rather than contested."
+  - citation: "[2026] VJS-CC-OPBOX 3 D3 (a pass over zero enforceable rows is not evidence)"
+    why_not_on_all_fours: "Reaches the row accounting, and the coverage tally here obeys it. It does not reach the question of whether a bypass rule with no BASELINE should read as unscored rather than as a violation, which is the novel accounting choice."
+options:
+  - option: "Enact S-4(6) and S-7E as implemented: the eleventh artefact, the sixteenth kind, the closed six-verb vocabulary, the four gates in one kind, and the bypass rule refusing on an over-age capture."
+    consequence: "A staged write becomes reviewable before it happens and an unstaged write becomes visible after it. Cost: the estate must supply a capture DATE on every frame ledger it regenerates, and a route binding ledger if it wants G4 to run at all."
+  - option: "Enact the artefact and the four gates, and refuse the bypass rule."
+    consequence: "Keeps the reviewability and drops the only limb that changes behaviour without anyone's co-operation. The 2026-08-02 class of silent drift stays invisible, and the kind becomes a check on the well-behaved only."
+  - option: "Enact, but make a frame with NO BASELINE a violation rather than an unscored row."
+    consequence: "Louder, and it reddens every adopting estate on day one across every unsigned frame, which is how an instrument gets switched off. Refused as the draft's default; the bench may prefer it."
+  - option: "Refuse: staged writes are a consuming-repo concern and VDS holds no record of an unperformed act."
+    consequence: "The operation vocabulary goes back to being whatever each agent's script does, which is the state in which the 2026-07-25 loss happened, and nothing anywhere records what a write was supposed to be before it was made."
+evidence:
+  - crates/vds-core/src/types/stage.rs
+  - crates/vds-proof/src/staged_write.rs
+  - crates/vds-figma/src/stage.rs
+  - VDS.md
+case_file_digest: sha256:8cbf8e97104775834f9739adc98f0ce5760bb60ee11829a149142b45281f43a5
+reserved_clause: "S-4(6), S-7E"
+fail_closed_interim: "ENACTMENT PENDING, and the interim is the implementation itself, marked as DRAFTED on its own face: every rule cites 'draft S-7E(n)', the artefact section is headed DRAFTED, and the proof's establishes-line says so. Fail-closed in four places. (1) An intent root resolving under `.vds/` is refused at config LOAD and again inside the proof, because one gate on one artefact is one place it can be removed. (2) A frame ledger stating no CAPTURE DATE refuses the bypass rule rather than reporting no bypass, so adopting the kind cannot produce a quiet green over a stale reading. (3) A frame with no baseline is UNSCORED and named, never a pass and never a violation, so no estate is reddened on adoption. (4) `vds stage plan` refuses to emit against a refused gate, so a refusal cannot end up downstream of the act it exists to stop. NOT BUILT, and named so it is not mistaken for done: the write leg itself is unexercised. It needs the live plugin bridge, which this engine does not hold and which VDS S-7(2)(1) keeps out of the proof path anyway; the diff and the plan emission are proven against fixture frame readings, including the two idempotence seeds, and the network leg is honest debt. DIGEST PROVENANCE: case_file_digest is derived by scripts/case-file-digest.sh over the evidence files named above, at drafting."
+filed_to: vjs
+vjs_submission_id: null
+created_at: 2026-08-03T12:00:00Z
+filed_at: 2026-08-03T12:00:00Z
+answer: null

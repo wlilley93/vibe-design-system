@@ -785,6 +785,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "vds-core",
+ "vds-css",
  "vds-designpack",
  "vds-figma",
  "vds-proof",

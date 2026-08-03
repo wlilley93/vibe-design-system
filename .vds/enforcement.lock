@@ -1,5 +1,5 @@
 schema_version: 1
-generated_at: 2026-08-02T21:13:33Z
+generated_at: 2026-08-03T10:27:59Z
 entries:
 - path: crates/vds-cli/src/doctor.rs
   digest: sha256:61a4c86e2fe16925c8eabc4869925b3a1559f14fb270629d4904cedbe93791c9
@@ -101,7 +101,7 @@ entries:
   supersedes_digest: sha256:f0265e72bed6a05c7f524a93e2aad3990739fd48208699032ccb0413d323a078
   relock_rationale: 'Implement [2026] VJS-CC-VIBE-DESIGN-SYSTEM 5 D2 (task #49): composition gains R4 and the enumerated primitive floor BELOW_THE_FLOOR, held in this gate source so a change to the set is itself a re-pin. Interactive elements above the floor fail by name unless named in [surface] element_carveouts, every carve-out use counted and reported per site. The run printer gains the INFORMATIONAL section that inform() call sites always promised - recorded findings were never printed. Both failing directions, the carve-out path and the below-floor negative control are seeded in the gate tests.'
 - path: crates/vds-proof/src/contrast.rs
-  digest: sha256:1f445750337175697720222d6ec78afed41ac5f637589fd11fc38ca9a7422ae9
+  digest: sha256:d0f4c2ffdd8b4f79caf17f5ff5647f510fe799e6242eba8bea748389c16577fb
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -116,10 +116,10 @@ entries:
   - path: crates/vds-proof/src/contrast.rs
     test_name: contrast_fails_on_a_boundary_below_its_floor_in_one_theme
     seeds: a boundary that clears its floor in one theme and falls below it in another
-  pinned_at: 2026-07-25T17:10:40Z
+  pinned_at: 2026-08-03T10:25:11Z
   pinned_by: jellytot
-  supersedes_digest: sha256:cb7d188e20124fba772d9a5f84a77d4d1d00fa6e62fce376c2da3006b81f66a5
-  relock_rationale: 'Adversarial review found all three new gates unsound; four criticals and five highs are closed. contrast: unclassified_palette_scopes returned empty on a sheet with no :root, so R6 was structurally dead and a palette nothing measured passed at exit 0 (the founding defect through the gate written to catch it); the redactor covered three of six realisation shapes and redacted only a colour function''s head; two findings named the default stylesheet rather than the one read. parity: an extends/intersection props type reported a SUBSET as complete, so R6 fired on inherited props or credited the row as enforced. token_pin: the redaction screen closed hex and left base64 open, the locator was never screened, the evidence digest was keyed on pin.id (which carries generated_at), coverage was reported before the currency check, and Store::read_pins never refused an unreadable entry.'
+  supersedes_digest: sha256:1f445750337175697720222d6ec78afed41ac5f637589fd11fc38ca9a7422ae9
+  relock_rationale: 'SUBMISSION-VDS-020: two gates re-pinned for the sixteenth kind, and NO RULE OF EITHER CHANGED. contrast.rs: three helpers - custom_property, recorded_ratio and redacted - became pub(crate) so staged_write G1 measures a staged boundary through the SAME code contrast measures a registered one. Copying them would have been two copies of one rule, which is one copy and a disagreement, and the disagreement would have been about which findings repeat a value they refused. screen_parity.rs: Coverage::line gained line_for(subject), which the sixteenth kind calls with its own subject; line() now delegates to it with the words it always printed. One arithmetic and one check_against, borrowed rather than reimplemented, because two coverage types are two chances to disagree about what scored counts - which is the failure that type exists to make visible one level down.'
 - path: crates/vds-proof/src/geometry.rs
   digest: sha256:430fe4266040c59f7ac1867844abaa0a839f39d9bda2a4a54b02dab5a41f15de
   kind: proof_script
@@ -333,7 +333,7 @@ entries:
   pinned_at: 2026-07-25T13:58:22Z
   pinned_by: jellytot
 - path: crates/vds-proof/src/screen_parity.rs
-  digest: sha256:28e05c602d02d054e95d57005f0dfcbef95177a15159e3cf4a97589d857fe198
+  digest: sha256:01fe3e84bde8b9273895b7c6d439b4d4ff794bc4162f90358e10fd6882100eac
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -348,10 +348,60 @@ entries:
   - path: crates/vds-proof/src/screen_parity.rs
     test_name: screen_parity_fails_on_a_screen_with_a_column_its_frame_does_not_draw
     seeds: a screen requiring three content columns whose authoritative frame draws two, with every component on it registered
-  pinned_at: 2026-08-02T21:13:33Z
+  pinned_at: 2026-08-03T10:25:11Z
   pinned_by: jellytot
-  supersedes_digest: sha256:2aa81b074e90449f71ece63c466bb83580265bf65e6f1ce40aa01ea85ecb04c0
-  relock_rationale: 'SUBMISSION-VDS-019: screen_parity is re-pinned for a TEST FIXTURE line only. ArrangementContract gained the closed band declaration S-7D(14) needs, so the one struct literal in this gate''s own tests names the new field. No rule of screen_parity changed: R5 is a CONTRACT-versus-DRAWING check over the OPEN region vocabulary and is untouched, and the band correspondence deliberately lives in visual_review, which already reads every ledger it needs and walks the coverage denominator once.'
+  supersedes_digest: sha256:28e05c602d02d054e95d57005f0dfcbef95177a15159e3cf4a97589d857fe198
+  relock_rationale: 'SUBMISSION-VDS-020: two gates re-pinned for the sixteenth kind, and NO RULE OF EITHER CHANGED. contrast.rs: three helpers - custom_property, recorded_ratio and redacted - became pub(crate) so staged_write G1 measures a staged boundary through the SAME code contrast measures a registered one. Copying them would have been two copies of one rule, which is one copy and a disagreement, and the disagreement would have been about which findings repeat a value they refused. screen_parity.rs: Coverage::line gained line_for(subject), which the sixteenth kind calls with its own subject; line() now delegates to it with the words it always printed. One arithmetic and one check_against, borrowed rather than reimplemented, because two coverage types are two chances to disagree about what scored counts - which is the failure that type exists to make visible one level down.'
+- path: crates/vds-proof/src/staged_write.rs
+  digest: sha256:7074adf3213ce1d25958d0781a8fb7a0e3296a25eeb02bd8b63adc0bd71328cd
+  kind: proof_script
+  invoked_by:
+  - surface: ci_workflow
+    reference: .github/workflows/vds-enforce.yml job:enforce step:Proofs
+    blocking: true
+  - surface: package_script
+    reference: make gates
+    blocking: true
+  proves:
+  - staged_write
+  failing_direction_test:
+  - path: crates/vds-proof/src/staged_write/tests.rs
+    test_name: g1_refuses_a_control_boundary_below_the_floor
+    seeds: a staged control boundary at about a fifth of its floor, on the estate's own real token value (G1)
+  - path: crates/vds-proof/src/staged_write/tests.rs
+    test_name: g2_refuses_a_band_the_screen_record_does_not_declare
+    seeds: a staged rail on a screen that declares none, which is a write about another screen (G2)
+  - path: crates/vds-proof/src/staged_write/tests.rs
+    test_name: g2_refuses_a_band_outside_the_closed_vocabulary_at_the_type_and_not_by_a_rule
+    seeds: an invented band name, which must be unrepresentable rather than merely invalid (G2a)
+  - path: crates/vds-proof/src/staged_write/tests.rs
+    test_name: g3_refuses_boxes_that_do_not_derive_the_declared_column_count
+    seeds: boxes deriving two columns under an intent declaring three, read by the ledger's OWN derivation (G3)
+  - path: crates/vds-proof/src/staged_write/tests.rs
+    test_name: g4_refuses_the_two_real_false_mappings_and_names_both_claims
+    seeds: the two REAL false route-to-frame mappings a 2026-08-02 audit confirmed, one of which drove a live code change (G4)
+  - path: crates/vds-proof/src/staged_write/tests.rs
+    test_name: r5_names_a_frame_written_by_something_that_did_not_come_through_vds
+    seeds: a frame whose content matches neither its sign-off nor any applied stage (R5)
+  - path: crates/vds-proof/src/staged_write/tests.rs
+    test_name: r5_refuses_a_frames_ledger_that_states_no_capture_date
+    seeds: a ledger with no capture date, which would make the bypass rule silent against a stale reading (R5b)
+  - path: crates/vds-proof/src/staged_write/tests.rs
+    test_name: r5_refuses_an_over_age_capture_even_though_the_ledger_was_generated_now
+    seeds: an over-age CAPTURE behind a freshly generated ledger, which is the shape that reads as current (R5b)
+  - path: crates/vds-proof/src/staged_write/tests.rs
+    test_name: an_apply_with_no_verification_is_not_a_finished_apply
+    seeds: an apply recorded with no re-capture, which is an attempt claiming to be a result (R6)
+  - path: crates/vds-proof/src/staged_write/tests.rs
+    test_name: a_recorded_verdict_this_run_does_not_reproduce_is_a_finding
+    seeds: a MINTED cleared verdict the run recomputes as refused (R7)
+  - path: crates/vds-proof/src/staged_write/tests.rs
+    test_name: a_gate_never_asked_is_a_finding_and_not_a_silence
+    seeds: a gate absent from the record, which reads as green to anybody counting refusals (R2)
+  pinned_at: 2026-08-03T10:27:59Z
+  pinned_by: jellytot
+  supersedes_digest: sha256:c325a636c6e57c6af639943aa90cb8e60e2fa48ce73721ca4adf5c400de3c586
+  relock_rationale: 'The gate was pinned before the formatter ran over it. Whitespace only, on a gate first pinned in this same commit, with no rule and no seed changed: the digest moved because rustfmt reflowed it, and the lock must witness the bytes that are actually in the tree rather than the bytes that were there mid-edit.'
 - path: crates/vds-proof/src/states.rs
   digest: sha256:ea03399e412866c99fa577ddc7dea8238ec393697bcf109e92cde079621fcb22
   kind: proof_script

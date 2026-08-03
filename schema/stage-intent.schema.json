@@ -1,0 +1,233 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "StageIntent",
+  "description": "What a staged write intends the frame to be.\n\nLives in the SUBSCRIBER TREE under `[stage] intent_root`. See the module note for why that is law and not filing preference.",
+  "type": "object",
+  "required": [
+    "authoredAt",
+    "authoredBy",
+    "bands",
+    "columns",
+    "fileKey",
+    "nodeId",
+    "route",
+    "schemaVersion"
+  ],
+  "properties": {
+    "authoredAt": {
+      "$ref": "#/definitions/Timestamp"
+    },
+    "authoredBy": {
+      "type": "string"
+    },
+    "bands": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/BandIntent"
+      }
+    },
+    "columns": {
+      "description": "How many side-by-side content PANES the finished frame is to draw.\n\nDeclared here and DERIVED by G3 from the boxes below, so the two can disagree and the disagreement is the finding. A count that was simply read off the boxes would agree with them by construction and check nothing.",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    },
+    "fileKey": {
+      "type": "string"
+    },
+    "nodeId": {
+      "type": "string"
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "route": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "BandBox": {
+      "description": "A rectangle, frame-relative.\n\nA REALISATION, and it is lawful here for exactly one reason: this type is only ever reached from [`StageIntent`] and [`StagePlan`], both of which live in the SUBSCRIBER TREE. Nothing under `.vds/**` holds one, and the stage record's own test holds that claim against its serialised bytes rather than against this paragraph.",
+      "type": "object",
+      "required": [
+        "height",
+        "width",
+        "x",
+        "y"
+      ],
+      "properties": {
+        "height": {
+          "type": "number",
+          "format": "double"
+        },
+        "width": {
+          "type": "number",
+          "format": "double"
+        },
+        "x": {
+          "type": "number",
+          "format": "double"
+        },
+        "y": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "additionalProperties": false
+    },
+    "BandIntent": {
+      "description": "One band the intent declares, and ONLY the fields it declares.\n\nPER BAND, ONLY DECLARED FIELDS ARE COMPARED. A field the intent does not declare is neither compared nor written, so a designer's hand-added note inside a band survives an apply untouched. This is [`super::AgreementState::NotDrawn`] generalised: a frame binds only for what it draws ([2026] VJS-SC-OPBOX 1 order 6), and an intent binds only for what it declares.",
+      "type": "object",
+      "required": [
+        "band"
+      ],
+      "properties": {
+        "band": {
+          "description": "WHICH BAND, from the CLOSED review vocabulary. This is the diff key.",
+          "$ref": "#/definitions/ReviewRegion"
+        },
+        "boxOf": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/BandBox"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "order": {
+          "description": "Where this band sits among the frame's bands, left-to-right then top-to-bottom, counting only bands the closed vocabulary names.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "paint": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PaintIntent"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "panes": {
+          "description": "The side-by-side content panes this band draws, where it draws any.\n\nRead by G3 and by nothing else: the column derivation clusters a container's children by x-interval, so the panes are what it needs and a band with none contributes one column exactly as a real frame does.",
+          "default": [],
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BandBox"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "FloorScope": {
+      "description": "What kind of thing the boundary is.\n\nVDS S-9(5): where a lower floor is genuinely correct, the lawful move is to change the component's SCOPE and state the basis, not to loosen the ratio. A factual claim about scope is contestable by a reviewer; a quietly lowered floor is not. That is why this field exists at all.",
+      "type": "string",
+      "enum": [
+        "control_boundary",
+        "text",
+        "graphical_object",
+        "decoration"
+      ]
+    },
+    "PaintIntent": {
+      "description": "A paint a band is to carry: a NAME, a ROLE and the backdrop it is measured against. Never a literal.\n\nG1 refuses a literal, and the refusal is not pedantry. A literal cannot be measured against the shipped stylesheet in every theme, so a staged boundary spelled as a value is a boundary nothing can check, which is the founding defect of this whole system wearing a Figma hat.",
+      "type": "object",
+      "required": [
+        "backdrop",
+        "property",
+        "role"
+      ],
+      "properties": {
+        "backdrop": {
+          "description": "The custom property naming the surface behind it, without which no ratio exists.",
+          "type": "string"
+        },
+        "property": {
+          "description": "The custom property this paint takes its value from, with or without its leading dashes.",
+          "type": "string"
+        },
+        "role": {
+          "description": "What kind of thing the paint is. The SAME closed vocabulary the register uses for a contrast floor, reused rather than re-invented: two scope vocabularies for one question is one vocabulary and a disagreement.",
+          "$ref": "#/definitions/FloorScope"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ReviewRegion": {
+      "description": "The bands of a screen a visual pass is expected to account for. CLOSED.\n\nClosed for the reason [`super::SurfaceKind`] is: an open set of region names lets one undifferentiated \"the page\" bucket back in, and \"the page looks fine\" is exactly the finding that missed a counted facet row, a counted eyebrow, date-group bands and a footer window statement on one route.\n\nThese are ANATOMY names and hold no design value (VDS S-2(4)): a region is a place to look, never a size, a colour or a spacing.",
+      "oneOf": [
+        {
+          "description": "The page header band: title, eyebrow, counts, primary actions.",
+          "type": "string",
+          "enum": [
+            "header"
+          ]
+        },
+        {
+          "description": "The filter/facet band, and whatever counts it carries.",
+          "type": "string",
+          "enum": [
+            "facets"
+          ]
+        },
+        {
+          "description": "The body rows or cards, and their internal anatomy.",
+          "type": "string",
+          "enum": [
+            "body_rows"
+          ]
+        },
+        {
+          "description": "The side rail, where the frame draws one.",
+          "type": "string",
+          "enum": [
+            "rail"
+          ]
+        },
+        {
+          "description": "The footer band, and any window or scope statement in it.",
+          "type": "string",
+          "enum": [
+            "footer"
+          ]
+        },
+        {
+          "description": "The empty state, which is a drawn state and not an absence.",
+          "type": "string",
+          "enum": [
+            "empty_state"
+          ]
+        },
+        {
+          "description": "Keyboard affordances drawn in the frame: focus rings, hints, shortcuts.",
+          "type": "string",
+          "enum": [
+            "keyboard"
+          ]
+        }
+      ]
+    },
+    "Timestamp": {
+      "description": "UTC, second resolution, trailing Z. The one canonical form VDS writes.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    }
+  }
+}

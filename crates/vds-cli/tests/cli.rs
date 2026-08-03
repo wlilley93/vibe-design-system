@@ -1337,6 +1337,7 @@ fn the_documents_and_the_enum_agree_on_how_many_proof_kinds_there_are() {
         13 => "thirteen",
         14 => "fourteen",
         15 => "fifteen",
+        16 => "sixteen",
         other => panic!(
             "{other} proof kinds, and this test cannot spell that. Add the word rather than \
              relaxing the check: the whole point is that a human number and a machine number \
@@ -1450,4 +1451,259 @@ fn prune_stays_out_of_every_automated_path_by_order() {
         "the prune target is gone, so the three assertions above prove nothing. If the \
          command was withdrawn, that answers the submission and this test should go with it."
     );
+}
+
+// -- vds stage: the door onto the staged write ------------------------------
+
+/// The whole round trip through the front door: stage, refuse, fix, plan,
+/// re-plan.
+///
+/// The apply leg is deliberately not here. It needs the live plugin bridge,
+/// which this test process does not hold and which VDS S-7(2)(1) keeps out of
+/// the proof path anyway; what IS exercisable is the diff and the plan
+/// emission, and this test walks both against a saved capture.
+#[test]
+fn stage_add_plans_against_a_saved_capture_and_a_second_plan_emits_nothing() {
+    let f = Fixture::new();
+    f.ready();
+    f.write(
+        "app/globals.css",
+        ":root { --surface: #f5f5f5; --border-control: #748eaf; }\n\
+         .dark { --surface: #0a0a0a; --border-control: #707070; }\n",
+    );
+    f.vds(&[
+        "screen",
+        "add",
+        "--route",
+        "/matters",
+        "--columns",
+        "1",
+        "--regions",
+        "body",
+        "--band",
+        "header,body_rows",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "1:2",
+    ])
+    .expect(PASSED);
+
+    f.write(
+        "design/stage/STG-0001.intent.yaml",
+        "schemaVersion: 1\n\
+         route: /matters\n\
+         fileKey: KEY\n\
+         nodeId: '1:2'\n\
+         columns: 1\n\
+         bands:\n\
+         - band: header\n  \
+           boxOf: {x: 0.0, y: 0.0, width: 1400.0, height: 48.0}\n\
+         - band: body_rows\n  \
+           boxOf: {x: 0.0, y: 48.0, width: 1400.0, height: 824.0}\n\
+         authoredBy: an agent\n\
+         authoredAt: 2026-08-03T09:00:00Z\n",
+    );
+
+    // `add` records the readings and does NOT gate the write. The door is not
+    // the wall.
+    f.vds(&[
+        "stage",
+        "add",
+        "--intent",
+        "design/stage/STG-0001.intent.yaml",
+    ])
+    .expect(PASSED)
+    .says("staged STG-0001")
+    .says("THIS COMMAND RAN NO GATE")
+    .says("cleared       band_naming")
+    // No route binding ledger exists, so G4 cannot run, and it says so
+    // rather than reading as agreement.
+    .says("could_not_run route_binding")
+    .says("unopposed self-claim");
+
+    // A capture in which the frame draws nothing yet.
+    f.write(
+        "design/captures/matters.json",
+        "{\"nodes\":{\"1:2\":{\"document\":{\"id\":\"1:2\",\"name\":\"Screen\",\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1400,\"height\":900},\
+         \"children\":[]}}}}",
+    );
+    f.vds(&[
+        "stage",
+        "plan",
+        "--id",
+        "STG-0001",
+        "--from",
+        "design/captures/matters.json",
+    ])
+    .expect(PASSED)
+    .says("operations: 2")
+    .says("create-band header")
+    .says("create-band body_rows")
+    .says("Nothing has reached the canvas");
+
+    // The SAME intent against the frame the plan would have produced. Zero
+    // operations, measured through the door rather than asserted.
+    f.write(
+        "design/captures/matters.json",
+        "{\"nodes\":{\"1:2\":{\"document\":{\"id\":\"1:2\",\"name\":\"Screen\",\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1400,\"height\":900},\
+         \"children\":[\
+         {\"id\":\"9:1\",\"name\":\"header\",\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1400,\"height\":48}},\
+         {\"id\":\"9:2\",\"name\":\"body_rows\",\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":48,\"width\":1400,\"height\":824}}\
+         ]}}}}",
+    );
+    f.vds(&[
+        "stage",
+        "plan",
+        "--id",
+        "STG-0001",
+        "--from",
+        "design/captures/matters.json",
+    ])
+    .expect(PASSED)
+    .says("ZERO OPERATIONS")
+    .says("MEASURED here rather than assumed");
+}
+
+/// `vds stage plan` REFUSES to emit against a refused gate. A plan is what an
+/// apply reads, so emitting one would put the refusal downstream of the act it
+/// exists to stop.
+#[test]
+fn stage_plan_refuses_to_emit_an_operation_list_against_a_refused_gate() {
+    let f = Fixture::new();
+    f.ready();
+    f.write(
+        "app/globals.css",
+        ":root { --surface: #f5f5f5; --border: #ebebeb; }\n\
+         .dark { --surface: #0a0a0a; --border: #2d2d2d; }\n",
+    );
+    f.vds(&[
+        "screen",
+        "add",
+        "--route",
+        "/matters",
+        "--columns",
+        "1",
+        "--regions",
+        "body",
+        "--band",
+        "rail",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "1:2",
+    ])
+    .expect(PASSED);
+    f.write(
+        "design/stage/STG-0001.intent.yaml",
+        "schemaVersion: 1\n\
+         route: /matters\n\
+         fileKey: KEY\n\
+         nodeId: '1:2'\n\
+         columns: 1\n\
+         bands:\n\
+         - band: rail\n  \
+           boxOf: {x: 0.0, y: 48.0, width: 56.0, height: 824.0}\n  \
+           paint: {property: '--border', role: control_boundary, backdrop: '--surface'}\n\
+         authoredBy: an agent\n\
+         authoredAt: 2026-08-03T09:00:00Z\n",
+    );
+
+    // The record is written and the refusal is written down with it: a refusal
+    // nobody can write down is a refusal nobody can look at.
+    f.vds(&[
+        "stage",
+        "add",
+        "--intent",
+        "design/stage/STG-0001.intent.yaml",
+    ])
+    .expect(VIOLATION)
+    .says("REFUSED       contrast_floor");
+
+    f.write("design/captures/matters.json", "{\"nodes\":{}}");
+    f.vds(&[
+        "stage",
+        "plan",
+        "--id",
+        "STG-0001",
+        "--from",
+        "design/captures/matters.json",
+    ])
+    .expect(VIOLATION)
+    .says("REFUSED, and nothing was emitted")
+    .says("downstream of the act it exists to stop");
+    assert!(
+        !f.root().join("design/stage/STG-0001.plan.yaml").exists(),
+        "a plan must not exist after a refusal"
+    );
+}
+
+/// An intent root under `.vds/` is refused AT LOAD, before any command runs.
+/// An intent carries boxes and paints, and under the record they are the
+/// storing form VDS S-2(2) prohibits, on a file VDS wrote itself, with no way
+/// back because a record is never deleted.
+#[test]
+fn an_intent_root_under_the_record_is_refused_before_any_command_runs() {
+    let f = Fixture::new();
+    f.ready();
+    let config = std::fs::read_to_string(f.root().join(".vds/config.toml")).unwrap();
+    std::fs::write(
+        f.root().join(".vds/config.toml"),
+        config.replace(
+            "intent_root = \"design/stage\"",
+            "intent_root = \".vds/stages\"",
+        ),
+    )
+    .unwrap();
+    f.vds(&["stage", "list"])
+        .expect(PRECONDITION)
+        .says("no_stored_values")
+        .says("VJS-FI-VDS 1");
+}
+
+/// `vds figma frames` says out loud when it recorded no capture date, because
+/// the bypass rule refuses without one and a caller who did not know would read
+/// the refusal as a bug rather than as the missing input it is.
+#[test]
+fn the_frame_ledger_says_when_it_recorded_no_capture_date() {
+    let f = Fixture::new();
+    f.ready();
+    f.write(
+        "design/captures/matters.json",
+        "{\"nodes\":{\"1:2\":{\"document\":{\"id\":\"1:2\",\"name\":\"Screen\",\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1400,\"height\":900},\
+         \"children\":[{\"id\":\"9:1\",\"name\":\"body\",\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1400,\"height\":900},\
+         \"children\":[]}]}}}}",
+    );
+    f.vds(&[
+        "figma",
+        "frames",
+        "--file-key",
+        "KEY",
+        "--from",
+        "design/captures/matters.json",
+    ])
+    .expect(PASSED)
+    .says("captured at:     NOT STATED")
+    // Matched short, because the sentence is wrapped for a terminal and a
+    // needle that spans the fold matches nothing.
+    .says("reports a stale reading");
+
+    f.vds(&[
+        "figma",
+        "frames",
+        "--file-key",
+        "KEY",
+        "--from",
+        "design/captures/matters.json",
+        "--captured-at",
+        "2026-08-03T08:00:00Z",
+    ])
+    .expect(PASSED)
+    .says("captured at:     2026-08-03T08:00:00Z");
 }

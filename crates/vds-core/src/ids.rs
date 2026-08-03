@@ -157,6 +157,11 @@ lexical_id!(
     r"^VRW-[0-9]{4}$",
     "A visual review verdict: automated eyes over a shipped screen against its signed frame (draft S-7D)."
 );
+lexical_id!(
+    StageId,
+    r"^STG-[0-9]{4}$",
+    "A staged write to one frame: the reviewable record of what was intended, which gates read on it, and what an apply then did (draft S-7E)."
+);
 
 /// The allocator every simple numbered series shares: highest on disk plus one
 /// (VDS S-4(4)), refusing exhaustion rather than wrapping.
@@ -188,6 +193,7 @@ numbered_series!(SignoffId, "SGN-", "sign-off");
 numbered_series!(RedrawId, "RDW-", "redraw");
 numbered_series!(ReviewId, "VRW-", "visual review");
 numbered_series!(DirectionId, "DIR-", "direction");
+numbered_series!(StageId, "STG-", "staged write");
 
 impl ComponentId {
     /// The next free component id, read off disk. VDS S-4(4).

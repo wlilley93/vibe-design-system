@@ -419,14 +419,23 @@ impl Coverage {
 
     /// The line every run prints and every record carries.
     pub fn line(&self) -> String {
+        self.line_for("registered screen(s)")
+    }
+
+    /// The same line, about a different subject.
+    ///
+    /// One arithmetic and one sentence, borrowed rather than reimplemented by
+    /// the sixteenth kind. Two coverage types would be two chances to disagree
+    /// about what "scored" counts, which is the failure this type exists to
+    /// make visible one level down.
+    pub fn line_for(&self, subject: &str) -> String {
         let total = self.total();
-        // A run over zero screens reports 0%, not a division by zero and not
+        // A run over zero rows reports 0%, not a division by zero and not
         // 100%. "Everything was scored" and "nothing was there to score" are
-        // different facts, and the second one is what an empty screen register
-        // means.
+        // different facts, and the second one is what an empty register means.
         let percent = (self.scored * 100).checked_div(total).unwrap_or(0);
         format!(
-            "[coverage] {} of {} registered screen(s) were SCORED ({percent}%). {} UNSCORED: a \
+            "[coverage] {} of {} {subject} were SCORED ({percent}%). {} UNSCORED: a \
              requirement exists and this run could not measure it, which is a finding and never \
              a pass. {} EXCLUDED: the design states nothing to measure against, which is a \
              different fact from the code being wrong.",

@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "RouteBindingLedger",
+  "description": "The subscribing repository's OWN claims about which frame draws which route.\n\nA ledger under VDS S-4(2): generated, digest-witnessed, byte-reproducible by the named command. Supplied by the subject and never derived here, for the reason [`super::RouteManifest`] is supplied: which artefact in the estate speaks for a route binding is the estate's question, and VDS deciding it would make VDS the authority on the estate's own record.\n\nIt holds routes and node IDS and nothing else. Neither is a design value.",
+  "type": "object",
+  "required": [
+    "contentDigest",
+    "generatedBy",
+    "rows",
+    "schemaVersion",
+    "source",
+    "takenAt"
+  ],
+  "properties": {
+    "contentDigest": {
+      "type": "string"
+    },
+    "doesNotCover": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "generatedBy": {
+      "type": "string"
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/RouteBinding"
+      }
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    },
+    "source": {
+      "description": "The artefact the claims were read FROM, in the estate's own words.",
+      "type": "string"
+    },
+    "takenAt": {
+      "$ref": "#/definitions/Timestamp"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "RouteBinding": {
+      "description": "One claim, made by some artefact in the subscribing repository, that a route is drawn by a node.",
+      "type": "object",
+      "required": [
+        "claimedAt",
+        "nodeId",
+        "route"
+      ],
+      "properties": {
+        "claimedAt": {
+          "description": "Where the claim is made, so a reader can open it and see for themselves. VDS does not decide which claim is true; it names both.",
+          "type": "string"
+        },
+        "nodeId": {
+          "type": "string"
+        },
+        "route": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Timestamp": {
+      "description": "UTC, second resolution, trailing Z. The one canonical form VDS writes.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    }
+  }
+}

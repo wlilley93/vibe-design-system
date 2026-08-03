@@ -21,8 +21,9 @@ use schemars::r#gen::{SchemaGenerator, SchemaSettings};
 use vds_core::{
     BurndownReading, BurndownRecord, ComponentRecord, DirectionRecord, EXIT_VIOLATION,
     GeometryAuthority, GeometryBound, GeometryReading, LockEntry, Pin, ProhibitionRecord,
-    ProofResult, RedrawRecord, Result, RouteManifest, ScreenRecord, SignOff, Submission, VdsError,
-    VisualReviewRecord, Warrant, write_text_atomically,
+    ProofResult, RedrawRecord, Result, RouteBindingLedger, RouteManifest, ScreenRecord, SignOff,
+    StageIntent, StagePlan, StageRecord, Submission, VdsError, VisualReviewRecord, Warrant,
+    write_text_atomically,
 };
 
 use crate::{Context, PASSED};
@@ -98,6 +99,16 @@ fn schemas() -> Result<BTreeMap<&'static str, String>> {
     emit!("redraw-record", RedrawRecord);
     emit!("visual-review-record", VisualReviewRecord);
     emit!("route-manifest", RouteManifest);
+    emit!("stage-record", StageRecord);
+    emit!("route-binding-ledger", RouteBindingLedger);
+    // THE TWO ARTEFACTS THAT LIVE IN THE SUBSCRIBER TREE, published here for
+    // exactly that reason. They carry boxes and paints, so they may not live
+    // under `.vds/**` (VDS S-2(2); [2026] VJS-FI-VDS 1 orders 2 and 4), and a
+    // shape a subscriber has to author outside the record is a shape VDS has to
+    // publish or nobody can write one. Their schemas are the only two here that
+    // describe a file this engine refuses to hold.
+    emit!("stage-intent", StageIntent);
+    emit!("stage-plan", StagePlan);
     emit!("warrant", Warrant);
     emit!("proof-result", ProofResult);
     emit!("pin", Pin);
@@ -321,6 +332,118 @@ mod tests {
         );
     }
 
+    /// THE ELEVENTH ARTEFACT KIND, AND THE SIXTEENTH PROOF KIND, REACH THE
+    /// PUBLISHED CONTRACT.
+    ///
+    /// Named values rather than a count, for the reason the count test above
+    /// records. The three that matter are the ones a consumer validates
+    /// against: the closed operation vocabulary, whose closure is the strongest
+    /// thing this capability has; the three-valued gate reading, whose third
+    /// value is what stops "could not run" reading as a pass; and the intent
+    /// path, whose placement outside `.vds/` is a rule of law.
+    #[test]
+    fn the_published_schemas_carry_the_staged_write_record_and_its_closed_vocabularies() {
+        let generated = schemas().unwrap();
+        let record = &generated["stage-record"];
+        for property in ["\"route\"", "\"target\"", "\"intentPath\"", "\"gates\""] {
+            assert!(
+                record.contains(property),
+                "the stage record schema does not publish {property}, so a consumer validating \
+                 against it would accept a record this engine refuses"
+            );
+        }
+
+        let parsed: serde_json::Value = serde_json::from_str(record).unwrap();
+        let readings: Vec<String> = parsed["definitions"]["GateReading"]["oneOf"]
+            .as_array()
+            .expect("the gate reading vocabulary is published as a closed set")
+            .iter()
+            .filter_map(|branch| branch["enum"][0].as_str().map(str::to_owned))
+            .collect();
+        assert_eq!(
+            readings.len(),
+            vds_core::GateReading::ALL.len(),
+            "the published gate vocabulary and the Rust one are different sizes: {readings:?}"
+        );
+        assert!(
+            readings.iter().any(|r| r == "could_not_run"),
+            "the third value is what stops a rule with no basis to run reading as a pass, and a \
+             consumer that cannot see it will treat one as the other: {readings:?}"
+        );
+        let gates: Vec<String> = parsed["definitions"]["StageGate"]["oneOf"]
+            .as_array()
+            .expect("the gate vocabulary is published as a closed set")
+            .iter()
+            .filter_map(|branch| branch["enum"][0].as_str().map(str::to_owned))
+            .collect();
+        assert_eq!(gates.len(), vds_core::StageGate::ALL.len(), "{gates:?}");
+
+        // THE CLOSURE, in the published contract. A page-level or frame-level
+        // delete reaching the schema is the 2026-07-25 loss becoming
+        // repeatable through the sanctioned path, and a consumer generating
+        // from this file would then generate one.
+        let plan: serde_json::Value = serde_json::from_str(&generated["stage-plan"]).unwrap();
+        let operations: Vec<String> = plan["definitions"]["StageOperation"]["oneOf"]
+            .as_array()
+            .expect("the operation vocabulary is published as a closed set")
+            .iter()
+            .filter_map(|branch| {
+                branch["properties"]["op"]["enum"][0]
+                    .as_str()
+                    .map(str::to_owned)
+            })
+            .collect();
+        assert_eq!(
+            operations.len(),
+            6,
+            "the operation vocabulary is CLOSED at six: {operations:?}"
+        );
+        assert!(operations.iter().any(|o| o == "delete_band"));
+        for absent in ["delete_page", "delete_frame", "delete_node", "replace_page"] {
+            assert!(
+                !operations.iter().any(|o| o == absent),
+                "{absent:?} has reached the published contract. The 2026-07-25 loss came from a \
+                 delete-page-and-recreate step, and a verb in the schema is a verb somebody will \
+                 generate a client for."
+            );
+        }
+    }
+
+    /// The two schemas here that describe a file `.vds/` may NOT hold.
+    ///
+    /// The stage intent and the stage plan carry boxes and resolved paints, so
+    /// they live in the subscriber tree (VDS S-2(2); [2026] VJS-FI-VDS 1 orders
+    /// 2 and 4). Their shapes are published anyway, because a subscriber has to
+    /// author one and a shape nobody publishes is a shape everybody guesses.
+    const SUBSCRIBER_TREE_SCHEMAS: [&str; 2] = ["stage-intent", "stage-plan"];
+
+    /// The split, held at the schema level rather than in a paragraph.
+    #[test]
+    fn the_stage_record_publishes_no_field_the_intent_publishes() {
+        let generated = schemas().unwrap();
+        let record = &generated["stage-record"];
+        for property in ["\"boxOf\"", "\"panes\"", "\"paint\"", "\"resolved\""] {
+            assert!(
+                !record.contains(property),
+                "the stage record schema publishes {property}. The record and the intent split \
+                 on LAW rather than on tidiness: a box or a paint under `.vds/**` fails \
+                 `no_stored_values` R1 and R3 forever, on a file VDS wrote itself, and a record \
+                 is never deleted."
+            );
+        }
+        // And the intent does publish them, or the split has been made by
+        // deleting the capability rather than by placing it.
+        let intent = &generated["stage-intent"];
+        assert!(
+            intent.contains("\"boxOf\""),
+            "the intent must carry the boxes"
+        );
+        assert!(
+            intent.contains("\"paint\""),
+            "the intent must carry the paints"
+        );
+    }
+
     /// VDS S-2(4): an artefact may hold a requirement and never a realisation.
     /// The published contract must not name one either.
     #[test]
@@ -349,6 +472,14 @@ mod tests {
             "opacity",
         ];
         for (name, text) in schemas().unwrap() {
+            if SUBSCRIBER_TREE_SCHEMAS.contains(&name) {
+                // These two describe files VDS refuses to hold, precisely
+                // BECAUSE they carry realisation. Holding them to the rule that
+                // exists to keep realisation out of `.vds/` would be applying
+                // it to the place it sent them. The rule that binds them is the
+                // one above: nothing they carry may appear on the record.
+                continue;
+            }
             for property in forbidden {
                 assert!(
                     !text.contains(&format!("\"{property}\": {{")),

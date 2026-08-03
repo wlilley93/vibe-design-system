@@ -68,6 +68,24 @@ enum Which {
         #[arg(long, value_name = "PATH")]
         from: std::path::PathBuf,
     },
+    /// The estate's OWN claims about which frame draws which route (draft
+    /// S-7E(7)), for the staged-write G4 gate.
+    ///
+    /// Always `--from`: WHICH artefact in the estate speaks for a route binding
+    /// is the estate's question, exactly as the route manifest's scope is, and
+    /// VDS deciding it would make VDS the authority on somebody else's record.
+    /// What VDS owns is that the claims are digest-witnessed and that a
+    /// contradiction is REFUSED rather than resolved: VDS does not decide which
+    /// of two claims is true, because deciding needs eyes on the drawing.
+    ///
+    /// Absent, G4 reports that it could not run, per row, and says so on the
+    /// face of the coverage line. A single unopposed self-claim must never read
+    /// as agreement.
+    RouteBindings {
+        /// The estate's claims, as JSON in the route-binding-ledger shape.
+        #[arg(long, value_name = "PATH")]
+        from: std::path::PathBuf,
+    },
     /// The authority snapshot binding the shipped geometry reading to a signed
     /// frame's decided values (draft S-7A(5)).
     ///
@@ -311,6 +329,50 @@ pub fn run(ctx: &Context, args: &Args) -> Result<i32> {
                 "`vds proof visual_review` now reports every one of these routes in one of \
                  three populations: current, owed by drift, or never reviewed. A route missing \
                  from this list is a route nothing will report as owed."
+            );
+            Ok(PASSED)
+        }
+        Which::RouteBindings { from } => {
+            let text =
+                std::fs::read_to_string(from).map_err(|e| VdsError::io(from.display(), e))?;
+            let mut ledger: vds_core::RouteBindingLedger =
+                serde_json::from_str(&text).map_err(|e| VdsError::Artefact {
+                    path: project.rel(from),
+                    message: format!("is not a route binding ledger: {e}"),
+                })?;
+            if ledger.rows.is_empty() {
+                return Err(VdsError::precondition(
+                    "this ledger carries no claim. A ledger of nothing makes G4 report \
+                     could_not_run on every row while looking as though a second opinion \
+                     exists, which is worse than having none: the coverage line would say the \
+                     gate ran.",
+                ));
+            }
+            // Computed here and never taken from the file, for the reason the
+            // route manifest's is: a CONTRADICTING claim quietly deleted from
+            // this ledger is a contradiction that stops being reported, and the
+            // digest is what makes that edit visible.
+            ledger.content_digest = ledger.compute_content_digest()?;
+            let path = vds_core::write_route_bindings(&project, &ledger)?;
+            let mut routes: Vec<&str> = ledger.rows.iter().map(|r| r.route.as_str()).collect();
+            routes.sort();
+            routes.dedup();
+            println!("wrote {}", project.rel(&path));
+            println!("  source:   {}", ledger.source);
+            println!("  taken at: {}", ledger.taken_at);
+            println!(
+                "  claims:   {} over {} route(s)",
+                ledger.rows.len(),
+                routes.len()
+            );
+            for line in &ledger.does_not_cover {
+                println!("  does NOT cover: {line}");
+            }
+            println!();
+            println!(
+                "`vds stage add` and `vds proof staged_write` now read these claims. Where one \
+                 contradicts a staged write's target, G4 REFUSES and names both: VDS does not \
+                 decide which is true, because deciding needs eyes on the drawing."
             );
             Ok(PASSED)
         }
