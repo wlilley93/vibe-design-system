@@ -102,6 +102,16 @@ pub const CONTROL_BOUNDARY_FLOOR: f64 = 3.0;
 /// How far a staged box may fall outside the canonical shell before G3 refuses.
 const SHELL_SLACK: f64 = 1.0;
 
+/// Whether two lengths are the SAME length, at the tolerance above.
+///
+/// Not an exact comparison, for the reason `vds-figma`'s own box comparison is not
+/// one: Figma returns absolute bounding boxes as floating point and a round trip
+/// through a transform moves the last bit, so `==` would refuse a frame that IS
+/// the canonical shell on a rounding artefact nobody can see.
+fn same_length(a: f64, b: f64) -> bool {
+    (a - b).abs() <= SHELL_SLACK
+}
+
 const RULE_INVALID: &str =
     "draft S-7E(2) staged_write R1: a stage record that does not validate carries no verdict";
 const RULE_GATE_NOT_ASKED: &str = "draft S-7E(3) staged_write R2: every gate is asked, because a gate absent from the record \
@@ -156,8 +166,13 @@ pub const VOCABULARY_NOTE: &str = "[vocabulary] the operation set is CLOSED at s
      ran it and discarded work the first had landed. Neither agent was at fault and the step was \
      not wrong: the destructive verb existed and two writers reached it. WIDENING THE VOCABULARY \
      MAKES THAT LOSS REPEATABLE THROUGH THE SANCTIONED PATH. A delete reaches one band, and only \
-     where its name is in the closed review vocabulary AND the intent no longer declares it; a \
-     node VDS did not create and the intent does not name is never touched.";
+     where its name is in the closed review vocabulary AND THE INTENT EXPLICITLY LISTS IT IN \
+     `deletes`; a node VDS did not create and the intent does not name is never touched. SILENCE \
+     IS NOT PERMISSION TO DELETE, and it used to be: the delete was emitted for every \
+     closed-vocabulary band the intent did not declare, so an intent about the header removed a \
+     `facets` band a designer had drawn by never mentioning it, and the one verb that can lose \
+     work was the one operation emitted with no gate reading behind it. G2 limb (d) is now that \
+     reading.";
 
 pub const NO_AUTHORITY_NOTE: &str = "[authority] a machine act creates no authority ([2026] VJS-SC-OPBOX 1 order 16). VDS may \
      stage, plan, apply and verify. It may not sign, may not set a signed status, and emits \
@@ -426,6 +441,17 @@ fn resolved(
 /// node-keyed diff sees every band as missing on the second run. A duplicate
 /// band declaration is therefore two answers for one key, and the apply would
 /// write one of them without saying which.
+///
+/// (d) THE ONLY GATE READING BEHIND THE ONLY DESTRUCTIVE VERB. A band the intent
+/// DELETES that the screen record still DECLARES is refused. Until the intent
+/// carried an explicit `deletes` list, a delete was emitted from the intent's
+/// SILENCE and no gate read anything at all before it landed: the one operation in
+/// the vocabulary that can lose a designer's work was the one operation emitted
+/// with nothing behind it. The subject here is the SCREEN RECORD and never the
+/// canvas, because the record is a local file this proof can re-derive and the
+/// canvas is behind a network call VDS S-7(2)(1) forbids - a limb that needed the
+/// drawing could never run in a proof at all, which is how it would come to be
+/// dropped.
 fn band_naming(inputs: &GateInputs) -> GateVerdict {
     let intent = inputs.intent;
 
@@ -484,14 +510,50 @@ fn band_naming(inputs: &GateInputs) -> GateVerdict {
         );
     }
 
+    // (d) THE DELETES, against the same record. A band the register says this
+    // screen DRAWS may not be removed by a staged write: the drawing would then
+    // disagree with the contract, and the disagreement would be found by the
+    // screen parity gate one artefact later, after the band was already gone.
+    let deletes = intent.declared_deletes();
+    let contracted: Vec<&str> = deletes
+        .iter()
+        .filter(|band| screen.arrangement.bands.contains(band))
+        .map(|band| band.as_str())
+        .collect();
+    if !contracted.is_empty() {
+        return verdict(
+            StageGate::BandNaming,
+            GateReading::Refused,
+            format!(
+                "this write DELETES {} that {} declares this screen draws: {}. The register is the \
+                 contract and the deletion would put the drawing in breach of it, which the screen \
+                 parity gate would then find one artefact later - after the band was already gone, \
+                 and a delete is the one operation on this path that cannot be undone by \
+                 re-running anything. Amend the screen record first if the screen genuinely no \
+                 longer has that band.",
+                if contracted.len() == 1 {
+                    "a band"
+                } else {
+                    "bands"
+                },
+                screen.id,
+                contracted.join(", ")
+            ),
+        );
+    }
+
     verdict(
         StageGate::BandNaming,
         GateReading::Cleared,
         format!(
             "{} staged band(s), every one in the closed review vocabulary and every one declared \
              by {}. The diff key is therefore stable across a recreate, which is what makes the \
-             second apply emit nothing.",
+             second apply emit nothing. {} explicit deletion(s), none of them a band {} declares: \
+             a delete is emitted for a band this list NAMES and never for one the intent merely \
+             fails to mention.",
             staged.len(),
+            screen.id,
+            deletes.len(),
             screen.id
         ),
     )
@@ -499,8 +561,63 @@ fn band_naming(inputs: &GateInputs) -> GateVerdict {
 
 /// G3. The SAME derivation `vds figma frames` runs AFTER the write, run over the
 /// intent's boxes BEFORE it.
+///
+/// # THE EXTENT LIMB, AND WHY A CONTAINMENT TEST WAS NOT ENOUGH
+///
+/// This gate used to build a synthetic document whose root was the canonical shell
+/// and then ask only whether each band FITS INSIDE it. That is a containment test
+/// with NO LOWER BOUND: a frame drawn systematically UNDER the shell has every
+/// band fitting inside the shell with room to spare, so it cleared a gate called
+/// `canonical_geometry` while being the wrong size. On the estate this was written
+/// for that is not a hypothetical - 80 of 188 frames are the body with no shell
+/// around it. So the intent DECLARES its target frame's extent
+/// ([`vds_core::FrameExtent`]) and this limb refuses an extent that is not the
+/// canonical shell IN EITHER DIRECTION.
+///
+/// The declaration alone is a claim, and this gate cannot check it against a
+/// drawing: `vds stage add` has no capture and a proof may not fetch one (VDS
+/// S-7(2)(1)). `vds stage plan` HAS a capture, and
+/// [`vds_figma::stage::extent_disagreement`] is where the claim meets it - the same
+/// division of labour R7 already draws for a stored verdict, one artefact along.
 fn canonical_geometry(inputs: &GateInputs) -> GateVerdict {
     let intent = inputs.intent;
+
+    // THE EXTENT, FIRST, because it needs no box to run and because every answer
+    // below it is about the frame it names. A derivation run inside a root the
+    // wrong size is a derivation about a frame nobody drew.
+    let declared = intent.frame_extent;
+    let canonical = same_length(declared.width, vds_figma::stage::SHELL_WIDTH)
+        && same_length(declared.height, vds_figma::stage::SHELL_HEIGHT);
+    if !canonical {
+        return verdict(
+            StageGate::CanonicalGeometry,
+            GateReading::Refused,
+            format!(
+                "the intent declares a target frame whose extent is NOT the canonical shell: it is \
+                 {} in width and {} in height. NOT ONE OF THE FOUR NUMBERS IS REPEATED HERE. They \
+                 are lengths, this reason is captured into a proof record under the tree \
+                 `no_stored_values` scans, and the shell's own dimensions are constants in the \
+                 generator for exactly that reason - which is also why the containment refusal \
+                 below names no dimension either. This limb exists because containment has NO \
+                 LOWER BOUND: every band of a frame drawn under the shell fits inside the shell \
+                 with room to spare, so a systematically undersized frame cleared a gate called \
+                 canonical_geometry, and 80 of 188 frames on the estate this was written for have \
+                 that shape. Draw the frame in the canonical shell, or stage a write to a frame \
+                 that is one.",
+                if declared.width < vds_figma::stage::SHELL_WIDTH {
+                    "SMALLER"
+                } else {
+                    "LARGER"
+                },
+                if declared.height < vds_figma::stage::SHELL_HEIGHT {
+                    "SMALLER"
+                } else {
+                    "LARGER"
+                },
+            ),
+        );
+    }
+
     let boxed = intent.bands.iter().filter(|b| b.box_of.is_some()).count();
     if boxed == 0 {
         return verdict(
@@ -564,9 +681,12 @@ fn canonical_geometry(inputs: &GateInputs) -> GateVerdict {
         StageGate::CanonicalGeometry,
         GateReading::Cleared,
         format!(
-            "{boxed} positioned band(s), all inside the canonical shell, and the ledger's own \
-             derivation reads {derived} content column(s) from them, which is what the intent \
-             declares."
+            "the declared frame extent IS the canonical shell, measured in BOTH directions so a \
+             frame drawn under the shell cannot clear this limb by fitting inside it; {boxed} \
+             positioned band(s), all inside that shell; and the ledger's own derivation reads \
+             {derived} content column(s) from them, which is what the intent declares. No \
+             dimension is named in this reading: they are lengths and this record lands under the \
+             tree `no_stored_values` scans."
         ),
     )
 }

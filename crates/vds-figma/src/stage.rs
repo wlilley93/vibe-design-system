@@ -38,12 +38,39 @@
 //! designer's hand-added note inside a band survives an apply. A child of the
 //! frame whose name is NOT in the closed vocabulary is not a band at all: it is
 //! recorded in [`FrameReading::untouched`] and no operation can reach it.
+//!
+//! # THE BANDS ARE NOT ALWAYS THE FRAME'S OWN CHILDREN
+//!
+//! This reader used to take the frame's DIRECT CHILDREN as its bands. On a frame
+//! whose bands sit under a named authority layer - `CURRENT SOURCE · /matters` and
+//! the other spellings `[screens] authority_markers` carries - it therefore saw no
+//! bands at all, reported every declared band missing, and emitted a CREATE for
+//! each one. The apply then drew A SECOND FULL SET OF BANDS beside the first, and
+//! every instrument in the path reported success: the diff was right about what it
+//! had read, the plan was right about the diff, the apply landed every operation,
+//! and the verification re-read the same frame the same wrong way and found the
+//! delta empty. About a tenth of the frames on the subject estate have that shape,
+//! and the frame ledger has resolved the authority layer since it was written.
+//! [`crate::frames::authority_child`] is now the ONE place that precedence lives,
+//! and [`FrameReading::bands_under`] says on the reading's face which subtree the
+//! bands were read from.
+//!
+//! # SILENCE IS NOT PERMISSION TO DELETE
+//!
+//! [`StageOperation::DeleteBand`] is emitted only for a band the intent lists in
+//! `deletes`. It used to be emitted for every closed-vocabulary band in the frame
+//! that the intent did not declare, which meant an intent that had simply never
+//! mentioned a `facets` band deleted the one a designer had drawn - and G2
+//! compares the intent to the SCREEN RECORD and never to the canvas, so the one
+//! destructive verb in the vocabulary was the only operation emitted with no gate
+//! reading behind it. A band present in the frame that the intent neither declares
+//! nor deletes is reported by [`FrameReading::undeclared_bands`] and left alone.
 
 use std::collections::{BTreeMap, BTreeSet};
 
 use vds_core::{
-    BandBox, Digest, PlanChunk, Result, ReviewRegion, StageId, StageIntent, StageOperation,
-    StagePlan, Timestamp, VdsError,
+    BandBox, Digest, GateVerdict, PlanChunk, Result, ReviewRegion, ScreensConfig, StageContainer,
+    StageId, StageIntent, StageOperation, StagePlan, Timestamp, VdsError,
 };
 use vds_css::colour::Colour;
 
@@ -97,6 +124,18 @@ pub struct FrameReading {
     pub node_id: String,
     pub frame_name: String,
     pub frame_box: BandBox,
+    /// The exact subtree whose direct children were read as bands. For an
+    /// unlabelled frame this is the frame itself; for a named current-source
+    /// layer it is that layer. Every emitted operation carries the same scope.
+    pub container: StageContainer,
+    /// The NAME of the authority layer the bands were read from, or `None` where
+    /// the frame's own children are the bands.
+    ///
+    /// On the reading's face because it changes what every operation below is
+    /// about. A reader who cannot see which subtree was read cannot tell a frame
+    /// with no bands from a frame whose bands were looked for in the wrong place,
+    /// and those two produce the same diff and opposite outcomes.
+    pub bands_under: Option<String>,
     pub bands: Vec<BandState>,
     /// Children whose names the closed vocabulary does NOT name.
     ///
@@ -108,6 +147,23 @@ pub struct FrameReading {
 impl FrameReading {
     pub fn band(&self, band: ReviewRegion) -> Option<&BandState> {
         self.bands.iter().find(|b| b.band == band)
+    }
+
+    /// The bands this frame DRAWS that an intent neither declares nor deletes.
+    ///
+    /// Not an operation and not a finding: a fact the plan publishes. These are
+    /// the bands the old diff deleted on the strength of the intent's silence.
+    pub fn undeclared_bands(&self, intent: &StageIntent) -> Vec<ReviewRegion> {
+        let declared: BTreeSet<ReviewRegion> = intent
+            .declared_bands()
+            .into_iter()
+            .chain(intent.declared_deletes())
+            .collect();
+        self.bands
+            .iter()
+            .map(|state| state.band)
+            .filter(|band| !declared.contains(band))
+            .collect()
     }
 }
 
@@ -133,7 +189,18 @@ pub fn band_of(layer_name: &str) -> Option<ReviewRegion> {
 /// frame is empty": a caller that cannot see a frame has to say so, or a diff
 /// taken against nothing emits a create for every band and rebuilds a frame
 /// that was already right.
-pub fn read_frame(body: &str, node_id: &str) -> Result<Option<FrameReading>> {
+///
+/// `config` is the project's own [`ScreensConfig`], and it is a parameter rather
+/// than a default because the words a file uses for "this layer is the current
+/// source" are the SUBJECT's vocabulary and live in `[screens]
+/// authority_markers`. A default here would resolve the authority layer only for
+/// projects that happen to use the shipped spellings, and fail silently - by
+/// creating a second set of bands - for every project that does not.
+pub fn read_frame(
+    body: &str,
+    node_id: &str,
+    config: &ScreensConfig,
+) -> Result<Option<FrameReading>> {
     let payload: serde_json::Value = serde_json::from_str(body).map_err(|e| {
         VdsError::precondition(format!(
             "the capture is not JSON: {e}. A partial parse would produce a reading claiming the \
@@ -158,10 +225,14 @@ pub fn read_frame(body: &str, node_id: &str) -> Result<Option<FrameReading>> {
     }) else {
         return Ok(None);
     };
-    Ok(Some(reading_of(&wanted, document)))
+    Ok(Some(reading_of(&wanted, document, config)?))
 }
 
-fn reading_of(node_id: &str, document: &serde_json::Value) -> FrameReading {
+fn reading_of(
+    node_id: &str,
+    document: &serde_json::Value,
+    config: &ScreensConfig,
+) -> Result<FrameReading> {
     let frame_box = box_of(document).unwrap_or(BandBox {
         x: 0.0,
         y: 0.0,
@@ -170,7 +241,65 @@ fn reading_of(node_id: &str, document: &serde_json::Value) -> FrameReading {
     });
     let mut bands = Vec::new();
     let mut untouched = Vec::new();
-    let children = document
+
+    // WHERE THE BANDS LIVE. Resolved through the authority layer where the frame
+    // names one, by the same precedence the frame ledger uses, because a diff that
+    // looked only at the frame's own children saw no bands under a `CURRENT
+    // SOURCE` layer and created a second full set beside the ones already drawn.
+    let (bands_under, container, scope) = match crate::frames::authority_child(document, config) {
+        Some(selected) => {
+            let Some(selected_id) = selected.node_id.clone() else {
+                return Err(VdsError::precondition(format!(
+                    "the authority layer {:?} in frame {} has no node id. A staged operation \
+                     cannot be scoped to a name shared by a sibling, so this capture is refused \
+                     rather than risking a write to the wrong subtree.",
+                    selected.name, node_id
+                )));
+            };
+            (
+                Some(selected.name.clone()),
+                selected.document,
+                StageContainer {
+                    node_id: selected_id,
+                    name: selected.name,
+                },
+            )
+        }
+        None => (
+            None,
+            document,
+            StageContainer {
+                node_id: node_id.to_owned(),
+                name: document
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_owned(),
+            },
+        ),
+    };
+    // The authority layer's SIBLINGS. Out of every operation's reach - a delete
+    // reaches one band inside the resolved container and nothing else - and
+    // recorded, because "this frame also carries a legacy underlay" is exactly the
+    // fact a reviewer needs in order to not read the plan as covering it.
+    if bands_under.is_some() {
+        for child in document
+            .get("children")
+            .and_then(|v| v.as_array())
+            .map(Vec::as_slice)
+            .unwrap_or_default()
+        {
+            let name = child
+                .get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default();
+            if Some(name) != bands_under.as_deref() {
+                untouched.push(name.to_owned());
+            }
+        }
+    }
+
+    let children = container
         .get("children")
         .and_then(|v| v.as_array())
         .cloned()
@@ -219,7 +348,7 @@ fn reading_of(node_id: &str, document: &serde_json::Value) -> FrameReading {
     for (index, band) in bands.iter_mut().enumerate() {
         band.index = index as u32;
     }
-    FrameReading {
+    Ok(FrameReading {
         node_id: node_id.to_owned(),
         frame_name: document
             .get("name")
@@ -227,9 +356,47 @@ fn reading_of(node_id: &str, document: &serde_json::Value) -> FrameReading {
             .unwrap_or_default()
             .to_owned(),
         frame_box,
+        container: scope,
+        bands_under,
         bands,
         untouched,
+    })
+}
+
+/// Why the frame this capture draws is not the frame the intent declares, or
+/// `None`.
+///
+/// THE LIMB THAT STOPS THE DECLARATION BEING TYPED. G3 refuses an extent that is
+/// not the canonical shell, and reads it from the intent because no capture is in
+/// front of it: `vds stage add` has none and a proof may not fetch one
+/// (VDS S-7(2)(1)). So the declaration alone is a claim, and a claim believed is a
+/// claim that can be MINTED - which is the same defect `staged_write` R7 exists
+/// for, one artefact along. `vds stage plan` HAS a capture, and this is where the
+/// claim meets it.
+///
+/// SIZE ONLY. Where a frame sits on the canvas is not a decision about the screen,
+/// and comparing an origin would refuse a frame somebody had merely moved.
+pub fn extent_disagreement(intent: &StageIntent, reading: &FrameReading) -> Option<String> {
+    let declared = intent.frame_extent;
+    if same(declared.width, reading.frame_box.width)
+        && same(declared.height, reading.frame_box.height)
+    {
+        return None;
     }
+    let narrower = reading.frame_box.width < declared.width;
+    let shorter = reading.frame_box.height < declared.height;
+    Some(format!(
+        "the intent declares a target frame and the capture draws {} that is {} in width and {} \
+         in height. Neither number is repeated here: they are lengths, and a finding lands under \
+         the tree `no_stored_values` scans. The declared extent is what G3 measured the canonical \
+         shell against, so if the capture is right then the gate cleared a frame it never saw, \
+         and if the intent is right then this capture is of another frame. Open node {} and \
+         settle which.",
+        reading.frame_name,
+        if narrower { "SMALLER" } else { "LARGER" },
+        if shorter { "SMALLER" } else { "LARGER" },
+        reading.node_id
+    ))
 }
 
 fn box_of(value: &serde_json::Value) -> Option<BandBox> {
@@ -324,20 +491,31 @@ pub fn property_key(raw: &str) -> String {
 pub fn diff(inputs: &DiffInputs) -> Vec<StageOperation> {
     let intent = inputs.intent;
     let reading = inputs.reading;
+    let container = reading.container.clone();
     let mut out = Vec::new();
-
-    let declared: BTreeSet<ReviewRegion> = intent.declared_bands().into_iter().collect();
 
     // DELETE. Two conditions, checked together and never separately: the band's
     // name is in the closed vocabulary (so it is a band at all), and the intent
-    // no longer declares it. Anything else in the frame is in `untouched` and
-    // no operation here can reach it. There is no page-level and no frame-level
-    // delete, and the reason is in the enum's own doc: the 2026-07-25 loss came
-    // from a delete-page-and-recreate step, and widening the vocabulary makes
-    // that loss repeatable through the sanctioned path.
-    for state in &reading.bands {
-        if !declared.contains(&state.band) {
-            out.push(StageOperation::DeleteBand { band: state.band });
+    // NAMES IT in `deletes`. Anything else in the frame is in `untouched` or in
+    // `undeclared_bands` and no operation here can reach it. There is no
+    // page-level and no frame-level delete, and the reason is in the enum's own
+    // doc: the 2026-07-25 loss came from a delete-page-and-recreate step, and
+    // widening the vocabulary makes that loss repeatable through the sanctioned
+    // path.
+    //
+    // SILENCE IS NOT PERMISSION TO DELETE, and this limb used to read the other
+    // way round: every closed-vocabulary band the intent did not declare was
+    // deleted, so an intent about the header removed a `facets` band a designer
+    // had drawn by never mentioning it. Only a band the frame ACTUALLY DRAWS is
+    // emitted for, because a delete for a band that is not there is an operation
+    // the apply cannot land and the verification would then report as residual
+    // forever.
+    for band in intent.declared_deletes() {
+        if reading.band(band).is_some() {
+            out.push(StageOperation::DeleteBand {
+                band,
+                container: container.clone(),
+            });
         }
     }
 
@@ -352,6 +530,7 @@ pub fn diff(inputs: &DiffInputs) -> Vec<StageOperation> {
             out.push(StageOperation::CreateBand {
                 band: band.band,
                 box_of,
+                container: container.clone(),
             });
         }
     }
@@ -370,6 +549,7 @@ pub fn diff(inputs: &DiffInputs) -> Vec<StageOperation> {
             out.push(StageOperation::SetName {
                 band: band.band,
                 to: band.band.as_str().to_owned(),
+                container: container.clone(),
             });
         }
 
@@ -380,6 +560,7 @@ pub fn diff(inputs: &DiffInputs) -> Vec<StageOperation> {
             out.push(StageOperation::SetBox {
                 band: band.band,
                 box_of,
+                container: container.clone(),
             });
         }
 
@@ -397,6 +578,7 @@ pub fn diff(inputs: &DiffInputs) -> Vec<StageOperation> {
                     band: band.band,
                     property: paint.property.clone(),
                     resolved: wanted.to_css_hex(),
+                    container: container.clone(),
                 });
             }
         }
@@ -408,6 +590,7 @@ pub fn diff(inputs: &DiffInputs) -> Vec<StageOperation> {
             out.push(StageOperation::Reorder {
                 band: band.band,
                 to: order,
+                container: container.clone(),
             });
         }
     }
@@ -422,6 +605,14 @@ pub fn diff(inputs: &DiffInputs) -> Vec<StageOperation> {
 ///
 /// `reading_digest` is the digest of the capture the diff was taken against, so
 /// an apply cannot use a plan computed from a frame reading it never saw.
+///
+/// `gates` are the readings this plan is emitted UNDER, and they are a parameter
+/// rather than something read here because the gates are a proof-crate concern
+/// and this crate must not depend on it. A plan carried no reading from any gate
+/// at all until this argument existed: the artefact the whole capability calls
+/// REVIEWABLE could not tell a reviewer whether a single gate had run over the
+/// operations beneath it. [`StagePlan::coverage`] is derived from them here, so
+/// the line and the readings cannot be emitted disagreeing.
 #[allow(clippy::too_many_arguments)]
 pub fn emit_plan(
     stage: &StageId,
@@ -431,8 +622,23 @@ pub fn emit_plan(
     reading_path: &str,
     reading_digest: Digest,
     operations: Vec<StageOperation>,
+    gates: Vec<GateVerdict>,
     at: Timestamp,
 ) -> Result<StagePlan> {
+    let container = reading.container.clone();
+    if let Some(operation) = operations
+        .iter()
+        .find(|operation| operation.container() != &container)
+    {
+        return Err(VdsError::precondition(format!(
+            "{} {} is scoped to {:?}, but the reading selected {:?}. A plan cannot hand an \
+             apply operation a parent other than the resolved authority container.",
+            operation.verb(),
+            operation.band(),
+            operation.container(),
+            container
+        )));
+    }
     let mut chunks = Vec::new();
     let mut current: Vec<StageOperation> = Vec::new();
     let mut budget = 0usize;
@@ -466,10 +672,17 @@ pub fn emit_plan(
         reading: reading_path.to_owned(),
         reading_digest,
         intent_digest,
+        container,
         untouched: reading.untouched.clone(),
+        gates,
+        coverage: String::new(),
         chunks,
         content_digest: Digest::of_text("placeholder"),
     };
+    // DERIVED from the readings above and never passed in beside them. The
+    // coverage line is the sentence a reviewer reads instead of counting four
+    // readings, so it is computed from the only copy of them that exists.
+    plan.coverage = plan.gate_coverage_line();
     plan.content_digest = plan.compute_content_digest()?;
     Ok(plan)
 }
@@ -500,6 +713,17 @@ pub const SHELL_HEIGHT: f64 = 900.0;
 /// A synthetic capture document built from an intent's declared boxes, so the
 /// column derivation can be run BEFORE the write rather than after it.
 ///
+/// THE ROOT IS THE INTENT'S DECLARED EXTENT, not [`SHELL_WIDTH`] by
+/// [`SHELL_HEIGHT`]. It used to be the shell unconditionally, which put a second
+/// answer to "how big is the frame this write is aimed at" one function away from
+/// the intent's own: 80 of 188 frames on the estate this was written for are the
+/// body with no shell around it, and a derivation run inside a root larger than
+/// the real frame is a derivation about a frame nobody drew. G3 refuses an extent
+/// that is not the canonical shell before it ever gets here, so on a lawful intent
+/// the two agree - and agreeing by derivation is the point, because the alternative
+/// is two constants that agree until one of them is edited.
+///
+
 /// One child is added under each pane, and that is not decoration: the frame
 /// generator DERIVES its capture depth from the deepest chain present, so a
 /// pane drawn as a leaf would sit exactly on the derived boundary and the
@@ -541,8 +765,8 @@ pub fn synthetic_document(intent: &StageIntent) -> serde_json::Value {
         &BandBox {
             x: 0.0,
             y: 0.0,
-            width: SHELL_WIDTH,
-            height: SHELL_HEIGHT,
+            width: intent.frame_extent.width,
+            height: intent.frame_extent.height,
         },
         serde_json::Value::Array(bands),
     )
@@ -551,7 +775,30 @@ pub fn synthetic_document(intent: &StageIntent) -> serde_json::Value {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vds_core::{BandIntent, PaintIntent, ReviewRegion, STAGE_INTENT_SCHEMA_VERSION};
+    use vds_core::{
+        BandIntent, FrameExtent, GateReading, PaintIntent, ReviewRegion,
+        STAGE_INTENT_SCHEMA_VERSION, StageContainer, StageGate,
+    };
+
+    /// The project's own vocabulary, which is what decides whether a layer name
+    /// says "this subtree is the current source".
+    fn config() -> ScreensConfig {
+        ScreensConfig::default()
+    }
+
+    /// Every gate cleared. The plan's readings are not the subject of any test in
+    /// this module, so they are supplied rather than measured here; what IS
+    /// measured here is that the plan publishes them at all.
+    fn all_cleared() -> Vec<GateVerdict> {
+        StageGate::ALL
+            .into_iter()
+            .map(|gate| GateVerdict {
+                gate,
+                reading: GateReading::Cleared,
+                because: "measured elsewhere; supplied by this test".into(),
+            })
+            .collect()
+    }
 
     fn box_of(x: f64, y: f64, width: f64, height: f64) -> BandBox {
         BandBox {
@@ -611,8 +858,13 @@ mod tests {
             route: "/matters".into(),
             file_key: "KEY".into(),
             node_id: "1:2".into(),
+            frame_extent: FrameExtent {
+                width: SHELL_WIDTH,
+                height: SHELL_HEIGHT,
+            },
             columns,
             bands,
+            deletes: vec![],
             authored_by: "a test".into(),
             authored_at: Timestamp::fixed(2026, 8, 3, 9, 0, 0),
             notes: None,
@@ -649,14 +901,14 @@ mod tests {
             "1:2",
             &[("header", "9:1", box_of(0.0, 0.0, 1400.0, 48.0), None)],
         );
-        assert!(read_frame(&body, "1:2").unwrap().is_some());
+        assert!(read_frame(&body, "1:2", &config()).unwrap().is_some());
         assert!(
-            read_frame(&body, "9:9").unwrap().is_none(),
+            read_frame(&body, "9:9", &config()).unwrap().is_none(),
             "a caller that cannot see a frame must say so: a diff against nothing emits a create \
              for every band and rebuilds a frame that was already right"
         );
         // Both of Figma's spellings resolve to the same node.
-        assert!(read_frame(&body, "1-2").unwrap().is_some());
+        assert!(read_frame(&body, "1-2", &config()).unwrap().is_some());
     }
 
     #[test]
@@ -673,7 +925,7 @@ mod tests {
                 ),
             ],
         );
-        let reading = read_frame(&body, "1:2").unwrap().unwrap();
+        let reading = read_frame(&body, "1:2", &config()).unwrap().unwrap();
         assert_eq!(reading.bands.len(), 1);
         assert_eq!(
             reading.untouched,
@@ -721,7 +973,9 @@ mod tests {
         );
 
         // Run one: the frame draws nothing yet.
-        let empty = read_frame(&capture("1:2", &[]), "1:2").unwrap().unwrap();
+        let empty = read_frame(&capture("1:2", &[]), "1:2", &config())
+            .unwrap()
+            .unwrap();
         let first = diff(&DiffInputs {
             intent: &wanted,
             reading: &empty,
@@ -744,6 +998,7 @@ mod tests {
                 ],
             ),
             "1:2",
+            &config(),
         )
         .unwrap()
         .unwrap();
@@ -801,6 +1056,7 @@ mod tests {
                 ],
             ),
             "1:2",
+            &config(),
         )
         .unwrap()
         .unwrap();
@@ -833,6 +1089,7 @@ mod tests {
                 &[("Body Rows", "9:2", box_of(0.0, 48.0, 1400.0, 824.0), None)],
             ),
             "1:2",
+            &config(),
         )
         .unwrap()
         .unwrap();
@@ -845,7 +1102,8 @@ mod tests {
             operations,
             vec![StageOperation::SetName {
                 band: ReviewRegion::BodyRows,
-                to: "body_rows".into()
+                to: "body_rows".into(),
+                container: reading.container.clone(),
             }],
             "the variant spelling must key to the same band (so no create is emitted) and be \
              moved onto the canonical one"
@@ -877,6 +1135,7 @@ mod tests {
                 )],
             ),
             "1:2",
+            &config(),
         )
         .unwrap()
         .unwrap();
@@ -891,8 +1150,14 @@ mod tests {
         );
     }
 
+    /// SILENCE IS NOT PERMISSION TO DELETE, and this is the test that says so.
+    ///
+    /// The frame draws a `rail` the intent does not mention and a hand-drawn note
+    /// that is not a band at all. The old diff deleted the rail on the strength of
+    /// the intent's silence; nothing may now reach either of them, and the rail is
+    /// reported instead.
     #[test]
-    fn a_band_the_intent_no_longer_declares_is_the_only_thing_a_delete_reaches() {
+    fn a_band_the_intent_does_not_mention_is_left_alone_and_reported() {
         let wanted = intent(
             vec![band(
                 ReviewRegion::Header,
@@ -916,6 +1181,7 @@ mod tests {
                 ],
             ),
             "1:2",
+            &config(),
         )
         .unwrap()
         .unwrap();
@@ -924,13 +1190,285 @@ mod tests {
             reading: &reading,
             paints: &BTreeMap::new(),
         });
+        assert!(
+            operations.is_empty(),
+            "the intent says nothing about the rail, and silence is not permission to delete: \
+             {operations:?}"
+        );
         assert_eq!(
-            operations,
+            reading.undeclared_bands(&wanted),
+            vec![ReviewRegion::Rail],
+            "the rail is a band the frame draws and the intent neither declares nor deletes, and \
+             the plan publishes it rather than acting on it"
+        );
+        assert_eq!(
+            reading.untouched,
+            vec!["a hand-drawn note".to_string()],
+            "the note is not a band at all and no operation may reach it"
+        );
+
+        // AND THE DELETE IS STILL REACHABLE, or the assertion above would be
+        // satisfied by a diff that had simply lost the verb. Naming the rail in
+        // `deletes` emits exactly one operation, over exactly that band.
+        let mut asked = wanted.clone();
+        asked.deletes = vec![ReviewRegion::Rail];
+        assert_eq!(
+            diff(&DiffInputs {
+                intent: &asked,
+                reading: &reading,
+                paints: &BTreeMap::new(),
+            }),
             vec![StageOperation::DeleteBand {
-                band: ReviewRegion::Rail
+                band: ReviewRegion::Rail,
+                container: reading.container.clone(),
             }],
-            "the rail is a closed-vocabulary band the intent no longer declares; the note is not \
-             a band at all and no operation may reach it"
+            "an EXPLICIT delete must still reach the band it names"
+        );
+
+        // A delete naming a band the frame does not draw emits nothing: an
+        // operation the apply cannot land would be reported as residual forever
+        // and the verification could never declare success.
+        let mut absent = wanted.clone();
+        absent.deletes = vec![ReviewRegion::Footer];
+        assert!(
+            diff(&DiffInputs {
+                intent: &absent,
+                reading: &reading,
+                paints: &BTreeMap::new(),
+            })
+            .is_empty(),
+            "a delete for a band that is not there is an operation nothing can land"
+        );
+    }
+
+    /// THE HIGH DEFECT, SEEDED. The diff read the frame's DIRECT CHILDREN while
+    /// `frames.rs` had resolved a named CURRENT SOURCE authority layer since it was
+    /// written, so on about a tenth of the estate's frames the diff saw ZERO bands,
+    /// created a full SECOND set beside the ones already drawn, and every instrument
+    /// reported success - the verification re-read the frame the same wrong way and
+    /// found no residual.
+    ///
+    /// # The negative control is the load-bearing half
+    ///
+    /// A zero-operations assertion over a fixture the NAIVE reading also handles
+    /// proves nothing at all: it would pass on the broken code. So the naive
+    /// reading is reproduced here, over the same bytes, and asserted to find ZERO
+    /// bands first. Only then does the zero-operations result mean the authority
+    /// layer was resolved.
+    #[test]
+    fn bands_under_a_current_source_layer_are_found_and_the_naive_reading_finds_none() {
+        let leaf = |name: &str, b: BandBox| {
+            serde_json::json!({
+                "id": "9:9",
+                "name": name,
+                "type": "FRAME",
+                "absoluteBoundingBox": {"x": b.x, "y": b.y, "width": b.width, "height": b.height},
+                "children": [],
+            })
+        };
+        let header = box_of(0.0, 0.0, 1400.0, 48.0);
+        let body = box_of(0.0, 48.0, 1400.0, 824.0);
+        let authority = serde_json::json!({
+            "id": "9:100",
+            "name": "CURRENT SOURCE · /matters",
+            "type": "FRAME",
+            "absoluteBoundingBox": {"x": 0.0, "y": 0.0, "width": 1400.0, "height": 900.0},
+            "children": [leaf("header", header), leaf("body_rows", body)],
+        });
+        let underlay = serde_json::json!({
+            "id": "9:200",
+            "name": "LEGACY UNDERLAY · body",
+            "type": "FRAME",
+            "absoluteBoundingBox": {"x": 0.0, "y": 0.0, "width": 1400.0, "height": 900.0},
+            // The sibling deliberately carries a band with the SAME name as a
+            // current-source band. A delete must still bind to the selected
+            // authority node, not search the whole frame by band name.
+            "children": [leaf("header", header)],
+        });
+        let reference = serde_json::json!({
+            "id": "9:300",
+            "name": "REFERENCE · /matters",
+            "type": "FRAME",
+            "absoluteBoundingBox": {"x": 0.0, "y": 0.0, "width": 1400.0, "height": 900.0},
+            "children": [leaf("body_rows", body)],
+        });
+        let document = serde_json::json!({
+            "id": "1:2",
+            "name": "Screen · /matters",
+            "type": "FRAME",
+            "absoluteBoundingBox": {"x": 0.0, "y": 0.0, "width": SHELL_WIDTH, "height": SHELL_HEIGHT},
+            "children": [underlay, reference, authority],
+        });
+        let body_text =
+            serde_json::json!({"nodes": {"1:2": {"document": document.clone()}}}).to_string();
+
+        // ---- THE NEGATIVE CONTROL. The reading this code used to take: the
+        // frame's own children, keyed through the same closed vocabulary. It must
+        // find NOTHING, or every assertion below is satisfied by the broken code
+        // as well as by the fixed one.
+        let naive: Vec<ReviewRegion> = document["children"]
+            .as_array()
+            .expect("the frame's own children")
+            .iter()
+            .filter_map(|child| band_of(child["name"].as_str().unwrap_or_default()))
+            .collect();
+        assert!(
+            naive.is_empty(),
+            "the negative control is broken: the naive direct-children reading finds {naive:?} on \
+             this fixture, so a zero-operations assertion over it would pass on the defect too"
+        );
+
+        // ---- THE READING. Resolved through the authority layer, and it SAYS SO.
+        let reading = read_frame(&body_text, "1:2", &config()).unwrap().unwrap();
+        assert_eq!(
+            reading.bands_under.as_deref(),
+            Some("CURRENT SOURCE · /matters"),
+            "the reading must publish which subtree its bands came from"
+        );
+        assert_eq!(reading.bands.len(), 2, "{:?}", reading.bands);
+        assert_eq!(
+            reading.untouched,
+            vec![
+                "LEGACY UNDERLAY · body".to_string(),
+                "REFERENCE · /matters".to_string(),
+            ],
+            "the authority layer's siblings are out of every operation's reach and recorded"
+        );
+        assert_eq!(
+            reading.container,
+            StageContainer {
+                node_id: "9:100".into(),
+                name: "CURRENT SOURCE · /matters".into(),
+            }
+        );
+
+        // ---- THE OUTCOME THE DEFECT PRODUCED. An intent that is exactly what the
+        // authority layer already draws emits NOTHING. Under the direct-children
+        // reading this emitted a create per band and drew a second full set.
+        let wanted = intent(
+            vec![
+                band(ReviewRegion::Header, header, Some(0)),
+                band(ReviewRegion::BodyRows, body, Some(1)),
+            ],
+            1,
+        );
+        let operations = diff(&DiffInputs {
+            intent: &wanted,
+            reading: &reading,
+            paints: &BTreeMap::new(),
+        });
+        assert!(
+            operations.is_empty(),
+            "the frame already draws this intent under its authority layer, so the diff must be \
+             empty. The naive reading emitted a CREATE for each of these and the apply drew a \
+             second full set of bands: {operations:?}"
+        );
+
+        // The destructive arm is also pinned to that same container. The
+        // legacy sibling carries a header too, so a bridge that ignores the
+        // scope could delete the wrong one while still receiving a lawful
+        // `delete-band header` verb.
+        let delete_only = intent(vec![], 1);
+        let mut delete_only = delete_only;
+        delete_only.deletes = vec![ReviewRegion::Header];
+        let deletes = diff(&DiffInputs {
+            intent: &delete_only,
+            reading: &reading,
+            paints: &BTreeMap::new(),
+        });
+        assert_eq!(deletes.len(), 1, "{deletes:?}");
+        assert_eq!(deletes[0].container(), &reading.container);
+        assert_eq!(deletes[0].band(), ReviewRegion::Header);
+    }
+
+    /// A named authority layer that is genuinely empty is still the selected
+    /// container. It emits creates under that layer; it must not fall back to
+    /// the frame's direct children or report an empty frame as the authority.
+    #[test]
+    fn an_empty_current_source_layer_emits_creates_in_that_layer() {
+        let header = box_of(0.0, 0.0, 1400.0, 48.0);
+        let body = box_of(0.0, 48.0, 1400.0, 824.0);
+        let document = serde_json::json!({
+            "id": "1:2",
+            "name": "Screen · /matters",
+            "type": "FRAME",
+            "absoluteBoundingBox": {"x": 0.0, "y": 0.0, "width": SHELL_WIDTH, "height": SHELL_HEIGHT},
+            "children": [{
+                "id": "9:8",
+                "name": "LEGACY UNDERLAY · body",
+                "type": "FRAME",
+                "absoluteBoundingBox": {"x": 0.0, "y": 0.0, "width": SHELL_WIDTH, "height": SHELL_HEIGHT},
+                "children": [{"id": "8:1", "name": "header", "absoluteBoundingBox": {"x": 0.0, "y": 0.0, "width": 1400.0, "height": 48.0}}]
+            }, {
+                "id": "9:7",
+                "name": "CURRENT SOURCE · /matters",
+                "type": "FRAME",
+                "absoluteBoundingBox": {"x": 0.0, "y": 0.0, "width": SHELL_WIDTH, "height": SHELL_HEIGHT},
+                "children": []
+            }]
+        });
+        let body_text = serde_json::json!({"nodes": {"1:2": {"document": document}}}).to_string();
+        let reading = read_frame(&body_text, "1:2", &config()).unwrap().unwrap();
+        assert_eq!(reading.bands.len(), 0);
+        assert_eq!(
+            reading.bands_under.as_deref(),
+            Some("CURRENT SOURCE · /matters")
+        );
+        assert_eq!(reading.container.node_id, "9:7");
+
+        let wanted = intent(
+            vec![
+                band(ReviewRegion::Header, header, Some(0)),
+                band(ReviewRegion::BodyRows, body, Some(1)),
+            ],
+            1,
+        );
+        let operations = diff(&DiffInputs {
+            intent: &wanted,
+            reading: &reading,
+            paints: &BTreeMap::new(),
+        });
+        assert_eq!(operations.len(), 2, "{operations:?}");
+        assert!(
+            operations.iter().all(|operation| {
+                matches!(operation, StageOperation::CreateBand { .. })
+                    && operation.container() == &reading.container
+            }),
+            "{operations:?}"
+        );
+    }
+
+    /// The marker vocabulary belongs to the project. Both the frame ledger and
+    /// the staged reader must resolve a custom marker, or the latter silently
+    /// falls back to the frame's direct children and can duplicate the drawing.
+    #[test]
+    fn the_staged_reader_and_frame_ledger_share_project_authority_markers() {
+        let mut custom = config();
+        custom.authority_markers = vec!["CANONICAL SOURCE".into()];
+        let document = serde_json::json!({
+            "id": "1:2",
+            "name": "Screen · /matters",
+            "type": "FRAME",
+            "absoluteBoundingBox": {"x": 0.0, "y": 0.0, "width": SHELL_WIDTH, "height": SHELL_HEIGHT},
+            "children": [
+                {"id": "9:8", "name": "REFERENCE · old", "children": [{"id": "8:1", "name": "header", "absoluteBoundingBox": {"x": 0.0, "y": 0.0, "width": 1400.0, "height": 48.0}}]},
+                {"id": "9:7", "name": "CANONICAL SOURCE · /matters", "children": [{"id": "8:2", "name": "body_rows", "absoluteBoundingBox": {"x": 0.0, "y": 48.0, "width": 1400.0, "height": 824.0}}]}
+            ]
+        });
+        let capture =
+            serde_json::json!({"nodes": {"1:2": {"document": document.clone()}}}).to_string();
+
+        let reading = read_frame(&capture, "1:2", &custom).unwrap().unwrap();
+        assert_eq!(
+            reading.bands_under.as_deref(),
+            Some("CANONICAL SOURCE · /matters")
+        );
+        assert_eq!(reading.bands[0].band, ReviewRegion::BodyRows);
+
+        let ledger = crate::frames::build_ledger("KEY", &[capture], &custom, "a test").unwrap();
+        assert_eq!(
+            ledger.row("1:2").unwrap().authority_layer,
+            "CANONICAL SOURCE · /matters"
         );
     }
 
@@ -967,6 +1505,7 @@ mod tests {
                 )],
             ),
             "1:2",
+            &config(),
         )
         .unwrap()
         .unwrap();
@@ -990,6 +1529,7 @@ mod tests {
                 )],
             ),
             "1:2",
+            &config(),
         )
         .unwrap()
         .unwrap();
@@ -1016,7 +1556,9 @@ mod tests {
             })
             .collect();
         let wanted = intent(bands, 1);
-        let reading = read_frame(&capture("1:2", &[]), "1:2").unwrap().unwrap();
+        let reading = read_frame(&capture("1:2", &[]), "1:2", &config())
+            .unwrap()
+            .unwrap();
         let operations = diff(&DiffInputs {
             intent: &wanted,
             reading: &reading,
@@ -1032,11 +1574,33 @@ mod tests {
             "design/captures/matters.json",
             Digest::of_text("capture"),
             operations,
+            all_cleared(),
             Timestamp::fixed(2026, 8, 3, 10, 0, 0),
         )
         .unwrap();
         assert_eq!(plan.operation_count(), 7);
         assert!(plan.untrustworthy_because().unwrap().is_none());
+        assert_eq!(plan.container, reading.container);
+        assert!(
+            plan.operations()
+                .all(|operation| operation.container() == &plan.container),
+            "every plan operation must carry the resolved parent scope"
+        );
+
+        // THE PLAN PUBLISHES THE READINGS IT WAS EMITTED UNDER. It carried none at
+        // all, so a reviewer holding the artefact this capability calls REVIEWABLE
+        // could not see whether one gate had run over the operations below it.
+        assert_eq!(plan.gates.len(), StageGate::ALL.len(), "{:?}", plan.gates);
+        assert!(plan.gates_not_asked().is_empty());
+        assert!(
+            plan.coverage.contains("4 of 4 gate(s) CLEARED"),
+            "the coverage line must be on the face of the artefact: {:?}",
+            plan.coverage
+        );
+        // And it is DERIVED here rather than passed in beside the readings, so it
+        // cannot be emitted disagreeing with them.
+        assert_eq!(plan.coverage, plan.gate_coverage_line());
+
         for (index, chunk) in plan.chunks.iter().enumerate() {
             assert_eq!(chunk.ordinal, index as u32 + 1, "chunks are ordered from 1");
         }
@@ -1052,14 +1616,21 @@ mod tests {
     #[test]
     fn a_plan_larger_than_one_chunk_is_split_and_every_operation_survives() {
         let mut operations = Vec::new();
+        let container = StageContainer {
+            node_id: "1:2".into(),
+            name: "Screen".into(),
+        };
         for i in 0..400u32 {
             operations.push(StageOperation::SetBox {
                 band: ReviewRegion::ALL[(i % 7) as usize],
                 box_of: box_of(f64::from(i), 0.0, 100.0, 100.0),
+                container: container.clone(),
             });
         }
         let wanted = intent(vec![], 1);
-        let reading = read_frame(&capture("1:2", &[]), "1:2").unwrap().unwrap();
+        let reading = read_frame(&capture("1:2", &[]), "1:2", &config())
+            .unwrap()
+            .unwrap();
         let plan = emit_plan(
             &StageId::parse("STG-0001").unwrap(),
             &wanted,
@@ -1068,6 +1639,7 @@ mod tests {
             "design/captures/matters.json",
             Digest::of_text("capture"),
             operations,
+            all_cleared(),
             Timestamp::fixed(2026, 8, 3, 10, 0, 0),
         )
         .unwrap();

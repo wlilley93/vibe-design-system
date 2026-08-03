@@ -31,7 +31,10 @@
 //!      a given name and recreate it, which discarded another writer's landed
 //!      work. There is no page-level and no frame-level delete here, and
 //!      [`StageOperation::DeleteBand`] reaches only a band whose name is in the
-//!      closed review vocabulary AND which the intent no longer declares.
+//!      closed review vocabulary AND which the intent EXPLICITLY LISTS in
+//!      [`StageIntent::deletes`]. SILENCE IS NOT PERMISSION TO DELETE: it used to
+//!      be, and an intent that had simply never mentioned a band deleted the one a
+//!      designer drew.
 //!   2. REVIEWABILITY, which is the genuinely new thing: [`StagePlan`] is the
 //!      operation list, on disk, BEFORE anything reaches the canvas. No such
 //!      artefact existed.
@@ -54,6 +57,8 @@
 //! apply outcome. It sits BESIDE [`super::ScreenRecord`] and never on it:
 //! that record's own test forbids a length or a colour in its serialised form,
 //! and a stage is an EVENT rather than a contract.
+
+use std::collections::BTreeSet;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -449,8 +454,22 @@ pub fn intent_root_defect(project: &Project) -> Option<String> {
 
 // ------------------------------------------------------------- the intent
 
-pub const STAGE_INTENT_SCHEMA_VERSION: u32 = 1;
-pub const STAGE_PLAN_SCHEMA_VERSION: u32 = 1;
+/// Version 2 because [`StageIntent`] gained two REQUIRED-shaped fields that no
+/// v1 file carries: [`StageIntent::frame_extent`], without which G3 has no lower
+/// bound and a frame drawn UNDER the canonical shell clears a gate named
+/// `canonical_geometry`; and [`StageIntent::deletes`], without which silence is
+/// permission to delete a band a designer drew.
+///
+/// `frame_extent` is deliberately NOT defaulted. A default would resolve to the
+/// canonical shell on every v1 intent, which makes the limb that refuses a
+/// non-canonical frame unfailable on exactly the files it was added for.
+/// `deletes` IS defaulted, because its default is the safe direction: an intent
+/// that says nothing about deletion deletes nothing.
+pub const STAGE_INTENT_SCHEMA_VERSION: u32 = 2;
+/// Version 3 because [`StagePlan`] and every [`StageOperation`] now carry the
+/// resolved target container. A band name alone is not a parent selector: a
+/// legacy sibling may carry the same band beside the current source layer.
+pub const STAGE_PLAN_SCHEMA_VERSION: u32 = 3;
 pub const ROUTE_BINDING_SCHEMA_VERSION: u32 = 1;
 
 /// A rectangle, frame-relative.
@@ -484,6 +503,70 @@ impl BandBox {
             && self.y >= outer.y - slack
             && self.right() <= outer.right() + slack
             && self.bottom() <= outer.bottom() + slack
+    }
+}
+
+/// The exact subtree a staged operation is allowed to touch.
+///
+/// A band name is an identity key, not a parent selector. A frame may carry a
+/// legacy sibling with a band of the same name beside its current source layer;
+/// applying `delete-band header` without this scope would leave the bridge free
+/// to choose the wrong one. The node id therefore travels with every operation
+/// and with the plan that carries it. The name is for a reviewer; the id is the
+/// binding that makes the scope unambiguous.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct StageContainer {
+    pub node_id: String,
+    pub name: String,
+}
+
+/// The SIZE of the frame a staged write is aimed at, as the intent understands
+/// it.
+///
+/// Two numbers and no origin, because where a frame sits on the canvas is not a
+/// decision about the screen: moving a frame across the page changes nothing
+/// about what it draws, and a field nothing reads is a field that invites a zero
+/// somebody later mistakes for a measurement.
+///
+/// WHY THIS IS DECLARED AND NOT DERIVED. G3 built a synthetic document whose root
+/// was the canonical shell and then asked only whether each band FITS INSIDE it.
+/// That is a containment test with no lower bound, so a frame drawn systematically
+/// UNDER the shell cleared a gate named `canonical_geometry`, and on the estate
+/// this was written for that is not hypothetical: 80 of 188 frames are the body
+/// with no shell around it, and every band of every one of them fits inside the
+/// shell with room to spare. The extent is therefore stated, so that it can be
+/// REFUSED when it is not the canonical shell, in either direction.
+///
+/// Nothing writes it. The operation vocabulary is closed at six and carries no
+/// frame-level verb by law ([`StageOperation`]), so this is a PRECONDITION on the
+/// frame and never an instruction about it. It is the same shape
+/// [`StageIntent::columns`] already has: a claim the gate checks against a
+/// derivation rather than a value the gate reads off the boxes.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct FrameExtent {
+    pub width: f64,
+    pub height: f64,
+}
+
+impl FrameExtent {
+    /// Why this extent states no frame, or `None`.
+    ///
+    /// MALFORMED and not merely non-canonical: whether the frame is the canonical
+    /// shell is G3's question, and answering it here would put the same rule in
+    /// two places with two chances to disagree.
+    pub fn defect(&self) -> Option<String> {
+        (self.width <= 0.0
+            || self.height <= 0.0
+            || !self.width.is_finite()
+            || !self.height.is_finite())
+        .then(|| {
+            "declares a target frame with a non-positive or non-finite extent, which states no \
+             frame at all. Every box in this intent is read against it, so a zero extent makes \
+             every containment answer trivially true and G3 measures nothing."
+                .to_owned()
+        })
     }
 }
 
@@ -550,6 +633,13 @@ pub struct StageIntent {
     pub route: String,
     pub file_key: String,
     pub node_id: String,
+    /// The SIZE of the frame named above, as this intent understands it.
+    ///
+    /// Read by G3, which refuses an extent that is not the canonical shell in
+    /// EITHER direction, and measured against the saved capture by `vds stage
+    /// plan` so the declaration cannot simply be typed. See [`FrameExtent`] for
+    /// why it is declared rather than assumed.
+    pub frame_extent: FrameExtent,
     /// How many side-by-side content PANES the finished frame is to draw.
     ///
     /// Declared here and DERIVED by G3 from the boxes below, so the two can
@@ -558,6 +648,20 @@ pub struct StageIntent {
     /// nothing.
     pub columns: u32,
     pub bands: Vec<BandIntent>,
+    /// The bands this intent means to REMOVE from the frame. EXPLICIT, and
+    /// defaulted to none.
+    ///
+    /// SILENCE IS NOT PERMISSION TO DELETE, and it used to be. The diff emitted
+    /// [`StageOperation::DeleteBand`] for every closed-vocabulary band in the
+    /// frame that the intent did not declare, so a `facets` band a designer drew
+    /// into the drawing was deleted by an intent that had simply never mentioned
+    /// it - and no gate read the canvas, so the one destructive verb in the
+    /// vocabulary was the only operation emitted with no reading behind it. G2
+    /// now reads this list against the screen record, which is a local file and
+    /// therefore re-derivable inside the proof; the canvas is not, and a gate that
+    /// needed it could never run there.
+    #[serde(default)]
+    pub deletes: Vec<ReviewRegion>,
     pub authored_by: String,
     pub authored_at: Timestamp,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -574,14 +678,40 @@ impl StageIntent {
         self.bands.iter().find(|b| b.band == band)
     }
 
+    /// The bands this intent means to remove, deduplicated by the diff key.
+    pub fn declared_deletes(&self) -> Vec<ReviewRegion> {
+        let mut out = self.deletes.clone();
+        out.sort();
+        out.dedup();
+        out
+    }
+
     /// Why this intent is unusable, or an empty list.
     pub fn defects(&self) -> Vec<String> {
         let mut out = Vec::new();
-        if self.bands.is_empty() {
+        if let Some(why) = self.frame_extent.defect() {
+            out.push(why);
+        }
+        let declared: BTreeSet<ReviewRegion> = self.bands.iter().map(|b| b.band).collect();
+        let both: Vec<&str> = self
+            .deletes
+            .iter()
+            .filter(|band| declared.contains(band))
+            .map(|band| band.as_str())
+            .collect();
+        if !both.is_empty() {
+            out.push(format!(
+                "declares and DELETES the same band(s): {}. THE DIFF IS KEYED ON BAND NAME, so \
+                 that is two answers for one key and nothing says which the apply would write. \
+                 A band is declared or it is deleted.",
+                both.join(", ")
+            ));
+        }
+        if self.bands.is_empty() && self.deletes.is_empty() {
             out.push(
-                "declares no band, so it intends nothing and the diff against it is empty by \
-                 construction. An intent that cannot produce an operation is not a smaller \
-                 intent, it is no intent."
+                "declares no band and deletes none, so it intends nothing and the diff against it \
+                 is empty by construction. An intent that cannot produce an operation is not a \
+                 smaller intent, it is no intent."
                     .to_owned(),
             );
         }
@@ -625,22 +755,42 @@ impl StageIntent {
 ///
 /// [`StageOperation::DeleteBand`] is admitted under two conditions checked
 /// together and never separately: the band's name is in the closed review
-/// vocabulary, AND the intent no longer declares it. A node VDS did not create
-/// and the intent does not name is never touched at all.
+/// vocabulary, AND the intent NAMES IT IN [`StageIntent::deletes`]. A node VDS did
+/// not create and the intent does not name is never touched at all.
+///
+/// THAT SECOND CONDITION USED TO BE THE INTENT'S SILENCE, and the difference is
+/// not a nicety. A delete was emitted for every closed-vocabulary band in the
+/// frame the intent did not declare, so an intent about the header deleted a
+/// `facets` band a designer had drawn, purely by not mentioning it. No gate read
+/// the canvas, so the one destructive verb in the vocabulary was the only
+/// operation emitted with no reading behind it at all. It is now the only verb
+/// that requires the intent to say the word.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
 pub enum StageOperation {
     /// The intent declares a band the frame does not have.
-    CreateBand { band: ReviewRegion, box_of: BandBox },
+    CreateBand {
+        band: ReviewRegion,
+        box_of: BandBox,
+        container: StageContainer,
+    },
     /// The frame has the band and its rectangle is not the declared one.
-    SetBox { band: ReviewRegion, box_of: BandBox },
+    SetBox {
+        band: ReviewRegion,
+        box_of: BandBox,
+        container: StageContainer,
+    },
     /// The band's layer name is a variant spelling of its own region.
     ///
     /// The band's IDENTITY is the region parsed from its layer name, so this
     /// operation moves a spelling onto the canonical one and is idempotent by
     /// construction: once the name is canonical it parses to the same region and
     /// the comparison is equal.
-    SetName { band: ReviewRegion, to: String },
+    SetName {
+        band: ReviewRegion,
+        to: String,
+        container: StageContainer,
+    },
     /// The band's paint is not the one the named custom property resolves to.
     SetPaint {
         band: ReviewRegion,
@@ -652,13 +802,24 @@ pub enum StageOperation {
         /// stylesheet. A realisation, lawful because a plan lives in the
         /// subscriber tree.
         resolved: String,
+        container: StageContainer,
     },
     /// The band sits at a different index among the frame's bands.
-    Reorder { band: ReviewRegion, to: u32 },
+    Reorder {
+        band: ReviewRegion,
+        to: u32,
+        container: StageContainer,
+    },
     /// The frame carries a band whose name IS in the closed vocabulary and which
-    /// the intent no longer declares. The only destructive verb, and its reach
-    /// is one band.
-    DeleteBand { band: ReviewRegion },
+    /// the intent EXPLICITLY LISTS in `deletes`. The only destructive verb, and
+    /// its reach is one band.
+    ///
+    /// It is emitted for a listed band and never for an unmentioned one: the
+    /// intent's silence about a band is not permission to remove it.
+    DeleteBand {
+        band: ReviewRegion,
+        container: StageContainer,
+    },
 }
 
 impl StageOperation {
@@ -672,7 +833,19 @@ impl StageOperation {
             | StageOperation::SetName { band, .. }
             | StageOperation::SetPaint { band, .. }
             | StageOperation::Reorder { band, .. }
-            | StageOperation::DeleteBand { band } => *band,
+            | StageOperation::DeleteBand { band, .. } => *band,
+        }
+    }
+
+    /// The exact parent subtree this operation is scoped to.
+    pub fn container(&self) -> &StageContainer {
+        match self {
+            StageOperation::CreateBand { container, .. }
+            | StageOperation::SetBox { container, .. }
+            | StageOperation::SetName { container, .. }
+            | StageOperation::SetPaint { container, .. }
+            | StageOperation::Reorder { container, .. }
+            | StageOperation::DeleteBand { container, .. } => container,
         }
     }
 
@@ -694,7 +867,13 @@ impl StageOperation {
 
 impl std::fmt::Display for StageOperation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {}", self.verb(), self.band())
+        write!(
+            f,
+            "{} {} in {}",
+            self.verb(),
+            self.band(),
+            self.container().name
+        )
     }
 }
 
@@ -748,11 +927,38 @@ pub struct StagePlan {
     /// reading it was never computed from.
     pub reading_digest: Digest,
     pub intent_digest: Digest,
+    /// The exact subtree all operations below are scoped to. For an unlabelled
+    /// frame this is the frame itself; for a named current-source layer this is
+    /// that layer. A plan without this fact leaves a bridge to resolve a band
+    /// name against the wrong sibling.
+    pub container: StageContainer,
     /// The bands present in the reading whose names the closed vocabulary does
     /// NOT name. Recorded and never touched: a node VDS did not create and the
     /// intent does not name is out of reach of every operation above.
     #[serde(default)]
     pub untouched: Vec<String>,
+    /// THE THREE-VALUED GATE READINGS THIS PLAN WAS EMITTED UNDER, one per gate
+    /// that was asked.
+    ///
+    /// This artefact is the one the design repeatedly calls THE REVIEWABLE
+    /// ARTEFACT, and it carried no reading from any gate at all: a reviewer
+    /// holding a plan could see the operations and could not see whether a single
+    /// gate had run over them. Since `vds stage plan` refuses to emit against a
+    /// refusal, every reading here is `cleared` or `could_not_run`, and telling
+    /// those two apart is the whole reason the vocabulary is three-valued. A gate
+    /// MISSING from this list was never asked, which [`Self::coverage`] states
+    /// rather than leaving to a reader who might not know how many gates there are.
+    #[serde(default)]
+    pub gates: Vec<GateVerdict>,
+    /// The tally over [`Self::gates`], on the face of the artefact.
+    ///
+    /// Stored AND held to its own recomputation by
+    /// [`Self::untrustworthy_because`], for the reason [`Self::content_digest`] is
+    /// stored: a reviewer reads the file, not this type's methods, and a summary
+    /// that can be edited away from the facts beside it is a summary that lies at
+    /// exactly the moment it matters.
+    #[serde(default)]
+    pub coverage: String,
     pub chunks: Vec<PlanChunk>,
     pub content_digest: Digest,
 }
@@ -764,6 +970,76 @@ impl StagePlan {
 
     pub fn operation_count(&self) -> usize {
         self.chunks.iter().map(|c| c.operations.len()).sum()
+    }
+
+    /// The DESTRUCTIVE operations this plan carries.
+    ///
+    /// Separated so the door can publish them loudly rather than leaving the one
+    /// verb that can lose a designer's work to be spotted in a list of six.
+    pub fn destructive(&self) -> Vec<&StageOperation> {
+        self.operations()
+            .filter(|o| o.is_destructive())
+            .collect::<Vec<&StageOperation>>()
+    }
+
+    /// This plan's reading for one gate, or `None` where it was never asked.
+    pub fn verdict(&self, gate: StageGate) -> Option<&GateVerdict> {
+        self.gates.iter().find(|v| v.gate == gate)
+    }
+
+    /// The gates absent from this plan entirely.
+    ///
+    /// Reported for the reason [`StageRecord::gates_not_asked`] is: a gate absent
+    /// from an artefact and a gate that cleared are the same green to anybody
+    /// counting refusals.
+    pub fn gates_not_asked(&self) -> Vec<StageGate> {
+        StageGate::ALL
+            .into_iter()
+            .filter(|gate| self.verdict(*gate).is_none())
+            .collect()
+    }
+
+    /// The coverage line this plan must carry, derived from its own readings.
+    ///
+    /// ONE LINE, because it is a field in a YAML file a person reads. It NAMES the
+    /// gates that could not run and the gates that were never asked: a bare count
+    /// tells a reviewer how much they cannot rely on and not which part.
+    pub fn gate_coverage_line(&self) -> String {
+        let count = |wanted: GateReading| {
+            self.gates
+                .iter()
+                .filter(|v| v.reading == wanted)
+                .map(|v| v.gate.as_str())
+                .collect::<Vec<&str>>()
+        };
+        let cleared = count(GateReading::Cleared);
+        let refused = count(GateReading::Refused);
+        let could_not = count(GateReading::CouldNotRun);
+        let not_asked: Vec<&str> = self
+            .gates_not_asked()
+            .into_iter()
+            .map(StageGate::as_str)
+            .collect();
+        let named = |label: &str, which: &[&str]| {
+            if which.is_empty() {
+                String::new()
+            } else {
+                format!(" {label}: {}.", which.join(", "))
+            }
+        };
+        format!(
+            "[gates] {} of {} gate(s) CLEARED over this plan; {} could not run; {} refused; {} \
+             never asked. A gate that could not run is not a gate that ran and found nothing, and \
+             a gate never asked is not a gate that cleared.{}{}{}",
+            cleared.len(),
+            StageGate::ALL.len(),
+            could_not.len(),
+            refused.len(),
+            not_asked.len(),
+            named("could not run", &could_not),
+            named("refused", &refused),
+            named("never asked", &not_asked),
+        )
     }
 
     pub fn compute_content_digest(&self) -> Result<Digest> {
@@ -778,7 +1054,10 @@ impl StagePlan {
             reading: &'a str,
             reading_digest: &'a Digest,
             intent_digest: &'a Digest,
+            container: &'a StageContainer,
             untouched: &'a [String],
+            gates: &'a [GateVerdict],
+            coverage: &'a str,
             chunks: &'a [PlanChunk],
         }
         Digest::of_value(&Content {
@@ -790,7 +1069,10 @@ impl StagePlan {
             reading: &self.reading,
             reading_digest: &self.reading_digest,
             intent_digest: &self.intent_digest,
+            container: &self.container,
             untouched: &self.untouched,
+            gates: &self.gates,
+            coverage: &self.coverage,
             chunks: &self.chunks,
         })
     }
@@ -805,7 +1087,34 @@ impl StagePlan {
                 self.content_digest
             )));
         }
+        // The coverage line, against the readings sitting beside it. A summary
+        // that disagrees with its own facts is worse than no summary: it is the
+        // line a reviewer reads INSTEAD of counting.
+        let line = self.gate_coverage_line();
+        if self.coverage.trim() != line.trim() {
+            return Ok(Some(format!(
+                "the plan states its gate coverage as {:?} and its own readings tally to {line:?}. \
+                 The coverage line is the sentence a reviewer reads instead of counting four \
+                 readings, so one that disagrees with them is the only part of this artefact that \
+                 can lie without being wrong about anything else. Re-emit it.",
+                self.coverage
+            )));
+        }
         for chunk in &self.chunks {
+            if let Some(operation) = chunk
+                .operations
+                .iter()
+                .find(|operation| operation.container() != &self.container)
+            {
+                return Ok(Some(format!(
+                    "the plan scopes its operations to {:?}, but {} {} carries scope {:?}. An \
+                     apply must never resolve a band outside the container the reading selected.",
+                    self.container,
+                    operation.verb(),
+                    operation.band(),
+                    operation.container()
+                )));
+            }
             let recomputed = PlanChunk::compute_digest(chunk.ordinal, &chunk.operations)?;
             if recomputed != chunk.digest {
                 return Ok(Some(format!(
@@ -1227,6 +1536,7 @@ mod tests {
     fn the_operation_vocabulary_is_closed_and_carries_no_page_or_frame_delete() {
         let text = serde_json::to_string(&StageOperation::DeleteBand {
             band: ReviewRegion::Rail,
+            container: container(),
         })
         .unwrap();
         assert!(text.contains("delete_band"), "{text}");
@@ -1237,10 +1547,10 @@ mod tests {
         // widening this enum makes that loss repeatable through the sanctioned
         // path.
         for absent in [
-            r#"{"op":"delete_page","band":"rail"}"#,
-            r#"{"op":"delete_frame","band":"rail"}"#,
-            r#"{"op":"delete_node","band":"rail"}"#,
-            r#"{"op":"replace_page","band":"rail"}"#,
+            r#"{"op":"delete_page","band":"rail","container":{"nodeId":"669:172814","name":"CURRENT SOURCE · settings"}}"#,
+            r#"{"op":"delete_frame","band":"rail","container":{"nodeId":"669:172814","name":"CURRENT SOURCE · settings"}}"#,
+            r#"{"op":"delete_node","band":"rail","container":{"nodeId":"669:172814","name":"CURRENT SOURCE · settings"}}"#,
+            r#"{"op":"replace_page","band":"rail","container":{"nodeId":"669:172814","name":"CURRENT SOURCE · settings"}}"#,
         ] {
             assert!(
                 serde_json::from_str::<StageOperation>(absent).is_err(),
@@ -1250,11 +1560,12 @@ mod tests {
         // And the control that proves the four above are refused for their VERB
         // and not for their shape: the same document with a lawful verb parses.
         assert!(
-            serde_json::from_str::<StageOperation>(r#"{"op":"delete_band","band":"rail"}"#).is_ok()
+            serde_json::from_str::<StageOperation>(r#"{"op":"delete_band","band":"rail","container":{"nodeId":"669:172814","name":"CURRENT SOURCE · settings"}}"#).is_ok()
         );
         assert!(
             StageOperation::DeleteBand {
-                band: ReviewRegion::Rail
+                band: ReviewRegion::Rail,
+                container: container(),
             }
             .is_destructive()
         );
@@ -1266,7 +1577,8 @@ mod tests {
                     y: 0.0,
                     width: 1.0,
                     height: 1.0
-                }
+                },
+                container: container(),
             }
             .is_destructive()
         );
@@ -1283,22 +1595,27 @@ mod tests {
                     width: 2.0,
                     height: 2.0,
                 },
+                container: container(),
             },
             StageOperation::SetName {
                 band: ReviewRegion::Footer,
                 to: "footer".into(),
+                container: container(),
             },
             StageOperation::SetPaint {
                 band: ReviewRegion::Rail,
                 property: "--border-control".into(),
                 resolved: "a value the sheet resolves".into(),
+                container: container(),
             },
             StageOperation::Reorder {
                 band: ReviewRegion::Facets,
                 to: 2,
+                container: container(),
             },
             StageOperation::DeleteBand {
                 band: ReviewRegion::Keyboard,
+                container: container(),
             },
         ];
         for op in &ops {
@@ -1340,13 +1657,267 @@ mod tests {
         );
     }
 
+    /// An extent of zero makes every containment answer trivially true, so it is
+    /// refused as MALFORMED. Whether the extent is the CANONICAL shell is G3's
+    /// question and is deliberately not asked twice.
+    #[test]
+    fn an_intent_declaring_a_frame_of_no_extent_is_refused_as_malformed() {
+        // The positive arm first, or the negative below proves nothing.
+        assert!(
+            intent()
+                .defects()
+                .iter()
+                .all(|d| !d.contains("states no frame")),
+            "{:?}",
+            intent().defects()
+        );
+        for (width, height) in [
+            (0.0, 900.0),
+            (1400.0, 0.0),
+            (-1400.0, 900.0),
+            (f64::NAN, 900.0),
+        ] {
+            let mut intent = intent();
+            intent.frame_extent = FrameExtent { width, height };
+            assert!(
+                intent
+                    .defects()
+                    .iter()
+                    .any(|d| d.contains("states no frame")),
+                "an extent of ({width}, {height}) must be refused: {:?}",
+                intent.defects()
+            );
+        }
+        // And a NON-CANONICAL extent is well-formed here: refusing it is G3's
+        // job, and one rule in two places is two chances to disagree.
+        let mut body_only = intent();
+        body_only.frame_extent = FrameExtent {
+            width: 1344.0,
+            height: 824.0,
+        };
+        assert!(
+            body_only.defects().is_empty(),
+            "the shell question belongs to G3: {:?}",
+            body_only.defects()
+        );
+    }
+
+    /// A band cannot be declared and deleted by one intent: the diff is keyed on
+    /// the band name, so that is two answers for one key.
+    #[test]
+    fn an_intent_that_declares_and_deletes_one_band_is_refused() {
+        let mut intent = intent();
+        intent.deletes = vec![ReviewRegion::Header];
+        let defects = intent.defects();
+        assert!(
+            defects
+                .iter()
+                .any(|d| d.contains("declares and DELETES") && d.contains("header")),
+            "{defects:?}"
+        );
+        // A deletion of a band the intent does NOT declare is the lawful shape,
+        // and an intent that only deletes is still an intent.
+        let mut only_deletes = intent.clone();
+        only_deletes.bands = vec![];
+        only_deletes.deletes = vec![ReviewRegion::Facets];
+        assert!(
+            only_deletes.defects().is_empty(),
+            "{:?}",
+            only_deletes.defects()
+        );
+    }
+
+    fn cleared(gate: StageGate) -> GateVerdict {
+        GateVerdict {
+            gate,
+            reading: GateReading::Cleared,
+            because: "measured by a test".into(),
+        }
+    }
+
+    fn container() -> StageContainer {
+        StageContainer {
+            node_id: "669:172814".into(),
+            name: "CURRENT SOURCE · settings".into(),
+        }
+    }
+
+    fn plan_over(operations: Vec<StageOperation>, gates: Vec<GateVerdict>) -> StagePlan {
+        let mut plan = StagePlan {
+            schema_version: STAGE_PLAN_SCHEMA_VERSION,
+            stage: StageId::parse("STG-0001").unwrap(),
+            route: "/stakeholders/settings".into(),
+            file_key: "KEY".into(),
+            node_id: "669:172814".into(),
+            emitted_by: "vds stage plan".into(),
+            emitted_at: Timestamp::fixed(2026, 8, 3, 10, 0, 0),
+            reading: "design/captures/stakeholders.json".into(),
+            reading_digest: Digest::of_text("capture"),
+            intent_digest: Digest::of_text("intent"),
+            container: container(),
+            untouched: vec!["a layer nobody named".into()],
+            gates,
+            coverage: String::new(),
+            chunks: vec![PlanChunk {
+                ordinal: 1,
+                digest: PlanChunk::compute_digest(1, &operations).unwrap(),
+                operations,
+            }],
+            content_digest: Digest::of_text("placeholder"),
+        };
+        plan.coverage = plan.gate_coverage_line();
+        plan.content_digest = plan.compute_content_digest().unwrap();
+        plan
+    }
+
+    fn one_create() -> Vec<StageOperation> {
+        vec![StageOperation::CreateBand {
+            band: ReviewRegion::Header,
+            box_of: BandBox {
+                x: 0.0,
+                y: 0.0,
+                width: 100.0,
+                height: 10.0,
+            },
+            container: container(),
+        }]
+    }
+
+    /// THE PLAN IS THE REVIEWABLE ARTEFACT, so a reviewer holding one must be
+    /// able to see which gates never ran. It carried no reading at all.
+    #[test]
+    fn a_plan_states_which_gates_could_not_run_and_which_were_never_asked() {
+        let all_ran = plan_over(
+            one_create(),
+            StageGate::ALL.into_iter().map(cleared).collect(),
+        );
+        assert!(
+            all_ran.coverage.contains("4 of 4 gate(s) CLEARED"),
+            "{}",
+            all_ran.coverage
+        );
+        assert!(all_ran.gates_not_asked().is_empty());
+
+        // The realistic case: no binding ledger exists, so G4 has nothing to
+        // contradict this write, and the contrast gate has no boundary staged.
+        let mut gates: Vec<GateVerdict> = StageGate::ALL.into_iter().map(cleared).collect();
+        for gate in [StageGate::RouteBinding, StageGate::ContrastFloor] {
+            gates
+                .iter_mut()
+                .find(|v| v.gate == gate)
+                .expect("the gate")
+                .reading = GateReading::CouldNotRun;
+        }
+        let partial = plan_over(one_create(), gates);
+        assert!(
+            partial.coverage.contains("2 could not run")
+                && partial
+                    .coverage
+                    .contains("could not run: contrast_floor, route_binding"),
+            "the line must NAME them: a bare count says how much a reviewer cannot rely on and \
+             not which part. {}",
+            partial.coverage
+        );
+
+        // A gate absent from the plan entirely. This is the reading that used to
+        // be invisible, because EVERY gate was absent from every plan.
+        let one_only = plan_over(one_create(), vec![cleared(StageGate::BandNaming)]);
+        assert_eq!(one_only.gates_not_asked().len(), 3);
+        assert!(
+            one_only.coverage.contains("3 never asked")
+                && one_only
+                    .coverage
+                    .contains("never asked: contrast_floor, canonical_geometry, route_binding"),
+            "{}",
+            one_only.coverage
+        );
+        assert!(
+            one_only.untrustworthy_because().unwrap().is_none(),
+            "a plan that says out loud which gates were never asked is HONEST, not untrustworthy"
+        );
+    }
+
+    /// The coverage line is stored, so it can be edited away from the readings
+    /// beside it. That is the one edit that changes nothing else in the file.
+    #[test]
+    fn a_coverage_line_edited_away_from_its_own_readings_is_untrustworthy() {
+        let mut plan = plan_over(
+            one_create(),
+            StageGate::ALL.into_iter().map(cleared).collect(),
+        );
+        assert!(plan.untrustworthy_because().unwrap().is_none());
+        plan.coverage = "[gates] 4 of 4 gate(s) CLEARED over this plan.".into();
+        plan.content_digest = plan.compute_content_digest().unwrap();
+        let why = plan
+            .untrustworthy_because()
+            .unwrap()
+            .expect("an edited coverage line is a finding even where the digest is re-taken");
+        assert!(why.contains("instead of counting"), "{why}");
+    }
+
+    /// A plan cannot be made trustworthy by re-digesting an operation aimed at
+    /// a sibling. The scope is checked against the plan as well as included in
+    /// both digests, so an apply consumer has no lawful path to broaden it.
+    #[test]
+    fn a_plan_refuses_an_operation_scoped_to_a_different_container() {
+        let mut plan = plan_over(
+            one_create(),
+            StageGate::ALL.into_iter().map(cleared).collect(),
+        );
+        let sibling = StageContainer {
+            node_id: "669:999".into(),
+            name: "LEGACY UNDERLAY · settings".into(),
+        };
+        if let StageOperation::CreateBand { container, .. } = &mut plan.chunks[0].operations[0] {
+            *container = sibling;
+        }
+        plan.chunks[0].digest =
+            PlanChunk::compute_digest(plan.chunks[0].ordinal, &plan.chunks[0].operations).unwrap();
+        plan.content_digest = plan.compute_content_digest().unwrap();
+        let why = plan
+            .untrustworthy_because()
+            .unwrap()
+            .expect("an operation aimed at a sibling is never trustworthy");
+        assert!(
+            why.contains("wrong sibling") || why.contains("outside the container"),
+            "{why}"
+        );
+    }
+
+    /// The one verb that can lose a designer's work is published on its own.
+    #[test]
+    fn a_plan_separates_the_destructive_operation_from_the_other_five() {
+        let plan = plan_over(
+            vec![
+                StageOperation::SetName {
+                    band: ReviewRegion::Header,
+                    to: "header".into(),
+                    container: container(),
+                },
+                StageOperation::DeleteBand {
+                    band: ReviewRegion::Facets,
+                    container: container(),
+                },
+            ],
+            StageGate::ALL.into_iter().map(cleared).collect(),
+        );
+        let destructive = plan.destructive();
+        assert_eq!(destructive.len(), 1, "{destructive:?}");
+        assert_eq!(destructive[0].band(), ReviewRegion::Facets);
+    }
+
     fn intent() -> StageIntent {
         StageIntent {
             schema_version: STAGE_INTENT_SCHEMA_VERSION,
             route: "/stakeholders/settings".into(),
             file_key: "KEY".into(),
             node_id: "669:172814".into(),
+            frame_extent: FrameExtent {
+                width: 1400.0,
+                height: 900.0,
+            },
             columns: 1,
+            deletes: vec![],
             bands: vec![BandIntent {
                 band: ReviewRegion::Header,
                 box_of: Some(BandBox {
@@ -1375,27 +1946,12 @@ mod tests {
                 width: 100.0,
                 height: 10.0,
             },
+            container: container(),
         }];
-        let mut plan = StagePlan {
-            schema_version: STAGE_PLAN_SCHEMA_VERSION,
-            stage: StageId::parse("STG-0001").unwrap(),
-            route: "/stakeholders/settings".into(),
-            file_key: "KEY".into(),
-            node_id: "669:172814".into(),
-            emitted_by: "vds stage plan".into(),
-            emitted_at: Timestamp::fixed(2026, 8, 3, 10, 0, 0),
-            reading: "design/captures/stakeholders.json".into(),
-            reading_digest: Digest::of_text("capture"),
-            intent_digest: Digest::of_text("intent"),
-            untouched: vec!["a layer nobody named".into()],
-            chunks: vec![PlanChunk {
-                ordinal: 1,
-                digest: PlanChunk::compute_digest(1, &operations).unwrap(),
-                operations,
-            }],
-            content_digest: Digest::of_text("placeholder"),
-        };
-        plan.content_digest = plan.compute_content_digest().unwrap();
+        let plan = plan_over(
+            operations,
+            StageGate::ALL.into_iter().map(cleared).collect(),
+        );
         assert!(plan.untrustworthy_because().unwrap().is_none());
         assert_eq!(plan.operation_count(), 1);
 
@@ -1404,6 +1960,7 @@ mod tests {
             .operations
             .push(StageOperation::DeleteBand {
                 band: ReviewRegion::Rail,
+                container: container(),
             });
         let why = edited.untrustworthy_because().unwrap().expect("a reason");
         assert!(

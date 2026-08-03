@@ -332,8 +332,53 @@ and documented behaviour is to delete a page of a given name and recreate it; a 
 ran it and discarded work the first had landed. Neither agent was at fault and the step was
 not wrong: the destructive verb existed and two writers reached it. Widening the vocabulary
 makes that loss repeatable through the sanctioned path. A delete reaches ONE band, and only
-where its name is in the closed review vocabulary AND the intent no longer declares it; a
-node VDS did not create and the intent does not name is never touched.
+where its name is in the closed review vocabulary AND THE INTENT EXPLICITLY LISTS THAT BAND
+IN ITS `deletes`; a node VDS did not create and the intent does not name is never touched.
+
+SILENCE IS NOT PERMISSION TO DELETE. This clause said, until 2026-08-03, that a delete reached
+a band "where the intent no longer declares it", and the engine did exactly that: it emitted a
+delete for EVERY closed-vocabulary band in the frame the intent did not declare. So an intent
+about the header removed a `facets` band a designer had drawn, purely by never mentioning it,
+and because no gate reads the canvas the one verb in the vocabulary that can lose work was the
+only operation emitted with no gate reading behind it at all. An intent therefore now carries
+an EXPLICIT `deletes` list, defaulted to none because that default is the safe direction, and
+G2 gains a limb that refuses a deletion of a band the register says the screen draws. A band
+the frame draws that the intent neither declares nor deletes is REPORTED on the face of the
+plan and left alone.
+
+A STAGED WRITE DECLARES THE EXTENT OF THE FRAME IT IS AIMED AT, and G3 refuses an extent that
+is not the canonical shell IN EITHER DIRECTION. G3 previously built a synthetic document whose
+root was the shell and asked only whether each band FITS INSIDE it, which is a containment test
+with no lower bound: every band of a frame drawn UNDER the shell fits inside the shell with
+room to spare, so a systematically undersized frame cleared a gate called `canonical_geometry`,
+and 80 of 188 frames on the subscribing estate are the body with no shell around it. The extent
+is DECLARED rather than derived because no capture is in front of the gate - `vds stage add` has
+none and a proof may not fetch one (S-7(2)(1)) - and `vds stage plan`, which does have one,
+refuses where the declaration and the capture disagree. A REFUSAL FROM EITHER NAMES THE CLASS
+AND THE DIRECTION AND NEVER A LENGTH: gate reasons are captured into `.vds/proofs/**`, which
+`no_stored_values` scans, so a dimension in one would fail that proof forever on a file VDS
+wrote itself.
+
+THE BANDS ARE NOT ALWAYS THE FRAME'S OWN CHILDREN. A frame whose bands sit under a named
+authority layer - the spellings `[screens] authority_markers` carries - is read THROUGH that
+layer, by the same precedence the frame ledger has used since it was written. The diff read the
+frame's DIRECT CHILDREN instead, so on about a tenth of the estate's frames it saw ZERO bands,
+reported every declared band missing, and created a full SECOND set beside the ones already
+drawn, while every instrument reported success: the verification re-read the frame the same
+wrong way and found no residual. There is now ONE resolution of "which layer governs this
+frame", used by both readers and held to that by a test over both, and a frame reading says on
+its own face which subtree its bands came from.
+
+THE CONTAINER ID IS PART OF THE READING, PLAN AND EVERY OPERATION. A band name is an identity
+key, not a parent selector: a legacy or reference sibling may carry a band with the same name.
+The bridge therefore receives the resolved container's node id and name with each create, edit
+and delete, and a plan whose operations disagree with that container is untrustworthy. A fresh
+verification also refuses when the authority container has changed since the plan was emitted.
+
+THE PLAN CARRIES THE GATE READINGS IT WAS EMITTED UNDER, and a coverage line derived from them.
+The plan is the artefact this clause calls REVIEWABLE and it carried no reading from any gate at
+all, so a reviewer holding one could not see whether a single gate had run over the operations
+beneath it.
 
 THERE IS NO ATOMICITY AND NO CLAUSE HERE CLAIMS ANY. The plugin bridge caps one call's code
 at a fixed character budget and offers no transaction, so a large frame's plan goes over in

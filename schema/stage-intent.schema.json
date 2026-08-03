@@ -9,6 +9,7 @@
     "bands",
     "columns",
     "fileKey",
+    "frameExtent",
     "nodeId",
     "route",
     "schemaVersion"
@@ -32,8 +33,20 @@
       "format": "uint32",
       "minimum": 0.0
     },
+    "deletes": {
+      "description": "The bands this intent means to REMOVE from the frame. EXPLICIT, and defaulted to none.\n\nSILENCE IS NOT PERMISSION TO DELETE, and it used to be. The diff emitted [`StageOperation::DeleteBand`] for every closed-vocabulary band in the frame that the intent did not declare, so a `facets` band a designer drew into the drawing was deleted by an intent that had simply never mentioned it - and no gate read the canvas, so the one destructive verb in the vocabulary was the only operation emitted with no reading behind it. G2 now reads this list against the screen record, which is a local file and therefore re-derivable inside the proof; the canvas is not, and a gate that needed it could never run there.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ReviewRegion"
+      }
+    },
     "fileKey": {
       "type": "string"
+    },
+    "frameExtent": {
+      "description": "The SIZE of the frame named above, as this intent understands it.\n\nRead by G3, which refuses an extent that is not the canonical shell in EITHER direction, and measured against the saved capture by `vds stage plan` so the declaration cannot simply be typed. See [`FrameExtent`] for why it is declared rather than assumed.",
+      "$ref": "#/definitions/FrameExtent"
     },
     "nodeId": {
       "type": "string"
@@ -144,6 +157,25 @@
         "graphical_object",
         "decoration"
       ]
+    },
+    "FrameExtent": {
+      "description": "The SIZE of the frame a staged write is aimed at, as the intent understands it.\n\nTwo numbers and no origin, because where a frame sits on the canvas is not a decision about the screen: moving a frame across the page changes nothing about what it draws, and a field nothing reads is a field that invites a zero somebody later mistakes for a measurement.\n\nWHY THIS IS DECLARED AND NOT DERIVED. G3 built a synthetic document whose root was the canonical shell and then asked only whether each band FITS INSIDE it. That is a containment test with no lower bound, so a frame drawn systematically UNDER the shell cleared a gate named `canonical_geometry`, and on the estate this was written for that is not hypothetical: 80 of 188 frames are the body with no shell around it, and every band of every one of them fits inside the shell with room to spare. The extent is therefore stated, so that it can be REFUSED when it is not the canonical shell, in either direction.\n\nNothing writes it. The operation vocabulary is closed at six and carries no frame-level verb by law ([`StageOperation`]), so this is a PRECONDITION on the frame and never an instruction about it. It is the same shape [`StageIntent::columns`] already has: a claim the gate checks against a derivation rather than a value the gate reads off the boxes.",
+      "type": "object",
+      "required": [
+        "height",
+        "width"
+      ],
+      "properties": {
+        "height": {
+          "type": "number",
+          "format": "double"
+        },
+        "width": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "additionalProperties": false
     },
     "PaintIntent": {
       "description": "A paint a band is to carry: a NAME, a ROLE and the backdrop it is measured against. Never a literal.\n\nG1 refuses a literal, and the refusal is not pedantry. A literal cannot be measured against the shipped stylesheet in every theme, so a staged boundary spelled as a value is a boundary nothing can check, which is the founding defect of this whole system wearing a Figma hat.",

@@ -5,6 +5,7 @@
   "type": "object",
   "required": [
     "chunks",
+    "container",
     "contentDigest",
     "emittedAt",
     "emittedBy",
@@ -24,7 +25,16 @@
         "$ref": "#/definitions/PlanChunk"
       }
     },
+    "container": {
+      "description": "The exact subtree all operations below are scoped to. For an unlabelled frame this is the frame itself; for a named current-source layer this is that layer. A plan without this fact leaves a bridge to resolve a band name against the wrong sibling.",
+      "$ref": "#/definitions/StageContainer"
+    },
     "contentDigest": {
+      "type": "string"
+    },
+    "coverage": {
+      "description": "The tally over [`Self::gates`], on the face of the artefact.\n\nStored AND held to its own recomputation by [`Self::untrustworthy_because`], for the reason [`Self::content_digest`] is stored: a reviewer reads the file, not this type's methods, and a summary that can be edited away from the facts beside it is a summary that lies at exactly the moment it matters.",
+      "default": "",
       "type": "string"
     },
     "emittedAt": {
@@ -35,6 +45,14 @@
     },
     "fileKey": {
       "type": "string"
+    },
+    "gates": {
+      "description": "THE THREE-VALUED GATE READINGS THIS PLAN WAS EMITTED UNDER, one per gate that was asked.\n\nThis artefact is the one the design repeatedly calls THE REVIEWABLE ARTEFACT, and it carried no reading from any gate at all: a reviewer holding a plan could see the operations and could not see whether a single gate had run over them. Since `vds stage plan` refuses to emit against a refusal, every reading here is `cleared` or `could_not_run`, and telling those two apart is the whole reason the vocabulary is three-valued. A gate MISSING from this list was never asked, which [`Self::coverage`] states rather than leaving to a reader who might not know how many gates there are.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/GateVerdict"
+      }
     },
     "intentDigest": {
       "type": "string"
@@ -97,6 +115,54 @@
         "y": {
           "type": "number",
           "format": "double"
+        }
+      },
+      "additionalProperties": false
+    },
+    "GateReading": {
+      "description": "What one gate READ. THREE-VALUED, and the third value is the whole point.\n\n\"Cleared\" and \"had no basis to run\" are different facts, and one field holding both reports the second as the first. On the estate this was written for, the same class of collapse reported 143 unmeasured routes as clean, and `screen_parity`'s coverage tally exists because a gate scored 32% of its subject and would have printed zero deviations.",
+      "oneOf": [
+        {
+          "description": "The gate ran, over something, and found nothing to refuse.",
+          "type": "string",
+          "enum": [
+            "cleared"
+          ]
+        },
+        {
+          "description": "The gate ran and refuses this staged write.",
+          "type": "string",
+          "enum": [
+            "refused"
+          ]
+        },
+        {
+          "description": "The gate had no basis to run: an input the estate has not supplied, or a declaration this intent does not make. NEVER a pass.",
+          "type": "string",
+          "enum": [
+            "could_not_run"
+          ]
+        }
+      ]
+    },
+    "GateVerdict": {
+      "description": "One gate's reading on one staged write, and why.",
+      "type": "object",
+      "required": [
+        "because",
+        "gate",
+        "reading"
+      ],
+      "properties": {
+        "because": {
+          "description": "The reason, in the gate's own words, and required in EVERY reading.\n\nA cleared reading with no sentence cannot be told apart from a gate that returned early, and a `could_not_run` with no sentence hides which input was missing. Prose, and NOT exempt from VDS S-2(2): this record lands under `.vds/**`, which `no_stored_values` scans in full, so a reason names the CLASS of a value and never spells one.",
+          "type": "string"
+        },
+        "gate": {
+          "$ref": "#/definitions/StageGate"
+        },
+        "reading": {
+          "$ref": "#/definitions/GateReading"
         }
       },
       "additionalProperties": false
@@ -183,13 +249,63 @@
         }
       ]
     },
+    "StageContainer": {
+      "description": "The exact subtree a staged operation is allowed to touch.\n\nA band name is an identity key, not a parent selector. A frame may carry a legacy sibling with a band of the same name beside its current source layer; applying `delete-band header` without this scope would leave the bridge free to choose the wrong one. The node id therefore travels with every operation and with the plan that carries it. The name is for a reviewer; the id is the binding that makes the scope unambiguous.",
+      "type": "object",
+      "required": [
+        "name",
+        "nodeId"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "nodeId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "StageGate": {
+      "description": "The four gates a staged write is read against. CLOSED.\n\nClosed for the reason [`ReviewRegion`] is: an open set lets one undifferentiated \"the checks passed\" bucket back in, and a gate nobody can name is a gate nobody can see did not run.\n\nAll four are limbs of ONE proof kind, `staged_write`, and never four kinds. Four kinds would walk the same enumeration four times and let the four disagree about which stages exist, which is the two-sources-of-truth failure `visual_review` names when it folds band correspondence in rather than filing a sixteenth kind for it.",
+      "oneOf": [
+        {
+          "description": "G1. A staged control boundary clears the contrast floor in every theme the shipped stylesheet declares.",
+          "type": "string",
+          "enum": [
+            "contrast_floor"
+          ]
+        },
+        {
+          "description": "G2. Every staged band is named from the CLOSED review vocabulary and is one the screen record declares. The limb that makes the diff key stable.",
+          "type": "string",
+          "enum": [
+            "band_naming"
+          ]
+        },
+        {
+          "description": "G3. The boxes about to be written derive the column count the intent declares, under the same derivation `vds figma frames` runs afterwards.",
+          "type": "string",
+          "enum": [
+            "canonical_geometry"
+          ]
+        },
+        {
+          "description": "G4. No other artefact in the subscribing repository contradicts this route's binding to this frame.",
+          "type": "string",
+          "enum": [
+            "route_binding"
+          ]
+        }
+      ]
+    },
     "StageId": {
       "description": "A staged write to one frame: the reviewable record of what was intended, which gates read on it, and what an apply then did (draft S-7E).",
       "type": "string",
       "pattern": "^STG-[0-9]{4}$"
     },
     "StageOperation": {
-      "description": "What a staged apply may do. CLOSED AT SIX, and the closure is the strongest thing in this module.\n\nTHERE IS NO PAGE-LEVEL AND NO FRAME-LEVEL DELETE, AND THERE MUST NEVER BE. The 2026-07-25 loss on the subscribing estate came from a build step whose correct and documented behaviour is to delete a page of a given name and recreate it; a second writer ran it and discarded work the first had landed. Neither agent was at fault and the step was not wrong: the destructive verb simply existed and two writers reached it. Widening this enum re-creates that verb inside the sanctioned path, and the loss becomes repeatable through the route that was built to prevent it. That is why the reason is written here in the code and not only in a design note.\n\n[`StageOperation::DeleteBand`] is admitted under two conditions checked together and never separately: the band's name is in the closed review vocabulary, AND the intent no longer declares it. A node VDS did not create and the intent does not name is never touched at all.",
+      "description": "What a staged apply may do. CLOSED AT SIX, and the closure is the strongest thing in this module.\n\nTHERE IS NO PAGE-LEVEL AND NO FRAME-LEVEL DELETE, AND THERE MUST NEVER BE. The 2026-07-25 loss on the subscribing estate came from a build step whose correct and documented behaviour is to delete a page of a given name and recreate it; a second writer ran it and discarded work the first had landed. Neither agent was at fault and the step was not wrong: the destructive verb simply existed and two writers reached it. Widening this enum re-creates that verb inside the sanctioned path, and the loss becomes repeatable through the route that was built to prevent it. That is why the reason is written here in the code and not only in a design note.\n\n[`StageOperation::DeleteBand`] is admitted under two conditions checked together and never separately: the band's name is in the closed review vocabulary, AND the intent NAMES IT IN [`StageIntent::deletes`]. A node VDS did not create and the intent does not name is never touched at all.\n\nTHAT SECOND CONDITION USED TO BE THE INTENT'S SILENCE, and the difference is not a nicety. A delete was emitted for every closed-vocabulary band in the frame the intent did not declare, so an intent about the header deleted a `facets` band a designer had drawn, purely by not mentioning it. No gate read the canvas, so the one destructive verb in the vocabulary was the only operation emitted with no reading behind it at all. It is now the only verb that requires the intent to say the word.",
       "oneOf": [
         {
           "description": "The intent declares a band the frame does not have.",
@@ -197,6 +313,7 @@
           "required": [
             "band",
             "box_of",
+            "container",
             "op"
           ],
           "properties": {
@@ -205,6 +322,9 @@
             },
             "box_of": {
               "$ref": "#/definitions/BandBox"
+            },
+            "container": {
+              "$ref": "#/definitions/StageContainer"
             },
             "op": {
               "type": "string",
@@ -221,6 +341,7 @@
           "required": [
             "band",
             "box_of",
+            "container",
             "op"
           ],
           "properties": {
@@ -229,6 +350,9 @@
             },
             "box_of": {
               "$ref": "#/definitions/BandBox"
+            },
+            "container": {
+              "$ref": "#/definitions/StageContainer"
             },
             "op": {
               "type": "string",
@@ -244,12 +368,16 @@
           "type": "object",
           "required": [
             "band",
+            "container",
             "op",
             "to"
           ],
           "properties": {
             "band": {
               "$ref": "#/definitions/ReviewRegion"
+            },
+            "container": {
+              "$ref": "#/definitions/StageContainer"
             },
             "op": {
               "type": "string",
@@ -268,6 +396,7 @@
           "type": "object",
           "required": [
             "band",
+            "container",
             "op",
             "property",
             "resolved"
@@ -275,6 +404,9 @@
           "properties": {
             "band": {
               "$ref": "#/definitions/ReviewRegion"
+            },
+            "container": {
+              "$ref": "#/definitions/StageContainer"
             },
             "op": {
               "type": "string",
@@ -298,12 +430,16 @@
           "type": "object",
           "required": [
             "band",
+            "container",
             "op",
             "to"
           ],
           "properties": {
             "band": {
               "$ref": "#/definitions/ReviewRegion"
+            },
+            "container": {
+              "$ref": "#/definitions/StageContainer"
             },
             "op": {
               "type": "string",
@@ -320,15 +456,19 @@
           "additionalProperties": false
         },
         {
-          "description": "The frame carries a band whose name IS in the closed vocabulary and which the intent no longer declares. The only destructive verb, and its reach is one band.",
+          "description": "The frame carries a band whose name IS in the closed vocabulary and which the intent EXPLICITLY LISTS in `deletes`. The only destructive verb, and its reach is one band.\n\nIt is emitted for a listed band and never for an unmentioned one: the intent's silence about a band is not permission to remove it.",
           "type": "object",
           "required": [
             "band",
+            "container",
             "op"
           ],
           "properties": {
             "band": {
               "$ref": "#/definitions/ReviewRegion"
+            },
+            "container": {
+              "$ref": "#/definitions/StageContainer"
             },
             "op": {
               "type": "string",

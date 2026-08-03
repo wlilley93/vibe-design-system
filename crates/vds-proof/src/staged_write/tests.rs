@@ -58,14 +58,26 @@ fn rail() -> BandIntent {
     band(ReviewRegion::Rail, box_of(0.0, 48.0, 56.0, 824.0))
 }
 
+/// The CANONICAL shell, which is what G3's extent limb demands. Every intent
+/// below declares it, so a seed about another gate is never also a seed about
+/// this one.
+fn shell() -> vds_core::FrameExtent {
+    vds_core::FrameExtent {
+        width: vds_figma::stage::SHELL_WIDTH,
+        height: vds_figma::stage::SHELL_HEIGHT,
+    }
+}
+
 fn intent(route: &str, node_id: &str, columns: u32, bands: Vec<BandIntent>) -> StageIntent {
     StageIntent {
         schema_version: STAGE_INTENT_SCHEMA_VERSION,
         route: route.into(),
         file_key: "KEY".into(),
         node_id: node_id.into(),
+        frame_extent: shell(),
         columns,
         bands,
+        deletes: vec![],
         authored_by: "a harness".into(),
         authored_at: Timestamp::fixed(2026, 8, 3, 9, 0, 0),
         notes: None,
@@ -77,6 +89,38 @@ fn staged(h: &Harness, wanted: &StageIntent, gates: Vec<GateVerdict>) -> vds_cor
     h.write("app/globals.css", SHEET);
     let rel = h.stage_intent("STG-0001", wanted);
     h.stage_record("STG-0001", &wanted.route, &wanted.node_id, &rel, gates)
+}
+
+/// The readings this run MEASURES over one intent, asked directly.
+///
+/// A CLEARED reading's sentence reaches no printed report: the run prints refusals
+/// and could-not-runs and counts the clears. So a test about what a CLEAR SAYS has
+/// to ask the gate rather than grep the output, and a test that grepped the output
+/// for it would pass whatever the sentence said.
+fn measured(h: &Harness, wanted: &StageIntent) -> Vec<GateVerdict> {
+    let screens: Vec<ScreenRecord> = h
+        .store()
+        .read_screens()
+        .expect("the screen register")
+        .into_iter()
+        .map(|located| located.value)
+        .collect();
+    read_gates(&GateInputs {
+        intent: wanted,
+        sheet: None,
+        stylesheet_path: "app/globals.css",
+        screens: &screens,
+        bindings: None,
+        reserved_properties: &[],
+    })
+}
+
+/// One gate's reading out of [`measured`].
+fn reading_for(readings: &[GateVerdict], gate: StageGate) -> &GateVerdict {
+    readings
+        .iter()
+        .find(|v| v.gate == gate)
+        .expect("every gate is asked")
 }
 
 fn cleared(gate: StageGate) -> GateVerdict {
@@ -324,6 +368,67 @@ fn g2_clears_where_every_staged_band_is_one_the_screen_declares() {
     assert!(!text.contains("<band_naming>"), "{text}");
 }
 
+/// G2(d) RED. THE ONLY GATE READING BEHIND THE ONLY DESTRUCTIVE VERB.
+///
+/// A delete used to be emitted from the intent's SILENCE, and no gate read
+/// anything at all before it landed: the one operation that can lose a designer's
+/// work was the one operation emitted with nothing behind it. The intent now has to
+/// say the word, and saying it about a band the REGISTER declares this screen draws
+/// is refused - the register is the contract, and the deletion would put the
+/// drawing in breach of it.
+#[test]
+fn g2_refuses_deleting_a_band_the_screen_record_declares() {
+    let h = Harness::new();
+    let mut wanted = intent("/matters", "1:2", 1, vec![rail()]);
+    wanted.deletes = vec![ReviewRegion::Header];
+    screen(
+        &h,
+        "SCR-0001",
+        "/matters",
+        "1:2",
+        &[ReviewRegion::Rail, ReviewRegion::Header],
+    );
+    staged(&h, &wanted, all_cleared());
+
+    let (outcome, text) = run_kind(&h, ProofKind::StagedWrite);
+    assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+    assert!(text.contains("band_naming"), "{text}");
+    assert!(text.contains("DELETES a band"), "{text}");
+    assert!(
+        text.contains("cannot be undone by re-running"),
+        "the refusal has to say why a delete is different from the other five: {text}"
+    );
+}
+
+/// G2(d) GREEN. A deletion the register does NOT contradict clears, and the
+/// cleared reading SAYS the delete came from an explicit list rather than from
+/// silence. Without this arm the red seed above is satisfied by a limb that refuses
+/// every deletion there is.
+#[test]
+fn g2_clears_a_deletion_of_a_band_the_screen_record_does_not_declare() {
+    let h = Harness::new();
+    let mut wanted = intent("/matters", "1:2", 1, vec![rail()]);
+    wanted.deletes = vec![ReviewRegion::Facets];
+    screen(&h, "SCR-0001", "/matters", "1:2", &[ReviewRegion::Rail]);
+    staged(&h, &wanted, all_cleared());
+
+    let (_, text) = run_kind(&h, ProofKind::StagedWrite);
+    assert!(!text.contains("<band_naming>"), "{text}");
+
+    let readings = measured(&h, &wanted);
+    let g2 = reading_for(&readings, StageGate::BandNaming);
+    assert_eq!(g2.reading, GateReading::Cleared, "{g2:?}");
+    assert!(
+        g2.because.contains("1 explicit deletion(s)")
+            && g2
+                .because
+                .contains("never for one the intent merely fails to mention"),
+        "the cleared reading must state the rule it cleared under, and how many deletions it \
+         cleared: {}",
+        g2.because
+    );
+}
+
 /// A screen declaring no band makes the correspondence UNRUNNABLE, which is not
 /// the same answer as a pass. On the estate this was written for, the same class
 /// of check could only run on 17 rows of 160.
@@ -383,6 +488,103 @@ fn g3_clears_boxes_that_derive_exactly_what_the_intent_declares() {
 
     let (_, text) = run_kind(&h, ProofKind::StagedWrite);
     assert!(!text.contains("<canonical_geometry>"), "{text}");
+}
+
+/// G3 EXTENT RED. THE LIMB WITH A LOWER BOUND.
+///
+/// The containment limb below has none: every band of a frame drawn UNDER the
+/// canonical shell fits inside the shell with room to spare, so a systematically
+/// undersized frame cleared a gate called `canonical_geometry`. On the estate this
+/// was written for, 80 of 188 frames are the body with no shell around it. This
+/// seed declares exactly that frame - a lawful set of boxes, a column count the
+/// derivation agrees with, and a target frame that is not the shell - so it is red
+/// on the EXTENT and on nothing else.
+#[test]
+fn g3_refuses_a_declared_frame_extent_that_is_not_the_canonical_shell() {
+    let h = Harness::new();
+    let mut wanted = intent("/matters", "1:2", 1, vec![body(1)]);
+    // The body with no shell around it. Every box in this intent still fits
+    // inside the shell, which is the whole reason the containment limb missed it.
+    wanted.frame_extent = vds_core::FrameExtent {
+        width: 1344.0,
+        height: 824.0,
+    };
+    screen(&h, "SCR-0001", "/matters", "1:2", &[ReviewRegion::BodyRows]);
+    staged(&h, &wanted, all_cleared());
+
+    let (outcome, text) = run_kind(&h, ProofKind::StagedWrite);
+    assert_eq!(outcome.exit_code, EXIT_VIOLATION, "{text}");
+    assert!(text.contains("canonical_geometry"), "{text}");
+    assert!(text.contains("is NOT the canonical shell"), "{text}");
+    assert!(
+        text.contains("SMALLER in width") && text.contains("SMALLER in height"),
+        "the refusal must name the DIRECTION, because a containment test cannot: {text}"
+    );
+
+    // A REFUSAL NAMES THE CLASS AND NEVER A LENGTH. This reason is captured into
+    // `.vds/proofs/**`, which `no_stored_values` scans, so a dimension in it would
+    // make that gate fail forever on a file VDS wrote itself. The existing
+    // containment refusal avoids the shell's dimensions for exactly this reason.
+    for length in ["1400", "900", "1344", "824"] {
+        assert!(
+            !text.contains(length),
+            "the refusal repeats the length {length}, and a captured proof record lands under the \
+             tree no_stored_values scans: {text}"
+        );
+    }
+}
+
+/// G3 EXTENT GREEN, and the direction the containment limb CAN see, so the limb
+/// is shown to bite in both directions rather than only downwards.
+#[test]
+fn g3_refuses_an_extent_larger_than_the_shell_and_clears_the_shell_itself() {
+    let h = Harness::new();
+    let mut oversized = intent("/matters", "1:2", 1, vec![body(1)]);
+    oversized.frame_extent = vds_core::FrameExtent {
+        width: 1920.0,
+        height: 1080.0,
+    };
+    screen(&h, "SCR-0001", "/matters", "1:2", &[ReviewRegion::BodyRows]);
+    staged(&h, &oversized, all_cleared());
+    let (_, text) = run_kind(&h, ProofKind::StagedWrite);
+    assert!(
+        text.contains("LARGER in width") && text.contains("LARGER in height"),
+        "{text}"
+    );
+
+    // The same intent declaring the shell CLEARS, or the assertion above is
+    // satisfied by a limb that refuses every extent there is.
+    let clean = Harness::new();
+    let wanted = intent("/matters", "1:2", 1, vec![body(1)]);
+    screen(
+        &clean,
+        "SCR-0001",
+        "/matters",
+        "1:2",
+        &[ReviewRegion::BodyRows],
+    );
+    staged(&clean, &wanted, all_cleared());
+    let (_, text) = run_kind(&clean, ProofKind::StagedWrite);
+    assert!(!text.contains("<canonical_geometry>"), "{text}");
+
+    let readings = measured(&clean, &wanted);
+    let g3 = reading_for(&readings, StageGate::CanonicalGeometry);
+    assert_eq!(g3.reading, GateReading::Cleared, "{g3:?}");
+    assert!(
+        g3.because.contains("measured in BOTH directions"),
+        "the cleared reading must say the limb has a lower bound, or a reader cannot tell it from \
+         the containment test it was added to fix: {}",
+        g3.because
+    );
+    // AND THE CLEAR NAMES NO LENGTH EITHER. A cleared reading is captured into
+    // `.vds/proofs/**` exactly as a refusal is, so the rule binds both.
+    for length in ["1400", "900", "1344", "824"] {
+        assert!(
+            !g3.because.contains(length),
+            "the cleared reading repeats the length {length}: {}",
+            g3.because
+        );
+    }
 }
 
 /// A box outside the canonical shell would be written off the frame.

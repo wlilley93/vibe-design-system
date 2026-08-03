@@ -409,6 +409,125 @@ mod tests {
         }
     }
 
+    /// THE TWO SUBSCRIBER-TREE ARTEFACTS GREW A FIELD EACH, AND A CONSUMER
+    /// VALIDATES AGAINST THE SCHEMA RATHER THAN AGAINST THE RUST.
+    ///
+    /// Named fields rather than a count, for the reason the count test above
+    /// records. These four are the ones the 2026-08-03 fixes turn on, and each
+    /// would fail SILENTLY if it never reached the published contract:
+    ///
+    /// - `frameExtent`, and it must be REQUIRED. Defaulted, it would resolve to
+    ///   the canonical shell on every intent that omits it, which makes the limb
+    ///   that refuses a non-canonical frame unfailable on exactly the files it was
+    ///   added for.
+    /// - `deletes`, and it must be OPTIONAL, because its default is the safe
+    ///   direction: an intent that says nothing about deletion deletes nothing.
+    ///   Required, it would refuse every intent already written.
+    /// - `gates` and `coverage` on the plan, which is the artefact the design calls
+    ///   REVIEWABLE and which carried no reading from any gate at all.
+    #[test]
+    fn the_published_intent_carries_the_frame_extent_and_the_deletes_it_must_name() {
+        let generated = schemas().unwrap();
+        let intent: serde_json::Value = serde_json::from_str(&generated["stage-intent"]).unwrap();
+        let required: Vec<&str> = intent["required"]
+            .as_array()
+            .expect("the intent publishes a required set")
+            .iter()
+            .filter_map(|v| v.as_str())
+            .collect();
+
+        assert!(
+            intent["properties"]["frameExtent"].is_object(),
+            "the intent schema does not publish frameExtent, so a subscriber authoring an intent \
+             against the published contract could not declare the frame it is writing to, and G3 \
+             would be measuring the canonical shell against nothing"
+        );
+        assert!(
+            required.contains(&"frameExtent"),
+            "frameExtent is published as OPTIONAL. A default resolves to the canonical shell on \
+             every intent that omits it, which makes the limb that refuses a non-canonical frame \
+             unfailable on exactly the files it exists for: {required:?}"
+        );
+        assert!(
+            intent["properties"]["deletes"].is_object(),
+            "the intent schema does not publish `deletes`. Silence is not permission to delete, so \
+             an intent with no way to SAY delete has no way to delete at all"
+        );
+        assert!(
+            !required.contains(&"deletes"),
+            "`deletes` is published as REQUIRED. Its default is the safe direction - an intent \
+             that says nothing about deletion deletes nothing - and requiring it refuses every \
+             intent already written: {required:?}"
+        );
+
+        // The extent is TWO NUMBERS AND NO ORIGIN. Where a frame sits on the canvas
+        // is not a decision about the screen, and a field nothing reads is a field
+        // that invites a zero somebody later mistakes for a measurement.
+        let extent = &intent["definitions"]["FrameExtent"]["properties"];
+        assert!(
+            extent["width"].is_object() && extent["height"].is_object(),
+            "the extent must publish both dimensions: {extent}"
+        );
+        for origin in ["x", "y"] {
+            assert!(
+                extent[origin].is_null(),
+                "the published extent carries an origin field {origin:?}. Moving a frame across \
+                 the page changes nothing about what it draws: {extent}"
+            );
+        }
+    }
+
+    /// The plan publishes what it was emitted UNDER, not only what it would do.
+    #[test]
+    fn the_published_plan_carries_the_gate_readings_and_the_coverage_line() {
+        let generated = schemas().unwrap();
+        let plan: serde_json::Value = serde_json::from_str(&generated["stage-plan"]).unwrap();
+        for property in ["container", "gates", "coverage"] {
+            assert!(
+                plan["properties"][property].is_object(),
+                "the plan schema does not publish {property:?}. The plan is the artefact this \
+                 capability calls REVIEWABLE, and it carried no reading from any gate at all: a \
+                 reviewer holding one could not tell a gate that cleared from a gate that never ran"
+            );
+        }
+        let required: Vec<&str> = plan["required"]
+            .as_array()
+            .expect("the plan publishes a required set")
+            .iter()
+            .filter_map(|v| v.as_str())
+            .collect();
+        assert!(
+            required.contains(&"container"),
+            "the plan scope is optional. An apply could then resolve a band against a sibling: \
+             {required:?}"
+        );
+        let container = &plan["definitions"]["StageContainer"];
+        assert!(
+            container["properties"]["nodeId"].is_object()
+                && container["properties"]["name"].is_object(),
+            "the published plan scope must carry the exact node and its reviewer-facing name: \
+             {container}"
+        );
+        // And the three-valued reading reaches the plan's own contract, or a
+        // consumer reading a plan cannot tell `could_not_run` from `cleared` - the
+        // collapse the third value exists to prevent.
+        let readings: Vec<String> = plan["definitions"]["GateReading"]["oneOf"]
+            .as_array()
+            .expect("the plan publishes the gate reading vocabulary as a closed set")
+            .iter()
+            .filter_map(|branch| branch["enum"][0].as_str().map(str::to_owned))
+            .collect();
+        assert_eq!(
+            readings.len(),
+            vds_core::GateReading::ALL.len(),
+            "{readings:?}"
+        );
+        assert!(
+            readings.iter().any(|r| r == "could_not_run"),
+            "{readings:?}"
+        );
+    }
+
     /// The two schemas here that describe a file `.vds/` may NOT hold.
     ///
     /// The stage intent and the stage plan carry boxes and resolved paints, so

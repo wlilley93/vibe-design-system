@@ -365,7 +365,14 @@ fn plan(project: &vds_core::Project, store: &Store, args: &PlanArgs) -> Result<i
     }
     let body =
         std::fs::read_to_string(&args.from).map_err(|e| VdsError::io(args.from.display(), e))?;
-    let Some(reading) = vds_figma::read_frame(&body, &assembled.intent.node_id)? else {
+    // The project's OWN vocabulary, passed through, because the words a file uses
+    // for "this layer is the current source" live in `[screens] authority_markers`.
+    // Defaulting them here would resolve the authority layer only for projects
+    // using the shipped spellings and would silently create a second set of bands
+    // for every project that does not.
+    let Some(reading) =
+        vds_figma::read_frame(&body, &assembled.intent.node_id, &project.config.screens)?
+    else {
         return Err(VdsError::precondition(format!(
             "the capture does not carry node {}. A diff taken against a frame nobody captured \
              would emit a create for every band and rebuild a frame that may already be right, \
@@ -373,6 +380,35 @@ fn plan(project: &vds_core::Project, store: &Store, args: &PlanArgs) -> Result<i
             assembled.intent.node_id
         )));
     };
+
+    // THE DECLARED EXTENT, AGAINST THE CAPTURE. G3 read it from the intent because
+    // it had no capture in front of it, so on its own the declaration is a claim -
+    // and a claim believed is a claim that can be minted, which is the defect R7
+    // exists for one artefact along. This is where the claim meets the drawing.
+    if let Some(why) = vds_figma::stage::extent_disagreement(&assembled.intent, &reading) {
+        println!("REFUSED, and nothing was emitted:");
+        for line in wrap(&why) {
+            println!("      {line}");
+        }
+        println!();
+        println!(
+            "G3 measured the canonical shell against the extent this intent DECLARES, because a \
+             proof may\n  not fetch a capture (VDS S-7(2)(1)). This command has one, so the \
+             declaration is checked\n  against it here rather than believed."
+        );
+        return Ok(EXIT_VIOLATION);
+    }
+    if let Some(under) = &reading.bands_under {
+        println!(
+            "bands read from the authority layer {under:?}, not from the frame's own children."
+        );
+        println!(
+            "  This reader used to take the direct children, which on a frame like this one saw \
+             ZERO\n  bands, reported every declared band missing, and drew a SECOND full set \
+             beside the first."
+        );
+        println!();
+    }
 
     // The paints, resolved ONCE, in the base scope, from the same sheet the
     // contrast gate measured. Resolving them twice would give the gate and the
@@ -408,6 +444,12 @@ fn plan(project: &vds_core::Project, store: &Store, args: &PlanArgs) -> Result<i
         &project.rel(&args.from),
         Digest::of_file(&args.from)?,
         operations,
+        // THE READINGS THIS PLAN IS EMITTED UNDER, onto the face of the artefact.
+        // The plan is the thing this capability calls REVIEWABLE and it carried no
+        // reading from any gate at all, so a reviewer holding one could not see
+        // whether a single gate had run. Every reading here is `cleared` or
+        // `could_not_run`, because the refusal branch above returned already.
+        gates.clone(),
         Timestamp::now(),
     )?;
     let path = vds_core::plan_path(project, &id);
@@ -417,6 +459,10 @@ fn plan(project: &vds_core::Project, store: &Store, args: &PlanArgs) -> Result<i
     println!("  operations: {}", emitted.operation_count());
     println!("  chunks:     {}", emitted.chunks.len());
     println!("  digest:     {}", emitted.content_digest);
+    println!(
+        "  scope:      {} ({})",
+        emitted.container.name, emitted.container.node_id
+    );
     println!();
     for chunk in &emitted.chunks {
         println!(
@@ -438,13 +484,62 @@ fn plan(project: &vds_core::Project, store: &Store, args: &PlanArgs) -> Result<i
             println!("    {name}");
         }
     }
+
+    // THE BANDS LEFT ALONE. Not operations and not findings: the bands the OLD
+    // diff deleted on the strength of the intent's silence. Published so a
+    // reviewer can see that this plan deliberately does nothing to them.
+    let left_alone = reading.undeclared_bands(&assembled.intent);
+    if !left_alone.is_empty() {
+        println!();
+        println!(
+            "  {} band(s) in this frame the intent neither declares nor deletes, and they are \
+             LEFT ALONE:",
+            left_alone.len()
+        );
+        for band in &left_alone {
+            println!("    {band}");
+        }
+        println!(
+            "    Each of these used to be DELETED, purely because the intent did not mention it. \
+             To\n    remove one, name it in the intent's `deletes` list and re-plan."
+        );
+    }
+
+    println!();
+    println!("  {}", emitted.coverage);
+
     println!();
     println!(
         "THIS IS THE REVIEWABLE ARTEFACT. Nothing has reached the canvas. There is no \
          page-level and\n  no frame-level delete in the vocabulary above, and a delete reaches \
-         one band only where its\n  name is in the closed review set AND the intent no longer \
-         declares it."
+         one band only where its\n  name is in the closed review set AND the intent EXPLICITLY \
+         LISTS it in `deletes`. Silence is\n  not permission to delete."
     );
+
+    // THE DESTRUCTIVE OPERATIONS, ON THEIR OWN AND LOUDLY. The one verb that can
+    // lose a designer's work must not be found by reading a list of six.
+    let destructive = emitted.destructive();
+    if !destructive.is_empty() {
+        println!();
+        println!(
+            "!! DESTRUCTIVE: {} of these {} operation(s) DELETE a band, and a delete is the one \
+             act on",
+            destructive.len(),
+            emitted.operation_count()
+        );
+        println!(
+            "!! this path that re-running cannot undo. Whatever a designer put inside these bands \
+             goes"
+        );
+        println!("!! with them:");
+        for operation in &destructive {
+            println!("!!     {operation}");
+        }
+        println!(
+            "!! Each one is here because THIS INTENT NAMES IT in `deletes`. If that is not what \
+             was\n!! meant, amend the intent and re-plan: nothing has reached the canvas yet."
+        );
+    }
     if emitted.operation_count() == 0 {
         println!();
         println!(
@@ -585,6 +680,14 @@ fn apply(project: &vds_core::Project, store: &Store, args: &ApplyArgs) -> Result
         plan.chunks.len()
     );
     println!(
+        "  operation scope: {} ({})",
+        plan.container.name, plan.container.node_id
+    );
+    println!(
+        "  Every create, edit and delete below MUST resolve its band under this container; an \
+         existing sibling is outside the plan."
+    );
+    println!(
         "  atomicity: chunk {} can fail after the earlier ones have landed, and nothing rolls",
         plan.chunks.len()
     );
@@ -621,13 +724,49 @@ fn verify(project: &vds_core::Project, store: &Store, args: &VerifyArgs) -> Resu
 
     let body =
         std::fs::read_to_string(&args.from).map_err(|e| VdsError::io(args.from.display(), e))?;
-    let Some(reading) = vds_figma::read_frame(&body, &assembled.intent.node_id)? else {
+    // THROUGH THE AUTHORITY LAYER, with the project's own vocabulary, and this is
+    // the call site the defect was worst at: the verification re-read the frame the
+    // SAME WRONG WAY the diff had, found no residual, and declared success over a
+    // frame that had just been given a second full set of bands.
+    let Some(reading) =
+        vds_figma::read_frame(&body, &assembled.intent.node_id, &project.config.screens)?
+    else {
         return Err(VdsError::precondition(format!(
             "the capture does not carry node {}, so the delta cannot be recomputed and this \
              apply cannot be declared finished.",
             assembled.intent.node_id
         )));
     };
+
+    let plan_path = vds_core::plan_path(project, &id);
+    let Some(plan) = vds_core::read_plan(project, &plan_path)? else {
+        return Err(VdsError::precondition(format!(
+            "{id} records an apply but has no plan at {}. The verification cannot prove which \
+             authority container the apply targeted.",
+            project.rel(&plan_path)
+        )));
+    };
+    if let Some(why) = plan.untrustworthy_because()? {
+        return Err(VdsError::precondition(format!(
+            "the plan cannot be used for verification: {why}"
+        )));
+    }
+    if plan.container != reading.container {
+        println!("REFUSED. The resolved authority container changed after the plan was emitted.");
+        println!(
+            "  planned: {} ({})",
+            plan.container.name, plan.container.node_id
+        );
+        println!(
+            "  current: {} ({})",
+            reading.container.name, reading.container.node_id
+        );
+        println!(
+            "  No residual is accepted from a different subtree: re-plan against a fresh capture \
+             before verifying."
+        );
+        return Ok(EXIT_VIOLATION);
+    }
 
     let mut paints: BTreeMap<String, vds_css::colour::Colour> = BTreeMap::new();
     if let Some(sheet) = &assembled.sheet {

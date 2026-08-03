@@ -1491,10 +1491,11 @@ fn stage_add_plans_against_a_saved_capture_and_a_second_plan_emits_nothing() {
 
     f.write(
         "design/stage/STG-0001.intent.yaml",
-        "schemaVersion: 1\n\
+        "schemaVersion: 2\n\
          route: /matters\n\
          fileKey: KEY\n\
          nodeId: '1:2'\n\
+         frameExtent: {width: 1400.0, height: 900.0}\n\
          columns: 1\n\
          bands:\n\
          - band: header\n  \
@@ -1566,7 +1567,326 @@ fn stage_add_plans_against_a_saved_capture_and_a_second_plan_emits_nothing() {
     ])
     .expect(PASSED)
     .says("ZERO OPERATIONS")
-    .says("MEASURED here rather than assumed");
+    .says("MEASURED here rather than assumed")
+    // THE PLAN PUBLISHES THE READINGS IT WAS EMITTED UNDER, and it carried none at
+    // all. This intent declares no panes, so the column derivation reads its own
+    // boundary and G3 could not run; no route binding ledger exists, so G4 could
+    // not run; and nothing stages a control boundary, so G1 could not run. A
+    // reviewer holding this plan can now see all three, which is the point: three
+    // gates that could not run and one that cleared used to look exactly like four
+    // that cleared, because the artefact said nothing either way.
+    .says("[gates] 1 of 4 gate(s) CLEARED over this plan; 3 could not run")
+    .says("could not run: contrast_floor, canonical_geometry, route_binding")
+    .says("a gate never asked is not a gate that cleared");
+
+    // THE HIGH DEFECT, THROUGH THE DOOR. The SAME two bands, drawn under a named
+    // CURRENT SOURCE layer with a legacy sibling beside it. The reader used to take
+    // the frame's direct children, see NOTHING, and emit a create for each band,
+    // and the apply then drew a second full set beside the first while every
+    // instrument reported success.
+    f.write(
+        "design/captures/matters.json",
+        "{\"nodes\":{\"1:2\":{\"document\":{\"id\":\"1:2\",\"name\":\"Screen\",\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1400,\"height\":900},\
+         \"children\":[\
+         {\"id\":\"9:8\",\"name\":\"LEGACY UNDERLAY - body\",\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1400,\"height\":900},\
+         \"children\":[]},\
+         {\"id\":\"9:7\",\"name\":\"CURRENT SOURCE - /matters\",\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1400,\"height\":900},\
+         \"children\":[\
+         {\"id\":\"9:1\",\"name\":\"header\",\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1400,\"height\":48}},\
+         {\"id\":\"9:2\",\"name\":\"body_rows\",\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":48,\"width\":1400,\"height\":824}}\
+         ]}\
+         ]}}}}",
+    );
+    f.vds(&[
+        "stage",
+        "plan",
+        "--id",
+        "STG-0001",
+        "--from",
+        "design/captures/matters.json",
+    ])
+    .expect(PASSED)
+    .says("bands read from the authority layer")
+    .says("drew a SECOND full set")
+    .says("ZERO OPERATIONS")
+    .says("scope:      CURRENT SOURCE - /matters (9:7)");
+
+    // The same nested authority is genuinely empty now. It is still the
+    // selected container, so the two creates are expected and the scope in the
+    // emitted plan remains the authority node rather than the legacy sibling.
+    f.write(
+        "design/captures/matters.json",
+        "{\"nodes\":{\"1:2\":{\"document\":{\"id\":\"1:2\",\"name\":\"Screen\",\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1400,\"height\":900},\
+         \"children\":[\
+         {\"id\":\"9:8\",\"name\":\"LEGACY UNDERLAY - body\",\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1400,\"height\":900},\
+         \"children\":[]},\
+         {\"id\":\"9:7\",\"name\":\"CURRENT SOURCE - /matters\",\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1400,\"height\":900},\
+         \"children\":[]}]}}}}",
+    );
+    f.vds(&[
+        "stage",
+        "plan",
+        "--id",
+        "STG-0001",
+        "--from",
+        "design/captures/matters.json",
+    ])
+    .expect(PASSED)
+    .says("operations: 2")
+    .says("create-band header")
+    .says("create-band body_rows")
+    .says("scope:      CURRENT SOURCE - /matters (9:7)");
+}
+
+/// SILENCE IS NOT PERMISSION TO DELETE, and a delete that IS asked for is
+/// published loudly.
+///
+/// Through the door, because the diff's own tests can only show what the diff
+/// returns and the thing being fixed is what a REVIEWER sees. A band the frame
+/// draws that the intent does not mention used to be deleted; it is now reported
+/// and left alone, and the one verb that can lose a designer's work is printed on
+/// its own rather than found in a list of six.
+#[test]
+fn stage_plan_leaves_an_unmentioned_band_alone_and_publishes_a_delete_loudly() {
+    let f = Fixture::new();
+    f.ready();
+    f.write(
+        "app/globals.css",
+        ":root { --surface: #f5f5f5; --border-control: #748eaf; }\n\
+         .dark { --surface: #0a0a0a; --border-control: #707070; }\n",
+    );
+    f.vds(&[
+        "screen",
+        "add",
+        "--route",
+        "/matters",
+        "--columns",
+        "1",
+        "--regions",
+        "body",
+        "--band",
+        "header",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "1:2",
+    ])
+    .expect(PASSED);
+
+    // The frame draws three bands. The intent declares the header, DELETES the
+    // facets, and says nothing at all about the rail.
+    f.write(
+        "design/captures/matters.json",
+        "{\"nodes\":{\"1:2\":{\"document\":{\"id\":\"1:2\",\"name\":\"Screen\",\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1400,\"height\":900},\
+         \"children\":[\
+         {\"id\":\"9:1\",\"name\":\"header\",\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1400,\"height\":48}},\
+         {\"id\":\"9:2\",\"name\":\"facets\",\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":48,\"width\":1400,\"height\":40}},\
+         {\"id\":\"9:3\",\"name\":\"rail\",\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":88,\"width\":56,\"height\":784}}\
+         ]}}}}",
+    );
+    f.write(
+        "design/stage/STG-0001.intent.yaml",
+        "schemaVersion: 2\n\
+         route: /matters\n\
+         fileKey: KEY\n\
+         nodeId: '1:2'\n\
+         frameExtent: {width: 1400.0, height: 900.0}\n\
+         columns: 1\n\
+         bands:\n\
+         - band: header\n  \
+           boxOf: {x: 0.0, y: 0.0, width: 1400.0, height: 48.0}\n\
+         deletes:\n\
+         - facets\n\
+         authoredBy: an agent\n\
+         authoredAt: 2026-08-03T09:00:00Z\n",
+    );
+    f.vds(&[
+        "stage",
+        "add",
+        "--intent",
+        "design/stage/STG-0001.intent.yaml",
+    ])
+    .expect(PASSED)
+    .says("cleared       band_naming");
+
+    f.vds(&[
+        "stage",
+        "plan",
+        "--id",
+        "STG-0001",
+        "--from",
+        "design/captures/matters.json",
+    ])
+    .expect(PASSED)
+    .says("operations: 1")
+    .says("delete-band facets")
+    // The rail: neither declared nor deleted, so nothing reaches it, and the plan
+    // SAYS so. This is the band the old diff removed on the strength of silence.
+    .says("LEFT ALONE")
+    .says("used to be DELETED")
+    // And the destructive verb is published on its own, loudly.
+    .says("!! DESTRUCTIVE")
+    .says("re-running cannot undo")
+    .says("THIS INTENT NAMES IT");
+}
+
+/// G2(d), through the door: a delete of a band the REGISTER says the screen draws
+/// is refused, and no plan is written.
+#[test]
+fn stage_plan_refuses_to_delete_a_band_the_screen_record_declares() {
+    let f = Fixture::new();
+    f.ready();
+    f.write(
+        "app/globals.css",
+        ":root { --surface: #f5f5f5; --border-control: #748eaf; }\n",
+    );
+    f.vds(&[
+        "screen",
+        "add",
+        "--route",
+        "/matters",
+        "--columns",
+        "1",
+        "--regions",
+        "body",
+        "--band",
+        "header,facets",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "1:2",
+    ])
+    .expect(PASSED);
+    f.write(
+        "design/stage/STG-0001.intent.yaml",
+        "schemaVersion: 2\n\
+         route: /matters\n\
+         fileKey: KEY\n\
+         nodeId: '1:2'\n\
+         frameExtent: {width: 1400.0, height: 900.0}\n\
+         columns: 1\n\
+         bands:\n\
+         - band: header\n  \
+           boxOf: {x: 0.0, y: 0.0, width: 1400.0, height: 48.0}\n\
+         deletes:\n\
+         - facets\n\
+         authoredBy: an agent\n\
+         authoredAt: 2026-08-03T09:00:00Z\n",
+    );
+    f.vds(&[
+        "stage",
+        "add",
+        "--intent",
+        "design/stage/STG-0001.intent.yaml",
+    ])
+    .expect(VIOLATION)
+    .says("REFUSED       band_naming");
+
+    f.write("design/captures/matters.json", "{\"nodes\":{}}");
+    f.vds(&[
+        "stage",
+        "plan",
+        "--id",
+        "STG-0001",
+        "--from",
+        "design/captures/matters.json",
+    ])
+    .expect(VIOLATION)
+    .says("REFUSED, and nothing was emitted");
+    assert!(
+        !f.root().join("design/stage/STG-0001.plan.yaml").exists(),
+        "a plan must not exist after a refusal"
+    );
+}
+
+/// The DECLARED extent, against the capture. G3 read it from the intent because a
+/// proof may not fetch a capture; `plan` has one, so the claim is checked there
+/// rather than believed.
+#[test]
+fn stage_plan_refuses_where_the_declared_extent_is_not_the_frame_the_capture_draws() {
+    let f = Fixture::new();
+    f.ready();
+    f.write(
+        "app/globals.css",
+        ":root { --surface: #f5f5f5; --border-control: #748eaf; }\n",
+    );
+    f.vds(&[
+        "screen",
+        "add",
+        "--route",
+        "/matters",
+        "--columns",
+        "1",
+        "--regions",
+        "body",
+        "--band",
+        "header",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "1:2",
+    ])
+    .expect(PASSED);
+    // The intent declares the canonical shell, so G3 clears at `add`.
+    f.write(
+        "design/stage/STG-0001.intent.yaml",
+        "schemaVersion: 2\n\
+         route: /matters\n\
+         fileKey: KEY\n\
+         nodeId: '1:2'\n\
+         frameExtent: {width: 1400.0, height: 900.0}\n\
+         columns: 1\n\
+         bands:\n\
+         - band: header\n  \
+           boxOf: {x: 0.0, y: 0.0, width: 1400.0, height: 48.0}\n\
+         authoredBy: an agent\n\
+         authoredAt: 2026-08-03T09:00:00Z\n",
+    );
+    f.vds(&[
+        "stage",
+        "add",
+        "--intent",
+        "design/stage/STG-0001.intent.yaml",
+    ])
+    .expect(PASSED)
+    .says("cleared       canonical_geometry");
+
+    // And the frame the capture draws is the body with no shell around it, which
+    // is the shape 80 of 188 frames on the subject estate have.
+    f.write(
+        "design/captures/matters.json",
+        "{\"nodes\":{\"1:2\":{\"document\":{\"id\":\"1:2\",\"name\":\"Screen\",\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1344,\"height\":824},\
+         \"children\":[]}}}}",
+    );
+    let run = f.vds(&[
+        "stage",
+        "plan",
+        "--id",
+        "STG-0001",
+        "--from",
+        "design/captures/matters.json",
+    ]);
+    run.expect(VIOLATION)
+        .says("REFUSED, and nothing was emitted")
+        .says("the capture draws")
+        .says("SMALLER in width");
+    assert!(
+        !f.root().join("design/stage/STG-0001.plan.yaml").exists(),
+        "a plan must not exist after a refusal"
+    );
 }
 
 /// `vds stage plan` REFUSES to emit against a refused gate. A plan is what an
@@ -1600,10 +1920,11 @@ fn stage_plan_refuses_to_emit_an_operation_list_against_a_refused_gate() {
     .expect(PASSED);
     f.write(
         "design/stage/STG-0001.intent.yaml",
-        "schemaVersion: 1\n\
+        "schemaVersion: 2\n\
          route: /matters\n\
          fileKey: KEY\n\
          nodeId: '1:2'\n\
+         frameExtent: {width: 1400.0, height: 900.0}\n\
          columns: 1\n\
          bands:\n\
          - band: rail\n  \

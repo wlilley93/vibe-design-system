@@ -371,6 +371,19 @@ pub enum Authority {
     Quarantined,
 }
 
+/// The raw-capture subtree selected by the shared authority precedence.
+///
+/// The selected node id is carried alongside the borrowed document so a staged
+/// operation can bind to this exact layer rather than asking a bridge to find a
+/// band by name across the whole frame. A missing id is preserved as `None` and
+/// the staged reader refuses to emit a plan for it; scope must fail closed.
+#[derive(Debug, Clone, PartialEq)]
+pub struct AuthoritySelection<'a> {
+    pub name: String,
+    pub node_id: Option<String>,
+    pub document: &'a serde_json::Value,
+}
+
 /// Build the ledger from one or more saved `nodes` responses.
 ///
 /// Several bodies rather than one, because the `ids` list goes in the query
@@ -568,22 +581,81 @@ fn box_of(value: &serde_json::Value) -> Option<Box2> {
     })
 }
 
+/// Which of these children GOVERNS the frame, where one is named. The precedence
+/// rule, in ONE place.
+///
+/// Generic over the child type so the ledger's derived tree and a raw capture
+/// document go through the same three lines. They used not to: the staged-write
+/// diff read a frame's DIRECT CHILDREN and never resolved an authority layer at
+/// all, so on a frame whose bands sit under a named `CURRENT SOURCE` layer it saw
+/// no bands, reported every band missing, and emitted a CREATE for each one - a
+/// second full set of bands beside the first, with every instrument reporting
+/// success. About a tenth of the frames on the subject estate have that shape.
+/// Two implementations of "which layer governs" is one implementation and a
+/// disagreement, and this is the shape the disagreement took.
+fn governing<'a, T>(
+    children: &'a [T],
+    config: &ScreensConfig,
+    name_of: impl Fn(&T) -> &str,
+    visible: impl Fn(&T) -> bool,
+) -> Option<&'a T> {
+    let labelled: Vec<&T> = children
+        .iter()
+        .filter(|c| authority_of(name_of(c), config) == Some(Authority::Current))
+        .collect();
+    // Prefer a VISIBLE one. An invisible current layer is a draft the designer
+    // switched off, and building from it produces a screen nobody can see in
+    // Figma.
+    labelled
+        .iter()
+        .find(|c| visible(c))
+        .copied()
+        .or_else(|| labelled.first().copied())
+}
+
+/// The child of a raw capture document that GOVERNS the frame, with its name.
+///
+/// The same precedence [`authority_root`] applies to the derived tree, over the
+/// bytes the API returned. `crates/vds-figma/src/stage.rs` reads a frame through
+/// this, so the diff and the ledger agree about which subtree is the frame's
+/// authority; `the_two_authority_resolutions_agree_on_one_document` holds that
+/// agreement by measurement rather than by this sentence.
+pub fn authority_child<'a>(
+    document: &'a serde_json::Value,
+    config: &ScreensConfig,
+) -> Option<AuthoritySelection<'a>> {
+    let children = document.get("children")?.as_array()?;
+    let chosen = governing(
+        children,
+        config,
+        |child| {
+            child
+                .get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default()
+        },
+        // Figma omits `visible` when it is true.
+        |child| child.get("visible").and_then(|v| v.as_bool()) != Some(false),
+    )?;
+    let name = chosen
+        .get("name")
+        .and_then(|v| v.as_str())
+        .unwrap_or_default()
+        .to_owned();
+    let node_id = chosen
+        .get("id")
+        .and_then(|v| v.as_str())
+        .map(normalise_node_id);
+    Some(AuthoritySelection {
+        name,
+        node_id,
+        document: chosen,
+    })
+}
+
 /// The subtree that GOVERNS this frame, and how that was decided.
 fn authority_root<'a>(frame: &'a Node, config: &ScreensConfig) -> (&'a Node, AuthorityBy) {
-    let labelled: Vec<&Node> = frame
-        .children
-        .iter()
-        .filter(|c| authority_of(&c.name, config) == Some(Authority::Current))
-        .collect();
-    if !labelled.is_empty() {
-        // Prefer a VISIBLE one. An invisible current layer is a draft the
-        // designer switched off, and building from it produces a screen nobody
-        // can see in Figma.
-        let chosen = labelled
-            .iter()
-            .find(|c| c.visible)
-            .copied()
-            .unwrap_or(labelled[0]);
+    if let Some(chosen) = governing(&frame.children, config, |c| &c.name, |c| c.visible) {
         return (chosen, AuthorityBy::NamedLayer);
     }
     if frame
@@ -1144,6 +1216,70 @@ mod tests {
             "CURRENT SOURCE · shipped",
             "an invisible current layer is a draft the designer switched off"
         );
+    }
+
+    /// THE ANTI-DRIFT CHECK, and it is the whole reason [`authority_child`] and
+    /// [`authority_root`] share [`governing`].
+    ///
+    /// The staged-write diff resolves a frame's authority through the raw capture
+    /// document; the ledger resolves it through the derived tree. Two answers to
+    /// "which layer governs this frame" is how the diff came to read a frame's
+    /// direct children, see no bands under a `CURRENT SOURCE` layer, and create a
+    /// second full set beside the first. This asserts the two resolutions name the
+    /// SAME layer over the same bytes, on every shape the precedence rule has:
+    /// no marker, one marker, a marker beside a quarantined sibling, and an
+    /// invisible marker beside a visible one.
+    #[test]
+    fn the_two_authority_resolutions_agree_on_one_document() {
+        let leaf = |name: &str| band(name, 0.0, 1440.0, 900.0, serde_json::json!([]));
+        let mut hidden = leaf("CURRENT SOURCE · draft");
+        hidden["visible"] = serde_json::json!(false);
+
+        let cases: Vec<(&str, serde_json::Value)> = vec![
+            ("no marker anywhere", serde_json::json!([leaf("body")])),
+            (
+                "one named layer",
+                serde_json::json!([leaf("CURRENT SOURCE · /matters")]),
+            ),
+            (
+                "a named layer beside a quarantined sibling",
+                serde_json::json!([
+                    leaf("LEGACY UNDERLAY · body"),
+                    leaf("CURRENT SOURCE CONTRACT · /matters"),
+                ]),
+            ),
+            (
+                "an invisible named layer beside a visible one",
+                serde_json::json!([hidden.clone(), leaf("CURRENT SOURCE · shipped")]),
+            ),
+            ("only an invisible named layer", serde_json::json!([hidden])),
+            ("no children at all", serde_json::json!([])),
+        ];
+
+        for (what, children) in cases {
+            let frame = band("Screen · /matters", 0.0, 1440.0, 900.0, children);
+            let ledger = build_ledger(
+                "KEY",
+                &[capture(
+                    serde_json::json!({"1:2": {"document": frame.clone()}}),
+                )],
+                &config(),
+                "a test",
+            )
+            .unwrap();
+            let row = ledger.row("1:2").unwrap();
+            match authority_child(&frame, &config()).map(|selected| selected.name) {
+                Some(name) => assert_eq!(
+                    name, row.authority_layer,
+                    "{what}: the raw resolution and the ledger name different layers"
+                ),
+                None => assert!(
+                    row.authority_by != AuthorityBy::NamedLayer,
+                    "{what}: the raw resolution found no named layer and the ledger found {:?}",
+                    row.authority_layer
+                ),
+            }
+        }
     }
 
     // -- self-disclaiming frames ---------------------------------------------
