@@ -593,16 +593,24 @@ fn box_of(value: &serde_json::Value) -> Option<Box2> {
 /// success. About a tenth of the frames on the subject estate have that shape.
 /// Two implementations of "which layer governs" is one implementation and a
 /// disagreement, and this is the shape the disagreement took.
+fn current_layers<'a, T>(
+    children: &'a [T],
+    config: &ScreensConfig,
+    name_of: impl Fn(&T) -> &str,
+) -> Vec<&'a T> {
+    children
+        .iter()
+        .filter(|c| authority_of(name_of(c), config) == Some(Authority::Current))
+        .collect()
+}
+
 fn governing<'a, T>(
     children: &'a [T],
     config: &ScreensConfig,
     name_of: impl Fn(&T) -> &str,
     visible: impl Fn(&T) -> bool,
 ) -> Option<&'a T> {
-    let labelled: Vec<&T> = children
-        .iter()
-        .filter(|c| authority_of(name_of(c), config) == Some(Authority::Current))
-        .collect();
+    let labelled = current_layers(children, config, name_of);
     // Prefer a VISIBLE one. An invisible current layer is a draft the designer
     // switched off, and building from it produces a screen nobody can see in
     // Figma.
@@ -613,13 +621,41 @@ fn governing<'a, T>(
         .or_else(|| labelled.first().copied())
 }
 
+fn strict_governing<'a, T>(
+    children: &'a [T],
+    config: &ScreensConfig,
+    name_of: impl Fn(&T) -> &str,
+    visible: impl Fn(&T) -> bool,
+) -> Result<&'a T> {
+    let labelled = current_layers(children, config, name_of);
+    let visible: Vec<&T> = labelled
+        .iter()
+        .copied()
+        .filter(|child| visible(child))
+        .collect();
+    match visible.as_slice() {
+        [chosen] => Ok(*chosen),
+        [] if labelled.is_empty() => Err(VdsError::precondition(
+            "the staged frame has no named CURRENT SOURCE authority container. A write \
+             cannot safely read direct frame children or guess which nested subtree governs.",
+        )),
+        [] => Err(VdsError::precondition(
+            "the staged frame has no VISIBLE CURRENT SOURCE authority container. The only \
+             named candidates are hidden, so a write cannot safely target a draft subtree.",
+        )),
+        _ => Err(VdsError::precondition(
+            "the staged frame has multiple VISIBLE CURRENT SOURCE authority containers. \
+             Authority is ambiguous, so no diff or apply target is safe.",
+        )),
+    }
+}
+
 /// The child of a raw capture document that GOVERNS the frame, with its name.
 ///
 /// The same precedence [`authority_root`] applies to the derived tree, over the
-/// bytes the API returned. `crates/vds-figma/src/stage.rs` reads a frame through
-/// this, so the diff and the ledger agree about which subtree is the frame's
-/// authority; `the_two_authority_resolutions_agree_on_one_document` holds that
-/// agreement by measurement rather than by this sentence.
+/// bytes the API returned. The staged reader uses the strict sibling resolver
+/// below, which shares the same candidate and visibility rule but refuses a
+/// missing or ambiguous write target.
 pub fn authority_child<'a>(
     document: &'a serde_json::Value,
     config: &ScreensConfig,
@@ -647,6 +683,54 @@ pub fn authority_child<'a>(
         .and_then(|v| v.as_str())
         .map(normalise_node_id);
     Some(AuthoritySelection {
+        name,
+        node_id,
+        document: chosen,
+    })
+}
+
+/// Resolve the container a STAGED WRITE may touch.
+///
+/// The frame ledger can report an unlabelled frame as frame-owned because it is
+/// an inventory. A writer has a narrower obligation: it must name the exact
+/// CURRENT SOURCE subtree it will hand to the bridge. Missing authority and
+/// more than one visible CURRENT SOURCE layer are therefore refusals, never a
+/// fallback to the frame or to whichever sibling happens to come first.
+pub fn stage_authority_child<'a>(
+    document: &'a serde_json::Value,
+    config: &ScreensConfig,
+) -> Result<AuthoritySelection<'a>> {
+    let children = document
+        .get("children")
+        .and_then(|value| value.as_array())
+        .ok_or_else(|| {
+            VdsError::precondition(
+                "the staged frame has no children array, so it carries no named CURRENT SOURCE \
+                 authority container. A write cannot safely fall back to the frame itself.",
+            )
+        })?;
+    let chosen = strict_governing(
+        children,
+        config,
+        |child| {
+            child
+                .get("name")
+                .and_then(|value| value.as_str())
+                .unwrap_or_default()
+        },
+        |child| child.get("visible").and_then(|value| value.as_bool()) != Some(false),
+    )?;
+    let name = chosen
+        .get("name")
+        .and_then(|value| value.as_str())
+        .unwrap_or_default()
+        .to_owned();
+    let node_id = chosen
+        .get("id")
+        .and_then(|value| value.as_str())
+        .map(normalise_node_id)
+        .filter(|value| !value.trim().is_empty());
+    Ok(AuthoritySelection {
         name,
         node_id,
         document: chosen,

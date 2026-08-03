@@ -1078,6 +1078,14 @@ impl StagePlan {
     }
 
     pub fn untrustworthy_because(&self) -> Result<Option<String>> {
+        if self.container.node_id.trim().is_empty() || self.container.name.trim().is_empty() {
+            return Ok(Some(
+                "the plan names no complete authority container. Every operation must carry a \
+                 non-empty node id and name for the exact subtree the apply is allowed to touch; \
+                 a missing scope cannot be resolved safely."
+                    .to_owned(),
+            ));
+        }
         let recomputed = self.compute_content_digest()?;
         if recomputed != self.content_digest {
             return Ok(Some(format!(
@@ -1882,6 +1890,20 @@ mod tests {
             why.contains("wrong sibling") || why.contains("outside the container"),
             "{why}"
         );
+    }
+
+    #[test]
+    fn a_plan_refuses_a_missing_authority_container() {
+        let mut plan = plan_over(
+            one_create(),
+            StageGate::ALL.into_iter().map(cleared).collect(),
+        );
+        plan.container.name.clear();
+        let why = plan
+            .untrustworthy_because()
+            .unwrap()
+            .expect("an apply without a resolved authority container is unsafe");
+        assert!(why.contains("authority container"), "{why}");
     }
 
     /// The one verb that can lose a designer's work is published on its own.

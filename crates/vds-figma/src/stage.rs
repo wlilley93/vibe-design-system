@@ -51,9 +51,10 @@
 //! and the verification re-read the same frame the same wrong way and found the
 //! delta empty. About a tenth of the frames on the subject estate have that shape,
 //! and the frame ledger has resolved the authority layer since it was written.
-//! [`crate::frames::authority_child`] is now the ONE place that precedence lives,
-//! and [`FrameReading::bands_under`] says on the reading's face which subtree the
-//! bands were read from.
+//! The shared `governing` helper is now the ONE place that precedence lives,
+//! with the staged reader's strict resolver refusing anything that is not one
+//! visible CURRENT SOURCE layer. [`FrameReading::bands_under`] says on the
+//! reading's face which subtree the bands came from.
 //!
 //! # SILENCE IS NOT PERMISSION TO DELETE
 //!
@@ -124,12 +125,12 @@ pub struct FrameReading {
     pub node_id: String,
     pub frame_name: String,
     pub frame_box: BandBox,
-    /// The exact subtree whose direct children were read as bands. For an
-    /// unlabelled frame this is the frame itself; for a named current-source
-    /// layer it is that layer. Every emitted operation carries the same scope.
+    /// The exact named CURRENT SOURCE subtree whose direct children were read as
+    /// bands. Every emitted operation carries the same scope.
     pub container: StageContainer,
-    /// The NAME of the authority layer the bands were read from, or `None` where
-    /// the frame's own children are the bands.
+    /// The NAME of the named CURRENT SOURCE authority layer the bands were read
+    /// from. Staged reads refuse an unlabelled frame rather than using its direct
+    /// children as an implicit write target.
     ///
     /// On the reading's face because it changes what every operation below is
     /// about. A reader who cannot see which subtree was read cannot tell a frame
@@ -242,41 +243,25 @@ fn reading_of(
     let mut bands = Vec::new();
     let mut untouched = Vec::new();
 
-    // WHERE THE BANDS LIVE. Resolved through the authority layer where the frame
-    // names one, by the same precedence the frame ledger uses, because a diff that
-    // looked only at the frame's own children saw no bands under a `CURRENT
-    // SOURCE` layer and created a second full set beside the ones already drawn.
-    let (bands_under, container, scope) = match crate::frames::authority_child(document, config) {
-        Some(selected) => {
-            let Some(selected_id) = selected.node_id.clone() else {
-                return Err(VdsError::precondition(format!(
-                    "the authority layer {:?} in frame {} has no node id. A staged operation \
-                     cannot be scoped to a name shared by a sibling, so this capture is refused \
-                     rather than risking a write to the wrong subtree.",
-                    selected.name, node_id
-                )));
-            };
-            (
-                Some(selected.name.clone()),
-                selected.document,
-                StageContainer {
-                    node_id: selected_id,
-                    name: selected.name,
-                },
-            )
-        }
-        None => (
-            None,
-            document,
-            StageContainer {
-                node_id: node_id.to_owned(),
-                name: document
-                    .get("name")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default()
-                    .to_owned(),
-            },
-        ),
+    // WHERE THE BANDS LIVE. A staged write must resolve a NAMED CURRENT SOURCE
+    // layer. Falling back to the frame's direct children is the defect this
+    // reader exists to prevent: a frame whose bands are nested under that layer
+    // would look empty, and the diff would create a second full set beside the
+    // first. Ambiguous or missing authority refuses before any operation exists.
+    let selected = crate::frames::stage_authority_child(document, config)?;
+    let Some(selected_id) = selected.node_id.clone() else {
+        return Err(VdsError::precondition(format!(
+            "the authority layer {:?} in frame {} has no node id. A staged operation \
+             cannot be scoped to a name shared by a sibling, so this capture is refused \
+             rather than risking a write to the wrong subtree.",
+            selected.name, node_id
+        )));
+    };
+    let bands_under = Some(selected.name.clone());
+    let container = selected.document;
+    let scope = StageContainer {
+        node_id: selected_id,
+        name: selected.name,
     };
     // The authority layer's SIBLINGS. Out of every operation's reach - a delete
     // reaches one band inside the resolved container and nothing else - and
@@ -301,10 +286,16 @@ fn reading_of(
 
     let children = container
         .get("children")
-        .and_then(|v| v.as_array())
-        .cloned()
-        .unwrap_or_default();
-    for child in &children {
+        .and_then(|value| value.as_array())
+        .ok_or_else(|| {
+            VdsError::precondition(format!(
+                "the authority layer {:?} in frame {} carries no children array. The capture is \
+                 incomplete, so a staged read refuses rather than treating an unseen subtree as \
+                 empty and creating duplicate bands.",
+                scope.name, node_id
+            ))
+        })?;
+    for child in children {
         // Figma omits `visible` when it is true. An invisible layer is a
         // drawing the designer switched off, and staging over one would write
         // into something nobody can see in the file.
@@ -844,7 +835,13 @@ mod tests {
                         "name": "Screen",
                         "type": "FRAME",
                         "absoluteBoundingBox": {"x": 0.0, "y": 0.0, "width": SHELL_WIDTH, "height": SHELL_HEIGHT},
-                        "children": children,
+                        "children": [{
+                            "id": "8:0",
+                            "name": "CURRENT SOURCE · test",
+                            "type": "FRAME",
+                            "absoluteBoundingBox": {"x": 0.0, "y": 0.0, "width": SHELL_WIDTH, "height": SHELL_HEIGHT},
+                            "children": children,
+                        }],
                     }
                 }
             }
@@ -1363,6 +1360,24 @@ mod tests {
              empty. The naive reading emitted a CREATE for each of these and the apply drew a \
              second full set of bands: {operations:?}"
         );
+        let plan = emit_plan(
+            &StageId::parse("STG-0001").unwrap(),
+            &wanted,
+            Digest::of_text("intent"),
+            &reading,
+            "design/captures/matters.json",
+            Digest::of_text("capture"),
+            operations.clone(),
+            all_cleared(),
+            Timestamp::fixed(2026, 8, 3, 10, 0, 0),
+        )
+        .unwrap();
+        assert_eq!(plan.container, reading.container);
+        assert!(
+            plan.operations()
+                .all(|operation| operation.container() == &plan.container),
+            "the apply consumes a plan whose operations must target the same authority subtree"
+        );
 
         // The destructive arm is also pinned to that same container. The
         // legacy sibling carries a header too, so a bridge that ignores the
@@ -1379,6 +1394,76 @@ mod tests {
         assert_eq!(deletes.len(), 1, "{deletes:?}");
         assert_eq!(deletes[0].container(), &reading.container);
         assert_eq!(deletes[0].band(), ReviewRegion::Header);
+    }
+
+    #[test]
+    fn a_staged_read_refuses_a_missing_current_source_authority() {
+        let document = serde_json::json!({
+            "id": "1:2",
+            "name": "Screen · /matters",
+            "type": "FRAME",
+            "absoluteBoundingBox": {"x": 0.0, "y": 0.0, "width": SHELL_WIDTH, "height": SHELL_HEIGHT},
+            "children": [{
+                "id": "9:1",
+                "name": "header",
+                "absoluteBoundingBox": {"x": 0.0, "y": 0.0, "width": 1400.0, "height": 48.0}
+            }]
+        });
+        let capture = serde_json::json!({"nodes": {"1:2": {"document": document}}}).to_string();
+        let error = read_frame(&capture, "1:2", &config()).unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("no named CURRENT SOURCE authority"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn a_staged_read_refuses_an_authority_capture_without_children() {
+        let document = serde_json::json!({
+            "id": "1:2",
+            "name": "Screen · /matters",
+            "type": "FRAME",
+            "absoluteBoundingBox": {"x": 0.0, "y": 0.0, "width": SHELL_WIDTH, "height": SHELL_HEIGHT},
+            "children": [{
+                "id": "9:7",
+                "name": "CURRENT SOURCE · /matters",
+                "absoluteBoundingBox": {"x": 0.0, "y": 0.0, "width": SHELL_WIDTH, "height": SHELL_HEIGHT}
+            }]
+        });
+        let capture = serde_json::json!({"nodes": {"1:2": {"document": document}}}).to_string();
+        let error = read_frame(&capture, "1:2", &config()).unwrap_err();
+        assert!(
+            error.to_string().contains("carries no children array"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn a_staged_read_refuses_ambiguous_current_source_authority() {
+        let authority = |id: &str| {
+            serde_json::json!({
+                "id": id,
+                "name": "CURRENT SOURCE · /matters",
+                "absoluteBoundingBox": {"x": 0.0, "y": 0.0, "width": SHELL_WIDTH, "height": SHELL_HEIGHT},
+                "children": [{
+                    "id": format!("{id}-band"),
+                    "name": "header",
+                    "absoluteBoundingBox": {"x": 0.0, "y": 0.0, "width": 1400.0, "height": 48.0}
+                }]
+            })
+        };
+        let document = serde_json::json!({
+            "id": "1:2",
+            "name": "Screen · /matters",
+            "type": "FRAME",
+            "absoluteBoundingBox": {"x": 0.0, "y": 0.0, "width": SHELL_WIDTH, "height": SHELL_HEIGHT},
+            "children": [authority("9:1"), authority("9:2")]
+        });
+        let capture = serde_json::json!({"nodes": {"1:2": {"document": document}}}).to_string();
+        let error = read_frame(&capture, "1:2", &config()).unwrap_err();
+        assert!(error.to_string().contains("multiple VISIBLE"), "{error}");
     }
 
     /// A named authority layer that is genuinely empty is still the selected
@@ -1616,10 +1701,10 @@ mod tests {
     #[test]
     fn a_plan_larger_than_one_chunk_is_split_and_every_operation_survives() {
         let mut operations = Vec::new();
-        let container = StageContainer {
-            node_id: "1:2".into(),
-            name: "Screen".into(),
-        };
+        let reading = read_frame(&capture("1:2", &[]), "1:2", &config())
+            .unwrap()
+            .unwrap();
+        let container = reading.container.clone();
         for i in 0..400u32 {
             operations.push(StageOperation::SetBox {
                 band: ReviewRegion::ALL[(i % 7) as usize],
@@ -1628,9 +1713,6 @@ mod tests {
             });
         }
         let wanted = intent(vec![], 1);
-        let reading = read_frame(&capture("1:2", &[]), "1:2", &config())
-            .unwrap()
-            .unwrap();
         let plan = emit_plan(
             &StageId::parse("STG-0001").unwrap(),
             &wanted,

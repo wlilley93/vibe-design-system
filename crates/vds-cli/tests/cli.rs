@@ -1528,7 +1528,9 @@ fn stage_add_plans_against_a_saved_capture_and_a_second_plan_emits_nothing() {
         "design/captures/matters.json",
         "{\"nodes\":{\"1:2\":{\"document\":{\"id\":\"1:2\",\"name\":\"Screen\",\
          \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1400,\"height\":900},\
-         \"children\":[]}}}}",
+         \"children\":[{\"id\":\"9:7\",\"name\":\"CURRENT SOURCE - /matters\",\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1400,\"height\":900},\
+         \"children\":[]}]}}}}",
     );
     f.vds(&[
         "stage",
@@ -1550,11 +1552,13 @@ fn stage_add_plans_against_a_saved_capture_and_a_second_plan_emits_nothing() {
         "design/captures/matters.json",
         "{\"nodes\":{\"1:2\":{\"document\":{\"id\":\"1:2\",\"name\":\"Screen\",\
          \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1400,\"height\":900},\
+         \"children\":[{\"id\":\"9:7\",\"name\":\"CURRENT SOURCE - /matters\",\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1400,\"height\":900},\
          \"children\":[\
          {\"id\":\"9:1\",\"name\":\"header\",\
          \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1400,\"height\":48}},\
          {\"id\":\"9:2\",\"name\":\"body_rows\",\
-         \"absoluteBoundingBox\":{\"x\":0,\"y\":48,\"width\":1400,\"height\":824}}\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":48,\"width\":1400,\"height\":824}}]}\
          ]}}}}",
     );
     f.vds(&[
@@ -1687,13 +1691,15 @@ fn stage_plan_leaves_an_unmentioned_band_alone_and_publishes_a_delete_loudly() {
         "design/captures/matters.json",
         "{\"nodes\":{\"1:2\":{\"document\":{\"id\":\"1:2\",\"name\":\"Screen\",\
          \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1400,\"height\":900},\
+         \"children\":[{\"id\":\"9:7\",\"name\":\"CURRENT SOURCE - /matters\",\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1400,\"height\":900},\
          \"children\":[\
          {\"id\":\"9:1\",\"name\":\"header\",\
          \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1400,\"height\":48}},\
          {\"id\":\"9:2\",\"name\":\"facets\",\
          \"absoluteBoundingBox\":{\"x\":0,\"y\":48,\"width\":1400,\"height\":40}},\
          {\"id\":\"9:3\",\"name\":\"rail\",\
-         \"absoluteBoundingBox\":{\"x\":0,\"y\":88,\"width\":56,\"height\":784}}\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":88,\"width\":56,\"height\":784}}]}\
          ]}}}}",
     );
     f.write(
@@ -1869,7 +1875,9 @@ fn stage_plan_refuses_where_the_declared_extent_is_not_the_frame_the_capture_dra
         "design/captures/matters.json",
         "{\"nodes\":{\"1:2\":{\"document\":{\"id\":\"1:2\",\"name\":\"Screen\",\
          \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1344,\"height\":824},\
-         \"children\":[]}}}}",
+         \"children\":[{\"id\":\"9:7\",\"name\":\"CURRENT SOURCE - /matters\",\
+         \"absoluteBoundingBox\":{\"x\":0,\"y\":0,\"width\":1344,\"height\":824},\
+         \"children\":[]}]}}}}",
     );
     let run = f.vds(&[
         "stage",

@@ -589,6 +589,16 @@ fn apply(project: &vds_core::Project, store: &Store, args: &ApplyArgs) -> Result
             "the plan cannot be relied on, so nothing was applied: {why}"
         )));
     }
+    if vds_figma::frames::authority_of(&plan.container.name, &project.config.screens)
+        != Some(vds_figma::frames::Authority::Current)
+    {
+        return Err(VdsError::precondition(format!(
+            "the plan's authority container {:?} is not a named CURRENT SOURCE layer under \
+             [screens] authority_markers. Apply refuses rather than handing a bridge an \
+             unresolvable or ambiguous parent.",
+            plan.container.name
+        )));
+    }
     if plan.intent_digest != record.intent_digest {
         return Err(VdsError::precondition(format!(
             "the plan was emitted from an intent digesting to {} and the record pins {}. An \
