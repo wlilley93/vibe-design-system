@@ -175,7 +175,23 @@ function cssVars(tokens) {
    */
   const type = TYPE_SCALE[scale.type] ?? 1;
   const measure = (px) => `${Math.round(px * type)}px`;
-  lines.push(`  --container: 1100px;`);
+  /*
+   * THE PAGE FRAME IS TWO NUMBERS, NOT ONE, and only one of them was ever a token.
+   * `--container` capped the content; the inset from the viewport edge was written
+   * `calc(var(--space) * 8)` in eight separate section rules and omitted entirely from
+   * four more, so `.stats`, `.gallery`, `.logos` and `.timeline` ran flush to the edge
+   * while every neighbour sat inset. Four page-level sections also carried
+   * `margin: 0 auto` with no `max-width`, which centres nothing.
+   *
+   * That is the same defect the five roles above were collapsed to fix, one level out:
+   * a decision restated per-section drifts per-section. `--gutter` is that decision,
+   * stated once. Both are overridable per project, because the frame is the one layout
+   * choice a brand actually has an opinion about - a 1440 design drawn to a 115px margin
+   * is `container: 1210px`, and nothing else in the sheet has to move.
+   */
+  const layout = tokens.layout || {};
+  lines.push(`  --container: ${layout.container || '1100px'};`);
+  lines.push(`  --gutter: ${layout.gutter || 'calc(var(--space) * 8)'};`);
   lines.push(`  --measure-wide: ${measure(800)};`);
   lines.push(`  --measure-form: ${measure(720)};`);
   lines.push(`  --measure: ${measure(640)};`);
@@ -242,7 +258,7 @@ body {
 }
 a { color: var(--color-accent); }
 
-.hero { padding: calc(var(--space) * 24) calc(var(--space) * 8); }
+.hero { padding-block: calc(var(--space) * 24); }
 .hero--centered { text-align: center; }
 .hero--centered .hero__inner { max-width: var(--measure); margin: 0 auto; }
 .hero--split {
@@ -271,7 +287,7 @@ a { color: var(--color-accent); }
   aspect-ratio: 4 / 3;
 }
 
-.footer { border-top: var(--border-weight) solid var(--color-border); padding: calc(var(--space) * 8); }
+.footer { border-top: var(--border-weight) solid var(--color-border); padding-block: calc(var(--space) * 8); }
 .footer--simple .footer__row {
   display: flex;
   align-items: center;
@@ -304,7 +320,7 @@ a { color: var(--color-accent); }
   border-top: var(--border-weight) solid var(--color-border);
 }
 
-.nav { display: flex; align-items: center; justify-content: space-between; padding: calc(var(--space) * 5) calc(var(--space) * 8); border-bottom: var(--border-weight) solid var(--color-border); }
+.nav { display: flex; align-items: center; justify-content: space-between; padding-block: calc(var(--space) * 5); border-bottom: var(--border-weight) solid var(--color-border); }
 .nav__mark { font-weight: 700; }
 .nav__links, .nav__side { display: flex; gap: calc(var(--space) * 6); align-items: center; }
 .nav__link { color: var(--color-ink); text-decoration: none; line-height: var(--lh-label); font-size: var(--text-sm); }
@@ -314,7 +330,7 @@ a { color: var(--color-accent); }
 .nav--centered .nav__mark { position: absolute; left: 50%; transform: translateX(-50%); }
 .nav--centered { position: relative; }
 
-.pricing { padding: calc(var(--space) * 16) calc(var(--space) * 8); max-width: var(--container); margin: 0 auto; }
+.pricing { padding-block: calc(var(--space) * 16); }
 .pricing__heading { line-height: var(--lh-heading); font-size: var(--text-3xl); text-align: center; margin: 0 0 calc(var(--space) * 10); }
 .pricing__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(var(--space) * 6); }
 .pricing__card { border: var(--border-weight) solid var(--color-border); border-radius: var(--radius-lg); padding: calc(var(--space) * 6); box-shadow: var(--shadow); }
@@ -327,7 +343,7 @@ a { color: var(--color-accent); }
 .pricing__matrix { width: 100%; border-collapse: collapse; }
 .pricing__matrix th, .pricing__matrix td { border-bottom: var(--border-weight) solid var(--color-border); padding: calc(var(--space) * 3); text-align: left; }
 
-.testimonials { padding: calc(var(--space) * 16) calc(var(--space) * 8); max-width: var(--container); margin: 0 auto; }
+.testimonials { padding-block: calc(var(--space) * 16); }
 .testimonials__heading { line-height: var(--lh-heading); font-size: var(--text-3xl); text-align: center; margin: 0 0 calc(var(--space) * 10); }
 .testimonials__gridInner { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(var(--space) * 6); }
 .testimonials__card { border: var(--border-weight) solid var(--color-border); border-radius: var(--radius-lg); padding: calc(var(--space) * 6); margin: 0; box-shadow: var(--shadow); }
@@ -337,7 +353,7 @@ a { color: var(--color-accent); }
 .testimonials__big { font-size: var(--text-3xl); line-height: var(--lh-heading); margin: 0 0 calc(var(--space) * 6); }
 .testimonials__attribution { color: var(--color-muted); }
 
-.features { padding: calc(var(--space) * 16) calc(var(--space) * 8); max-width: var(--container); margin: 0 auto; }
+.features { padding-block: calc(var(--space) * 16); }
 .features__heading { line-height: var(--lh-heading); font-size: var(--text-3xl); text-align: center; margin: 0 0 calc(var(--space) * 10); }
 .features__gridInner { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(var(--space) * 8); }
 .features__item h3 { margin: 0 0 calc(var(--space) * 2); line-height: var(--lh-heading); font-size: var(--text-md); }
@@ -346,7 +362,7 @@ a { color: var(--color-accent); }
 .features__matrix th, .features__matrix td { border-bottom: var(--border-weight) solid var(--color-border); padding: calc(var(--space) * 3); text-align: center; }
 .features__matrix td:first-child, .features__matrix th:first-child { text-align: left; }
 
-.faq { padding: calc(var(--space) * 16) calc(var(--space) * 8); max-width: var(--measure-wide); margin: 0 auto; }
+.faq { padding-block: calc(var(--space) * 16); max-width: var(--measure-wide); margin: 0 auto; }
 .faq__heading { line-height: var(--lh-heading); font-size: var(--text-3xl); text-align: center; margin: 0 0 calc(var(--space) * 10); }
 .faq__item { border-bottom: var(--border-weight) solid var(--color-border); padding: calc(var(--space) * 4) 0; }
 .faq__item summary { cursor: pointer; font-weight: 600; }
@@ -355,7 +371,7 @@ a { color: var(--color-accent); }
 .faq__pair h3 { margin: 0 0 calc(var(--space) * 2); line-height: var(--lh-heading); font-size: var(--text-md); }
 .faq__pair p { color: var(--color-muted); margin: 0; line-height: var(--lh-body); font-size: var(--text-sm); }
 
-.cta { padding: calc(var(--space) * 16) calc(var(--space) * 8); text-align: center; background: var(--color-surface); }
+.cta { padding-block: calc(var(--space) * 16); text-align: center; background: var(--color-surface); }
 .cta h2 { line-height: var(--lh-heading); font-size: var(--text-3xl); margin: 0 0 calc(var(--space) * 3); }
 .cta p { color: var(--color-muted); margin: 0 0 calc(var(--space) * 6); }
 .cta__button { display: inline-block; background: var(--color-accent); color: var(--color-accentInk); text-decoration: none; padding: calc(var(--space) * 3) calc(var(--space) * 6); border-radius: var(--button-radius); font-weight: 600; border: none; line-height: var(--lh-label); font-size: var(--text-md); cursor: pointer; }
@@ -370,7 +386,7 @@ a { color: var(--color-accent); }
 .sidebar__group { margin-bottom: calc(var(--space) * 5); }
 .sidebar__groupTitle { line-height: var(--lh-label); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-muted); margin: 0 0 calc(var(--space) * 2) calc(var(--space) * 3); }
 
-.team { padding: calc(var(--space) * 16) calc(var(--space) * 8); max-width: var(--container); margin: 0 auto; }
+.team { padding-block: calc(var(--space) * 16); }
 .team__heading { line-height: var(--lh-heading); font-size: var(--text-3xl); text-align: center; margin: 0 0 calc(var(--space) * 10); }
 .team__gridInner { display: grid; grid-template-columns: repeat(4, 1fr); gap: calc(var(--space) * 6); }
 .team__photo { aspect-ratio: 1; background: var(--color-surface); border: var(--border-weight) solid var(--color-border); border-radius: var(--radius-lg); margin-bottom: calc(var(--space) * 3); }
@@ -382,7 +398,7 @@ a { color: var(--color-accent); }
 .team__row h3 span { display: block; font-weight: 400; color: var(--color-muted); line-height: var(--lh-heading); font-size: var(--text-sm); }
 .team__row p { margin: calc(var(--space) * 1) 0 0; color: var(--color-muted); line-height: var(--lh-body); font-size: var(--text-sm); }
 
-.contact { padding: calc(var(--space) * 16) calc(var(--space) * 8); max-width: var(--measure); margin: 0 auto; }
+.contact { padding-block: calc(var(--space) * 16); max-width: var(--measure); margin: 0 auto; }
 .contact--split { max-width: var(--container); display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--space) * 12); }
 .contact__email { color: var(--color-accent); font-weight: 600; }
 .contact__form { display: flex; flex-direction: column; gap: calc(var(--space) * 3); }
@@ -481,7 +497,7 @@ a { color: var(--color-accent); }
 .fieldset__submit { background: var(--color-accent); color: var(--color-accentInk); border: none; padding: calc(var(--space) * 3) calc(var(--space) * 6); border-radius: var(--radius-sm); font: inherit; line-height: var(--lh-label); font-size: var(--text-sm); font-weight: 600; cursor: pointer; }
 .fieldset__cancel { line-height: var(--lh-label); font-size: var(--text-sm); color: var(--color-muted); text-decoration: none; }
 
-.empty { padding: calc(var(--space) * 16) calc(var(--space) * 8); text-align: center; max-width: var(--measure-narrow); margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: calc(var(--space) * 3); }
+.empty { padding-block: calc(var(--space) * 16); text-align: center; max-width: var(--measure-narrow); margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: calc(var(--space) * 3); }
 .empty__mark { width: calc(var(--space) * 16); height: calc(var(--space) * 16); border: var(--border-weight) solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
 .empty__title { line-height: var(--lh-heading); font-size: var(--text-lg); margin: calc(var(--space) * 2) 0 0; }
 .empty__body { line-height: var(--lh-body); font-size: var(--text-sm); color: var(--color-muted); margin: 0; }
@@ -550,7 +566,7 @@ a { color: var(--color-accent); }
 .md__master { border-right: var(--border-weight) solid var(--color-border); }
 .md__detail { min-width: 0; }
 
-.notfound { padding: calc(var(--space) * 24) calc(var(--space) * 8); text-align: center; max-width: var(--measure-narrow); margin: 0 auto; }
+.notfound { padding-block: calc(var(--space) * 24); text-align: center; max-width: var(--measure-narrow); margin: 0 auto; }
 .notfound__code { color: var(--color-muted); font-family: var(--font-mono); margin: 0 0 calc(var(--space) * 3); }
 .notfound h1 { line-height: var(--lh-heading); font-size: var(--text-3xl); margin: 0 0 calc(var(--space) * 3); }
 .notfound p { color: var(--color-muted); margin: 0 0 calc(var(--space) * 6); }
@@ -818,7 +834,7 @@ a { color: var(--color-accent); }
 /* Logo strip. Text wordmarks, not images: a generated site has no logo files, and a grey box
    where a logo goes says "an image failed" where the company name set in the page's own type
    says "this is a placeholder for Acme". */
-.logos { padding: calc(var(--space) * 12) 0; text-align: center; }
+.logos { padding-block: calc(var(--space) * 12); text-align: center; }
 .logos__caption { line-height: var(--lh-label); font-size: var(--text-xs); color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 calc(var(--space) * 6); }
 .logos__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: calc(var(--space) * 10); }
 .logos__mark { line-height: var(--lh-label); font-size: var(--text-lg); font-weight: 600; color: var(--color-muted); }
@@ -830,7 +846,7 @@ a { color: var(--color-accent); }
 
 /* Stats. A figure without a basis is decoration, so the basis has a rule of its own rather
    than being an optional afterthought. */
-.stats { padding: calc(var(--space) * 14) 0; }
+.stats { padding-block: calc(var(--space) * 14); }
 .stats__heading { line-height: var(--lh-heading); font-size: var(--text-3xl); margin: 0 0 calc(var(--space) * 8); max-width: var(--measure); }
 .stats__row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: calc(var(--space) * 8); }
 .stats__item { display: flex; flex-direction: column; gap: calc(var(--space) * 1); }
@@ -845,7 +861,7 @@ a { color: var(--color-accent); }
 
 /* Gallery and portfolio. Every tile's alt text is the brief for the image that does not exist
    yet, which is why the media element carries it rather than a decorative div. */
-.gallery { padding: calc(var(--space) * 14) 0; }
+.gallery { padding-block: calc(var(--space) * 14); }
 .gallery__heading { line-height: var(--lh-heading); font-size: var(--text-3xl); margin: 0 0 calc(var(--space) * 8); max-width: var(--measure); }
 .gallery__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: calc(var(--space) * 5); }
 .gallery__tile { margin: 0; display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
@@ -858,7 +874,7 @@ a { color: var(--color-accent); }
 
 /* Timeline. A record of what happened, so it takes DATES and never a current index - that is
    the whole difference from progresssteps, which is about where the READER is. */
-.timeline { padding: calc(var(--space) * 14) 0; }
+.timeline { padding-block: calc(var(--space) * 14); }
 .timeline__heading { line-height: var(--lh-heading); font-size: var(--text-3xl); margin: 0 0 calc(var(--space) * 8); max-width: var(--measure); }
 .timeline__list { list-style: none; margin: 0; padding: 0; max-width: var(--measure-form); }
 .timeline__entry { display: flex; gap: calc(var(--space) * 5); }
@@ -873,6 +889,87 @@ a { color: var(--color-accent); }
 .timeline--horizontal .timeline__track { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: calc(var(--space) * 6); }
 .timeline__milestone { display: flex; flex-direction: column; gap: calc(var(--space) * 2); }
 .timeline--horizontal .timeline__rail { flex-direction: row; align-items: center; width: 100%; }
+
+/* THE PAGE FRAME, stated once and last so it wins.
+ *
+ * Before this, the inset from the viewport edge was written per-section: eight rules said
+ * calc(var(--space) * 8), and .stats, .gallery, .logos and .timeline said 0, so those four
+ * ran flush to the edge while their neighbours sat inset - visible on any page that puts a
+ * stats row under a features grid. Four more carried "margin: 0 auto" with no max-width,
+ * which centres nothing and reads, in a diff, exactly like centring something.
+ *
+ * A page-level section is one that is dropped straight onto a page, so it owns the frame.
+ * A section rendered INSIDE another block is not in this list and must not be: it would get
+ * the page gutter a second time, nested. That is why .otable, .banner and .card are absent
+ * even though they have padding of their own.
+ *
+ * Enforced by tests/render.test.js - the list below and the list of page-level blocks are
+ * checked against each other, so a new marketing block cannot join the library without
+ * either taking the frame or being named as deliberately full-bleed. */
+.nav, .hero, .features, .pricing, .testimonials, .faq, .cta, .contact, .team,
+.footer, .logos, .stats, .gallery, .timeline, .notfound, .empty {
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
+}
+/* The container goes on CONTENT sections only, and the exclusions are the argument.
+ *
+ * .faq, .contact, .empty and .notfound are prose and already declare a NARROWER measure
+ * (--measure-wide, --measure, --measure-narrow): widening them to the page would undo a
+ * reading-length decision that was made on purpose.
+ *
+ * .nav, .hero, .footer and .cta are BANDS - they carry a background or a rule that has to
+ * reach the viewport edge - so they take the gutter and cap their inner grid instead
+ * (.hero--split, .footer__row, .footer__grid, .footer__bottom, .cta--signup). Capping the
+ * band itself would pull its background in and leave a stripe of page either side. */
+.features, .pricing, .testimonials, .team,
+.logos, .stats, .gallery, .timeline {
+  max-width: var(--container);
+  margin-left: auto;
+  margin-right: auto;
+}
+/* DUAL-USE. .otable is page-level on a marketing page and NESTED inside .masterdetail,
+   which requires it. It cannot take the frame unconditionally: inside masterdetail that
+   would inset it a second time, inside a pane that is already inset. The child combinator
+   says exactly what is meant - the renderer joins top-level blocks as direct children of
+   body, so the child-combinator rule below matches the page-level use and nothing else. */
+body > .otable {
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
+  max-width: var(--container);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* The one band whose content had no cap: cta-1 is centred text, which at full page width
+   becomes a line nobody can track back to the start of. */
+.cta h2, .cta p { max-width: var(--measure-wide); margin-inline: auto; }
+
+/* Mobile. The frame collapses first, because a 115px gutter on a 390px screen leaves 160px
+   of readable width. Everything else here is a grid that must stop being a grid: a
+   four-column stats row on a phone is four columns of one word. */
+@media (max-width: 900px) {
+  :root { --gutter: calc(var(--space) * 6); }
+  .stats__row, .gallery__grid, .logos__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .features__gridInner, .testimonials__gridInner, .team__gridInner { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* hero-2's root IS the grid (.hero--split); there is no inner wrapper. The first
+     version of this rule targeted .hero__inner, which hero-1 has and hero-2 does not, so
+     the split hero kept two columns on a phone and squeezed its media to a stamp. */
+  .hero--split, .stats--claim, .contact--split, .timeline--horizontal .timeline__track {
+    grid-template-columns: minmax(0, 1fr);
+    display: grid;
+  }
+  .cta--signup { flex-direction: column; align-items: flex-start; gap: calc(var(--space) * 6); }
+}
+@media (max-width: 600px) {
+  :root { --gutter: calc(var(--space) * 4); }
+  .stats__row, .gallery__grid, .logos__grid,
+  .features__gridInner, .testimonials__gridInner, .team__gridInner,
+  .footer__cols, .pricing__grid { grid-template-columns: minmax(0, 1fr); }
+  .nav { flex-wrap: wrap; gap: calc(var(--space) * 3); }
+  .nav__links { flex-wrap: wrap; }
+  .otable { overflow-x: auto; }
+  .otable table { min-width: 34rem; }
+}
 `;
 
 /*

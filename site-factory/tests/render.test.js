@@ -102,6 +102,20 @@ test('the stylesheet holds no magic number: every value is a token or a document
     // A pill is "however round it takes", not a length. Any large number does the job and
     // 999px is the idiom; a --radius-pill token would be the same sentinel with a longer name.
     '999px',
+    // BREAKPOINTS CANNOT BE TOKENS. A media query is evaluated before the cascade, so
+    // `@media (max-width: var(--bp))` does not work in any browser - the custom property is
+    // not resolvable at that point. These two are therefore literals by necessity rather
+    // than by omission, which is exactly what this list is for.
+    //
+    // 900px is where a two-column page stops having two readable columns at this type ramp,
+    // and 600px is the widest phone in portrait. Both are chosen against the CONTENT, not
+    // against a device: the grids collapse when a column can no longer hold a phrase.
+    'max-width: 900px',
+    'max-width: 600px',
+    // The one width inside a component rather than on the page. A data table narrower than
+    // this stops being a table and becomes a list, so below it the table scrolls sideways
+    // inside its own box instead of squeezing the page. In rem so it tracks the type ramp.
+    'min-width: 34rem',
   ];
 
   let scrubbed = STRUCTURE_CSS;
@@ -147,6 +161,99 @@ test('the width tokens are all consumed, and none is a value nothing reads', () 
 
   const unused = widthish.filter((n) => !STRUCTURE_CSS.includes(`var(--${n})`));
   assert.deepEqual(unused, [], `width tokens declared and never read: ${unused.join(', ')}`);
+});
+
+test('every page-level section takes the page frame, and none centres nothing', () => {
+  // THE DEFECT THIS REPLACES: the inset from the viewport edge was restated in eight
+  // section rules and omitted from four, so .stats, .gallery, .logos and .timeline ran
+  // flush to the edge under neighbours that were inset. It was invisible in review
+  // because each rule was individually reasonable; only a page with both showed it.
+  const { STRUCTURE_CSS, BLOCKS } = require('../build.js');
+
+  // A page-level block is one a marketing page drops straight in, so it owns the frame.
+  // A nested block is rendered INSIDE another and must not take the gutter twice.
+  //
+  // The first version of this listed every type as nested, which made the partition check
+  // below `[] === []` - true for any input, including a new block nobody had classified.
+  // Two lists that must partition the registry is the check; one list is a formality.
+  const CLASS_OF_DUAL = { objecttable: 'otable' };
+  const PAGE_LEVEL = new Set([
+    'nav', 'hero', 'features', 'pricing', 'testimonials', 'faq', 'cta', 'contact',
+    'team', 'footer', 'logolist', 'stats', 'gallery', 'timeline', 'notfound',
+  ]);
+  const NESTED = new Set([
+    'card', 'banner', 'divider', 'objecttable', 'objectview', 'inspector', 'facetstrip',
+    'formfield', 'checkbox', 'radio', 'switch', 'segmentedcontrol', 'menu', 'toast',
+    'tooltip', 'notificationbadge', 'progressbar', 'progresssteps', 'pagination',
+    'pagecontrols', 'messagecard', 'systembanner', 'confirmdialog', 'draggablelist',
+    'emptystate', 'pagestate', 'sidebar', 'masterdetail',
+  ]);
+  // DUAL-USE: page-level on a marketing page AND nested inside another block, so it takes
+  // the frame only under a child combinator. Kept as its own category rather than forced
+  // into one of the two, because calling it either would make the frame wrong somewhere.
+  const DUAL = new Set(['objecttable']);
+  for (const t of DUAL) {
+    assert.match(STRUCTURE_CSS, new RegExp(`body > \\.${CLASS_OF_DUAL[t]}[\\s,{]`),
+      `${t} is dual-use and must be framed as a direct child of body, not unconditionally`);
+  }
+  const overlap = [...PAGE_LEVEL].filter((t) => NESTED.has(t) || DUAL.has(t));
+  assert.deepEqual(overlap, [], `block type(s) claimed as both page-level and nested: ${overlap.join(', ')}`);
+  const unaccounted = Object.keys(BLOCKS).filter((t) => !PAGE_LEVEL.has(t) && !NESTED.has(t) && !DUAL.has(t));
+  assert.deepEqual(unaccounted, [],
+    `block type(s) with no stated position on the page frame: ${unaccounted.join(', ')}`);
+
+  // Every page-level block's root class must appear in the frame selector list. This is the
+  // check that would have caught the original defect: .stats, .gallery, .logos and .timeline
+  // were page-level and absent from every gutter rule.
+  // SCAN THE SELECTOR, NOT THE PROSE. The first version searched the whole rule INCLUDING
+  // its comment, and the comment names .stats, .gallery, .logos and .timeline as the four
+  // that used to be missing - so the check matched the explanation of the bug and passed
+  // when the fix was removed. Verified by deleting .stats from the selector: still green.
+  // Strip comments first, then read only the selector text before the brace.
+  const CLASS_OF = { logolist: 'logos', objecttable: 'otable', emptystate: 'empty', pagestate: 'pstate' };
+  const noComments = STRUCTURE_CSS.replace(/\/\*[\s\S]*?\*\//g, '');
+  const gutterRule = noComments.match(/([^{}]*)\{[^{}]*padding-left: var\(--gutter\);[^{}]*\}/);
+  assert.ok(gutterRule, 'no rule in the stylesheet applies the page gutter');
+  const selectors = new Set(gutterRule[1].split(',').map((s) => s.trim()).filter(Boolean));
+  const missing = [...PAGE_LEVEL]
+    .map((t) => `.${CLASS_OF[t] || t}`)
+    .filter((cls) => !selectors.has(cls));
+  assert.deepEqual(missing, [],
+    `page-level section(s) that do not take the page gutter: ${missing.join(', ')}`);
+
+  // The gutter is stated ONCE. If a section rule sets a horizontal padding of its own it
+  // will fight the frame, and the winner is decided by source order rather than by intent.
+  const perSection = [...STRUCTURE_CSS.matchAll(
+    /^\.(nav|hero|features|pricing|testimonials|faq|cta|contact|team|footer|logos|stats|gallery|timeline|notfound|empty) \{([^}]*)\}/gm
+  )];
+  const restated = perSection
+    .filter(([, , body]) => /padding(-left|-right|-inline)?: [^;]*var\(--space\)[^;]*var\(--space\)/.test(body))
+    .map(([, cls]) => cls);
+  assert.deepEqual(restated, [],
+    `section(s) restating a horizontal inset instead of taking --gutter: ${restated.join(', ')}`);
+
+  // `margin: 0 auto` with no max-width centres nothing, and four rules carried it.
+  const dead = perSection
+    .filter(([, , body]) => /margin: 0 auto/.test(body) && !/max-width/.test(body))
+    .map(([, cls]) => cls);
+  assert.deepEqual(dead, [],
+    `section(s) centring with no max-width, which does nothing: ${dead.join(', ')}`);
+});
+
+test('the page frame is overridable, and the override reaches the CSS', () => {
+  // A token a project cannot set is the same as a hard-coded value with extra steps.
+  // --container was literally `1100px` in the emitter, so a brand drawn to a different
+  // page width had no way to say so except editing the engine.
+  const { cssVars } = require('../build.js');
+  const base = { colors: {}, font: {}, radius: {}, space: { unit: 4 }, scale: { density: 'comfortable', type: 'comfortable' } };
+
+  const dflt = cssVars(base);
+  assert.match(dflt, /--container: 1100px;/, 'the default page width is gone');
+  assert.match(dflt, /--gutter: calc\(var\(--space\) \* 8\);/, 'the default gutter is gone');
+
+  const custom = cssVars({ ...base, layout: { container: '1210px', gutter: '115px' } });
+  assert.match(custom, /--container: 1210px;/, 'a project cannot set its page width');
+  assert.match(custom, /--gutter: 115px;/, 'a project cannot set its gutter');
 });
 
 test('every font-size comes from the ramp and carries its role leading', () => {

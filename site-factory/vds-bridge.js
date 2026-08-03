@@ -181,6 +181,13 @@ const SURFACE = {
   screen_globs: '["manifests/*.json"]',
   library_dirs: '["blocks"]',
   component_extensions: '["js"]',
+  // The prefix that decides whether a component reference is ENFORCED or merely counted.
+  // `vds init` defaults it to `@/components/`, which is a Next.js path alias, and a
+  // site-factory project imports `./blocks/hero`. Every reference therefore fell into the
+  // counted-not-enforced carve-out - and a carve-out that swallows the whole surface reads
+  // exactly like a clean run. This file already rewrote three other Next.js defaults for
+  // that reason and left the one that decides enforcement.
+  governed_import_prefixes: '["./blocks/"]',
   // The ONE stylesheet the whole site shares. Renaming home.css to site.css took the
   // contrast proof offline: it REFUSED and ran nothing, with the right reason - "a caller
   // told that every boundary clears its floor, about a stylesheet that was never opened,
