@@ -276,6 +276,30 @@ mod tests {
         assert_eq!(schemas().unwrap(), schemas().unwrap());
     }
 
+    #[test]
+    fn signoff_schema_publishes_an_optional_durable_evidence_binding() {
+        let generated = schemas().unwrap();
+        let signoff: serde_json::Value = serde_json::from_str(&generated["signoff"]).unwrap();
+        assert!(
+            signoff["properties"].get("evidence").is_some(),
+            "the published sign-off contract omits external evidence"
+        );
+        let required = signoff["required"]
+            .as_array()
+            .expect("sign-off required fields");
+        assert!(
+            !required.iter().any(|field| field == "evidence"),
+            "existing live sign-offs would become invalid if evidence were required"
+        );
+        let binding = &signoff["definitions"]["SignOffEvidence"]["properties"];
+        for field in ["path", "digest", "frameLedgerDigest"] {
+            assert!(
+                binding.get(field).is_some(),
+                "external evidence does not publish {field}"
+            );
+        }
+    }
+
     /// A closed vocabulary and a new field reach the PUBLISHED contract, or the
     /// JSON and the Rust are two opinions about one shape.
     ///

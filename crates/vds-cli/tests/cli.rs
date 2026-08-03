@@ -150,6 +150,80 @@ impl Fixture {
             .expect(PASSED);
         id
     }
+
+    /// A local frame ledger with one registrable row and one row for each
+    /// Order-31 refusal. Built only from a saved capture: no Figma transport is
+    /// available or exercised by these tests.
+    fn signoff_ready(&self) -> &Self {
+        self.ready();
+        self.write(
+            "evidence/frames.json",
+            r#"{
+              "nodes": {
+                "1:2": {"document": {
+                  "id": "1:2", "name": "Screen /current",
+                  "children": [
+                    {"id": "10:1", "name": "CURRENT SOURCE · /current", "children": []}
+                  ]
+                }},
+                "2:2": {"document": {
+                  "id": "2:2", "name": "REFERENCE · /disclaimed", "children": []
+                }},
+                "3:2": {"document": {
+                  "id": "3:2", "name": "Screen /unlabelled", "children": []
+                }},
+                "4:2": {"document": {
+                  "id": "4:2", "name": "Screen /proposal",
+                  "children": [
+                    {"id": "40:1", "name": "body", "children": []}
+                  ]
+                }}
+              }
+            }"#,
+        );
+        self.vds(&[
+            "figma",
+            "frames",
+            "--file-key",
+            "KEY",
+            "--from",
+            "evidence/frames.json",
+        ])
+        .expect(PASSED);
+        self
+    }
+
+    fn frame_ledger_digest(&self) -> String {
+        let ledger = std::fs::read_to_string(self.root().join(".vds/ledgers/frames.yaml"))
+            .expect("frames ledger");
+        ledger
+            .lines()
+            .find_map(|line| line.strip_prefix("content_digest: "))
+            .expect("aggregate content digest")
+            .to_owned()
+    }
+
+    fn write_external_signoff_evidence(&self, relative: &str, signed_at: &str) -> PathBuf {
+        let value = serde_json::json!({
+            "schemaVersion": 1,
+            "kind": "external-principal-frame-signature",
+            "signedBy": "Principal",
+            "signedAt": signed_at,
+            "actualReply": "Signed off. proceed all",
+            "warrant": false,
+            "scope": {
+                "fileKey": "KEY",
+                "aggregateDigest": self.frame_ledger_digest(),
+            }
+        });
+        self.write(relative, &serde_json::to_string_pretty(&value).unwrap())
+    }
+
+    fn signoff_count(&self) -> usize {
+        std::fs::read_dir(self.root().join(".vds/signoffs"))
+            .map(|entries| entries.filter_map(|entry| entry.ok()).count())
+            .unwrap_or(0)
+    }
 }
 
 // -- the front door ---------------------------------------------------------
@@ -2035,4 +2109,343 @@ fn the_frame_ledger_says_when_it_recorded_no_capture_date() {
     ])
     .expect(PASSED)
     .says("captured at:     2026-08-03T08:00:00Z");
+}
+
+// -- external sign-off import ----------------------------------------------
+
+/// The worked example needs a non-vacuous staged-write baseline, but a fixture
+/// must not acquire more authority than the live door would allow. Keep every
+/// synthetic sign-off on the exact three Order-31 eligibility limbs, and keep
+/// the disclaimed capture row visible and unsigned.
+#[test]
+fn the_storefront_fixture_baseline_is_synthetic_evidenced_and_order_31_eligible() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/storefront");
+    let project = vds_core::Project::discover(Some(&root)).expect("the worked example project");
+    let store = vds_store::Store::new(&project);
+    let ledger = vds_figma::frames::read(&project)
+        .expect("a readable frame ledger")
+        .expect("the worked example frame ledger");
+    let signoffs = store
+        .read_signoffs()
+        .expect("every synthetic evidence binding remains valid");
+
+    assert_eq!(signoffs.len(), 4, "one baseline for each registered frame");
+    for located in &signoffs {
+        let signoff = &located.value;
+        assert_eq!(signoff.file_key, "SFDEMO");
+        assert!(
+            signoff
+                .signed_by
+                .contains("synthetic; no production authority"),
+            "a worked-example actor must identify itself as non-production: {}",
+            signoff.signed_by
+        );
+        assert!(signoff.evidence.is_some(), "{} has no evidence", signoff.id);
+
+        let row = ledger
+            .row(&signoff.node_id)
+            .expect("the signed fixture row");
+        assert!(
+            !row.disclaimed,
+            "{} bypasses the disclaimer limb",
+            signoff.id
+        );
+        assert_ne!(
+            row.authority_by,
+            vds_figma::AuthorityBy::Unlabelled,
+            "{} bypasses the labelled-authority limb",
+            signoff.id
+        );
+        assert!(
+            matches!(
+                vds_figma::frames::authority_of(&row.authority_layer, &project.config.screens),
+                Some(vds_figma::frames::Authority::Current)
+            ),
+            "{} bypasses the CURRENT-authority limb",
+            signoff.id
+        );
+        assert_eq!(
+            row.content_digest.as_ref(),
+            Some(&signoff.frame_digest),
+            "{} does not bind the current fixture bytes",
+            signoff.id
+        );
+    }
+
+    let disclaimed = ledger.row("100:4").expect("the negative-control row");
+    assert!(disclaimed.disclaimed);
+    assert!(
+        signoffs
+            .iter()
+            .all(|record| record.value.node_id != disclaimed.node_id),
+        "the disclaimed negative-control row acquired a synthetic sign-off"
+    );
+}
+
+#[test]
+fn an_external_signoff_records_the_historical_act_and_durable_evidence() {
+    let f = Fixture::new();
+    f.signoff_ready();
+    let evidence = f.write_external_signoff_evidence(
+        "evidence/principal-frame-signature.json",
+        "2026-08-03T16:49:22Z",
+    );
+    let warrants_before = std::fs::read_dir(f.root().join(".vds/warrants"))
+        .map(|entries| entries.filter_map(|entry| entry.ok()).count())
+        .unwrap_or(0);
+
+    f.vds(&[
+        "signoff",
+        "record",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "1:2",
+        "--signed-by",
+        "Principal",
+        "--signed-at",
+        "2026-08-03T16:49:22Z",
+        "--evidence",
+        evidence.to_str().unwrap(),
+    ])
+    .expect(PASSED)
+    .says("recorded SGN-0001")
+    .says("external act: evidence/principal-frame-signature.json")
+    .says("evidence:     sha256:");
+
+    let record = std::fs::read_to_string(f.root().join(".vds/signoffs/SGN-0001.yaml"))
+        .expect("external sign-off row");
+    assert!(
+        record.contains("signedAt: 2026-08-03T16:49:22Z"),
+        "{record}"
+    );
+    assert!(
+        record.contains("path: evidence/principal-frame-signature.json"),
+        "the absolute CLI spelling must be stored as a durable relative path: {record}"
+    );
+    assert!(record.contains("digest: sha256:"), "{record}");
+    assert!(record.contains("frameLedgerDigest: sha256:"), "{record}");
+    f.vds(&["signoff", "list"])
+        .expect(PASSED)
+        .says("2026-08-03T16:49:22Z")
+        .says("CURRENT");
+
+    let warrants_after = std::fs::read_dir(f.root().join(".vds/warrants"))
+        .map(|entries| entries.filter_map(|entry| entry.ok()).count())
+        .unwrap_or(0);
+    assert_eq!(
+        warrants_after, warrants_before,
+        "signoff import must not record or grant a warrant"
+    );
+
+    // Negative control: the row read above must stop reading once the cited
+    // evidence bytes move. This proves the digest is enforced, not just shown.
+    f.write(
+        "evidence/principal-frame-signature.json",
+        "{\"mutated\":true}\n",
+    );
+    f.vds(&["signoff", "list"])
+        .expect(PRECONDITION)
+        .says("changed after sign-off")
+        .says("no longer backed");
+}
+
+#[test]
+fn an_ordinary_signoff_keeps_the_existing_now_based_record_shape() {
+    let f = Fixture::new();
+    f.signoff_ready();
+    f.vds(&[
+        "signoff",
+        "record",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "1:2",
+        "--signed-by",
+        "the principal",
+    ])
+    .expect(PASSED)
+    .does_not_say("external act");
+    let record = std::fs::read_to_string(f.root().join(".vds/signoffs/SGN-0001.yaml")).unwrap();
+    assert!(!record.contains("evidence:"), "{record}");
+    assert!(record.contains("signedAt: "), "{record}");
+}
+
+/// Order 31 is the eligibility wall for both the old door and the import door.
+/// These are three separate seeded refusals because collapsing them into one
+/// generic "not current" branch would lose the fact each row actually carries.
+#[test]
+fn external_import_preserves_every_order_31_refusal() {
+    let f = Fixture::new();
+    f.signoff_ready();
+    for (node, refusal) in [
+        ("2:2", "DISCLAIMS ITSELF"),
+        ("3:2", "NO AUTHORITY MARKER"),
+        ("4:2", "not a CURRENT SOURCE label"),
+    ] {
+        f.vds(&[
+            "signoff",
+            "record",
+            "--file-key",
+            "KEY",
+            "--node-id",
+            node,
+            "--signed-by",
+            "Principal",
+        ])
+        .expect(PRECONDITION)
+        .says(refusal);
+    }
+    assert_eq!(f.signoff_count(), 0, "an Order-31 refusal wrote a row");
+}
+
+/// One negative-control table over every external-input failure mode. Each
+/// invocation reaches the registrable row and supplies the other half of the
+/// pair, so a refusal cannot pass accidentally because Order 31 fired first.
+#[test]
+fn external_import_refuses_unbound_missing_outside_malformed_and_mismatched_evidence() {
+    let f = Fixture::new();
+    f.signoff_ready();
+    let valid = f.write_external_signoff_evidence(
+        "evidence/principal-frame-signature.json",
+        "2026-08-03T16:49:22Z",
+    );
+
+    f.vds(&[
+        "signoff",
+        "record",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "1:2",
+        "--signed-by",
+        "Principal",
+        "--signed-at",
+        "2026-08-03T16:49:22Z",
+    ])
+    .expect(PRECONDITION)
+    .says("--evidence");
+
+    f.vds(&[
+        "signoff",
+        "record",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "1:2",
+        "--signed-by",
+        "Principal",
+        "--signed-at",
+        "2026-08-03T16:49:22Z",
+        "--evidence",
+        "evidence/missing.json",
+    ])
+    .expect(PRECONDITION)
+    .says("missing or cannot be resolved");
+
+    let elsewhere = tempfile::tempdir().unwrap();
+    let outside = elsewhere.path().join("principal-act.json");
+    std::fs::copy(&valid, &outside).unwrap();
+    f.vds(&[
+        "signoff",
+        "record",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "1:2",
+        "--signed-by",
+        "Principal",
+        "--signed-at",
+        "2026-08-03T16:49:22Z",
+        "--evidence",
+        outside.to_str().unwrap(),
+    ])
+    .expect(PRECONDITION)
+    .says("outside project root");
+
+    f.write("evidence/malformed.json", "{not JSON\n");
+    f.vds(&[
+        "signoff",
+        "record",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "1:2",
+        "--signed-by",
+        "Principal",
+        "--signed-at",
+        "2026-08-03T16:49:22Z",
+        "--evidence",
+        "evidence/malformed.json",
+    ])
+    .expect(PRECONDITION)
+    .says("external sign-off evidence JSON");
+
+    f.vds(&[
+        "signoff",
+        "record",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "1:2",
+        "--signed-by",
+        "Principal",
+        "--signed-at",
+        "2026-08-03T16:49:22+00:00",
+        "--evidence",
+        valid.to_str().unwrap(),
+    ])
+    .expect(PRECONDITION)
+    .says("canonical form");
+
+    let mut mismatched: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&valid).unwrap()).unwrap();
+    mismatched["scope"]["aggregateDigest"] =
+        serde_json::Value::String(format!("sha256:{}", "0".repeat(64)));
+    f.write(
+        "evidence/mismatched.json",
+        &serde_json::to_string_pretty(&mismatched).unwrap(),
+    );
+    f.vds(&[
+        "signoff",
+        "record",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "1:2",
+        "--signed-by",
+        "Principal",
+        "--signed-at",
+        "2026-08-03T16:49:22Z",
+        "--evidence",
+        "evidence/mismatched.json",
+    ])
+    .expect(PRECONDITION)
+    .says("different signing population");
+
+    let ledger_path = f.root().join(".vds/ledgers/frames.yaml");
+    let ledger = std::fs::read_to_string(&ledger_path).unwrap();
+    std::fs::write(
+        &ledger_path,
+        ledger.replace("frame_name: Screen /current", "frame_name: Screen /edited"),
+    )
+    .unwrap();
+    f.vds(&[
+        "signoff",
+        "record",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "1:2",
+        "--signed-by",
+        "Principal",
+        "--signed-at",
+        "2026-08-03T16:49:22Z",
+        "--evidence",
+        valid.to_str().unwrap(),
+    ])
+    .expect(PRECONDITION)
+    .says("edited after it was generated");
+
+    assert_eq!(f.signoff_count(), 0, "a refused import wrote a row");
 }

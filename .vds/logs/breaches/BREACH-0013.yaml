@@ -1,0 +1,14 @@
+id: BREACH-0013
+at: 2026-08-03T17:48:18Z
+by: jellytot
+what_happened: Commit 65f3969 changed the digest-pinned staged_write proof gate but did not re-pin its enforcement-lock entry in the same act. The following commit 8baf6cbd also left that drift present, so the branch reached external-signoff validation with the lock still naming the pre-change bytes.
+law_breached:
+- 'VDS S-8(4): drift is fatal; re-lock only after a recorded gate change and self-file the rationale. The staged_write gate change was recorded in commit 65f3969, but its pin was not updated with that change.'
+- 'VDS S-12(3): the required self-reported breach record had not accompanied the non-contemporaneous re-pin until this restorative filing.'
+discovered_by: The external-signoff work ran make check. Its vds lock verify stage reported exactly one DRIFT finding for crates/vds-proof/src/staged_write.rs, with pinned digest sha256:7074adf3213ce1d25958d0781a8fb7a0e3296a25eeb02bd8b63adc0bd71328cd and actual digest sha256:2b546329140be190ad34f38fc3b01e0532073722f5e48f572cc5ad70f0583ed3.
+containment: No external-signoff commit, installation, network/Figma action, warrant, or live signoff was performed while make check was red. vds lock verify showed that staged_write.rs was the sole drifting entry before the exact one-entry repin.
+remedy:
+- Re-ran the eleven staged_write seeded failing-direction tests as part of the full passing Rust workspace suite, plus all 119 factory tests.
+- Re-pinned crates/vds-proof/src/staged_write.rs from sha256:7074adf3213ce1d25958d0781a8fb7a0e3296a25eeb02bd8b63adc0bd71328cd to sha256:2b546329140be190ad34f38fc3b01e0532073722f5e48f572cc5ad70f0583ed3, with a rationale tied to commit 65f3969 and its G2/G3 gate changes.
+- Run make check to completion after the repin and breach filing, and commit the lock and this record with the external-signoff change so the branch cannot return green without preserving the visible audit trail.
+prevention: Run vds lock verify immediately after any digest-pinned gate edit and include the repin plus self-report in that same change. The existing make check lock stage remains the structural backstop and caught this drift before the current work was committed.

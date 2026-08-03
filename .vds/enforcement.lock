@@ -1,5 +1,5 @@
 schema_version: 1
-generated_at: 2026-08-03T10:27:59Z
+generated_at: 2026-08-03T17:47:40Z
 entries:
 - path: crates/vds-cli/src/doctor.rs
   digest: sha256:61a4c86e2fe16925c8eabc4869925b3a1559f14fb270629d4904cedbe93791c9
@@ -353,7 +353,7 @@ entries:
   supersedes_digest: sha256:28e05c602d02d054e95d57005f0dfcbef95177a15159e3cf4a97589d857fe198
   relock_rationale: 'SUBMISSION-VDS-020: two gates re-pinned for the sixteenth kind, and NO RULE OF EITHER CHANGED. contrast.rs: three helpers - custom_property, recorded_ratio and redacted - became pub(crate) so staged_write G1 measures a staged boundary through the SAME code contrast measures a registered one. Copying them would have been two copies of one rule, which is one copy and a disagreement, and the disagreement would have been about which findings repeat a value they refused. screen_parity.rs: Coverage::line gained line_for(subject), which the sixteenth kind calls with its own subject; line() now delegates to it with the words it always printed. One arithmetic and one check_against, borrowed rather than reimplemented, because two coverage types are two chances to disagree about what scored counts - which is the failure that type exists to make visible one level down.'
 - path: crates/vds-proof/src/staged_write.rs
-  digest: sha256:7074adf3213ce1d25958d0781a8fb7a0e3296a25eeb02bd8b63adc0bd71328cd
+  digest: sha256:2b546329140be190ad34f38fc3b01e0532073722f5e48f572cc5ad70f0583ed3
   kind: proof_script
   invoked_by:
   - surface: ci_workflow
@@ -398,10 +398,10 @@ entries:
   - path: crates/vds-proof/src/staged_write/tests.rs
     test_name: a_gate_never_asked_is_a_finding_and_not_a_silence
     seeds: a gate absent from the record, which reads as green to anybody counting refusals (R2)
-  pinned_at: 2026-08-03T10:27:59Z
+  pinned_at: 2026-08-03T17:47:40Z
   pinned_by: jellytot
-  supersedes_digest: sha256:c325a636c6e57c6af639943aa90cb8e60e2fa48ce73721ca4adf5c400de3c586
-  relock_rationale: 'The gate was pinned before the formatter ran over it. Whitespace only, on a gate first pinned in this same commit, with no rule and no seed changed: the digest moved because rustfmt reflowed it, and the lock must witness the bytes that are actually in the tree rather than the bytes that were there mid-edit.'
+  supersedes_digest: sha256:7074adf3213ce1d25958d0781a8fb7a0e3296a25eeb02bd8b63adc0bd71328cd
+  relock_rationale: 'Commit 65f3969 scoped staged writes to resolved authority containers: staged_write G2 now gates explicit deletion against the screen contract and G3 validates the declared frame extent against the canonical shell. Its eleven seeded failing-direction tests, the full Rust workspace suite, and the 119 factory tests pass. This re-pin records that preceding gate change; the external-signoff work does not alter the staged_write rule.'
 - path: crates/vds-proof/src/states.rs
   digest: sha256:ea03399e412866c99fa577ddc7dea8238ec393697bcf109e92cde079621fcb22
   kind: proof_script

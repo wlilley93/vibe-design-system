@@ -12,6 +12,17 @@
     "signedBy"
   ],
   "properties": {
+    "evidence": {
+      "description": "The external act imported by this row, where `signed_at` records an event that happened before this command ran.\n\nOptional so every sign-off recorded through the existing live door keeps exactly its established shape. External time is different: it is accepted only with a durable, repository-local evidence binding whose bytes can be checked again whenever the register is read.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/SignOffEvidence"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "fileKey": {
       "type": "string"
     },
@@ -41,6 +52,27 @@
   },
   "additionalProperties": false,
   "definitions": {
+    "SignOffEvidence": {
+      "description": "A durable reference from one imported sign-off row to its external act.\n\n`digest` identifies the exact evidence bytes. `frame_ledger_digest` records the aggregate the act signed and lets a later reader validate the act without needing the Figma/frames crate. The path is repository-relative so the reference survives moving or cloning the project.",
+      "type": "object",
+      "required": [
+        "digest",
+        "frameLedgerDigest",
+        "path"
+      ],
+      "properties": {
+        "digest": {
+          "type": "string"
+        },
+        "frameLedgerDigest": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
     "SignoffId": {
       "description": "A frame sign-off: the frame's content hash at the moment taste was exercised (draft S-7D).",
       "type": "string",

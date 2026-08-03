@@ -714,7 +714,6 @@ pub const SHELL_HEIGHT: f64 = 900.0;
 /// the two agree - and agreeing by derivation is the point, because the alternative
 /// is two constants that agree until one of them is edited.
 ///
-
 /// One child is added under each pane, and that is not decoration: the frame
 /// generator DERIVES its capture depth from the deepest chain present, so a
 /// pane drawn as a leaf would sit exactly on the derived boundary and the

@@ -14,6 +14,8 @@
 //! MAY sign - that is the Principal's own act, and this door only writes it
 //! down (the same posture as `vds warrant record`).
 
+use std::path::PathBuf;
+
 use clap::{Args as ClapArgs, Subcommand};
 use vds_core::{
     RedrawId, RedrawRecord, RedrawStatus, Result, SignOff, SignoffId, Timestamp, VdsError,
@@ -47,6 +49,19 @@ pub struct RecordArgs {
     /// this tool's to do.
     #[arg(long)]
     signed_by: String,
+    /// When an EXTERNAL sign-off act occurred, in canonical RFC 3339 UTC form.
+    /// Requires repository-local evidence whose signedAt and scope match.
+    #[arg(long, value_name = "RFC3339", requires = "evidence")]
+    signed_at: Option<String>,
+    /// JSON evidence for an external sign-off act. The exact bytes are
+    /// hash-bound into the row and must remain under the project root.
+    #[arg(
+        long,
+        visible_alias = "evidence-file",
+        value_name = "PATH",
+        requires = "signed_at"
+    )]
+    evidence: Option<PathBuf>,
     #[arg(long)]
     notes: Option<String>,
 }
@@ -128,6 +143,32 @@ fn record(store: &Store, args: &RecordArgs) -> Result<i32> {
              hash would be authority by trust, which draft S-7D refuses.",
         )
     })?;
+    let (signed_at, evidence) = match (&args.signed_at, &args.evidence) {
+        (None, None) => (Timestamp::now(), None),
+        (Some(raw), Some(path)) => {
+            let signed_at = Timestamp::parse(raw.clone())?;
+            // The act signs the ledger aggregate, not merely the digest text
+            // carried in its header. Recompute before binding so an edited
+            // row under an unchanged header cannot borrow the earlier act.
+            vds_figma::frames::check_fresh(&ledger, Some(&args.file_key))?;
+            let evidence = store.bind_signoff_evidence(
+                path,
+                &args.file_key,
+                &args.signed_by,
+                &signed_at,
+                &ledger.content_digest,
+            )?;
+            (signed_at, Some(evidence))
+        }
+        // Clap enforces the pair at the public door. Keep the core branch
+        // fail-closed too, so a future caller cannot construct half an import.
+        _ => {
+            return Err(VdsError::precondition(
+                "--signed-at and --evidence are one external sign-off binding and must be \
+                 supplied together",
+            ));
+        }
+    };
     let id = SignoffId::allocate(&store.signoffs_dir())?;
     let record = SignOff {
         id: id.clone(),
@@ -135,7 +176,8 @@ fn record(store: &Store, args: &RecordArgs) -> Result<i32> {
         node_id: row.node_id.clone(),
         frame_digest,
         signed_by: args.signed_by.clone(),
-        signed_at: Timestamp::now(),
+        signed_at,
+        evidence,
         notes: args.notes.clone(),
     };
     let path = store.signoff_path(&id);
@@ -145,6 +187,10 @@ fn record(store: &Store, args: &RecordArgs) -> Result<i32> {
         record.signed_by, record.file_key, record.node_id
     );
     println!("  hash: {}", record.frame_digest);
+    if let Some(evidence) = &record.evidence {
+        println!("  external act: {}", evidence.path);
+        println!("  evidence:     {}", evidence.digest);
+    }
     println!();
     println!(
         "Authority holds while the frame's current hash equals this one, and not a moment \

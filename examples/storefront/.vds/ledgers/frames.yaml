@@ -1,10 +1,11 @@
 schema_version: 1
-generated_at: 2026-08-01T14:05:36Z
+generated_at: 2026-08-03T17:56:34Z
+captured_at: 2026-07-30T16:29:57Z
 generated_by: vds figma frames
 file_key: SFDEMO
 capture_depth: 4
 truncated_leaves: 4
-content_digest: sha256:37b413cd611180495bf39c6477a4a22393099a78e61908f403bbdd7c9402635c
+content_digest: sha256:341fe6963175ce27413ee8314abd735e6c9ae788941ae90baa008f06652bfbfe
 frames:
 - node_id: 100:1
   frame_name: Screen · /
@@ -18,8 +19,8 @@ frames:
   truncated: false
   content_digest: sha256:d73c05faac84d12f813f129160c9ccce0da621870db28b5f82f0afc93bdca586
 - node_id: 100:2
-  frame_name: Screen · /settings
-  authority_layer: Screen · /settings
+  frame_name: CURRENT SOURCE · /settings · synthetic fixture
+  authority_layer: CURRENT SOURCE · /settings · synthetic fixture
   authority_by: frame_own_children
   quarantined: []
   disclaimed: false
@@ -28,7 +29,7 @@ frames:
   - body
   columns: 2
   truncated: false
-  content_digest: sha256:695d06aa08f1efb7dd7a810bb16a00fdca9294aeb227bb2e16ed438780cc1e57
+  content_digest: sha256:d90e74aa5d128abf8a4d56d8a2b7e5d603a362a2dc138d06bb9459a8d9e2ea59
 - node_id: 100:3
   frame_name: Screen · /checkout
   authority_layer: CURRENT SOURCE · /checkout · single form
@@ -53,8 +54,8 @@ frames:
   truncated: false
   content_digest: sha256:ce58a9f0e49eae32f20d53f7d5ecf5d08472daeedbd7926be14349aefb314f3c
 - node_id: 100:5
-  frame_name: Screen · /returns
-  authority_layer: Screen · /returns
+  frame_name: CURRENT SOURCE · /experiments · synthetic fixture
+  authority_layer: CURRENT SOURCE · /experiments · synthetic fixture
   authority_by: frame_own_children
   quarantined: []
   disclaimed: false
@@ -62,7 +63,7 @@ frames:
   - body
   columns: 1
   truncated: false
-  content_digest: sha256:d8ded304e994678a794d8cb5eee90c42f97ed4f79ae27b07abc6d845a114640e
+  content_digest: sha256:9b7e8469582f5585c5471ec0fd79475a2bf6c81ee6d559db85892b9321860ba3
 notes:
 - derived from a saved nodes response at examples/storefront/figma/frames-SFDEMO.json
 - 'This ledger records frame names, layer names, region names and a COUNT of content columns. It records no width, height, colour, font or radius: those stay in the Figma file, which [2026] VJS-CC-OPBOX 3 D1 makes the system of record for what is decided, and a length under `.vds/**` is the storing form VDS S-2(2) prohibits.'

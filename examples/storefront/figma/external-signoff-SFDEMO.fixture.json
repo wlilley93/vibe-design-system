@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "kind": "external-principal-frame-signature",
+  "signedBy": "Storefront fixture Principal (synthetic; no production authority)",
+  "signedAt": "2026-07-30T16:29:57Z",
+  "warrant": false,
+  "fixtureOnly": true,
+  "notice": "Synthetic evidence for examples/storefront only. Its SFDEMO file key and exact aggregate digest cannot authorize another project or another capture.",
+  "scope": {
+    "fileKey": "SFDEMO",
+    "aggregateDigest": "sha256:341fe6963175ce27413ee8314abd735e6c9ae788941ae90baa008f06652bfbfe"
+  }
+}

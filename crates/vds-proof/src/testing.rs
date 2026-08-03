@@ -484,6 +484,7 @@ impl Harness {
             frame_digest,
             signed_by: "the principal".into(),
             signed_at: Timestamp::fixed(2026, 8, 1, 10, 0, 0),
+            evidence: None,
             notes: None,
         };
         let path = store.signoff_path(&id);

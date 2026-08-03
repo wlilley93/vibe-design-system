@@ -1,0 +1,11 @@
+id: SGN-0002
+fileKey: SFDEMO
+nodeId: 100:2
+frameDigest: sha256:d90e74aa5d128abf8a4d56d8a2b7e5d603a362a2dc138d06bb9459a8d9e2ea59
+signedBy: Storefront fixture Principal (synthetic; no production authority)
+signedAt: 2026-07-30T16:29:57Z
+evidence:
+  path: figma/external-signoff-SFDEMO.fixture.json
+  digest: sha256:6fdb10a1d931e8a709d7e35399971e574f5640deb3b9340e87455e94ea885a01
+  frameLedgerDigest: sha256:341fe6963175ce27413ee8314abd735e6c9ae788941ae90baa008f06652bfbfe
+notes: Synthetic examples/storefront baseline only; the evidence binding is fixture-scoped.

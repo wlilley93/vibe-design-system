@@ -113,7 +113,8 @@ gates-example: build
 	@# its SCREEN frames draw. Both are derived from a response committed outside
 	@# `.vds/`, because VDS S-7(2)(1) forbids a network call inside a proof.
 	$(VDS) figma frames --root examples/storefront --file-key SFDEMO \
-	    --from examples/storefront/figma/frames-SFDEMO.json
+	    --from examples/storefront/figma/frames-SFDEMO.json \
+	    --captured-at 2026-07-30T16:29:57Z
 	@# Every kind, so each is exercised and recorded. --allow-vacuous is needed for
 	@# exactly one of them and the next line is why the flag buys nothing here.
 	$(VDS) proof --all --root examples/storefront --invoked-by package_script --allow-vacuous
@@ -131,9 +132,11 @@ gates-example: build
 	$(VDS) proof ledger_staleness      --root examples/storefront --invoked-by package_script
 	$(VDS) proof no_stored_values      --root examples/storefront --invoked-by package_script
 	@# The eleventh kind, and the only one whose subject is a SCREEN. Four screens
-	@# are registered here: three are SCORED against the arrangement their
-	@# authoritative frame draws, and one is EXCLUDED because its frame disclaims
-	@# itself. The coverage line says which, because a screen gate that measures
+	@# are registered here and SCORED against the arrangement their CURRENT
+	@# authoritative frame draws. The capture also carries one unclaimed frame
+	@# that disclaims itself, so the informational census keeps that condition
+	@# visible without manufacturing signable authority for it. The coverage line
+	@# says which, because a screen gate that measures
 	@# what it happens to understand and prints a clean pass is the exact failure
 	@# this kind was added to prevent (VDS S-5A(7)).
 	$(VDS) proof screen_parity         --root examples/storefront --invoked-by package_script
