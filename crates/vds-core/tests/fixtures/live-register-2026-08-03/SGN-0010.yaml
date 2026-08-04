@@ -1,0 +1,10 @@
+id: SGN-0010
+fileKey: iq2MHVcTcWPSvKOiG9MCQW
+nodeId: 669:115259
+frameDigest: sha256:398c3e54b4040f617bde880cc38a0855f592f27a1359d33c388b7f18e388d0b9
+signedBy: Principal
+signedAt: 2026-08-03T16:49:22Z
+evidence:
+  path: internal-docs/design/evidence/principal-frame-signature-2026-08-03.json
+  digest: sha256:bd267c4ded5cc531c6e6daefadbcd8f9d23657095c8adb163bc8622cb62ad91b
+  frameLedgerDigest: sha256:fbc5a5e978a35594e64e53aaa8467aed1d8777d5f0b8ed832ee6597e3650d5a5

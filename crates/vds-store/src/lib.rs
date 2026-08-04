@@ -20,11 +20,12 @@ use serde::de::DeserializeOwned;
 
 use vds_core::{
     BreachReport, BurndownId, BurndownRecord, ComponentId, ComponentRecord, DecisionLog, Digest,
-    DirectionId, DirectionRecord, EnforcementLock, GeometryBound, GeometryId, LOCK_FILE_NAME,
-    LOCK_SCHEMA_VERSION, PathRole, Pin, ProhibitionId, ProhibitionRecord, Project, ProofId,
-    ProofKind, ProofResult, RedrawId, RedrawRecord, Result, ReviewId, ScreenId, ScreenRecord,
-    SignOff, SignoffId, Stage, Submission, Timestamp, VdsError, VisualReviewRecord, Warrant,
-    WarrantId, WarrantStatus, write_text_atomically, yaml_files,
+    DirectionId, DirectionRecord, EnforcementLock, ExternalSignOffEvidence, GeometryBound,
+    GeometryId, LOCK_FILE_NAME, LOCK_SCHEMA_VERSION, PathRole, Pin, ProhibitionId,
+    ProhibitionRecord, Project, ProofId, ProofKind, ProofResult, RedrawId, RedrawRecord, Result,
+    ReviewId, ScreenId, ScreenRecord, SignOff, SignOffEvidence, SignoffId, Stage, Submission,
+    Timestamp, VdsError, VisualReviewRecord, Warrant, WarrantId, WarrantStatus,
+    write_text_atomically, yaml_files,
 };
 
 pub mod lock;
@@ -332,10 +333,143 @@ impl<'a> Store<'a> {
         self.signoffs_dir().join(format!("{id}.yaml"))
     }
 
+    /// Read, validate and identify an external sign-off act in one pass.
+    ///
+    /// The same bytes are parsed and digested, so a file changing between two
+    /// independent reads cannot produce a record whose identity covers bytes
+    /// other than the ones that were validated. The canonical relative path is
+    /// stored rather than the caller's spelling.
+    pub fn bind_signoff_evidence(
+        &self,
+        supplied: &Path,
+        file_key: &str,
+        signed_by: &str,
+        signed_at: &Timestamp,
+        frame_ledger_digest: &Digest,
+    ) -> Result<SignOffEvidence> {
+        let (path, relative) = self.resolve_signoff_evidence(supplied)?;
+        let bytes = std::fs::read(&path).map_err(|error| VdsError::io(path.display(), error))?;
+        let act = ExternalSignOffEvidence::parse(&bytes, &relative)?;
+        act.validate_for(
+            &relative,
+            file_key,
+            signed_by,
+            signed_at,
+            frame_ledger_digest,
+        )?;
+        let evidence = SignOffEvidence {
+            path: relative,
+            digest: Digest::of_bytes(&bytes),
+            frame_ledger_digest: frame_ledger_digest.clone(),
+        };
+        evidence.validate()?;
+        Ok(evidence)
+    }
+
     pub fn read_signoffs(&self) -> Result<Vec<Located<SignOff>>> {
-        self.read_named_series(&self.signoffs_dir(), "sign-off", |r: &SignOff| {
+        let records = self.read_named_series(&self.signoffs_dir(), "sign-off", |r: &SignOff| {
             r.id.to_string()
-        })
+        })?;
+        for record in &records {
+            self.verify_signoff_evidence(record)?;
+            // O5's invariant on the way OUT as well as at the door. A row
+            // hand-edited afterwards to cite a locus that is not its own subject
+            // is refused at the front of every command that reads the register,
+            // rather than discovered six months later.
+            record
+                .value
+                .check_basis()
+                .map_err(|error| VdsError::Artefact {
+                    path: self.project.rel(&record.path),
+                    message: error.to_string(),
+                })?;
+        }
+        Ok(records)
+    }
+
+    fn resolve_signoff_evidence(&self, supplied: &Path) -> Result<(PathBuf, String)> {
+        let root = self
+            .project
+            .root
+            .canonicalize()
+            .map_err(|error| VdsError::io(self.project.root.display(), error))?;
+        let candidate = if supplied.is_absolute() {
+            supplied.to_path_buf()
+        } else {
+            root.join(supplied)
+        };
+        let resolved = candidate.canonicalize().map_err(|error| {
+            VdsError::precondition(format!(
+                "external sign-off evidence {} is missing or cannot be resolved: {error}",
+                candidate.display()
+            ))
+        })?;
+        if !resolved.is_file() {
+            return Err(VdsError::precondition(format!(
+                "external sign-off evidence {} is not a file",
+                resolved.display()
+            )));
+        }
+        let relative = resolved.strip_prefix(&root).map_err(|_| {
+            VdsError::precondition(format!(
+                "external sign-off evidence {} is outside project root {}. External acts must \
+                 be preserved inside the project they govern.",
+                resolved.display(),
+                root.display()
+            ))
+        })?;
+        let relative = relative.to_str().ok_or_else(|| {
+            VdsError::precondition(format!(
+                "external sign-off evidence {} has a path that is not valid UTF-8, so it \
+                 cannot be stored as one durable repository-relative identity",
+                resolved.display()
+            ))
+        })?;
+        let relative = relative.replace('\\', "/");
+        Ok((resolved, relative))
+    }
+
+    fn verify_signoff_evidence(&self, record: &Located<SignOff>) -> Result<()> {
+        let Some(evidence) = &record.value.evidence else {
+            return Ok(());
+        };
+        evidence.validate().map_err(|error| VdsError::Artefact {
+            path: self.project.rel(&record.path),
+            message: error.to_string(),
+        })?;
+        let supplied = Path::new(&evidence.path);
+        let (path, relative) = self.resolve_signoff_evidence(supplied)?;
+        if relative != evidence.path {
+            return Err(VdsError::Artefact {
+                path: self.project.rel(&record.path),
+                message: format!(
+                    "external evidence path {:?} now resolves to {:?}. A moved target is not \
+                     the durable repository-relative identity this row recorded.",
+                    evidence.path, relative
+                ),
+            });
+        }
+        let bytes = std::fs::read(&path).map_err(|error| VdsError::io(path.display(), error))?;
+        let current = Digest::of_bytes(&bytes);
+        if current != evidence.digest {
+            return Err(VdsError::Artefact {
+                path: self.project.rel(&record.path),
+                message: format!(
+                    "external evidence {} changed after sign-off: this row records {}, and the \
+                     current bytes digest to {}. The imported timestamp is no longer backed by \
+                     the act this row identified.",
+                    evidence.path, evidence.digest, current
+                ),
+            });
+        }
+        let act = ExternalSignOffEvidence::parse(&bytes, &evidence.path)?;
+        act.validate_for(
+            &evidence.path,
+            &record.value.file_key,
+            &record.value.signed_by,
+            &record.value.signed_at,
+            &evidence.frame_ledger_digest,
+        )
     }
 
     pub fn redraws_dir(&self) -> PathBuf {

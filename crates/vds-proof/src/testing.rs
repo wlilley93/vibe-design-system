@@ -483,6 +483,9 @@ impl Harness {
             frame_digest,
             signed_by: "the principal".into(),
             signed_at: Timestamp::fixed(2026, 8, 1, 10, 0, 0),
+            // No evidence either: this seed records an act at the time it is
+            // written, so there is no external event to bind bytes to.
+            evidence: None,
             // A seed row deliberately carrying NO basis: the staleness proofs
             // must keep working over the rows the register already holds, and
             // those carry none ([2026] VJS-FI-VDS 2 order 5, optional at the

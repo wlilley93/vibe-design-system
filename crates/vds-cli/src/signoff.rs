@@ -171,6 +171,11 @@ fn record(store: &Store, args: &RecordArgs) -> Result<i32> {
         frame_digest,
         signed_by: args.signed_by.clone(),
         signed_at: Timestamp::now(),
+        // None, and deliberately: this door records an act happening NOW, so
+        // `signed_at` needs no external witness. `evidence` exists for the
+        // import path, where `signed_at` names an event that predates the
+        // command and therefore has to be bound to bytes that can be re-checked.
+        evidence: None,
         // REQUIRED at the door, though optional at the type. Every row this
         // door writes can say which limb admitted it; the rows that cannot are
         // the ones written before the limb existed, and they are counted rather

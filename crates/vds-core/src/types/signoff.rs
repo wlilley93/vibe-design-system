@@ -28,10 +28,13 @@
 //! decision still covers what the frame now shows; it moved, the decision
 //! covers a drawing that no longer exists.
 
+use std::path::{Component, Path};
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::digest::Digest;
+use crate::error::{Result, VdsError};
 use crate::ids::{DirectionId, RedrawId, ReviewId, SignoffId};
 use crate::timestamp::Timestamp;
 use crate::types::decision::DecisionReference;
@@ -57,6 +60,15 @@ pub struct SignOff {
     pub frame_digest: Digest,
     pub signed_by: String,
     pub signed_at: Timestamp,
+    /// The external act imported by this row, where `signed_at` records an
+    /// event that happened before this command ran.
+    ///
+    /// Optional so every sign-off recorded through the existing live door
+    /// keeps exactly its established shape. External time is different: it is
+    /// accepted only with a durable, repository-local evidence binding whose
+    /// bytes can be checked again whenever the register is read.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evidence: Option<SignOffEvidence>,
     /// WHICH LIMB OF CC-OPBOX 6 ADMITTED THIS ROW ([2026] VJS-FI-VDS 2 order 5).
     ///
     /// OPTIONAL at the type and REQUIRED at the door, and the asymmetry is
@@ -71,6 +83,44 @@ pub struct SignOff {
     pub basis: Option<SignOffBasis>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notes: Option<String>,
+}
+
+impl SignOff {
+    /// The invariants a basis carries beyond its own shape.
+    ///
+    /// The door enforces this on the way IN (limb 4 of
+    /// [`crate::admit_under_principal_act`]). This is the same invariant on the
+    /// way OUT, on every read, so a row hand-edited after the fact to cite a
+    /// locus that is not its own subject is a refusal at the front of every
+    /// command rather than a discovery six months later. The redundancy between
+    /// `decision.locus_id` and `node_id` is a CHECKED redundancy, not a second
+    /// source of truth.
+    ///
+    /// Node ids go through [`crate::normalise_node_id`], the SAME one rule the
+    /// door uses. Two normalisations that drifted apart would refuse a row for
+    /// being itself.
+    pub fn check_basis(&self) -> Result<()> {
+        let Some(SignOffBasis::PrincipalAct { decision }) = &self.basis else {
+            return Ok(());
+        };
+        if crate::normalise_node_id(&decision.locus_id) != crate::normalise_node_id(&self.node_id) {
+            return Err(VdsError::precondition(format!(
+                "{} registers {}/{} on Principal decision seq {}, whose adopted locus is {} \
+                 and not the frame's own node. A sign-off row binds the FRAME's content \
+                 digest and cannot express adoption of a sub-layer, so such a decision is \
+                 REFERRED and not registered ([2026] VJS-FI-VDS 2, reserved question 4; it \
+                 has happened once in 167 decisions, at seq 33, and that was a refusal).",
+                self.id, self.file_key, self.node_id, decision.seq, decision.locus_id
+            )));
+        }
+        if !decision.digest.is_well_formed() {
+            return Err(VdsError::precondition(format!(
+                "{} cites Principal decision seq {} at malformed digest {}",
+                self.id, decision.seq, decision.digest
+            )));
+        }
+        Ok(())
+    }
 }
 
 /// The two limbs of CC-OPBOX 6's disjunctive registration test. CLOSED at two.
@@ -138,6 +188,158 @@ impl SignOffBasis {
 /// coverage is complete.
 pub fn rows_without_a_basis(signoffs: &[SignOff]) -> usize {
     signoffs.iter().filter(|s| s.basis.is_none()).count()
+}
+
+/// A durable reference from one imported sign-off row to its external act.
+///
+/// `digest` identifies the exact evidence bytes. `frame_ledger_digest` records
+/// the aggregate the act signed and lets a later reader validate the act
+/// without needing the Figma/frames crate. The path is repository-relative so
+/// the reference survives moving or cloning the project.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct SignOffEvidence {
+    pub path: String,
+    pub digest: Digest,
+    pub frame_ledger_digest: Digest,
+}
+
+impl SignOffEvidence {
+    /// Validate the stored reference itself before a store resolves it.
+    pub fn validate(&self) -> Result<()> {
+        let path = Path::new(&self.path);
+        if self.path.is_empty()
+            || self.path.contains('\\')
+            || path.is_absolute()
+            || path.components().any(|component| {
+                matches!(
+                    component,
+                    Component::Prefix(_)
+                        | Component::RootDir
+                        | Component::ParentDir
+                        | Component::CurDir
+                )
+            })
+        {
+            return Err(VdsError::precondition(format!(
+                "external sign-off evidence path {:?} is not a canonical repository-relative \
+                 path. Evidence must remain under the project root and use its durable relative \
+                 spelling.",
+                self.path
+            )));
+        }
+        if !self.digest.is_well_formed() {
+            return Err(VdsError::precondition(format!(
+                "external sign-off evidence {} carries malformed evidence digest {}",
+                self.path, self.digest
+            )));
+        }
+        if !self.frame_ledger_digest.is_well_formed() {
+            return Err(VdsError::precondition(format!(
+                "external sign-off evidence {} carries malformed frame-ledger digest {}",
+                self.path, self.frame_ledger_digest
+            )));
+        }
+        Ok(())
+    }
+}
+
+/// The narrow external act format accepted by `vds signoff record`.
+///
+/// Additional fields are deliberately allowed: the Principal's evidence may
+/// preserve the reply, qualification, exclusions and capture identity in more
+/// detail than VDS needs. These six fields are the irreducible binding VDS can
+/// check locally without making a network call or inventing an approval.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExternalSignOffEvidence {
+    schema_version: u32,
+    kind: String,
+    signed_by: String,
+    signed_at: Timestamp,
+    warrant: bool,
+    scope: ExternalSignOffScope,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ExternalSignOffScope {
+    file_key: String,
+    aggregate_digest: Digest,
+}
+
+pub const EXTERNAL_SIGNOFF_EVIDENCE_SCHEMA_VERSION: u32 = 1;
+pub const EXTERNAL_SIGNOFF_EVIDENCE_KIND: &str = "external-principal-frame-signature";
+
+impl ExternalSignOffEvidence {
+    /// Parse the evidence bytes as one JSON object.
+    pub fn parse(bytes: &[u8], path: &str) -> Result<Self> {
+        serde_json::from_slice(bytes)
+            .map_err(|error| VdsError::parse(path, "external sign-off evidence JSON", error))
+    }
+
+    /// Bind an external act to the exact row facts and local frame ledger.
+    pub fn validate_for(
+        &self,
+        path: &str,
+        file_key: &str,
+        signed_by: &str,
+        signed_at: &Timestamp,
+        frame_ledger_digest: &Digest,
+    ) -> Result<()> {
+        if self.schema_version != EXTERNAL_SIGNOFF_EVIDENCE_SCHEMA_VERSION {
+            return Err(VdsError::precondition(format!(
+                "{path}: external sign-off evidence schemaVersion is {}, not the supported {}",
+                self.schema_version, EXTERNAL_SIGNOFF_EVIDENCE_SCHEMA_VERSION
+            )));
+        }
+        if self.kind != EXTERNAL_SIGNOFF_EVIDENCE_KIND {
+            return Err(VdsError::precondition(format!(
+                "{path}: external sign-off evidence kind is {:?}, not {:?}",
+                self.kind, EXTERNAL_SIGNOFF_EVIDENCE_KIND
+            )));
+        }
+        if self.signed_by != signed_by {
+            return Err(VdsError::precondition(format!(
+                "{path}: the evidence says {:?} signed, but --signed-by says {:?}",
+                self.signed_by, signed_by
+            )));
+        }
+        if &self.signed_at != signed_at {
+            return Err(VdsError::precondition(format!(
+                "{path}: the evidence says the act occurred at {}, but --signed-at says {}",
+                self.signed_at, signed_at
+            )));
+        }
+        if self.warrant {
+            return Err(VdsError::precondition(format!(
+                "{path}: the external sign-off evidence claims warrant=true. This door records \
+                 a frame sign-off only; it grants no warrant and will not import evidence that \
+                 conflates the two acts."
+            )));
+        }
+        if self.scope.file_key != file_key {
+            return Err(VdsError::precondition(format!(
+                "{path}: the evidence signs Figma file {:?}, not {:?}",
+                self.scope.file_key, file_key
+            )));
+        }
+        if !self.scope.aggregate_digest.is_well_formed() {
+            return Err(VdsError::precondition(format!(
+                "{path}: scope.aggregateDigest {} is malformed",
+                self.scope.aggregate_digest
+            )));
+        }
+        if &self.scope.aggregate_digest != frame_ledger_digest {
+            return Err(VdsError::precondition(format!(
+                "{path}: the evidence signs frame-ledger aggregate {}, but the local CURRENT \
+                 ledger is {}. A changed ledger is a different signing population and cannot \
+                 be backfilled from this act.",
+                self.scope.aggregate_digest, frame_ledger_digest
+            )));
+        }
+        Ok(())
+    }
 }
 
 /// A PRINCIPAL DIRECTION that disposes of a surface's conformance: the second
@@ -455,6 +657,7 @@ mod tests {
             frame_digest: Digest::of_text(digest),
             signed_by: "the principal".into(),
             signed_at: Timestamp::fixed(2026, 8, 1, 10, 0, 0),
+            evidence: None,
             basis: None,
             notes: None,
         }
@@ -481,6 +684,7 @@ mod tests {
         let row = signoff("1:2", "frame-v1");
         let yaml = serde_yaml::to_string(&row).expect("serialises");
         assert!(!yaml.contains("basis"), "{yaml}");
+        assert!(!yaml.contains("evidence"), "{yaml}");
         let back: SignOff = serde_yaml::from_str(&yaml).expect("parses");
         assert_eq!(back, row);
         assert_eq!(rows_without_a_basis(&[back]), 1);
@@ -615,5 +819,117 @@ mod tests {
         assert!(serde_json::from_str::<AuthorityVerdict>("\"accepted\"").is_err());
         assert!(serde_json::from_str::<AuthorityVerdict>("\"no_authority\"").is_ok());
         assert!(serde_json::from_str::<RedrawStatus>("\"accepted\"").is_err());
+    }
+
+    fn external_evidence(at: &str, aggregate: &Digest) -> Vec<u8> {
+        serde_json::to_vec(&serde_json::json!({
+            "schemaVersion": 1,
+            "kind": "external-principal-frame-signature",
+            "signedBy": "Principal",
+            "signedAt": at,
+            "warrant": false,
+            "scope": {
+                "fileKey": "KEY",
+                "aggregateDigest": aggregate,
+            },
+            "actualReply": "Signed off. proceed all"
+        }))
+        .unwrap()
+    }
+
+    #[test]
+    fn external_evidence_binds_the_act_to_the_row_and_ledger() {
+        let aggregate = Digest::of_text("the exact frames ledger");
+        let bytes = external_evidence("2026-08-03T16:49:22Z", &aggregate);
+        let evidence = ExternalSignOffEvidence::parse(&bytes, "evidence.json").unwrap();
+        evidence
+            .validate_for(
+                "evidence.json",
+                "KEY",
+                "Principal",
+                &Timestamp::parse("2026-08-03T16:49:22Z").unwrap(),
+                &aggregate,
+            )
+            .unwrap();
+    }
+
+    /// Negative control: move the local aggregate while leaving the act
+    /// untouched. The binding must fire rather than treating any JSON as
+    /// evidence for any later ledger.
+    #[test]
+    fn external_evidence_refuses_a_different_frame_ledger() {
+        let signed = Digest::of_text("signed ledger");
+        let current = Digest::of_text("mutated ledger");
+        let bytes = external_evidence("2026-08-03T16:49:22Z", &signed);
+        let evidence = ExternalSignOffEvidence::parse(&bytes, "evidence.json").unwrap();
+        let error = evidence
+            .validate_for(
+                "evidence.json",
+                "KEY",
+                "Principal",
+                &Timestamp::parse("2026-08-03T16:49:22Z").unwrap(),
+                &current,
+            )
+            .unwrap_err();
+        assert!(
+            error.to_string().contains("different signing population"),
+            "{error}"
+        );
+    }
+
+    /// Negative control: an external timestamp has to survive Timestamp's one
+    /// canonical form even when it arrives inside otherwise valid JSON.
+    #[test]
+    fn external_evidence_refuses_a_malformed_timestamp() {
+        let aggregate = Digest::of_text("the exact frames ledger");
+        let bytes = external_evidence("2026-08-03T16:49:22+00:00", &aggregate);
+        let error = ExternalSignOffEvidence::parse(&bytes, "evidence.json").unwrap_err();
+        assert!(error.to_string().contains("canonical form"), "{error}");
+    }
+
+    #[test]
+    fn an_evidence_reference_refuses_an_escaping_path() {
+        let reference = SignOffEvidence {
+            path: "../elsewhere/act.json".into(),
+            digest: Digest::of_text("act"),
+            frame_ledger_digest: Digest::of_text("ledger"),
+        };
+        assert!(reference.validate().is_err());
+    }
+
+    /// NEGATIVE CONTROL. A row citing a decision whose adopted locus is NOT its
+    /// own node is the one shape the register must refer rather than hold. The
+    /// door refuses it on the way in; this is the same refusal on the way out,
+    /// for a row somebody edited afterwards.
+    #[test]
+    fn a_basis_citing_a_foreign_locus_is_refused_on_read() {
+        let mut row = signoff("675:74319", "frame-v1");
+        row.basis = Some(SignOffBasis::PrincipalAct {
+            decision: DecisionReference {
+                seq: 33,
+                digest: Digest::of_text("seq 33"),
+                locus_id: "1007:89086".into(),
+                locus_name: "SOURCE AUTHORITY - /documents/packs/[id] - clone".into(),
+            },
+        });
+        let error = row.check_basis().unwrap_err();
+        assert!(error.to_string().contains("REFERRED"), "{error}");
+    }
+
+    /// And the spelling of a node id must not be able to trigger that refusal.
+    /// Figma writes `12:34` in a URL and `12-34` in a deep link; the door
+    /// normalises both, and so must this.
+    #[test]
+    fn the_two_figma_spellings_of_one_node_are_not_a_foreign_locus() {
+        let mut row = signoff("675:74319", "frame-v1");
+        row.basis = Some(SignOffBasis::PrincipalAct {
+            decision: DecisionReference {
+                seq: 30,
+                digest: Digest::of_text("seq 30"),
+                locus_id: "675-74319".into(),
+                locus_name: "Screen - /x".into(),
+            },
+        });
+        row.check_basis().expect("one node, two spellings");
     }
 }
