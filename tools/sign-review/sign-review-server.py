@@ -35,7 +35,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import hmac
-import json, os, sqlite3, threading
+import json, os, sqlite3, threading, urllib.request, urllib.error
 import secrets
 import sys
 from datetime import datetime, timezone
@@ -183,7 +183,8 @@ function swapSides(){SWAP=!SWAP;localStorage.setItem('swapSides',SWAP?'1':'0');
 
 const decidable=f=>f.kind!=='no-frame';
 const passFilter=f=>filter==='all'||(filter==='flagged'&&f.flagged)||(filter==='blocked'&&(f.blocked||[]).length)
- ||(filter==='noframe'&&f.kind==='no-frame')||(filter==='todo'&&!DEC[f.node_id]&&f.kind!=='no-frame');
+ ||(filter==='noframe'&&f.kind==='no-frame')||(filter==='todo'&&!DEC[f.node_id]&&f.kind!=='no-frame')
+ ||(filter==='decided'&&!!DEC[f.node_id]);
 const inSect=f=>SECT==='__all'||fam(f)===SECT;
 const shown=()=>FRAMES.filter(f=>passFilter(f)&&inSect(f));
 // Every decidable route across ALL sections, in rail order (family, then route). This is the
@@ -209,7 +210,8 @@ function go(k){SECT=k;CUR=null;rail();list();window.scrollTo(0,0)}
 function chips(){const n=FRAMES.length,fl=FRAMES.filter(x=>x.flagged).length,
  bl=FRAMES.filter(x=>(x.blocked||[]).length).length,nf=FRAMES.filter(x=>x.kind==='no-frame').length,
  td=FRAMES.filter(x=>!DEC[x.node_id]&&x.kind!=='no-frame').length;
- document.getElementById('filters').innerHTML=[['all','All '+n],['flagged','Machine '+fl],['blocked','Blocked '+bl],['noframe','No frame '+nf],['todo','To do '+td]]
+ const dn=FRAMES.filter(x=>DEC[x.node_id]).length;
+ document.getElementById('filters').innerHTML=[['all','All '+n],['todo','To do '+td],['decided','Decided '+dn],['flagged','Machine '+fl],['blocked','Blocked '+bl],['noframe','No frame '+nf]]
   .map(([k,l])=>`<button class="chip" aria-pressed="${filter===k}" onclick="filter='${k}';chips();rail();list()">${l}</button>`).join(' ')}
 function tags(f){const t=[];if(DEC[f.node_id])t.push(`<span class="tag ok">${esc(DEC[f.node_id].decision)}</span>`);
  if(f.kind==='no-frame'){t.push(`<span class="tag">${esc(f.tracker_tier||'no frame')}</span>`);return t.join('')}
@@ -264,6 +266,36 @@ function allDone(){
    ${nf?`<tr><td>not decidable (no frame)</td><td class="mono">${nf}</td></tr>`:''}</table>
   <p style="margin:20px 0 0"><button onclick="SECT='__all';filter='all';chips();rail();list()">Review everything</button></p></div>`;
 }
+// The left pane shows either the whole frame or ONE candidate layer, rendered on demand from
+// Figma and cached. Repainted on its own so selecting a radio never disturbs the rest of the form.
+let LAYER=null;
+function paintFrame(){
+ const f=window._f,el=document.getElementById('figpane');if(!f||!el)return;
+ if(!LAYER){
+  el.innerHTML=`<h2>Frame &mdash; what Figma draws</h2>`+
+   (f.render_url?`<img src="${esc(f.render_url)}" alt="frame" loading="lazy" onclick="big('${esc(f.render_url)}')">
+    <p class="zoomhint">click to enlarge &middot; select a layer below to view it alone</p>`
+    :'<div class="missing">Not available</div>');
+  return}
+ const c=(f.candidates||[]).find(x=>x.id===LAYER)||{};
+ const u=`/layers/${encodeURIComponent(LAYER)}.png?k=${encodeURIComponent(K)}`;
+ el.innerHTML=`<h2>Layer &mdash; <span class="mono">${esc(c.name||LAYER)}</span></h2>
+  <img id="figimg" src="${u}" alt="layer" onclick="big('${u}')"
+   onerror="layerFailed('${esc(LAYER)}')">
+  <p class="zoomhint">${c.visible===false?'<b style="color:var(--warn)">this layer is hidden in Figma</b> &middot; ':''}
+   <a href="#" onclick="LAYER=null;paintFrame();return false">show the whole frame</a></p>`;
+}
+// An <img> cannot read a JSON body, so on failure ask the same URL again to get the stated
+// reason. A blank pane that says nothing is the thing worth avoiding.
+async function layerFailed(id){
+ const el=document.getElementById('figpane');let why='could not be rendered';
+ try{await api(`/layers/${encodeURIComponent(id)}.png`)}catch(e){why=e.message}
+ const c=(window._f.candidates||[]).find(x=>x.id===id)||{};
+ el.innerHTML=`<h2>Layer &mdash; <span class="mono">${esc(c.name||id)}</span></h2>
+  <div class="missing">${esc(why)}</div>
+  <p class="zoomhint"><a href="#" onclick="LAYER=null;paintFrame();return false">show the whole frame</a></p>`;
+}
+function pickLocus(el){LAYER=el.dataset.nid||null;paintFrame()}
 function big(u){if(!u)return;document.getElementById('lbi').src=u;
  const lb=document.getElementById('lb');lb.classList.remove('full');lb.classList.add('on')}
 function closeLb(){document.getElementById('lb').classList.remove('on','full')}
@@ -299,8 +331,7 @@ async function open_(id){
   <div class="detail">
    <div>
     <div class="panes${SWAP?' swap':''}" id="panes">
-     <div class="pane"><h2>Frame &mdash; what Figma draws</h2>${img(f.render_url,'frame')}
-      ${f.render_url?'<p class="zoomhint">click to enlarge</p>':''}</div>
+     <div class="pane" id="figpane"></div>
      <div class="pane"><h2>Output &mdash; what the app renders</h2>${img(f.shipped_url,'served page')}
       ${f.shipped_url?'<p class="zoomhint">click to enlarge</p>':''}</div></div>
     <div class="kvwrap"><table class="kv">
@@ -318,9 +349,12 @@ async function open_(id){
     <fieldset><legend>1 &middot; Design contract</legend>
      <p class="help">Pick the layer that <b>is the design</b> for this route. Your choice is the
       declaration; the tool's reading is only <span class="tag">proposed</span> and never pre-selected.</p>
-     ${f.candidates.map((c,n)=>{const cu=figUrl(c.id);return `<label class="opt"><input type="radio" name="loc" value="${n}" required>
+     ${f.candidates.map((c,n)=>{const cu=figUrl(c.id),was=prev&&prev.selectedLocus&&prev.selectedLocus.id===c.id;
+      return `<label class="opt"><input type="radio" name="loc" value="${n}" required
+       data-nid="${esc(c.id)}" onchange="pickLocus(this)" ${was?'checked':''}>
       <span><span class="nm mono">${esc(c.name)}</span>
       ${c.name===f.authority_layer?'<span class="tag">proposed</span>':''}
+      ${was?'<span class="tag ok">your last choice</span>':''}
       ${c.visible?'':'<span class="tag bad">hidden</span>'}
       ${c.marker==='demoted'?'<span class="tag bad">demoted</span>':''}
       ${c.cloned_from?'<span class="tag bad">cloned</span>':''}
@@ -330,24 +364,38 @@ async function open_(id){
     <fieldset><legend>2 &middot; Decision</legend>
      <p class="help"><b>Sign</b> adopts it as the contract. <b>Refuse</b> rejects it. <b>Defer</b> parks
       it. Refuse and Defer need a comment.</p>
-     <label class="opt"><input type="radio" name="dec" value="sign" ${(f.blocked||[]).length?'disabled':''} required><span>Sign</span></label>
-     <label class="opt"><input type="radio" name="dec" value="refuse"><span>Refuse</span></label>
-     <label class="opt"><input type="radio" name="dec" value="defer"><span>Defer</span></label>
+     <label class="opt"><input type="radio" name="dec" value="sign" ${(f.blocked||[]).length?'disabled':''} required ${prev&&prev.decision==='sign'?'checked':''}><span>Sign</span></label>
+     <label class="opt"><input type="radio" name="dec" value="refuse" ${prev&&prev.decision==='refuse'?'checked':''}><span>Refuse</span></label>
+     <label class="opt"><input type="radio" name="dec" value="defer" ${prev&&prev.decision==='defer'?'checked':''}><span>Defer</span></label>
      ${(f.blocked||[]).length?`<p class="sub" style="color:var(--warn)">Cannot sign: ${esc(f.blocked.join('; '))}.</p>`:''}
     </fieldset>
     <fieldset><legend>3 &middot; Comment</legend>
      <textarea name="cm" placeholder="optional when signing, required to refuse or defer">${prev&&prev.comment?esc(prev.comment):''}</textarea></fieldset>
-    ${prev?`<p class="msg">Previously ${esc(prev.decision)}.</p>`:''}
-    <div class="acts"><button class="p" type="submit">Record decision</button></div>
-    <div id="out"></div></form></div>`;
- window._f=f}
+    ${prev?`<p class="msg">Currently <b>${esc(prev.decision)}</b> as decision #${esc(prev.seq)}
+      &middot; <a href="#" onclick="showHistory('${esc(f.node_id)}');return false">history</a><br>
+      <span class="sub">Your previous choice is pre-selected. Recording again supersedes it;
+      the earlier decision stays in the record.</span></p>`:''}
+    <div class="acts"><button class="p" type="submit">${prev?'Update decision':'Record decision'}</button></div>
+    <div id="out"></div><div id="hist"></div></form></div>`;
+ LAYER=(prev&&prev.selectedLocus&&prev.selectedLocus.id)||null;
+ window._f=f;paintFrame()}
 
 let BUSY=false;
+async function showHistory(id){
+ const h=document.getElementById('hist');h.innerHTML='<p class="sub">loading&hellip;</p>';
+ try{const r=await api('/api/history/'+encodeURIComponent(id));
+  h.innerHTML='<table class="kv" style="margin-top:8px">'+r.history.map(x=>
+   `<tr><td>#${esc(x.seq)} ${esc((x.recordedAt||'').slice(0,16).replace('T',' '))}</td>
+    <td><b>${esc(x.decision)}</b>${x.selectedLocus?` <span class="mono sub">${esc(x.selectedLocus.name)}</span>`:''}
+    ${x.comment?`<br><span class="sub">${esc(x.comment)}</span>`:''}</td></tr>`).join('')+'</table>';
+ }catch(err){h.innerHTML='<p class="msg err">'+esc(err.message)+'</p>'}}
+
 async function submitForm(e){
  e.preventDefault();if(BUSY)return false;
  const f=window._f,fd=new FormData(e.target),out=document.getElementById('out');
  const btn=e.target.querySelector('button[type=submit]');
  const dec=fd.get('dec'),cm=(fd.get('cm')||'').trim(),loc=f.candidates[+fd.get('loc')];
+ const prevDec=DEC[f.node_id];
  if(dec!=='sign'&&!cm){out.innerHTML='<p class="msg err">Comment required.</p>';return false}
  out.innerHTML='<p class="msg">Recording&hellip;</p>';BUSY=true;if(btn)btn.disabled=true;
  try{const r=await api('/api/decisions',{method:'POST',body:JSON.stringify({
@@ -358,11 +406,25 @@ async function submitForm(e){
    figmaFileKey:(STATE.header&&STATE.header.file_key)||null,
    figmaNodeUrl:figUrl(f.node_id),figmaLocusUrl:figUrl(loc.id),
    frameContentDigest:f.content_digest,ledgerDigest:STATE.ledgerDigest})});
-  DEC[f.node_id]={decision:dec,comment:cm};chips();rail();
-  out.innerHTML=`<p class="msg ok">Recorded #${r.seq}.</p>`;
-  setTimeout(()=>{BUSY=false;advance(f.node_id)},420);
+  const amending=!!prevDec;
+  DEC[f.node_id]={nodeId:f.node_id,route:f.route,decision:dec,comment:cm,
+                  selectedLocus:{id:loc.id,name:loc.name},seq:r.seq};
+  chips();rail();
+  if(amending){
+   // Came back on purpose. Confirm in place rather than jumping to the next undecided route.
+   BUSY=false;if(btn){btn.disabled=false;btn.textContent='Update decision'}
+   out.innerHTML=`<p class="msg ok">Updated. Decision #${r.seq} now stands for this route.</p>`;
+   showHistory(f.node_id);
+  }else{
+   out.innerHTML=`<p class="msg ok">Recorded #${r.seq}.</p>`;
+   setTimeout(()=>{BUSY=false;advance(f.node_id)},420);
+  }
  }catch(err){BUSY=false;if(btn)btn.disabled=false;
-  out.innerHTML='<p class="msg err">Not recorded: '+esc(err.message)+'</p>'}
+  // An identical resubmit is not a failure, it is a no-op. Saying "error" for it teaches
+  // the signer to distrust the messages that DO matter.
+  const dup=/^identical to decision #/.test(err.message);
+  out.innerHTML=`<p class="msg${dup?'':' err'}">`+
+   (dup?'No change: '+esc(err.message):'Not recorded: '+esc(err.message))+'</p>'}
  return false}
 
 addEventListener('keydown',e=>{if(!CUR||/INPUT|TEXTAREA/.test(e.target.tagName))return;
@@ -371,7 +433,7 @@ addEventListener('keydown',e=>{if(!CUR||/INPUT|TEXTAREA/.test(e.target.tagName))
  if(e.key==='ArrowRight'&&i<s.length-1)open_(s[i+1].node_id);
  if(e.key==='Escape'){const lb=document.getElementById('lb');lb.classList.contains('on')?closeLb():list()}});
 (async()=>{try{STATE=await api('/api/state');FRAMES=(await api('/api/frames')).frames;
- (await api('/api/decisions')).decisions.forEach(d=>DEC[d.nodeId]={decision:d.decision,comment:d.comment});
+ (await api('/api/decisions')).decisions.forEach(d=>DEC[d.nodeId]=d);
  document.getElementById('hdr').innerHTML=`captured ${esc(STATE.header.captured_at||'-')} &middot; depth ${esc(STATE.header.capture_depth||'-')}`;
  chips();rail();list()}catch(e){document.getElementById('app').innerHTML='<p class="msg err">'+esc(e.message)+'</p>'}})();
 </script></body></html>"""
@@ -491,6 +553,10 @@ def main() -> int:
                                     "--token-file: an argv secret is visible in ps to every "
                                     "user on the box.")
     ap.add_argument("--token-file", type=Path, help="read the shared secret from this file")
+    ap.add_argument("--layer-cache", type=Path, default=Path("/var/tmp/claude/layer-renders"),
+                    help="where on-demand per-layer renders are cached")
+    ap.add_argument("--figma-token-file", type=Path,
+                    help="Figma PAT for on-demand layer renders; falls back to $FIGMA_TOKEN")
     a = ap.parse_args()
 
     data = json.loads(a.frames.read_text())
@@ -519,6 +585,63 @@ def main() -> int:
     export_jsonl(db, a.log)
     print(f"  record:   {a.db}  ({db.execute('SELECT COUNT(*) c FROM decisions').fetchone()['c']} rows)")
     print(f"  export:   {a.log}  (derived, rewritten after each write)")
+
+    a.layer_cache.mkdir(parents=True, exist_ok=True)
+    figma_token = (a.figma_token_file.read_text().strip() if a.figma_token_file
+                   else os.environ.get("FIGMA_TOKEN") or "")
+    file_key = header.get("file_key") or ""
+    # Only ever render a node this ledger already names as a candidate locus. Without this the
+    # service is an open proxy to any node in any file the PAT can reach.
+    layer_meta = {c["id"]: c for f in frames.values()
+                  for c in (f.get("candidates") or []) if c.get("id")}
+    fetch_lock = threading.Lock()
+    hidden = sum(1 for c in layer_meta.values() if c.get("visible") is False)
+    print(f"  layers:   {len(layer_meta)} loci ({hidden} hidden) -> {a.layer_cache}"
+          f"{'' if figma_token else '  (NO FIGMA TOKEN - layer view will report why)'}")
+
+    def layer_png(node_id: str) -> tuple[Path | None, str | None]:
+        """Cached-or-fetched PNG for one layer. Returns (path, refusal). Never raises at the
+        caller: a Figma outage must read as a stated reason in the pane, not a blank box."""
+        cached = a.layer_cache / (node_id.replace(":", "-") + ".png")
+        if cached.is_file() and cached.stat().st_size:
+            return cached, None
+        # Answer from what we already know. Figma renders nothing for a fully hidden node, and
+        # most loci here ARE hidden (the frozen LEGACY UNDERLAY layers), so asking would spend
+        # five seconds per click to be told nothing. Say the real reason immediately.
+        c = layer_meta.get(node_id) or {}
+        if c.get("visible") is False:
+            return None, (f"\u201c{c.get('name', node_id)}\u201d is hidden in Figma, so Figma "
+                          f"renders no image for it. It is still selectable as the contract; "
+                          f"you just cannot preview it.")
+        if not figma_token:
+            return None, "no Figma token on this server, so layers cannot be rendered"
+        if not file_key:
+            return None, "the capture header names no file_key"
+        with fetch_lock:                       # serialise: a burst of clicks is one PAT at a time
+            if cached.is_file() and cached.stat().st_size:
+                return cached, None
+            try:
+                url = (f"https://api.figma.com/v1/images/{file_key}"
+                       f"?ids={quote(node_id)}&format=png&scale=2")
+                req = urllib.request.Request(url, headers={"X-Figma-Token": figma_token})
+                with urllib.request.urlopen(req, timeout=60) as r:
+                    body = json.loads(r.read())
+                if body.get("err"):
+                    return None, f"Figma refused: {body['err']}"
+                src = (body.get("images") or {}).get(node_id)
+                if not src:
+                    return None, ("Figma returned no image for this node "
+                                  "(usually: it is empty, or fully hidden)")
+                with urllib.request.urlopen(src, timeout=120) as r:
+                    png = r.read()
+                if not png.startswith(b"\x89PNG"):
+                    return None, "the fetched bytes are not a PNG"
+                tmp = cached.with_suffix(".part")
+                tmp.write_bytes(png)
+                tmp.replace(cached)
+                return cached, None
+            except (urllib.error.URLError, OSError, ValueError) as exc:
+                return None, f"could not reach Figma: {exc}"
 
     def decisions() -> list[dict]:
         """The operative decision per node, from the database view."""
@@ -607,6 +730,26 @@ def main() -> int:
                 return self._j(200, out)
             if u.path == "/api/decisions":
                 return self._j(200, {"decisions": decisions()})
+            if u.path.startswith("/api/history/"):
+                nid = unquote(u.path.split("/api/history/", 1)[1])
+                with dblock:
+                    rows = db.execute("SELECT payload FROM decisions WHERE node_id = ? "
+                                      "ORDER BY seq DESC", (nid,)).fetchall()
+                return self._j(200, {"history": [json.loads(r["payload"]) for r in rows]})
+            if u.path.startswith("/layers/"):
+                nid = unquote(u.path.split("/layers/", 1)[1]).removesuffix(".png")
+                if nid not in layer_meta:
+                    return self._j(404, {"error": "not a candidate locus in this ledger"})
+                png, why = layer_png(nid)
+                if not png:
+                    return self._j(503, {"error": why})
+                b = png.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", "image/png")
+                self.send_header("Content-Length", str(len(b)))
+                self.send_header("Cache-Control", "private, max-age=86400, immutable")
+                self.end_headers()
+                return self.wfile.write(b)
             if u.path.startswith(("/renders/", "/shots/")):
                 kind, _, name = unquote(u.path).lstrip("/").partition("/")
                 root = assets.get(kind)
