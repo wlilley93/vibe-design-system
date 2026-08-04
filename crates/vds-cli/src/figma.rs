@@ -71,6 +71,23 @@ pub struct FramesArgs {
     /// One or more saved `GET /v1/files/:key/nodes` responses.
     #[arg(long, value_name = "PATH", required = true, num_args = 1..)]
     from: Vec<PathBuf>,
+    /// WHEN the capture was taken, RFC 3339, UTC, to the second.
+    ///
+    /// A DIFFERENT FACT from the ledger's `generated_at`, and confusing them is
+    /// a check that cannot fail: regenerating from a four-day-old capture moves
+    /// `generated_at` to now and moves the capture date not at all, so a
+    /// freshness rule reading `generated_at` reports a stale reading as fresh
+    /// every time. That is not hypothetical: it is how 23 of 188 routes on the
+    /// subscribing estate were read against a stale capture on 2026-08-02.
+    ///
+    /// It cannot be derived. A Figma `nodes` response says when the FILE last
+    /// changed and nothing about when the request was made, and taking the
+    /// capture file's mtime would make a ledger's content depend on when
+    /// somebody last copied a file. So the caller states it, and a caller that
+    /// does not know leaves it out and gets a refusal from the rule that needs
+    /// it rather than a quiet pass.
+    #[arg(long, value_name = "RFC3339")]
+    captured_at: Option<String>,
 }
 
 #[derive(ClapArgs)]
@@ -495,6 +512,10 @@ fn frames_command(project: &vds_core::Project, store: &Store, args: &FramesArgs)
     };
 
     let ledger = vds_figma::frames::from_saved(&file_key, &args.from, &project.config.screens)?;
+    let ledger = match &args.captured_at {
+        Some(raw) => ledger.with_capture_date(vds_core::Timestamp::parse(raw.clone())?)?,
+        None => ledger,
+    };
     let path = vds_figma::frames::write(project, &ledger)?;
 
     let disclaimed = ledger.frames.iter().filter(|f| f.disclaimed).count();
@@ -509,6 +530,14 @@ fn frames_command(project: &vds_core::Project, store: &Store, args: &FramesArgs)
     println!("  frames:          {}", ledger.frames.len());
     println!("  capture depth:   {}", ledger.capture_depth);
     println!("  content_digest:  {}", ledger.content_digest);
+    match &ledger.captured_at {
+        Some(at) => println!("  captured at:     {at}"),
+        None => println!(
+            "  captured at:     NOT STATED. A freshness rule that reads generated_at reports a \
+             stale\n                   reading as fresh every time. Pass --captured-at <when the \
+             capture was taken>."
+        ),
+    }
     println!();
     println!(
         "  {quarantined} frame(s) carry a layer nobody may build from (a legacy underlay, a \

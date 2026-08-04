@@ -202,6 +202,23 @@ pub struct FrameLedger {
     pub capture_depth: u32,
     /// How many leaves in the whole capture sit at the boundary.
     pub truncated_leaves: u32,
+    /// When the CAPTURE this ledger was derived from was taken.
+    ///
+    /// A DIFFERENT FACT from [`Self::generated_at`], and confusing the two is a
+    /// check that cannot fail. Regenerating from a four-day-old capture moves
+    /// `generated_at` to now and moves this not at all, so a freshness rule
+    /// reading `generated_at` reports a stale reading as fresh, every time.
+    /// That is not hypothetical: it is how 23 of 188 routes on the subscribing
+    /// estate were read against a stale capture on 2026-08-02.
+    ///
+    /// `Option` because it cannot be derived: a Figma `nodes` response carries
+    /// the FILE's last-modified time and nothing about when the request was
+    /// made, and taking the capture file's mtime would make a ledger's content
+    /// depend on when somebody last copied a file. So the caller states it, and
+    /// a rule that needs it REFUSES when it is absent rather than falling back
+    /// to a date that answers a different question.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub captured_at: Option<Timestamp>,
     pub content_digest: Digest,
     pub frames: Vec<FrameRow>,
     /// What the generator could not see, in the words a reader needs.
@@ -218,6 +235,14 @@ impl FrameLedger {
             file_key: &'a str,
             capture_depth: u32,
             truncated_leaves: u32,
+            // COVERED by the digest where it is stated, and OMITTED where it is
+            // not. A freshness claim nothing witnesses is a field anyone can
+            // back-date; and omitting the absent case keeps every ledger
+            // generated before this field existed digesting to exactly what it
+            // digested to then, so an amendment that adds a field is not a flag
+            // day for every adopting project.
+            #[serde(skip_serializing_if = "Option::is_none")]
+            captured_at: Option<&'a Timestamp>,
             frames: &'a [FrameRow],
         }
         Digest::of_value(&Content {
@@ -226,8 +251,22 @@ impl FrameLedger {
             file_key: &self.file_key,
             capture_depth: self.capture_depth,
             truncated_leaves: self.truncated_leaves,
+            captured_at: self.captured_at.as_ref(),
             frames: &self.frames,
         })
+    }
+
+    /// Record WHEN the capture was taken, and re-digest.
+    ///
+    /// Separate from the builder because the date cannot be derived from the
+    /// payload: a `nodes` response says when the FILE last changed and nothing
+    /// about when the request was made. A caller that knows states it; one that
+    /// does not leaves it absent, and a rule that needs it refuses rather than
+    /// reading `generated_at`, which answers a different question.
+    pub fn with_capture_date(mut self, at: Timestamp) -> Result<Self> {
+        self.captured_at = Some(at);
+        self.content_digest = self.compute_content_digest()?;
+        Ok(self)
     }
 
     /// The row for a node id, in either of Figma's two spellings.
@@ -457,6 +496,10 @@ pub fn build_ledger(
         file_key: file_key.to_owned(),
         capture_depth,
         truncated_leaves,
+        // Absent unless the caller states it: it cannot be derived from a Figma
+        // `nodes` response, and a rule that needs it refuses rather than reading
+        // `generated_at`, which answers a different question.
+        captured_at: None,
         content_digest: Digest::of_text("placeholder"),
         frames,
         notes,
@@ -1470,6 +1513,61 @@ mod tests {
         .unwrap();
         let before = ledger.compute_content_digest().unwrap();
         ledger.generated_at = Timestamp::fixed(2000, 1, 1, 0, 0, 0);
+        assert_eq!(before, ledger.compute_content_digest().unwrap());
+    }
+
+    /// REGRESSION. `captured_at` was in the digest material on the branch that
+    /// wrote this estate's live frame ledger and ABSENT from the branch that
+    /// became master, so master computed a different digest over the same bytes
+    /// and `check_fresh` refused the ledger as hand-edited. Every frame-bound
+    /// proof therefore refused, including the one that produces the parity
+    /// number, and the CC-OPBOX 7 D6 reproduction recipe could not reproduce the
+    /// digest its own nineteen sign-offs bind. Nothing caught it: the field was
+    /// simply not there, and no assertion named it.
+    #[test]
+    fn the_content_digest_covers_captured_at_where_it_is_stated() {
+        let frame = band("Screen", 0.0, 100.0, 100.0, serde_json::json!([]));
+        let ledger = build_ledger(
+            "KEY",
+            &[capture(serde_json::json!({"1:1": {"document": frame}}))],
+            &config(),
+            "a test",
+        )
+        .unwrap();
+        let without = ledger.content_digest.clone();
+        let dated = ledger
+            .with_capture_date(Timestamp::fixed(2026, 8, 3, 14, 35, 33))
+            .unwrap();
+        assert_ne!(
+            without, dated.content_digest,
+            "stating when the capture was taken must move the digest, or a ledger \
+             re-derived from a four-day-old capture is indistinguishable from a fresh one"
+        );
+        assert_eq!(
+            dated.content_digest,
+            dated.compute_content_digest().unwrap(),
+            "with_capture_date must leave the stored digest equal to the computed one, or \
+             check_fresh refuses the ledger it just wrote"
+        );
+    }
+
+    /// The other half, and the reason the field is skipped when absent rather
+    /// than serialised as null: a ledger that states no capture date must digest
+    /// to exactly what it digested to before the field existed, so adding the
+    /// field is not a flag day for every adopting project.
+    #[test]
+    fn an_absent_captured_at_leaves_the_digest_where_it_was() {
+        let frame = band("Screen", 0.0, 100.0, 100.0, serde_json::json!([]));
+        let mut ledger = build_ledger(
+            "KEY",
+            &[capture(serde_json::json!({"1:1": {"document": frame}}))],
+            &config(),
+            "a test",
+        )
+        .unwrap();
+        assert!(ledger.captured_at.is_none());
+        let before = ledger.compute_content_digest().unwrap();
+        ledger.captured_at = None;
         assert_eq!(before, ledger.compute_content_digest().unwrap());
     }
 
