@@ -14,9 +14,12 @@
 //! MAY sign - that is the Principal's own act, and this door only writes it
 //! down (the same posture as `vds warrant record`).
 
+use std::path::{Path, PathBuf};
+
 use clap::{Args as ClapArgs, Subcommand};
 use vds_core::{
-    RedrawId, RedrawRecord, RedrawStatus, Result, SignOff, SignoffId, Timestamp, VdsError,
+    DecisionExportIndex, RedrawId, RedrawRecord, RedrawStatus, Result, SignOff, SignOffBasis,
+    SignoffId, Timestamp, VdsError, admit_under_principal_act, rows_without_a_basis,
 };
 use vds_store::Store;
 
@@ -47,6 +50,19 @@ pub struct RecordArgs {
     /// this tool's to do.
     #[arg(long)]
     signed_by: String,
+    /// LIMB (b). The one exported Principal decision for THIS frame.
+    ///
+    /// Its exact bytes are digested and checked against the export index, so a
+    /// decision anybody edited is not the decision the Principal took. An
+    /// attestation over the frames ledger as a whole is refused here by name:
+    /// limb (b) is per-frame, and the aggregate is not a label-resolution act
+    /// ([2026] VJS-FI-VDS 2 order 4).
+    #[arg(long, value_name = "PATH", requires = "decisions_index")]
+    decision: Option<PathBuf>,
+    /// The decision export's index, which records the digest of every decision
+    /// it exported. Passed with --decision and meaningless without it.
+    #[arg(long, value_name = "PATH", requires = "decision")]
+    decisions_index: Option<PathBuf>,
     #[arg(long)]
     notes: Option<String>,
 }
@@ -83,40 +99,25 @@ fn record(store: &Store, args: &RecordArgs) -> Result<i32> {
             args.node_id
         ))
     })?;
-    // ORDER 31: only a CURRENT SOURCE frame is registrable. The ledger already
-    // carries what this needs (`disclaimed`, `authority_by`) and the door never
-    // looked. A register entry over a frame that says in its own authoritative
-    // layer that it is NOT source-current is a signed contradiction, and the
-    // register is the condition precedent to the whole regime: poisoning it at
-    // genesis poisons everything downstream ([2026] VJS-SC-OPBOX 1 orders 23
-    // and 25). Front door only - this creates no proof rule and reddens
-    // nothing already recorded.
+    // ORDER 31: a frame that DISCLAIMS ITSELF is registrable on no limb.
+    //
+    // This one is NOT part of the disjunctive test and limb (b) does not reach
+    // it. The label test asks whether anything declared the frame current;
+    // this asks whether the frame's own authoritative layer says it is NOT, and
+    // a Principal act cannot make a drawing that states no contract state one.
+    // Nothing is lost by holding it absolute: `frameSelfDisclaims` is false on
+    // all 127 signed frames in the subject estate, so no decision this judgment
+    // admits meets this bar. If one ever does, that is a question for the court
+    // and not for a widened door.
     if row.disclaimed {
         return Err(VdsError::precondition(format!(
             "{}/{} DISCLAIMS ITSELF: its authoritative layer {:?} says in its own name that \
              it is not source-current, or was never built. Such a frame states no contract, \
              so signing it would enter a contradiction as the register's own authority. \
-             Resolve the label - redraw and re-capture - before signing.",
-            args.file_key, row.node_id, row.authority_layer
-        )));
-    }
-    if row.authority_by == vds_figma::frames::AuthorityBy::Unlabelled {
-        return Err(VdsError::precondition(format!(
-            "{}/{} carries NO AUTHORITY MARKER at all: {:?} was taken as the authority by \
-             default, which is a default and not a declaration. Only frames labelled \
-             CURRENT SOURCE are registrable ([2026] VJS-SC-OPBOX 1 order 25); if this file \
-             uses different words for that, they belong in `[screens] authority_markers`.",
-            args.file_key, row.node_id, row.authority_layer
-        )));
-    }
-    if vds_figma::frames::authority_of(&row.authority_layer, &project.config.screens)
-        != Some(vds_figma::frames::Authority::Current)
-    {
-        return Err(VdsError::precondition(format!(
-            "{}/{} resolves its authority from {:?}, which is not a CURRENT SOURCE label \
-             under `[screens] authority_markers`. LEGACY/REFERENCE and TARGET/proposal \
-             frames are no_authority per se and are registrable only after redraw \
-             ([2026] VJS-SC-OPBOX 1 order 25).",
+             Resolve the label - redraw and re-capture - before signing.\n  \
+             Limb (b) does not reach this: an express Principal act admits a frame the LABELS \
+             refuse, and cannot make a drawing that states no contract state one \
+             ([2026] VJS-FI-VDS 2 order 4).",
             args.file_key, row.node_id, row.authority_layer
         )));
     }
@@ -128,6 +129,40 @@ fn record(store: &Store, args: &RecordArgs) -> Result<i32> {
              hash would be authority by trust, which draft S-7D refuses.",
         )
     })?;
+
+    // CC-OPBOX 6'S TEST IS DISJUNCTIVE, AND THE DOOR NOW APPLIES BOTH LIMBS.
+    //
+    // Registration is conditional on (a) a recognised authority label OR (b) an
+    // express Principal act, and this door implemented (a) alone. That is not
+    // under-enforcement, it is an INVERSION: limb (a) is satisfied by exactly
+    // the artefacts limb (b) exists to displace, so where the labels were
+    // machine-implanted the door admitted the implant and refused every frame
+    // the Principal had cleaned - 118 of 127 refused outright, and the other 9
+    // admitted on the strength of the layer he had overridden
+    // ([2026] VJS-FI-VDS 2, ratio).
+    //
+    // Limb (b) is tried FIRST when a decision is supplied, so a frame the
+    // Principal expressly signed is never refused with a message about labels.
+    let basis = match (&args.decision, &args.decisions_index) {
+        (Some(decision_path), Some(index_path)) => {
+            let bytes = read_decision(project, decision_path)?;
+            let index = read_decision_index(project, index_path)?;
+            let reference = admit_under_principal_act(
+                &args.file_key,
+                &row.node_id,
+                &frame_digest,
+                &bytes,
+                &project.rel(decision_path),
+                &index,
+                &project.rel(index_path),
+            )?;
+            SignOffBasis::PrincipalAct {
+                decision: reference,
+            }
+        }
+        _ => recognised_label(project, &args.file_key, row)?,
+    };
+
     let id = SignoffId::allocate(&store.signoffs_dir())?;
     let record = SignOff {
         id: id.clone(),
@@ -136,6 +171,11 @@ fn record(store: &Store, args: &RecordArgs) -> Result<i32> {
         frame_digest,
         signed_by: args.signed_by.clone(),
         signed_at: Timestamp::now(),
+        // REQUIRED at the door, though optional at the type. Every row this
+        // door writes can say which limb admitted it; the rows that cannot are
+        // the ones written before the limb existed, and they are counted rather
+        // than smoothed over ([2026] VJS-FI-VDS 2 order 5).
+        basis: Some(basis),
         notes: args.notes.clone(),
     };
     let path = store.signoff_path(&id);
@@ -144,13 +184,78 @@ fn record(store: &Store, args: &RecordArgs) -> Result<i32> {
         "recorded {id}: {} signed {}/{}",
         record.signed_by, record.file_key, record.node_id
     );
-    println!("  hash: {}", record.frame_digest);
+    println!("  hash:  {}", record.frame_digest);
+    if let Some(basis) = &record.basis {
+        println!("  basis: {}", basis.describe());
+    }
     println!();
+    if matches!(record.basis, Some(SignOffBasis::PrincipalAct { .. })) {
+        println!(
+            "Admitted under LIMB (b): an express, per-frame Principal act, not a label. The \
+             row cites that one decision and no other, and no attestation over the frames \
+             ledger as a whole was relied on ([2026] VJS-FI-VDS 2 order 4)."
+        );
+    }
     println!(
         "Authority holds while the frame's current hash equals this one, and not a moment \
          longer: the frame changing reverts it to UNSIGNED until re-signed (draft S-7D)."
     );
     Ok(PASSED)
+}
+
+/// LIMB (a). Whether a recognised authority label admits this frame.
+///
+/// Unchanged in substance from the door as it stood; it is now one of two ways
+/// in rather than the only one, and it returns the label that admitted the
+/// frame so the row can say on its face what it rested on.
+fn recognised_label(
+    project: &vds_core::Project,
+    file_key: &str,
+    row: &vds_figma::frames::FrameRow,
+) -> Result<SignOffBasis> {
+    if row.authority_by == vds_figma::frames::AuthorityBy::Unlabelled {
+        return Err(VdsError::precondition(format!(
+            "{}/{} carries NO AUTHORITY MARKER at all: {:?} was taken as the authority by \
+             default, which is a default and not a declaration. Only frames labelled \
+             CURRENT SOURCE are registrable ([2026] VJS-SC-OPBOX 1 order 25); if this file \
+             uses different words for that, they belong in `[screens] authority_markers`.\n  \
+             LIMB (b) IS THE OTHER WAY IN. If the Principal has expressly signed this frame, \
+             pass that one decision with --decision and its export with --decisions-index \
+             ([2026] VJS-FI-VDS 2 order 4). Widening `authority_markers` with synonyms to let \
+             an unlabelled frame through limb (a) is expressly FORBIDDEN.",
+            file_key, row.node_id, row.authority_layer
+        )));
+    }
+    if vds_figma::frames::authority_of(&row.authority_layer, &project.config.screens)
+        != Some(vds_figma::frames::Authority::Current)
+    {
+        return Err(VdsError::precondition(format!(
+            "{}/{} resolves its authority from {:?}, which is not a CURRENT SOURCE label \
+             under `[screens] authority_markers`. LEGACY/REFERENCE and TARGET/proposal \
+             frames are no_authority per se and are registrable only after redraw \
+             ([2026] VJS-SC-OPBOX 1 order 25).\n  \
+             LIMB (b) IS THE OTHER WAY IN: pass the Principal's own decision for this frame \
+             with --decision and --decisions-index ([2026] VJS-FI-VDS 2 order 4).",
+            file_key, row.node_id, row.authority_layer
+        )));
+    }
+    Ok(SignOffBasis::RecognisedLabel {
+        authority_layer: row.authority_layer.clone(),
+    })
+}
+
+/// The decision's EXACT BYTES, read once and used for both the digest and the
+/// parse. Reading twice would digest one file and check another.
+fn read_decision(project: &vds_core::Project, path: &Path) -> Result<Vec<u8>> {
+    let resolved = project.root.join(path);
+    std::fs::read(&resolved).map_err(|e| VdsError::io(resolved.display(), e))
+}
+
+fn read_decision_index(project: &vds_core::Project, path: &Path) -> Result<DecisionExportIndex> {
+    let resolved = project.root.join(path);
+    let bytes = std::fs::read(&resolved).map_err(|e| VdsError::io(resolved.display(), e))?;
+    serde_json::from_slice(&bytes)
+        .map_err(|e| VdsError::parse(project.rel(&resolved), "a decision export index", e))
 }
 
 fn list(store: &Store) -> Result<i32> {
@@ -181,6 +286,36 @@ fn list(store: &Store) -> Result<i32> {
             s.signed_by,
             s.signed_at.as_str(),
             standing
+        );
+        // WHICH LIMB ADMITTED THIS ROW, on every row, every run
+        // ([2026] VJS-FI-VDS 2 order 5). A register that reports what it holds
+        // and not why it admitted it cannot be audited against the test it was
+        // supposed to apply - which is how a door implementing one limb of a
+        // two-limb rule went unnoticed.
+        match &s.basis {
+            Some(basis) => println!("      basis: {}", basis.describe()),
+            None => println!(
+                "      basis: NOT RECORDED - written before limb (b) existed, or by a door \
+                 that did not say"
+            ),
+        }
+    }
+    // COVERAGE OWED, PRINTED WHETHER OR NOT IT IS ZERO. An unreported reach is
+    // a pass over an unknown denominator ([2026] VJS-CA-VDS 1, Estate J), and a
+    // silent basis count reads as a complete one.
+    let rows: Vec<SignOff> = records.iter().map(|l| l.value.clone()).collect();
+    let without = rows_without_a_basis(&rows);
+    println!();
+    println!(
+        "basis coverage: {} of {} row(s) record which limb admitted them; {} do not.",
+        rows.len() - without,
+        rows.len(),
+        without
+    );
+    if without > 0 {
+        println!(
+            "  Those {without} assert authority the register cannot account for. Re-record them \
+             through the door, citing the recognised label or the Principal's own decision."
         );
     }
     Ok(PASSED)

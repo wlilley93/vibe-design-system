@@ -12,6 +12,17 @@
     "signedBy"
   ],
   "properties": {
+    "basis": {
+      "description": "WHICH LIMB OF CC-OPBOX 6 ADMITTED THIS ROW ([2026] VJS-FI-VDS 2 order 5).\n\nOPTIONAL at the type and REQUIRED at the door, and the asymmetry is deliberate. Rows written before limb (b) existed carry no basis and must keep exactly their shape and continue to parse; making the field required would turn every one of them into a parse failure, which is a reader's problem misreported as a record's. But no NEW row may omit it: a register that cannot say why it admitted a subject is asserting authority it cannot account for, and the count of rows carrying no basis is reported as coverage owed on every run rather than rounded to zero.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/SignOffBasis"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "fileKey": {
       "type": "string"
     },
@@ -23,7 +34,7 @@
       "$ref": "#/definitions/SignoffId"
     },
     "nodeId": {
-      "description": "The frame's node id, in the `12:34` spelling.",
+      "description": "The frame's node id, in the `12:34` spelling.\n\nIt is also the LOCUS on every row this register can hold. [2026] VJS-FI-VDS 2 refused to grow this type a locus field precisely because where the Principal adopts the frame's own node as the locus - which he did on all 127 signed frames in the subject estate - this field already names it. A decision adopting a different locus is refused and referred at the door; it does not arrive here in a weaker form.",
       "type": "string"
     },
     "notes": {
@@ -41,6 +52,77 @@
   },
   "additionalProperties": false,
   "definitions": {
+    "DecisionReference": {
+      "description": "The reference a `principal_act` sign-off row carries on its face.\n\n[2026] VJS-FI-VDS 2 order 5. Four values, so a reader can go from the row to the act without trusting the row: the decision's position, its exact bytes, and the locus the Principal adopted, by id and by the name he saw.",
+      "type": "object",
+      "required": [
+        "digest",
+        "locusId",
+        "locusName",
+        "seq"
+      ],
+      "properties": {
+        "digest": {
+          "description": "The digest of the decision's exact exported bytes.",
+          "type": "string"
+        },
+        "locusId": {
+          "type": "string"
+        },
+        "locusName": {
+          "type": "string"
+        },
+        "seq": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "SignOffBasis": {
+      "description": "The two limbs of CC-OPBOX 6's disjunctive registration test. CLOSED at two.\n\n[2026] VJS-FI-VDS 2: registration is conditional on **(a)** a recognised authority label **OR** **(b)** an express Principal act. The register implemented (a) alone, and because (a) is satisfied by exactly the machine-implanted labels (b) exists to displace, the door admitted the implant and refused every frame the Principal had cleaned. There is no third limb, and there is deliberately no variant for an attestation over the frames ledger as a whole: that is not a label-resolution act.\n\nEvery field is renamed EXPLICITLY rather than by `rename_all_fields`. schemars 0.8 does not implement that attribute, so serde renamed the field and the published schema did not: `signoff.schema.json` declared `authority_layer` while every row VDS writes says `authorityLayer`, and `vds schema check` could not see it because it regenerates from the same blind derive and compares the result with itself. `the_published_schema_declares_the_keys_that_are_actually_written` is the check that would have caught it, and does.",
+      "oneOf": [
+        {
+          "description": "LIMB (a). The frame's authoritative layer NAMED itself current, under `[screens] authority_markers`. The layer is recorded by name, because \"it was labelled\" is a claim about a specific string and a reader is entitled to see which one.",
+          "type": "object",
+          "required": [
+            "authorityLayer",
+            "kind"
+          ],
+          "properties": {
+            "authorityLayer": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "enum": [
+                "recognised_label"
+              ]
+            }
+          }
+        },
+        {
+          "description": "LIMB (b). An express, per-frame Principal decision admitted the frame, whatever its labels said. The row cites THAT decision and no other.",
+          "type": "object",
+          "required": [
+            "decision",
+            "kind"
+          ],
+          "properties": {
+            "decision": {
+              "$ref": "#/definitions/DecisionReference"
+            },
+            "kind": {
+              "type": "string",
+              "enum": [
+                "principal_act"
+              ]
+            }
+          }
+        }
+      ]
+    },
     "SignoffId": {
       "description": "A frame sign-off: the frame's content hash at the moment taste was exercised (draft S-7D).",
       "type": "string",

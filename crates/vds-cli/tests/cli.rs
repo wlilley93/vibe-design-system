@@ -1451,3 +1451,493 @@ fn prune_stays_out_of_every_automated_path_by_order() {
          command was withdrawn, that answers the submission and this test should go with it."
     );
 }
+
+// -- the register's front door: CC-OPBOX 6's DISJUNCTIVE test ---------------
+//
+// [2026] VJS-FI-VDS 2 order 4. Registration is conditional on (a) a recognised
+// authority label OR (b) an express Principal act, and this door implemented
+// limb (a) alone. That is an INVERSION and not a shortfall: limb (a) is
+// satisfied by exactly the machine-implanted labels limb (b) exists to
+// displace, so the door admitted the implant and refused every frame the
+// Principal had cleaned - 118 of 127 refused outright in the subject estate,
+// the other 9 admitted on the strength of the layer he had overridden.
+//
+// These live at the CLI and not in a library test on purpose. What the estate
+// meets is `vds signoff record` with flags, and O4's check is about what the
+// door does when a decision is handed to it.
+
+/// A frames ledger with one labelled frame, one that DISCLAIMS itself, one
+/// UNLABELLED and one whose authority is its OWN CHILDREN - the two populations
+/// [2026] VJS-FI-VDS 2 admits (99 frame_own_children + 19 unlabelled) and the
+/// two it does not. Built from a saved capture; no Figma transport is used.
+fn signoff_fixture() -> Fixture {
+    let f = Fixture::new();
+    f.ready();
+    f.write(
+        "evidence/frames.json",
+        r#"{
+          "nodes": {
+            "1:2": {"document": {
+              "id": "1:2", "name": "Screen /current",
+              "children": [{"id": "10:1", "name": "CURRENT SOURCE · /current", "children": []}]
+            }},
+            "2:2": {"document": {
+              "id": "2:2", "name": "REFERENCE · /disclaimed", "children": []
+            }},
+            "3:2": {"document": {
+              "id": "3:2", "name": "Screen /unlabelled", "children": []
+            }},
+            "4:2": {"document": {
+              "id": "4:2", "name": "Screen /single-body",
+              "children": [{"id": "40:1", "name": "body", "children": []}]
+            }}
+          }
+        }"#,
+    );
+    f.vds(&[
+        "figma",
+        "frames",
+        "--file-key",
+        "KEY",
+        "--from",
+        "evidence/frames.json",
+    ])
+    .expect(PASSED);
+    f
+}
+
+impl Fixture {
+    /// A frame's CURRENT content digest, read out of the generated ledger
+    /// rather than restated here. A fixture that hard-codes the digest tests
+    /// the fixture.
+    fn frame_digest(&self, node_id: &str) -> String {
+        let ledger = std::fs::read_to_string(self.root().join(".vds/ledgers/frames.yaml"))
+            .expect("the frames ledger");
+        let mut in_row = false;
+        for line in ledger.lines() {
+            if line.trim_start().starts_with("- node_id:")
+                || line.trim_start().starts_with("node_id:")
+            {
+                in_row = line.trim().ends_with(node_id);
+            }
+            if in_row && let Some(rest) = line.trim().strip_prefix("content_digest: ") {
+                return rest.to_owned();
+            }
+        }
+        panic!("no content digest for {node_id} in the frames ledger");
+    }
+
+    /// One exported Principal decision, written as the O2 export writes them:
+    /// canonical, key-sorted, deterministic bytes.
+    fn decision(&self, seq: u64, node_id: &str, patch: serde_json::Value) -> PathBuf {
+        let mut value = serde_json::json!({
+            "schemaVersion": 1,
+            "fileKey": "KEY",
+            "seq": seq,
+            "nodeId": node_id,
+            "route": format!("/route-{seq}"),
+            "decision": "sign",
+            "locusId": node_id,
+            "locusName": format!("Screen \u{b7} /route-{seq}"),
+            "toolProposed": format!("Screen \u{b7} /route-{seq}"),
+            "overrides": false,
+            "frameDigest": self.frame_digest(node_id),
+            "ledgerDigest": format!("sha256:{}", "f".repeat(64)),
+            "recordedAt": "2026-08-04T06:31:18.907274+00:00",
+            "recordedBy": "tools/sign-review/sign-review-server.py",
+            "disclosedAtSigning": {"authorityBy": "frame_own_children", "frameSelfDisclaims": false}
+        });
+        for (key, replacement) in patch.as_object().expect("an object") {
+            value[key] = replacement.clone();
+        }
+        self.write(
+            &format!("decisions/{seq:04}.json"),
+            &vds_core::canonical_json(&value).expect("canonical bytes"),
+        )
+    }
+
+    /// The export index, built HONESTLY over whatever bytes are on disk.
+    ///
+    /// This matters for the negative controls. If the index were built over the
+    /// pristine decision, a control that tampers with a field would trip the
+    /// integrity limb instead of the limb it was written for, and would prove
+    /// the wrong check.
+    fn decision_index(&self, decisions: &[PathBuf]) -> PathBuf {
+        let rows: Vec<serde_json::Value> = decisions
+            .iter()
+            .map(|path| {
+                let bytes = std::fs::read(path).expect("a decision file");
+                let value: serde_json::Value =
+                    serde_json::from_slice(&bytes).expect("decision json");
+                serde_json::json!({
+                    "seq": value["seq"],
+                    "nodeId": value["nodeId"],
+                    "path": format!("decisions/{}", path.file_name().unwrap().to_string_lossy()),
+                    "digest": vds_core::Digest::of_bytes(&bytes),
+                })
+            })
+            .collect();
+        let index = serde_json::json!({
+            "schemaVersion": 1,
+            "fileKey": "KEY",
+            "source": "sign-decisions.sqlite",
+            "generatedAt": "2026-08-04T08:00:00Z",
+            "rowCount": rows.len(),
+            "aggregateDigest": vds_core::Digest::of_text("the export as a whole"),
+            "rows": rows,
+        });
+        self.write(
+            "decisions/INDEX.json",
+            &serde_json::to_string_pretty(&index).expect("index json"),
+        )
+    }
+
+    fn rel(&self, path: &Path) -> String {
+        path.strip_prefix(self.root())
+            .expect("inside the fixture")
+            .to_string_lossy()
+            .into_owned()
+    }
+
+    fn signoff_count(&self) -> usize {
+        std::fs::read_dir(self.root().join(".vds/signoffs"))
+            .map(|entries| entries.filter_map(|e| e.ok()).count())
+            .unwrap_or(0)
+    }
+}
+
+/// WITHOUT the decision, both populations the Principal signed are REFUSED, and
+/// the refusal now NAMES the other way in instead of pointing only at the
+/// marker vocabulary. Widening `authority_markers` with synonyms is expressly
+/// forbidden, so a refusal that offers only that route is a refusal that
+/// recommends a prohibited act.
+#[test]
+fn without_a_principal_decision_an_unlabelled_or_self_authorised_frame_is_still_refused() {
+    let f = signoff_fixture();
+    f.vds(&[
+        "signoff",
+        "record",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "3:2",
+        "--signed-by",
+        "Principal",
+    ])
+    .expect(PRECONDITION)
+    .says("NO AUTHORITY MARKER")
+    .says("LIMB (b) IS THE OTHER WAY IN")
+    .says("expressly FORBIDDEN");
+    f.vds(&[
+        "signoff",
+        "record",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "4:2",
+        "--signed-by",
+        "Principal",
+    ])
+    .expect(PRECONDITION)
+    .says("not a CURRENT SOURCE label")
+    .says("LIMB (b) IS THE OTHER WAY IN");
+    assert_eq!(f.signoff_count(), 0, "a refusal left a row behind");
+}
+
+/// WITH the decision, both are ADMITTED, and each row says on its face which
+/// limb admitted it and which single decision it rests on.
+#[test]
+fn a_per_frame_principal_decision_admits_the_frame_the_labels_refuse() {
+    let f = signoff_fixture();
+    let own_children = f.decision(1, "4:2", serde_json::json!({}));
+    let unlabelled = f.decision(2, "3:2", serde_json::json!({}));
+    let index = f.decision_index(&[own_children.clone(), unlabelled.clone()]);
+    let (own_children, unlabelled, index) =
+        (f.rel(&own_children), f.rel(&unlabelled), f.rel(&index));
+
+    f.vds(&[
+        "signoff",
+        "record",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "4:2",
+        "--signed-by",
+        "Principal",
+        "--decision",
+        &own_children,
+        "--decisions-index",
+        &index,
+    ])
+    .expect(PASSED)
+    .says("basis: principal_act")
+    .says("decision seq 1")
+    .says("Admitted under LIMB (b)");
+    f.vds(&[
+        "signoff",
+        "record",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "3:2",
+        "--signed-by",
+        "Principal",
+        "--decision",
+        &unlabelled,
+        "--decisions-index",
+        &index,
+    ])
+    .expect(PASSED)
+    .says("basis: principal_act")
+    .says("decision seq 2");
+    assert_eq!(f.signoff_count(), 2);
+
+    f.vds(&["signoff", "list"])
+        .expect(PASSED)
+        .says("basis: principal_act")
+        .says("basis coverage: 2 of 2")
+        .does_not_say("NOT RECORDED");
+}
+
+/// NEGATIVE CONTROL 1 ([2026] VJS-FI-VDS 2 order 4). A decision whose
+/// `decision` is `refuse`. Registering on one is expressly forbidden, and a
+/// refusal is not a weaker sign: it is the opposite of a registration.
+#[test]
+fn negative_control_a_decision_that_says_refuse_is_refused_at_the_door() {
+    let f = signoff_fixture();
+    let refusal = f.decision(3, "4:2", serde_json::json!({"decision": "refuse"}));
+    let index = f.decision_index(std::slice::from_ref(&refusal));
+    f.vds(&[
+        "signoff",
+        "record",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "4:2",
+        "--signed-by",
+        "Principal",
+        "--decision",
+        &f.rel(&refusal),
+        "--decisions-index",
+        &f.rel(&index),
+    ])
+    .expect(PRECONDITION)
+    .says("is \"refuse\", not `sign`")
+    .says("DESTROYS one");
+    assert_eq!(f.signoff_count(), 0, "a refused decision produced a row");
+}
+
+/// NEGATIVE CONTROL 2 ([2026] VJS-FI-VDS 2 order 4). A decision whose
+/// `frame_digest` is not the frames-ledger row's `content_digest`: the act
+/// covers a drawing that no longer exists.
+#[test]
+fn negative_control_a_decision_whose_frame_digest_is_not_the_ledgers_is_refused() {
+    let f = signoff_fixture();
+    let stale = f.decision(
+        4,
+        "3:2",
+        serde_json::json!({"frameDigest": format!("sha256:{}", "a".repeat(64))}),
+    );
+    // The index is built over the TAMPERED bytes, so the integrity limb passes
+    // and this control lands on the limb it was written for.
+    let index = f.decision_index(std::slice::from_ref(&stale));
+    f.vds(&[
+        "signoff",
+        "record",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "3:2",
+        "--signed-by",
+        "Principal",
+        "--decision",
+        &f.rel(&stale),
+        "--decisions-index",
+        &f.rel(&index),
+    ])
+    .expect(PRECONDITION)
+    .says("The drawing changed after the decision")
+    .says("never by trust")
+    .does_not_say("not the exported decision");
+    assert_eq!(f.signoff_count(), 0);
+}
+
+/// NEGATIVE CONTROL 3 ([2026] VJS-FI-VDS 2 order 4). Evidence whose scope is
+/// the AGGREGATE. An attestation over the frames ledger as a whole attests to
+/// the record that CLASSIFIES the frames and says nothing about any one of
+/// them; it is not a label-resolution act. The refusal must say that by NAME,
+/// because "this does not parse" invites a caller to fix the shape and retry.
+#[test]
+fn negative_control_evidence_scoped_to_the_whole_ledger_is_refused_as_no_act_at_all() {
+    let f = signoff_fixture();
+    let ledger_digest = std::fs::read_to_string(f.root().join(".vds/ledgers/frames.yaml"))
+        .expect("the frames ledger")
+        .lines()
+        .find_map(|l| l.strip_prefix("content_digest: ").map(str::to_owned))
+        .expect("the ledger's aggregate digest");
+    let aggregate = f.write(
+        "decisions/AGGREGATE.json",
+        &serde_json::to_string_pretty(&serde_json::json!({
+            "schemaVersion": 1,
+            "kind": "external-principal-frame-signature",
+            "signedBy": "Principal",
+            "signedAt": "2026-08-03T16:49:22Z",
+            "actualReply": "Signed off. proceed all",
+            "warrant": false,
+            "scope": {"fileKey": "KEY", "aggregateDigest": ledger_digest}
+        }))
+        .expect("json"),
+    );
+    let index = f.decision_index(&[f.decision(5, "4:2", serde_json::json!({}))]);
+    f.vds(&[
+        "signoff",
+        "record",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "4:2",
+        "--signed-by",
+        "Principal",
+        "--decision",
+        &f.rel(&aggregate),
+        "--decisions-index",
+        &f.rel(&index),
+    ])
+    .expect(PRECONDITION)
+    .says("subject is the FRAMES LEDGER")
+    .says("not a label-resolution act")
+    .says("Limb (b) is PER-FRAME");
+    assert_eq!(f.signoff_count(), 0, "the aggregate produced a row");
+}
+
+/// The RESERVED case. A decision adopting a locus that is NOT the frame's own
+/// node is refused AND REFERRED, never guessed at: a `SignOff` binds the
+/// FRAME's digest and cannot express adoption of a sub-layer, so a row written
+/// here would claim authority over the whole frame on an act about part of it.
+#[test]
+fn a_decision_whose_locus_is_not_the_frame_is_refused_and_referred() {
+    let f = signoff_fixture();
+    let sublayer = f.decision(6, "4:2", serde_json::json!({"locusId": "40:1"}));
+    let index = f.decision_index(std::slice::from_ref(&sublayer));
+    f.vds(&[
+        "signoff",
+        "record",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "4:2",
+        "--signed-by",
+        "Principal",
+        "--decision",
+        &f.rel(&sublayer),
+        "--decisions-index",
+        &f.rel(&index),
+    ])
+    .expect(PRECONDITION)
+    .says("REFER IT")
+    .says("RESERVES");
+    assert_eq!(f.signoff_count(), 0);
+}
+
+/// An edited decision is not the exported decision, whatever it says. Without
+/// this the whole limb rests on a file any caller can author.
+#[test]
+fn a_decision_the_export_did_not_record_is_refused() {
+    let f = signoff_fixture();
+    let honest = f.decision(7, "4:2", serde_json::json!({}));
+    let index = f.decision_index(std::slice::from_ref(&honest));
+    let edited = f.decision(7, "4:2", serde_json::json!({"route": "/rewritten"}));
+    f.vds(&[
+        "signoff",
+        "record",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "4:2",
+        "--signed-by",
+        "Principal",
+        "--decision",
+        &f.rel(&edited),
+        "--decisions-index",
+        &f.rel(&index),
+    ])
+    .expect(PRECONDITION)
+    .says("not the exported decision");
+    assert_eq!(f.signoff_count(), 0);
+}
+
+/// Limb (b) admits a frame the LABELS refuse. It cannot make a drawing that
+/// states no contract state one, so a self-disclaiming frame is refused on
+/// both limbs and the refusal says so.
+#[test]
+fn limb_b_does_not_reach_a_frame_that_disclaims_itself() {
+    let f = signoff_fixture();
+    let decision = f.decision(8, "2:2", serde_json::json!({}));
+    let index = f.decision_index(std::slice::from_ref(&decision));
+    f.vds(&[
+        "signoff",
+        "record",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "2:2",
+        "--signed-by",
+        "Principal",
+        "--decision",
+        &f.rel(&decision),
+        "--decisions-index",
+        &f.rel(&index),
+    ])
+    .expect(PRECONDITION)
+    .says("DISCLAIMS ITSELF")
+    .says("Limb (b) does not reach this");
+    assert_eq!(f.signoff_count(), 0);
+}
+
+/// Limb (a) still admits a properly labelled frame, and the row now records
+/// WHICH label admitted it. The whole defect was a door that could not say what
+/// it had relied on.
+#[test]
+fn a_recognised_label_still_admits_and_the_row_names_the_label() {
+    let f = signoff_fixture();
+    f.vds(&[
+        "signoff",
+        "record",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "1:2",
+        "--signed-by",
+        "Principal",
+    ])
+    .expect(PASSED)
+    .says("basis: recognised_label")
+    .says("CURRENT SOURCE");
+    f.vds(&["signoff", "list"])
+        .expect(PASSED)
+        .says("basis coverage: 1 of 1");
+}
+
+/// The two flags are ONE binding. Half of it is not a weaker basis, it is no
+/// basis: a decision nothing vouches for, or an index over a decision nobody
+/// passed.
+#[test]
+fn a_decision_without_its_export_index_is_not_a_weaker_basis_but_none() {
+    let f = signoff_fixture();
+    let decision = f.decision(9, "4:2", serde_json::json!({}));
+    f.vds(&[
+        "signoff",
+        "record",
+        "--file-key",
+        "KEY",
+        "--node-id",
+        "4:2",
+        "--signed-by",
+        "Principal",
+        "--decision",
+        &f.rel(&decision),
+    ])
+    .expect(2)
+    .says("--decisions-index");
+    assert_eq!(f.signoff_count(), 0);
+}

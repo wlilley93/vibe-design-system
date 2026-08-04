@@ -32,6 +32,16 @@ pub use ids::{
     ProofId, RedrawId, ReviewId, ScreenId, SignoffId, SubmissionId, WarrantId,
 };
 pub use project::{Project, write_atomically, write_text_atomically, yaml_files};
+/// Figma writes a node id as `12:34` in a file URL and `12-34` in a deep link.
+/// They are the same node.
+///
+/// It lives HERE, in the crate both the frames ledger and the sign-off door can
+/// see, because both must agree about what "the same node" means: the door
+/// compares a decision's node id against a ledger row's, and two normalisations
+/// that drifted apart would refuse a frame for being itself.
+pub fn normalise_node_id(raw: &str) -> String {
+    raw.replace('-', ":")
+}
 pub use timestamp::Timestamp;
 pub use types::*;
 

@@ -34,6 +34,7 @@ use serde::{Deserialize, Serialize};
 use crate::digest::Digest;
 use crate::ids::{DirectionId, RedrawId, ReviewId, SignoffId};
 use crate::timestamp::Timestamp;
+use crate::types::decision::DecisionReference;
 
 /// One frame sign-off: the frame's content hash at the moment it was signed.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -42,6 +43,13 @@ pub struct SignOff {
     pub id: SignoffId,
     pub file_key: String,
     /// The frame's node id, in the `12:34` spelling.
+    ///
+    /// It is also the LOCUS on every row this register can hold. [2026]
+    /// VJS-FI-VDS 2 refused to grow this type a locus field precisely because
+    /// where the Principal adopts the frame's own node as the locus - which he
+    /// did on all 127 signed frames in the subject estate - this field already
+    /// names it. A decision adopting a different locus is refused and referred
+    /// at the door; it does not arrive here in a weaker form.
     pub node_id: String,
     /// The frame's content digest AT SIGN-OFF, as the frames ledger computes
     /// it. The whole mechanism: authority holds while the current digest
@@ -49,8 +57,87 @@ pub struct SignOff {
     pub frame_digest: Digest,
     pub signed_by: String,
     pub signed_at: Timestamp,
+    /// WHICH LIMB OF CC-OPBOX 6 ADMITTED THIS ROW ([2026] VJS-FI-VDS 2 order 5).
+    ///
+    /// OPTIONAL at the type and REQUIRED at the door, and the asymmetry is
+    /// deliberate. Rows written before limb (b) existed carry no basis and must
+    /// keep exactly their shape and continue to parse; making the field
+    /// required would turn every one of them into a parse failure, which is a
+    /// reader's problem misreported as a record's. But no NEW row may omit it:
+    /// a register that cannot say why it admitted a subject is asserting
+    /// authority it cannot account for, and the count of rows carrying no basis
+    /// is reported as coverage owed on every run rather than rounded to zero.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub basis: Option<SignOffBasis>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notes: Option<String>,
+}
+
+/// The two limbs of CC-OPBOX 6's disjunctive registration test. CLOSED at two.
+///
+/// [2026] VJS-FI-VDS 2: registration is conditional on **(a)** a recognised
+/// authority label **OR** **(b)** an express Principal act. The register
+/// implemented (a) alone, and because (a) is satisfied by exactly the
+/// machine-implanted labels (b) exists to displace, the door admitted the
+/// implant and refused every frame the Principal had cleaned. There is no third
+/// limb, and there is deliberately no variant for an attestation over the
+/// frames ledger as a whole: that is not a label-resolution act.
+///
+/// Every field is renamed EXPLICITLY rather than by `rename_all_fields`.
+/// schemars 0.8 does not implement that attribute, so serde renamed the field
+/// and the published schema did not: `signoff.schema.json` declared
+/// `authority_layer` while every row VDS writes says `authorityLayer`, and
+/// `vds schema check` could not see it because it regenerates from the same
+/// blind derive and compares the result with itself.
+/// `the_published_schema_declares_the_keys_that_are_actually_written` is the
+/// check that would have caught it, and does.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum SignOffBasis {
+    /// LIMB (a). The frame's authoritative layer NAMED itself current, under
+    /// `[screens] authority_markers`. The layer is recorded by name, because
+    /// "it was labelled" is a claim about a specific string and a reader is
+    /// entitled to see which one.
+    RecognisedLabel {
+        #[serde(rename = "authorityLayer")]
+        authority_layer: String,
+    },
+    /// LIMB (b). An express, per-frame Principal decision admitted the frame,
+    /// whatever its labels said. The row cites THAT decision and no other.
+    PrincipalAct { decision: DecisionReference },
+}
+
+impl SignOffBasis {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            SignOffBasis::RecognisedLabel { .. } => "recognised_label",
+            SignOffBasis::PrincipalAct { .. } => "principal_act",
+        }
+    }
+
+    /// The basis in one line, for a register listing. A `principal_act` names
+    /// the decision it rests on: a citation nobody can follow is a citation.
+    pub fn describe(&self) -> String {
+        match self {
+            SignOffBasis::RecognisedLabel { authority_layer } => {
+                format!("recognised_label  {authority_layer:?}")
+            }
+            SignOffBasis::PrincipalAct { decision } => format!(
+                "principal_act     decision seq {} at {} (locus {})",
+                decision.seq, decision.digest, decision.locus_id
+            ),
+        }
+    }
+}
+
+/// How many rows can say nothing about why they were admitted.
+///
+/// Reported on every run that reports register coverage. [2026] VJS-CA-VDS 1,
+/// Estate J: an unreported reach is a pass over an unknown denominator, and a
+/// register whose basis coverage is silent reads as a register whose basis
+/// coverage is complete.
+pub fn rows_without_a_basis(signoffs: &[SignOff]) -> usize {
+    signoffs.iter().filter(|s| s.basis.is_none()).count()
 }
 
 /// A PRINCIPAL DIRECTION that disposes of a surface's conformance: the second
@@ -368,8 +455,121 @@ mod tests {
             frame_digest: Digest::of_text(digest),
             signed_by: "the principal".into(),
             signed_at: Timestamp::fixed(2026, 8, 1, 10, 0, 0),
+            basis: None,
             notes: None,
         }
+    }
+
+    fn principal_act() -> SignOffBasis {
+        SignOffBasis::PrincipalAct {
+            decision: DecisionReference {
+                seq: 7,
+                digest: Digest::of_text("the decision's bytes"),
+                locus_id: "1:2".into(),
+                locus_name: "Screen \u{b7} /x".into(),
+            },
+        }
+    }
+
+    /// [2026] VJS-FI-VDS 2 order 5: OPTIONAL at the type, so a row written
+    /// before limb (b) existed keeps EXACTLY its shape. A field that appeared
+    /// in the bytes of nineteen live rows would be a silent rewrite of the
+    /// register, and `deny_unknown_fields` on the way back in would make it a
+    /// parse failure under the other reader.
+    #[test]
+    fn a_row_with_no_basis_keeps_exactly_its_shape_and_parses() {
+        let row = signoff("1:2", "frame-v1");
+        let yaml = serde_yaml::to_string(&row).expect("serialises");
+        assert!(!yaml.contains("basis"), "{yaml}");
+        let back: SignOff = serde_yaml::from_str(&yaml).expect("parses");
+        assert_eq!(back, row);
+        assert_eq!(rows_without_a_basis(&[back]), 1);
+    }
+
+    #[test]
+    fn a_principal_act_row_carries_the_decision_on_its_face() {
+        let mut row = signoff("1:2", "frame-v1");
+        row.basis = Some(principal_act());
+        let yaml = serde_yaml::to_string(&row).expect("serialises");
+        assert!(yaml.contains("kind: principal_act"), "{yaml}");
+        assert!(yaml.contains("seq: 7"), "{yaml}");
+        let back: SignOff = serde_yaml::from_str(&yaml).expect("parses");
+        assert_eq!(back, row);
+        assert_eq!(rows_without_a_basis(&[back]), 0);
+    }
+
+    #[test]
+    fn a_recognised_label_row_names_the_layer_that_admitted_it() {
+        let mut row = signoff("1:2", "frame-v1");
+        row.basis = Some(SignOffBasis::RecognisedLabel {
+            authority_layer: "CURRENT SOURCE \u{b7} /x".into(),
+        });
+        let yaml = serde_yaml::to_string(&row).expect("serialises");
+        assert!(yaml.contains("kind: recognised_label"), "{yaml}");
+        let back: SignOff = serde_yaml::from_str(&yaml).expect("parses");
+        assert_eq!(
+            back.basis.as_ref().map(SignOffBasis::as_str),
+            Some("recognised_label")
+        );
+    }
+
+    /// THE PUBLISHED SCHEMA MUST DECLARE THE KEYS THE TOOL ACTUALLY WRITES.
+    ///
+    /// This is not belt and braces, it caught a live defect. `SignOffBasis`
+    /// was first written with `#[serde(rename_all_fields = "camelCase")]`;
+    /// serde honours it and schemars 0.8 silently does not, so every row on
+    /// disk said `authorityLayer` and `schema/signoff.schema.json` said
+    /// `authority_layer`. `vds schema check` cannot see that, because it
+    /// regenerates the schema from the same blind derive and compares it with
+    /// itself - a check answering about the wrong artefact. This one asks the
+    /// SERIALISED BYTES and the PUBLISHED SCHEMA the same question.
+    #[test]
+    fn the_published_schema_declares_the_keys_that_are_actually_written() {
+        let mut generator = schemars::r#gen::SchemaSettings::draft2019_09().into_generator();
+        let schema =
+            serde_json::to_value(generator.root_schema_for::<SignOff>()).expect("a schema");
+        let variants = schema["definitions"]["SignOffBasis"]["oneOf"]
+            .as_array()
+            .expect("two variants")
+            .clone();
+
+        for basis in [
+            SignOffBasis::RecognisedLabel {
+                authority_layer: "CURRENT SOURCE".into(),
+            },
+            principal_act(),
+        ] {
+            let written = serde_json::to_value(&basis).expect("serialises");
+            let keys: Vec<&String> = written.as_object().expect("an object").keys().collect();
+            let declared = variants
+                .iter()
+                .find(|v| v["properties"]["kind"]["enum"][0].as_str() == Some(basis.as_str()))
+                .unwrap_or_else(|| panic!("the schema declares no {:?} variant", basis.as_str()));
+            for key in keys {
+                assert!(
+                    !declared["properties"][key].is_null(),
+                    "a {} row writes {key:?}, and the published schema does not declare it. \
+                     A schema that describes a shape the tool never writes is a contract \
+                     nobody is held to.\n  written: {written}\n  declared: {declared}",
+                    basis.as_str()
+                );
+            }
+        }
+    }
+
+    /// The basis vocabulary is CLOSED at two. There is no variant for an
+    /// attestation over the frames ledger as a whole, and one cannot be written
+    /// into a row file either.
+    #[test]
+    fn the_basis_vocabulary_is_closed_at_two_and_has_no_aggregate() {
+        assert!(serde_yaml::from_str::<SignOffBasis>("kind: ledger_aggregate\n").is_err());
+        assert!(serde_yaml::from_str::<SignOffBasis>("kind: external_signature\n").is_err());
+        assert!(
+            serde_yaml::from_str::<SignOffBasis>(
+                "kind: recognised_label\nauthorityLayer: CURRENT SOURCE\n"
+            )
+            .is_ok()
+        );
     }
 
     #[test]

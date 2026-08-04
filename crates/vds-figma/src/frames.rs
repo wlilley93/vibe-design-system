@@ -799,9 +799,12 @@ fn cluster(nodes: &[&Node]) -> Option<u32> {
 /// Figma writes a node id as `12:34` in a file URL and `12-34` in a deep link.
 /// They are the same node, and a ledger that treated them as different would
 /// report a frame unresolved because the designer copied the other spelling.
-pub fn normalise_node_id(raw: &str) -> String {
-    raw.replace('-', ":")
-}
+///
+/// The rule LIVES in `vds-core` and this is a re-export, not a second copy.
+/// `vds_core::decision` has to apply the same normalisation at the sign-off
+/// door and cannot depend on this crate; two copies of a rule is one copy and a
+/// disagreement waiting to happen.
+pub use vds_core::normalise_node_id;
 
 /// Every node id in the ledger, for reporting which of them nobody claims.
 pub fn node_ids(ledger: &FrameLedger) -> BTreeSet<String> {

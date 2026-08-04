@@ -17,6 +17,7 @@ mod burndown;
 /// and `parse`, names that would shadow at a glob boundary.
 pub mod ci;
 mod component;
+mod decision;
 mod geometry;
 mod lock;
 mod log;
@@ -31,6 +32,7 @@ mod warrant;
 
 pub use burndown::*;
 pub use component::*;
+pub use decision::*;
 pub use geometry::*;
 pub use lock::*;
 pub use log::*;

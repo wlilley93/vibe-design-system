@@ -483,6 +483,11 @@ impl Harness {
             frame_digest,
             signed_by: "the principal".into(),
             signed_at: Timestamp::fixed(2026, 8, 1, 10, 0, 0),
+            // A seed row deliberately carrying NO basis: the staleness proofs
+            // must keep working over the rows the register already holds, and
+            // those carry none ([2026] VJS-FI-VDS 2 order 5, optional at the
+            // type). The count of them is reported, never rounded to zero.
+            basis: None,
             notes: None,
         };
         let path = store.signoff_path(&id);
