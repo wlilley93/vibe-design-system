@@ -35,7 +35,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import hmac
-import json
+import json, os, sqlite3, threading
 import secrets
 import sys
 from datetime import datetime, timezone
@@ -176,20 +176,28 @@ let SWAP=localStorage.getItem('swapSides')==='1';
 function swapSides(){SWAP=!SWAP;localStorage.setItem('swapSides',SWAP?'1':'0');
  const el=document.getElementById('panes');if(el)el.classList.toggle('swap',SWAP);}
 
+const decidable=f=>f.kind!=='no-frame';
 const passFilter=f=>filter==='all'||(filter==='flagged'&&f.flagged)||(filter==='blocked'&&(f.blocked||[]).length)
  ||(filter==='noframe'&&f.kind==='no-frame')||(filter==='todo'&&!DEC[f.node_id]&&f.kind!=='no-frame');
 const inSect=f=>SECT==='__all'||fam(f)===SECT;
 const shown=()=>FRAMES.filter(f=>passFilter(f)&&inSect(f));
+// Every decidable route across ALL sections, in rail order (family, then route). This is the
+// sequence auto-advance walks, so the end of a section is not the end of the work.
+const allOrder=()=>FRAMES.filter(f=>passFilter(f)&&decidable(f))
+ .slice().sort((a,b)=>fam(a).localeCompare(fam(b))||String(a.route).localeCompare(String(b.route)));
 
 function rail(){
- const fams={};FRAMES.filter(passFilter).forEach(f=>{const k=fam(f);(fams[k]=fams[k]||{n:0,d:0}).n++;if(DEC[f.node_id])fams[k].d++});
+ const fams={};FRAMES.filter(passFilter).forEach(f=>{const k=fam(f),o=(fams[k]=fams[k]||{n:0,d:0,x:0});
+ if(!decidable(f)){o.x++;return}o.n++;if(DEC[f.node_id])o.d++});
  const keys=Object.keys(fams).sort();
- const tot=FRAMES.filter(passFilter).length, done=FRAMES.filter(f=>passFilter(f)&&DEC[f.node_id]).length;
+ const tot=allOrder().length, done=allOrder().filter(f=>DEC[f.node_id]).length;
  document.getElementById('rail').innerHTML=
   `<div class="brand">Sign review</div><div class="grp">All</div>`+
   `<a onclick="go('__all')" aria-current="${SECT==='__all'}"><span class="n">Every route</span><span class="c">${done}/${tot}</span></a>`+
   `<div class="grp">Families</div>`+
-  keys.map(k=>`<a onclick="go('${esc(k)}')" aria-current="${SECT===k}"><span class="n">${esc(k)}</span><span class="c">${fams[k].d}/${fams[k].n}</span></a>`).join('')+
+  keys.map(k=>{const o=fams[k],done=o.n&&o.d===o.n;
+   return `<a onclick="go('${esc(k)}')" aria-current="${SECT===k}"><span class="n">${done?'&check; ':''}${esc(k)}</span>`+
+    `<span class="c">${o.d}/${o.n}${o.x?` <span title="${o.x} not decidable">+${o.x}</span>`:''}</span></a>`}).join('')+
   `<div class="foot">${FRAMES.length} routes<br>${esc(STATE.header&&STATE.header.captured_at||'')}</div>`;
 }
 function go(k){SECT=k;CUR=null;rail();list();window.scrollTo(0,0)}
@@ -218,6 +226,35 @@ function list(){CUR=null;
      ${x.title?`<span class="tl">${esc(x.title)}</span>`:''}
      <span class="tags">${tags(x)}</span></span></button>`).join('')+`</div>`
    :'<p class="sub">Nothing matches this filter.</p>');
+}
+// Move to the next UNDECIDED route, crossing into the next section when this one is done.
+// Scans forward, then wraps and scans the head, so "all done" is only ever said when nothing
+// anywhere is undecided - not merely when the tail happens to be complete.
+function advance(fromId){
+ const o=allOrder(); if(!o.length)return allDone();
+ const i=o.findIndex(x=>x.node_id===fromId);
+ const order=i<0?o:o.slice(i+1).concat(o.slice(0,i+1));
+ const nx=order.find(x=>!DEC[x.node_id]);
+ if(!nx)return allDone();
+ if(fam(nx)!==SECT&&SECT!=='__all'){SECT=fam(nx);rail()}
+ open_(nx.node_id);
+}
+function allDone(){
+ CUR=null;rail();
+ const d=allOrder(),c={sign:0,refuse:0,defer:0};
+ d.forEach(f=>{const v=DEC[f.node_id];if(v)c[v.decision]=(c[v.decision]||0)+1});
+ const nf=FRAMES.filter(f=>passFilter(f)&&!decidable(f)).length;
+ document.getElementById('crumb').textContent='All done';
+ document.getElementById('app').innerHTML=`<div class="kvwrap" style="text-align:center;padding:36px 18px">
+  <p style="font-size:26px;margin:0 0 6px">&check; All done</p>
+  <p class="sub" style="margin:0 0 18px">Every route in scope has a decision.</p>
+  <table class="kv" style="max-width:320px;margin:0 auto;text-align:left">
+   <tr><td>signed</td><td class="mono">${c.sign||0}</td></tr>
+   <tr><td>refused</td><td class="mono">${c.refuse||0}</td></tr>
+   <tr><td>deferred</td><td class="mono">${c.defer||0}</td></tr>
+   <tr><td>decided in total</td><td class="mono">${d.filter(f=>DEC[f.node_id]).length} / ${d.length}</td></tr>
+   ${nf?`<tr><td>not decidable (no frame)</td><td class="mono">${nf}</td></tr>`:''}</table>
+  <p style="margin:20px 0 0"><button onclick="SECT='__all';filter='all';chips();rail();list()">Review everything</button></p></div>`;
 }
 function big(u){if(!u)return;document.getElementById('lbi').src=u;
  const lb=document.getElementById('lb');lb.classList.remove('full');lb.classList.add('on')}
@@ -297,11 +334,14 @@ async function open_(id){
     <div id="out"></div></form></div>`;
  window._f=f}
 
+let BUSY=false;
 async function submitForm(e){
- e.preventDefault();const f=window._f,fd=new FormData(e.target),out=document.getElementById('out');
+ e.preventDefault();if(BUSY)return false;
+ const f=window._f,fd=new FormData(e.target),out=document.getElementById('out');
+ const btn=e.target.querySelector('button[type=submit]');
  const dec=fd.get('dec'),cm=(fd.get('cm')||'').trim(),loc=f.candidates[+fd.get('loc')];
  if(dec!=='sign'&&!cm){out.innerHTML='<p class="msg err">Comment required.</p>';return false}
- out.innerHTML='<p class="msg">Recording&hellip;</p>';
+ out.innerHTML='<p class="msg">Recording&hellip;</p>';BUSY=true;if(btn)btn.disabled=true;
  try{const r=await api('/api/decisions',{method:'POST',body:JSON.stringify({
    nodeId:f.node_id,route:f.route,decision:dec,comment:cm||null,
    selectedLocus:{id:loc.id,name:loc.name,depth:loc.depth,nodes:loc.nodes,visible:loc.visible},
@@ -312,9 +352,9 @@ async function submitForm(e){
    frameContentDigest:f.content_digest,ledgerDigest:STATE.ledgerDigest})});
   DEC[f.node_id]={decision:dec,comment:cm};chips();rail();
   out.innerHTML=`<p class="msg ok">Recorded #${r.seq}.</p>`;
-  const sib=shown(),i=sib.findIndex(x=>x.node_id===f.node_id);
-  if(i>-1&&i<sib.length-1)setTimeout(()=>open_(sib[i+1].node_id),420);
- }catch(err){out.innerHTML='<p class="msg err">Not recorded: '+esc(err.message)+'</p>'}
+  setTimeout(()=>{BUSY=false;advance(f.node_id)},420);
+ }catch(err){BUSY=false;if(btn)btn.disabled=false;
+  out.innerHTML='<p class="msg err">Not recorded: '+esc(err.message)+'</p>'}
  return false}
 
 addEventListener('keydown',e=>{if(!CUR||/INPUT|TEXTAREA/.test(e.target.tagName))return;
@@ -329,12 +369,106 @@ addEventListener('keydown',e=>{if(!CUR||/INPUT|TEXTAREA/.test(e.target.tagName))
 </script></body></html>"""
 
 
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS decisions (
+  seq            INTEGER PRIMARY KEY AUTOINCREMENT,
+  node_id        TEXT NOT NULL,
+  route          TEXT,
+  decision       TEXT NOT NULL,
+  comment        TEXT,
+  locus_id       TEXT,
+  locus_name     TEXT,
+  tool_proposed  TEXT,
+  overrides      INTEGER NOT NULL DEFAULT 0,
+  frame_digest   TEXT,
+  ledger_digest  TEXT,
+  figma_node_url TEXT,
+  recorded_at    TEXT NOT NULL,
+  recorded_by    TEXT NOT NULL,
+  payload        TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_decisions_node ON decisions(node_id, seq);
+-- The operative decision for a node is its LATEST row. Earlier rows are history, not error:
+-- changing your mind is a lawful act, and the record must show both the change and what it replaced.
+CREATE VIEW IF NOT EXISTS current_decisions AS
+  SELECT d.* FROM decisions d
+  JOIN (SELECT node_id, MAX(seq) AS seq FROM decisions GROUP BY node_id) m
+    ON d.node_id = m.node_id AND d.seq = m.seq;
+"""
+
+
+def open_db(path: Path, import_from: Path | None) -> sqlite3.Connection:
+    """Open the record. WAL so a reader never blocks a write that is a Principal act, and
+    synchronous=FULL because losing an acknowledged decision is the failure that matters here."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    db = sqlite3.connect(path, check_same_thread=False, isolation_level=None)
+    db.row_factory = sqlite3.Row
+    db.execute("PRAGMA journal_mode=WAL")
+    db.execute("PRAGMA synchronous=FULL")
+    db.executescript(SCHEMA)
+    if db.execute("SELECT COUNT(*) c FROM decisions").fetchone()["c"] == 0 \
+            and import_from and import_from.exists():
+        rows = [json.loads(x) for x in import_from.read_text().splitlines() if x.strip()]
+        for r in rows:
+            insert_decision(db, r, seq=r.get("seq"))
+        print(f"  migrated {len(rows)} rows from {import_from}")
+    return db
+
+
+def insert_decision(db: sqlite3.Connection, d: dict, seq: int | None = None) -> int:
+    loc = d.get("selectedLocus") or {}
+    cur = db.execute(
+        "INSERT INTO decisions (seq,node_id,route,decision,comment,locus_id,locus_name,"
+        "tool_proposed,overrides,frame_digest,ledger_digest,figma_node_url,recorded_at,"
+        "recorded_by,payload) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (seq, d.get("nodeId"), d.get("route"), d.get("decision"), d.get("comment"),
+         loc.get("id"), loc.get("name"), d.get("toolProposedLocus"),
+         1 if d.get("overridesToolProposal") else 0, d.get("frameContentDigest"),
+         d.get("ledgerDigest"), d.get("figmaNodeUrl"),
+         d.get("recordedAt") or datetime.now(timezone.utc).isoformat(),
+         d.get("recordedBy") or "tools/sign-review/sign-review-server.py", json.dumps(d)))
+    return cur.lastrowid
+
+
+def redundant(db: sqlite3.Connection, d: dict) -> int | None:
+    """Is this the SAME decision, on the same locus, with the same comment, as the row already
+    standing for this node? Then it adds nothing and is refused with the seq that already says it.
+
+    This is the structural cure for the incident that produced seqs 17 and 18: the client's
+    auto-advance had no next route at the end of a section, so the form sat on the last frame and
+    re-recorded it on each press. The client is fixed, but a guard that lives only in the client
+    is a guard one refresh can lose."""
+    prev = db.execute("SELECT seq, decision, comment, locus_id FROM current_decisions "
+                      "WHERE node_id = ?", (d.get("nodeId"),)).fetchone()
+    if not prev:
+        return None
+    loc = (d.get("selectedLocus") or {}).get("id")
+    same = (prev["decision"] == d.get("decision")
+            and (prev["comment"] or "").strip() == (d.get("comment") or "").strip()
+            and (prev["locus_id"] or "") == (loc or ""))
+    return prev["seq"] if same else None
+
+
+def export_jsonl(db: sqlite3.Connection, out: Path) -> None:
+    """Rewrite the JSONL from the database. It is a DERIVED VIEW and never a second record:
+    two files that can disagree about one fact are one file and an argument."""
+    rows = db.execute("SELECT payload FROM decisions ORDER BY seq").fetchall()
+    tmp = out.with_suffix(out.suffix + ".tmp")
+    tmp.write_text("".join(r["payload"] + "\n" for r in rows))
+    tmp.replace(out)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--frames", required=True, type=Path)
     ap.add_argument("--renders", type=Path)
     ap.add_argument("--shots", type=Path)
-    ap.add_argument("--log", type=Path, default=Path("./sign-review-decisions.jsonl"))
+    ap.add_argument("--db", type=Path,
+                    default=Path.home() / "Backups" / "opbox-sign-decisions" / "sign-decisions.sqlite",
+                    help="the record. Durable by default: /var/tmp is disposable by house rule "
+                         "and by D3 of [2026] VJS-CC-OPBOX 7.")
+    ap.add_argument("--log", type=Path, default=Path("./sign-review-decisions.jsonl"),
+                    help="JSONL EXPORT, derived from --db after every write. Not the record.")
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8787)
     ap.add_argument("--token", help="shared secret; one is minted if omitted")
@@ -347,21 +481,17 @@ def main() -> int:
     token = a.token or secrets.token_urlsafe(18)
     assets = {k: v for k, v in (("renders", a.renders), ("shots", a.shots)) if v}
     a.log.parent.mkdir(parents=True, exist_ok=True)
+    db = open_db(a.db, import_from=a.log)
+    dblock = threading.Lock()
+    print(f"  record:   {a.db}  ({db.execute('SELECT COUNT(*) c FROM decisions').fetchone()['c']} rows)")
+    print(f"  export:   {a.log}  (derived, rewritten after each write)")
 
     def decisions() -> list[dict]:
-        """Replay the append-only log. The LAST line per node wins; earlier ones are
-        history, not error. A log you rewrite is not a log."""
-        latest: dict[str, dict] = {}
-        if a.log.exists():
-            for line in a.log.read_text().splitlines():
-                if not line.strip():
-                    continue
-                try:
-                    d = json.loads(line)
-                except Exception:
-                    continue  # a torn line must not take the whole log with it
-                latest[d.get("nodeId")] = d
-        return list(latest.values())
+        """The operative decision per node, from the database view."""
+        with dblock:
+            return [json.loads(r["payload"])
+                    for r in db.execute("SELECT payload FROM current_decisions "
+                                        "ORDER BY seq").fetchall()]
 
     class H(BaseHTTPRequestHandler):
         server_version = "vds-sign-review/2"
@@ -500,13 +630,21 @@ def main() -> int:
                 "captureDepth": header.get("capture_depth"),
                 "truncatedLeavesInCapture": header.get("truncated_leaves"),
             }
-            seq = sum(1 for _ in a.log.read_text().splitlines()) + 1 if a.log.exists() else 1
-            d |= {"seq": seq, "recordedAt": datetime.now(timezone.utc).isoformat(),
-                  "recordedBy": "tools/sign-review/sign-review-server.py",
-                  "authority": "none; input to a vds-recorded Principal act (order 16)"}
-            with a.log.open("a") as fh:
-                fh.write(json.dumps(d) + "\n")
-                fh.flush()
+            with dblock:
+                dup = redundant(db, d)
+                if dup is not None:
+                    return self._j(409, {
+                        "error": f"identical to decision #{dup} already standing for this route "
+                                 f"({d['decision']}, same locus, same comment). Nothing to add.",
+                        "seq": dup, "duplicateOf": dup})
+                d |= {"recordedAt": datetime.now(timezone.utc).isoformat(),
+                      "recordedBy": "tools/sign-review/sign-review-server.py",
+                      "authority": "none; input to a vds-recorded Principal act (order 16)"}
+                seq = insert_decision(db, d)
+                d["seq"] = seq
+                db.execute("UPDATE decisions SET payload = ? WHERE seq = ?",
+                           (json.dumps(d), seq))
+                export_jsonl(db, a.log)
             print(f"  {d['decision']:>7}  {d.get('route')}"
                   + ("  [overrides the tool's proposal]" if d.get("overridesToolProposal") else ""))
             return self._j(200, {"ok": True, "seq": seq})
