@@ -86,6 +86,34 @@ const MOTION_DURATION = { none: '0s', subtle: '160ms', expressive: '320ms' };
 const MOTION_EASE = { fade: 'ease', slide: 'cubic-bezier(0.2, 0, 0, 1)', scale: 'cubic-bezier(0.34, 1.56, 0.64, 1)' };
 const MOTION_DISTANCE = { fade: '0px', slide: 'calc(var(--space) * 2)', scale: '0px' };
 
+/*
+ * Self-hosted faces, emitted ahead of the token block.
+ *
+ * The factory had NO way to ship a font. Every style pack named a family in `font.family`
+ * and nothing ever loaded one, so a project whose brand face was not already installed on
+ * the READER's machine fell through to the next name in the stack - and a `src: local()`
+ * @font-face, which is what the hand-built Jellytot site used, has exactly the same
+ * failure: it works on the designer's laptop and on no visitor's phone. A family name in a
+ * token is a request; a @font-face is the only thing that makes it true.
+ *
+ * `font-display: swap` is deliberate and not a default: the alternative, `block`, hides
+ * the text for up to three seconds, and a marketing page whose headline is invisible on a
+ * slow connection has traded a font for its first sentence.
+ */
+function fontFaceCss(tokens) {
+  const faces = tokens.fontFaces || [];
+  if (!faces.length) return '';
+  return faces.map((f) => [
+    '@font-face {',
+    `  font-family: ${f.family};`,
+    `  src: url("${f.src}") format("${f.format || 'woff2'}");`,
+    `  font-weight: ${f.weight || 400};`,
+    `  font-style: ${f.style || 'normal'};`,
+    `  font-display: ${f.display || 'swap'};`,
+    '}',
+  ].join('\n')).join('\n') + '\n\n';
+}
+
 function cssVars(tokens) {
   const lines = [':root {'];
   for (const [k, v] of Object.entries(tokens.colors)) lines.push(`  --color-${k}: ${v};`);
@@ -206,9 +234,17 @@ function cssVars(tokens) {
   for (const [name, px] of Object.entries(TYPE_STEPS)) {
     lines.push(`  --text-${name}: ${(px * type / 16).toFixed(4)}rem;`);
   }
+  /* Leading is a decision a brand makes and the ramp only defaults. Jellytot's own rules
+     say display leading 1.00-1.05 and negative tracking at every size; before this, both
+     were unreachable from a token file and the only way to have them was to edit the
+     engine. Same shape as --container: a value nobody can set is a hard-coded value with
+     extra steps. */
+  const leading = tokens.leading || {};
   for (const [role, ratio] of Object.entries(TYPE_LEADING)) {
-    lines.push(`  --lh-${role}: ${ratio};`);
+    lines.push(`  --lh-${role}: ${leading[role] ?? ratio};`);
   }
+  lines.push(`  --tracking: ${tokens.tracking || '0'};`);
+  lines.push(`  --tracking-display: ${tokens.trackingDisplay || tokens.tracking || '0'};`);
 
   lines.push('}');
   return lines.join('\n');
@@ -248,13 +284,23 @@ a:hover, button:hover, .card:hover {
 }
 
 * { box-sizing: border-box; }
+/* THE BODY FONT TOKEN DID NOTHING. This rule declared font-family twice - --font-body,
+   then --font-family four lines later - and the second won, so every style pack's body
+   family was silently replaced by its display family. The slot was emitted, documented and
+   overridden, which is why tokens/jellytot.json records its second face as "a documented
+   gap": the gap was here, not in the schema. Body text takes --font-body; headings take
+   --font-family, which is the DISPLAY face and is applied where headings are set. */
 body {
   font-family: var(--font-body);
   margin: 0;
   background: var(--color-bg);
   color: var(--color-ink);
-  font-family: var(--font-family);
   line-height: var(--lh-body);
+  letter-spacing: var(--tracking);
+}
+h1, h2, h3, h4, .hero__h1, .stats__figure, .card__figure {
+  font-family: var(--font-family);
+  letter-spacing: var(--tracking-display);
 }
 a { color: var(--color-accent); }
 
@@ -1021,7 +1067,7 @@ ${main}
     bodyHtml = rendered.map((r) => r.html).join('\n');
   }
 
-  const css = cssVars(tokens) + '\n' + STRUCTURE_CSS;
+  const css = fontFaceCss(tokens) + cssVars(tokens) + '\n' + STRUCTURE_CSS;
   const head = stylesheetHref
     ? `<link rel="stylesheet" href="${stylesheetHref}">`
     : `<style>\n${css}\n</style>`;
@@ -1072,7 +1118,7 @@ function build(manifestPath) {
 }
 
 module.exports = {
-  renderPage, build, cssVars, BLOCKS, STRUCTURE_CSS, SITE_CSS, TYPE_STEPS, TYPE_LEADING,
+  renderPage, build, cssVars, fontFaceCss, BLOCKS, STRUCTURE_CSS, SITE_CSS, TYPE_STEPS, TYPE_LEADING,
   BUTTON_RADIUS, TABLE_DENSITY, MOTION_DURATION, MOTION_EASE, MOTION_DISTANCE,
 };
 

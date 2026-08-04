@@ -358,6 +358,60 @@ test('no responsive rule is outranked by the rule it means to override', () => {
     [...new Set(outranked)].join('\n  '));
 });
 
+test('a self-hosted face reaches the stylesheet, and an unset one emits nothing', () => {
+  // The factory could not ship a font at all: packs named families and nothing loaded one,
+  // so any brand face not already on the READER's machine fell through the stack. A
+  // `src: local()` @font-face has the same failure and hides it better - it works on the
+  // designer's laptop and on no visitor's phone.
+  const { fontFaceCss, cssVars } = require('../build.js');
+  const base = { colors: {}, font: { family: 'A', mono: 'M' }, radius: {}, space: { unit: 4 },
+    scale: { density: 'comfortable', type: 'comfortable' } };
+
+  assert.equal(fontFaceCss(base), '', 'a project with no faces must emit no @font-face at all');
+
+  const withFaces = { ...base, fontFaces: [
+    { family: "'PP Acma'", src: 'fonts/acma.woff2', weight: 400 },
+    { family: "'PP Acma'", src: 'fonts/acma-med.woff2', weight: 500 },
+  ] };
+  const css = fontFaceCss(withFaces);
+  assert.equal((css.match(/@font-face/g) || []).length, 2, 'both faces must be emitted');
+  assert.match(css, /src: url\("fonts\/acma\.woff2"\) format\("woff2"\)/);
+  assert.match(css, /font-display: swap;/,
+    'the default must be swap: block hides the headline for up to three seconds');
+
+  // Leading and tracking are the brand's to set, not the ramp's to fix.
+  assert.match(cssVars(base), /--lh-display: 1\.15;/, 'the ramp default is gone');
+  assert.match(cssVars({ ...base, leading: { display: 1.02 }, trackingDisplay: '-0.01em' }),
+    /--lh-display: 1\.02;/, 'a project cannot set its display leading');
+  assert.match(cssVars({ ...base, trackingDisplay: '-0.01em' }),
+    /--tracking-display: -0\.01em;/, 'a project cannot set its display tracking');
+});
+
+test('no rule declares the same property twice', () => {
+  // The fourth way a declaration does nothing, and the quietest: it is overridden by a
+  // LATER DECLARATION IN ITS OWN RULE. `body` set font-family to var(--font-body) and then
+  // to var(--font-family) four lines down, so every style pack's body face was silently
+  // replaced by its display face. --font-body was emitted, documented, and dead - which is
+  // why tokens/jellytot.json describes its second family as "a documented gap". The gap was
+  // in this stylesheet, not in the schema, and no test could see it because both halves of
+  // the pipeline were individually correct.
+  const { STRUCTURE_CSS } = require('../build.js');
+  const css = STRUCTURE_CSS.replace(/\/\*[\s\S]*?\*\//g, '');
+
+  const dupes = [];
+  for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const counts = new Map();
+    for (const p of m[2].matchAll(/([a-z-]+)\s*:/g)) {
+      counts.set(p[1], (counts.get(p[1]) || 0) + 1);
+    }
+    for (const [prop, n] of counts) {
+      if (n > 1) dupes.push(`${m[1].trim().split('\n').join(' ')} declares ${prop} ${n} times`);
+    }
+  }
+  assert.deepEqual(dupes, [],
+    `a declaration is overridden inside its own rule, so the first one does nothing:\n  ${dupes.join('\n  ')}`);
+});
+
 test('the page frame is overridable, and the override reaches the CSS', () => {
   // A token a project cannot set is the same as a hard-coded value with extra steps.
   // --container was literally `1100px` in the emitter, so a brand drawn to a different
