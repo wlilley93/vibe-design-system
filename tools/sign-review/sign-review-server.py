@@ -1,0 +1,529 @@
+#!/usr/bin/env python3
+"""The sign-review service: an API, a small client, and a durable decision log.
+
+    python3 sign-review-server.py --frames frames.json --renders ./renders \
+        --shots ./shots --log ./decisions.jsonl [--host 0.0.0.0] [--port 8787]
+
+Replaces the baked-snapshot page, which had three defects:
+  1. it went stale silently when the ledger was re-derived;
+  2. decisions lived in browser memory until a final submit, so a closed tab lost them;
+  3. it could not resume or show what had already been decided.
+
+FOUR PROPERTIES THIS SERVICE HAS AND THE SNAPSHOT DID NOT
+
+  STALENESS IS FAIL-CLOSED. Every decision carries the ledger digest it was made against.
+  The server rejects a decision whose digest is not the one it is currently serving. A
+  page left open across a re-derivation cannot silently record against yesterday's reading.
+
+  DECISIONS ARE DURABLE ON ARRIVAL. One POST per decision, appended to a JSONL log as it
+  is made. Nothing is batched and nothing is held in a tab.
+
+  THE LOG IS APPEND-ONLY. A changed mind is a new line that supersedes, never an edit. The
+  history of what was decided and when is the point; a log that can be rewritten is not one.
+
+  IT CREATES NO AUTHORITY. Order 16. This records decisions. The `vds` CLI turns the log
+  into a recorded Principal act, and only that act creates authority.
+
+AUTH. A token is required for every request and is minted at startup unless one is
+supplied. This binds to a tailnet by default, where any device could otherwise post a
+decision that becomes input to a Principal act. It is a shared secret over a private
+network, not a credential system, and it is not a substitute for one.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import hmac
+import json
+import secrets
+import sys
+from datetime import datetime, timezone
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from urllib.parse import urlparse, parse_qs, unquote
+
+MAX_BODY = 4 * 1024 * 1024
+VALID = {"sign", "refuse", "defer"}
+
+APP = r"""<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark"><title>Sign review</title><style>
+:root{--bg:#fff;--fg:#111;--mute:#4d4d4d;--line:rgba(0,0,0,.11);--warn:#fc0035;--ok:#28a948;--accent:#006bff;--surface:#fafafa;--rail:220px}
+@media(prefers-color-scheme:dark){:root{--bg:#0a0a0a;--fg:#ededed;--mute:#a1a1a1;--line:rgba(255,255,255,.13);--surface:#131313}}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;min-height:100vh}
+.mono{font-family:ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+.sub{color:var(--mute);font-size:12px}
+button{font:inherit;padding:8px 13px;min-height:38px;border-radius:7px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer}
+button:hover{border-color:var(--fg)}
+button.p{background:var(--fg);color:var(--bg);border-color:var(--fg);font-weight:600}
+button:disabled{opacity:.35;cursor:not-allowed;background:var(--bg);color:var(--mute);border-color:var(--line)}
+button.chip{min-height:0;padding:4px 10px;font-size:12px;border-radius:20px}
+button.chip[aria-pressed=true]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+button.nav{min-width:42px;padding:8px 11px;font-size:17px;line-height:1}
+
+/* ---- rail: 220px flat, upper/lower groups, 1px divider. The canonical shell. ---- */
+nav{width:var(--rail);flex:none;border-right:1px solid var(--line);background:var(--surface);
+ display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+nav .brand{padding:14px 14px 10px;font-weight:600;font-size:14px;border-bottom:1px solid var(--line)}
+nav .grp{padding:10px 8px 4px;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--mute)}
+nav a{display:flex;gap:8px;align-items:center;padding:7px 12px;margin:1px 6px;border-radius:6px;
+ cursor:pointer;text-decoration:none;color:var(--fg);font-size:13.5px}
+nav a:hover{background:color-mix(in srgb,var(--fg) 6%,transparent)}
+nav a[aria-current=true]{background:var(--fg);color:var(--bg);font-weight:600}
+nav a .n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+nav a .c{font-size:11px;opacity:.7;font-variant-numeric:tabular-nums}
+nav .foot{margin-top:auto;padding:10px 14px;border-top:1px solid var(--line);font-size:11px;color:var(--mute)}
+
+main{flex:1;min-width:0;display:flex;flex-direction:column}
+header{position:sticky;top:0;z-index:9;background:var(--bg);border-bottom:1px solid var(--line);
+ padding:10px 16px;display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+header h1{font-size:15px;margin:0;font-weight:600}
+.body{padding:16px;max-width:1400px;width:100%}
+
+/* ---- cards ---- */
+.cards{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+.card{border:1px solid var(--line);border-radius:9px;background:var(--bg);overflow:hidden;
+ cursor:pointer;text-align:left;padding:0;display:flex;flex-direction:column;min-height:0}
+.card:hover{border-color:var(--fg)}
+.card .thumb{aspect-ratio:14/9;background:var(--surface);border-bottom:1px solid var(--line);
+ display:flex;align-items:center;justify-content:center;overflow:hidden}
+.card .thumb img{width:100%;height:100%;object-fit:cover;object-position:top left;display:block}
+.card .thumb .none{font-size:11px;color:var(--mute);padding:8px;text-align:center}
+.card .meta{padding:9px 11px;display:flex;flex-direction:column;gap:5px;flex:1}
+.card .rt{font-size:13.5px;font-weight:500;word-break:break-all;line-height:1.35}
+.card .tl{font-size:11.5px;color:var(--mute)}
+.card .tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:auto;padding-top:4px}
+.tag{font-size:10.5px;padding:2px 6px;border-radius:4px;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
+.tag.bad{border-color:var(--warn);color:var(--warn)}.tag.ok{border-color:var(--ok);color:var(--ok)}
+
+/* ---- detail ---- */
+.bar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.detail{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
+@media(min-width:1080px){.detail{grid-template-columns:minmax(0,1fr) 372px}}
+.signrail{position:sticky;top:62px;max-height:calc(100vh - 74px);overflow-y:auto;
+ border:1px solid var(--line);border-radius:9px;background:var(--surface);padding:12px}
+.signrail h2{margin:0 0 10px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.signrail fieldset{background:var(--bg);margin-bottom:10px}
+.signrail fieldset:last-of-type{margin-bottom:10px}
+@media(max-width:1079px){.signrail{position:static;max-height:none}}
+.bar .t{flex:1;min-width:0}.bar .t b{display:block;font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.panes{display:grid;grid-template-columns:1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:9px;overflow:hidden;margin-bottom:12px}
+@media(min-width:640px){.panes{grid-template-columns:1fr 1fr}}
+a.fig{color:var(--accent);text-decoration:none;word-break:break-all}
+a.fig:hover{text-decoration:underline}
+.panes.swap .pane:first-child{order:2}.panes.swap .pane:last-child{order:1}
+.pane{background:var(--bg);padding:12px}
+.pane h2{margin:0 0 8px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.pane img{width:100%;height:auto;border:1px solid var(--line);border-radius:5px;display:block;cursor:zoom-in;background:#fff}
+.pane img:hover{outline:2px solid var(--accent);outline-offset:1px}
+.zoomhint{font-size:11px;color:var(--mute);margin:5px 0 0}
+.missing{border:1px dashed var(--warn);color:var(--warn);border-radius:5px;padding:28px 12px;text-align:center;font-size:13px}
+.kvwrap,fieldset{border:1px solid var(--line);border-radius:9px;padding:12px 14px;margin:0 0 12px}
+table.kv{width:100%;font-size:13px}table.kv td{padding:2px 0}table.kv td:first-child{color:var(--mute);width:46%}
+.warn{border:1px solid var(--warn);background:color-mix(in srgb,var(--warn) 7%,transparent);border-radius:9px;padding:11px 13px;margin-bottom:12px;font-size:13px}
+.warn b{display:block;margin-bottom:3px}
+legend{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);padding:0 5px}
+.help{margin:0 0 10px;font-size:13px;color:var(--mute);line-height:1.45}
+label.opt{display:flex;gap:10px;align-items:flex-start;padding:9px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:6px}
+label.opt:last-child{border-bottom:0}
+label.opt:hover{background:color-mix(in srgb,var(--accent) 5%,transparent)}
+label.opt:has(input:checked){background:color-mix(in srgb,var(--accent) 9%,transparent)}
+label.opt input{width:20px;height:20px;flex:none;margin:1px 0 0}
+.opt .nm{word-break:break-word}.opt .meta{font-size:12px;color:var(--mute)}
+textarea{width:100%;min-height:64px;padding:9px;border-radius:7px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit}
+.acts{display:flex;gap:8px;flex-wrap:wrap}.acts button{flex:1 1 auto}
+.msg{font-size:13px;padding:9px 12px;border-radius:7px;border:1px solid var(--line);margin-top:10px}
+.msg.err{border-color:var(--warn);color:var(--warn)}.msg.ok{border-color:var(--ok);color:var(--ok)}
+#lb{position:fixed;inset:0;background:rgba(0,0,0,.93);display:none;align-items:center;justify-content:center;z-index:99;cursor:zoom-out;padding:10px}
+#lb.on{display:flex}#lb img{max-width:100%;max-height:100%;object-fit:contain}
+#lb.full{align-items:flex-start;overflow:auto}#lb.full img{max-height:none;width:100%;object-fit:fill}
+#lbbar{position:fixed;top:8px;right:10px;z-index:100;display:flex;gap:6px}
+#lbbar button{min-height:32px;padding:4px 11px;font-size:12.5px}
+
+@media(max-width:820px){
+ body{flex-direction:column}
+ nav{width:100%;height:auto;position:static;flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line)}
+ nav .brand,nav .grp,nav .foot{display:none}
+ nav a{margin:6px 3px;white-space:nowrap}
+ .body{padding:11px}.cards{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px}
+ button{min-height:42px}
+}
+</style></head><body>
+<nav id="rail"></nav>
+<main>
+ <header><h1 id="crumb">Sign review</h1><span id="hdr" class="sub"></span>
+  <span style="flex:1"></span><span id="filters"></span></header>
+ <div class="body" id="app">loading&hellip;</div>
+</main>
+<div id="lb" onclick="if(event.target.id==='lb')closeLb()"><span id="lbbar">
+ <button onclick="event.stopPropagation();document.getElementById('lb').classList.toggle('full')">fit / actual size</button>
+ <button onclick="event.stopPropagation();closeLb()">close</button></span><img id="lbi" alt=""></div>
+<script>
+const K=new URLSearchParams(location.search).get('k')||sessionStorage.getItem('k')||'';
+if(K)sessionStorage.setItem('k',K);
+const api=async(p,o={})=>{const r=await fetch(p,{...o,headers:{'X-Auth':K,'Content-Type':'application/json',...(o.headers||{})}});
+ if(r.status===401)throw new Error('unauthorised - use the URL the server printed');
+ if(!r.ok){let m;try{m=(await r.json()).error}catch(e){m='HTTP '+r.status}throw new Error(m)}return r.json()};
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fam=f=>(f&&f.family)||'unindexed';
+// Figma resolves /design/<key>/?node-id=<a-b> without the name slug, and selects the node.
+const figUrl=id=>{const k=STATE.header&&STATE.header.file_key;if(!k||!id)return null;
+ return `https://www.figma.com/design/${k}/?node-id=${encodeURIComponent(String(id).replace(':','-'))}`};
+let STATE={},FRAMES=[],DEC={},filter='all',SECT='__all',CUR=null;
+let SWAP=localStorage.getItem('swapSides')==='1';
+function swapSides(){SWAP=!SWAP;localStorage.setItem('swapSides',SWAP?'1':'0');
+ const el=document.getElementById('panes');if(el)el.classList.toggle('swap',SWAP);}
+
+const passFilter=f=>filter==='all'||(filter==='flagged'&&f.flagged)||(filter==='blocked'&&(f.blocked||[]).length)
+ ||(filter==='noframe'&&f.kind==='no-frame')||(filter==='todo'&&!DEC[f.node_id]&&f.kind!=='no-frame');
+const inSect=f=>SECT==='__all'||fam(f)===SECT;
+const shown=()=>FRAMES.filter(f=>passFilter(f)&&inSect(f));
+
+function rail(){
+ const fams={};FRAMES.filter(passFilter).forEach(f=>{const k=fam(f);(fams[k]=fams[k]||{n:0,d:0}).n++;if(DEC[f.node_id])fams[k].d++});
+ const keys=Object.keys(fams).sort();
+ const tot=FRAMES.filter(passFilter).length, done=FRAMES.filter(f=>passFilter(f)&&DEC[f.node_id]).length;
+ document.getElementById('rail').innerHTML=
+  `<div class="brand">Sign review</div><div class="grp">All</div>`+
+  `<a onclick="go('__all')" aria-current="${SECT==='__all'}"><span class="n">Every route</span><span class="c">${done}/${tot}</span></a>`+
+  `<div class="grp">Families</div>`+
+  keys.map(k=>`<a onclick="go('${esc(k)}')" aria-current="${SECT===k}"><span class="n">${esc(k)}</span><span class="c">${fams[k].d}/${fams[k].n}</span></a>`).join('')+
+  `<div class="foot">${FRAMES.length} routes<br>${esc(STATE.header&&STATE.header.captured_at||'')}</div>`;
+}
+function go(k){SECT=k;CUR=null;rail();list();window.scrollTo(0,0)}
+function chips(){const n=FRAMES.length,fl=FRAMES.filter(x=>x.flagged).length,
+ bl=FRAMES.filter(x=>(x.blocked||[]).length).length,nf=FRAMES.filter(x=>x.kind==='no-frame').length,
+ td=FRAMES.filter(x=>!DEC[x.node_id]&&x.kind!=='no-frame').length;
+ document.getElementById('filters').innerHTML=[['all','All '+n],['flagged','Machine '+fl],['blocked','Blocked '+bl],['noframe','No frame '+nf],['todo','To do '+td]]
+  .map(([k,l])=>`<button class="chip" aria-pressed="${filter===k}" onclick="filter='${k}';chips();rail();list()">${l}</button>`).join(' ')}
+function tags(f){const t=[];if(DEC[f.node_id])t.push(`<span class="tag ok">${esc(DEC[f.node_id].decision)}</span>`);
+ if(f.kind==='no-frame'){t.push(`<span class="tag">${esc(f.tracker_tier||'no frame')}</span>`);return t.join('')}
+ if(f.flagged)t.push('<span class="tag bad">machine</span>');
+ if((f.blocked||[]).length)t.push('<span class="tag bad">blocked</span>');return t.join('')}
+function thumb(f){
+ if(f.kind==='no-frame')return `<div class="none">no frame<br><span class="sub">${esc(f.tracker_tier||'')}</span></div>`;
+ return `<img loading="lazy" alt="" src="/renders/${esc(f.node_id.replace(':','-'))}.png?k=${encodeURIComponent(K)}"
+  onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'none',textContent:'not rendered'}))">`;
+}
+function list(){CUR=null;
+ const f=shown();
+ document.getElementById('crumb').textContent = SECT==='__all'?'Every route':SECT;
+ document.getElementById('app').innerHTML =
+  `<p class="sub" style="margin:0 0 12px">${f.length} route${f.length===1?'':'s'}${f.length<FRAMES.length?` &middot; filtered from ${FRAMES.length}`:''}</p>`+
+  (f.length?`<div class="cards">`+f.map(x=>`<button class="card" onclick="open_('${esc(x.node_id)}')">
+    <span class="thumb">${thumb(x)}</span>
+    <span class="meta"><span class="rt">${esc(x.route)}</span>
+     ${x.title?`<span class="tl">${esc(x.title)}</span>`:''}
+     <span class="tags">${tags(x)}</span></span></button>`).join('')+`</div>`
+   :'<p class="sub">Nothing matches this filter.</p>');
+}
+function big(u){if(!u)return;document.getElementById('lbi').src=u;
+ const lb=document.getElementById('lb');lb.classList.remove('full');lb.classList.add('on')}
+function closeLb(){document.getElementById('lb').classList.remove('on','full')}
+
+async function open_(id){
+ const f=await api('/api/frames/'+encodeURIComponent(id));CUR=id;
+ const sib=shown(),i=sib.findIndex(x=>x.node_id===id);
+ document.getElementById('crumb').textContent=f.route;
+ const nav=`<button onclick="list()">&larr; ${esc(fam(f))}</button>
+  <span class="t"><b>${esc(f.route)}</b><span class="sub mono">${esc(f.node_id)} &middot; ${esc(f.authority_by)}</span></span>
+  <button class="nav" ${i<=0?'disabled':''} onclick="open_('${i>0?esc(sib[i-1].node_id):''}')">&lsaquo;</button>
+  <span class="sub">${i+1}/${sib.length}</span>
+  <button class="nav" ${i<0||i>=sib.length-1?'disabled':''} onclick="open_('${i<sib.length-1?esc(sib[i+1].node_id):''}')">&rsaquo;</button>`;
+ if(f.kind==='no-frame'){
+  document.getElementById('app').innerHTML=`<div class="bar">${nav}</div>
+   <div class="warn"><b>There is no frame for this route</b>${esc(f.reason)}</div>
+   <fieldset><legend>Why it is not reviewable</legend><table class="kv">
+    <tr><td>tracker status</td><td class="mono">${esc(f.tracker_status||'-')}</td></tr>
+    <tr><td>tracker tier</td><td class="mono">${esc(f.tracker_tier||'-')}</td></tr>
+    <tr><td>self-disclaims</td><td class="mono">${f.disclaimed?'yes':'no'}</td></tr></table></fieldset>
+   <fieldset><legend>What happens instead</legend><p style="margin:0">${esc(f.remedy||'')}</p></fieldset>
+   <p class="sub">Nothing can be signed here. It is listed so its absence is visible and explained.</p>`;
+  window._f=f;return}
+ const prev=DEC[id],dem=f.candidates.filter(c=>c.marker==='demoted'),cl=f.candidates.filter(c=>c.cloned_from);
+ const img=(u,a)=>u?`<img src="${u}" alt="${esc(a)}" loading="lazy" onclick="big('${u}')">`
+  :'<div class="missing">Not available</div>';
+ const fu=figUrl(f.node_id);
+ document.getElementById('app').innerHTML=`
+  <div class="bar">${nav}<button class="chip" onclick="swapSides()">&#8646; swap sides</button></div>
+  ${dem.length||cl.length?`<div class="warn"><b>Machine-authored content in this frame</b>
+   ${dem.length?`Demoted: ${dem.map(c=>esc(c.name)).join(', ')}.`:''}
+   ${cl.length?`Cloned: ${cl.map(c=>esc(c.name)).join(', ')}.`:''}</div>`:''}
+  <div class="detail">
+   <div>
+    <div class="panes${SWAP?' swap':''}" id="panes">
+     <div class="pane"><h2>Frame &mdash; what Figma draws</h2>${img(f.render_url,'frame')}
+      ${f.render_url?'<p class="zoomhint">click to enlarge</p>':''}</div>
+     <div class="pane"><h2>Output &mdash; what the app renders</h2>${img(f.shipped_url,'served page')}
+      ${f.shipped_url?'<p class="zoomhint">click to enlarge</p>':''}</div></div>
+    <div class="kvwrap"><table class="kv">
+     <tr><td>node in Figma</td><td>${fu?`<a class="fig mono" href="${fu}" target="_blank" rel="noopener">${esc(f.node_id)} &nearr;</a>`:`<span class="mono">${esc(f.node_id)}</span>`}</td></tr>
+     <tr><td>frame name</td><td class="mono">${esc(f.frame_name||'-')}</td></tr>
+     <tr><td>authority resolves by</td><td class="mono">${esc(f.authority_by)}</td></tr>
+     <tr><td>regions the frame declares</td><td class="mono">${f.regions.join(', ')||'none'}</td></tr>
+     <tr><td>content columns</td><td class="mono">${esc(f.columns||'-')}</td></tr>
+     <tr><td>frame self-disclaims</td><td class="mono">${f.disclaimed?'yes':'no'}</td></tr>
+     <tr><td>frame digest</td><td class="mono" style="word-break:break-all;font-size:11px">${esc(f.content_digest||'-')}</td></tr>
+     <tr><td>Figma file</td><td class="mono" style="font-size:11px">${esc((STATE.header&&STATE.header.file_key)||'-')}</td></tr></table></div>
+   </div>
+   <form class="signrail" onsubmit="return submitForm(event)">
+    <h2>Sign this route</h2>
+    <fieldset><legend>1 &middot; Design contract</legend>
+     <p class="help">Pick the layer that <b>is the design</b> for this route. Your choice is the
+      declaration; the tool's reading is only <span class="tag">proposed</span> and never pre-selected.</p>
+     ${f.candidates.map((c,n)=>{const cu=figUrl(c.id);return `<label class="opt"><input type="radio" name="loc" value="${n}" required>
+      <span><span class="nm mono">${esc(c.name)}</span>
+      ${c.name===f.authority_layer?'<span class="tag">proposed</span>':''}
+      ${c.visible?'':'<span class="tag bad">hidden</span>'}
+      ${c.marker==='demoted'?'<span class="tag bad">demoted</span>':''}
+      ${c.cloned_from?'<span class="tag bad">cloned</span>':''}
+      <br><span class="meta">${c.nodes} nodes &middot; ${c.texts} texts &middot; ${c.w}&times;${c.h}
+      ${cu?` &middot; <a class="fig" href="${cu}" target="_blank" rel="noopener" onclick="event.stopPropagation()">open &nearr;</a>`:''}</span></span></label>`}).join('')}
+    </fieldset>
+    <fieldset><legend>2 &middot; Decision</legend>
+     <p class="help"><b>Sign</b> adopts it as the contract. <b>Refuse</b> rejects it. <b>Defer</b> parks
+      it. Refuse and Defer need a comment.</p>
+     <label class="opt"><input type="radio" name="dec" value="sign" ${(f.blocked||[]).length?'disabled':''} required><span>Sign</span></label>
+     <label class="opt"><input type="radio" name="dec" value="refuse"><span>Refuse</span></label>
+     <label class="opt"><input type="radio" name="dec" value="defer"><span>Defer</span></label>
+     ${(f.blocked||[]).length?`<p class="sub" style="color:var(--warn)">Cannot sign: ${esc(f.blocked.join('; '))}.</p>`:''}
+    </fieldset>
+    <fieldset><legend>3 &middot; Comment</legend>
+     <textarea name="cm" placeholder="optional when signing, required to refuse or defer">${prev&&prev.comment?esc(prev.comment):''}</textarea></fieldset>
+    ${prev?`<p class="msg">Previously ${esc(prev.decision)}.</p>`:''}
+    <div class="acts"><button class="p" type="submit">Record decision</button></div>
+    <div id="out"></div></form></div>`;
+ window._f=f}
+
+async function submitForm(e){
+ e.preventDefault();const f=window._f,fd=new FormData(e.target),out=document.getElementById('out');
+ const dec=fd.get('dec'),cm=(fd.get('cm')||'').trim(),loc=f.candidates[+fd.get('loc')];
+ if(dec!=='sign'&&!cm){out.innerHTML='<p class="msg err">Comment required.</p>';return false}
+ out.innerHTML='<p class="msg">Recording&hellip;</p>';
+ try{const r=await api('/api/decisions',{method:'POST',body:JSON.stringify({
+   nodeId:f.node_id,route:f.route,decision:dec,comment:cm||null,
+   selectedLocus:{id:loc.id,name:loc.name,depth:loc.depth,nodes:loc.nodes,visible:loc.visible},
+   toolProposedLocus:f.authority_layer||null,
+   overridesToolProposal:!!(f.authority_layer&&loc.name!==f.authority_layer),
+   figmaFileKey:(STATE.header&&STATE.header.file_key)||null,
+   figmaNodeUrl:figUrl(f.node_id),figmaLocusUrl:figUrl(loc.id),
+   frameContentDigest:f.content_digest,ledgerDigest:STATE.ledgerDigest})});
+  DEC[f.node_id]={decision:dec,comment:cm};chips();rail();
+  out.innerHTML=`<p class="msg ok">Recorded #${r.seq}.</p>`;
+  const sib=shown(),i=sib.findIndex(x=>x.node_id===f.node_id);
+  if(i>-1&&i<sib.length-1)setTimeout(()=>open_(sib[i+1].node_id),420);
+ }catch(err){out.innerHTML='<p class="msg err">Not recorded: '+esc(err.message)+'</p>'}
+ return false}
+
+addEventListener('keydown',e=>{if(!CUR||/INPUT|TEXTAREA/.test(e.target.tagName))return;
+ const s=shown(),i=s.findIndex(x=>x.node_id===CUR);
+ if(e.key==='ArrowLeft'&&i>0)open_(s[i-1].node_id);
+ if(e.key==='ArrowRight'&&i<s.length-1)open_(s[i+1].node_id);
+ if(e.key==='Escape'){const lb=document.getElementById('lb');lb.classList.contains('on')?closeLb():list()}});
+(async()=>{try{STATE=await api('/api/state');FRAMES=(await api('/api/frames')).frames;
+ (await api('/api/decisions')).decisions.forEach(d=>DEC[d.nodeId]={decision:d.decision,comment:d.comment});
+ document.getElementById('hdr').innerHTML=`captured ${esc(STATE.header.captured_at||'-')} &middot; depth ${esc(STATE.header.capture_depth||'-')}`;
+ chips();rail();list()}catch(e){document.getElementById('app').innerHTML='<p class="msg err">'+esc(e.message)+'</p>'}})();
+</script></body></html>"""
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--frames", required=True, type=Path)
+    ap.add_argument("--renders", type=Path)
+    ap.add_argument("--shots", type=Path)
+    ap.add_argument("--log", type=Path, default=Path("./sign-review-decisions.jsonl"))
+    ap.add_argument("--host", default="127.0.0.1")
+    ap.add_argument("--port", type=int, default=8787)
+    ap.add_argument("--token", help="shared secret; one is minted if omitted")
+    a = ap.parse_args()
+
+    data = json.loads(a.frames.read_text())
+    frames = {f["node_id"]: f for f in data["frames"]}
+    header = data.get("header", {})
+    ledger_digest = header.get("content_digest", "")
+    token = a.token or secrets.token_urlsafe(18)
+    assets = {k: v for k, v in (("renders", a.renders), ("shots", a.shots)) if v}
+    a.log.parent.mkdir(parents=True, exist_ok=True)
+
+    def decisions() -> list[dict]:
+        """Replay the append-only log. The LAST line per node wins; earlier ones are
+        history, not error. A log you rewrite is not a log."""
+        latest: dict[str, dict] = {}
+        if a.log.exists():
+            for line in a.log.read_text().splitlines():
+                if not line.strip():
+                    continue
+                try:
+                    d = json.loads(line)
+                except Exception:
+                    continue  # a torn line must not take the whole log with it
+                latest[d.get("nodeId")] = d
+        return list(latest.values())
+
+    class H(BaseHTTPRequestHandler):
+        server_version = "vds-sign-review/2"
+
+        def log_message(self, fmt, *args):
+            sys.stderr.write("  %s\n" % (fmt % args))
+
+        def _j(self, code, obj):
+            b = json.dumps(obj).encode()
+            self.send_response(code)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(b)))
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.end_headers()
+            self.wfile.write(b)
+
+        def _auth(self, q) -> bool:
+            got = self.headers.get("X-Auth") or (q.get("k", [""])[0])
+            return hmac.compare_digest(got or "", token)
+
+        def do_GET(self):
+            u = urlparse(self.path)
+            q = parse_qs(u.query)
+            if u.path == "/health":
+                return self._j(200, {"ok": True, "frames": len(frames)})
+            if not self._auth(q):
+                return self._j(401, {"error": "unauthorised"})
+            if u.path in ("/", "/index.html"):
+                b = APP.encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(b)))
+                self.end_headers()
+                return self.wfile.write(b)
+            if u.path == "/api/state":
+                return self._j(200, {"header": header, "ledgerDigest": ledger_digest,
+                                     "count": len(frames)})
+            if u.path == "/api/frames":
+                return self._j(200, {"frames": [
+                    {k: f.get(k) for k in ("node_id", "route", "authority_by", "flagged",
+                                           "blocked", "frame_name", "kind", "reason",
+                                           "tracker_status", "tracker_tier", "family", "title")}
+                    for f in frames.values()]})
+            if u.path.startswith("/api/frames/"):
+                # URL-DECODE. A node id is `674:26005`; the browser's encodeURIComponent
+                # sends `674%3A26005`, and a no-frame id carries a slash too. curl sends
+                # the colon literally, which is why every hand test passed while every
+                # real click 404'd.
+                f = frames.get(unquote(u.path.split("/api/frames/", 1)[1]))
+                if not f:
+                    return self._j(404, {"error": "no such frame"})
+                out = dict(f)
+                out["render_url"] = f"/renders/{f['render_file']}?k={token}" if f.get("render_file") else None
+                out["shipped_url"] = f"/shots/{f['shipped_file']}?k={token}" if f.get("shipped_file") else None
+                return self._j(200, out)
+            if u.path == "/api/decisions":
+                return self._j(200, {"decisions": decisions()})
+            if u.path.startswith(("/renders/", "/shots/")):
+                kind, _, name = unquote(u.path).lstrip("/").partition("/")
+                root = assets.get(kind)
+                if not root:
+                    return self._j(404, {"error": "no such asset root"})
+                try:
+                    t = (root / name).resolve()
+                    t.relative_to(root.resolve())
+                except (ValueError, OSError):
+                    return self._j(403, {"error": "outside the asset root"})
+                if not t.is_file():
+                    return self._j(404, {"error": "not found"})
+                self.send_response(200)
+                self.send_header("Content-Type", "image/png")
+                self.send_header("Content-Length", str(t.stat().st_size))
+                self.send_header("Cache-Control", "private, max-age=3600")
+                self.end_headers()
+                with t.open("rb") as fh:
+                    while chunk := fh.read(1 << 16):
+                        self.wfile.write(chunk)
+                return
+            return self._j(404, {"error": "not found"})
+
+        def do_POST(self):
+            u = urlparse(self.path)
+            if not self._auth(parse_qs(u.query)):
+                return self._j(401, {"error": "unauthorised"})
+            if u.path != "/api/decisions":
+                return self._j(404, {"error": "not found"})
+            try:
+                n = int(self.headers.get("Content-Length") or 0)
+            except ValueError:
+                n = 0
+            if n <= 0 or n > MAX_BODY:
+                return self._j(413, {"error": "bad or oversized body"})
+            try:
+                d = json.loads(self.rfile.read(n))
+            except Exception as exc:
+                return self._j(400, {"error": f"not JSON: {exc}"})
+
+            nid = d.get("nodeId")
+            if nid not in frames:
+                return self._j(400, {"error": "unknown frame"})
+            if d.get("decision") not in VALID:
+                return self._j(400, {"error": f"decision must be one of {sorted(VALID)}"})
+            # Fail closed on staleness. A tab left open across a re-derivation must not
+            # record a decision against a reading the server no longer serves.
+            if d.get("ledgerDigest") != ledger_digest:
+                return self._j(409, {"error": "the ledger has changed since this page loaded; "
+                                              "reload before deciding"})
+            if frames[nid].get("kind") == "no-frame":
+                return self._j(400, {"error": "this route has no frame to sign: "
+                                              + (frames[nid].get("reason") or "no reason recorded")})
+            if d["decision"] == "sign":
+                if not d.get("selectedLocus"):
+                    return self._j(400, {"error": "a sign decision must name the governing locus"})
+                if frames[nid].get("blocked"):
+                    return self._j(400, {"error": "signing is blocked: "
+                                                  + "; ".join(frames[nid]["blocked"])})
+            elif not (d.get("comment") or "").strip():
+                return self._j(400, {"error": "refuse and defer require a comment"})
+
+            # VI.3, the largest bloc (Ravensmere J and Thornbury J): "The signer may still sign
+            # a demoted frame; he may not sign one without the demotion appearing on the face of
+            # the record he signs." Enriched SERVER-SIDE so no client can omit it, and recorded
+            # verbatim with counts rather than as a flag, because a boolean cannot be audited.
+            fr = frames[nid]
+            d["disclosedAtSigning"] = {
+                "quarantinedLayers": [
+                    {"name": c["name"], "nodes": c["nodes"], "texts": c["texts"],
+                     "visible": c["visible"], "depth": c["depth"]}
+                    for c in fr.get("candidates", []) if c.get("marker") == "demoted"],
+                "machineProvenance": [
+                    {"name": c["name"], "clonedFrom": c["cloned_from"]}
+                    for c in fr.get("candidates", []) if c.get("cloned_from")],
+                "toolResolvedAuthorityLayer": fr.get("authority_layer"),
+                "authorityBy": fr.get("authority_by"),
+                "frameSelfDisclaims": fr.get("disclaimed"),
+                "captureDepth": header.get("capture_depth"),
+                "truncatedLeavesInCapture": header.get("truncated_leaves"),
+            }
+            seq = sum(1 for _ in a.log.read_text().splitlines()) + 1 if a.log.exists() else 1
+            d |= {"seq": seq, "recordedAt": datetime.now(timezone.utc).isoformat(),
+                  "recordedBy": "tools/sign-review/sign-review-server.py",
+                  "authority": "none; input to a vds-recorded Principal act (order 16)"}
+            with a.log.open("a") as fh:
+                fh.write(json.dumps(d) + "\n")
+                fh.flush()
+            print(f"  {d['decision']:>7}  {d.get('route')}"
+                  + ("  [overrides the tool's proposal]" if d.get("overridesToolProposal") else ""))
+            return self._j(200, {"ok": True, "seq": seq})
+
+    if a.host not in ("127.0.0.1", "localhost", "::1"):
+        print(f"  binding {a.host}. The token below is the only thing standing between this "
+              f"surface and anything else on that network.", file=sys.stderr)
+    print(f"\n  http://{a.host}:{a.port}/?k={token}\n")
+    print(f"  frames {len(frames)}  ·  log {a.log.resolve()}")
+    print(f"  ledger digest {ledger_digest[:24]}…  (decisions against any other digest are refused)")
+    print("  this service creates no authority; it records decisions for the vds CLI\n")
+    try:
+        ThreadingHTTPServer((a.host, a.port), H).serve_forever()
+    except KeyboardInterrupt:
+        print("\nstopped")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
