@@ -481,6 +481,10 @@ def main() -> int:
     token = a.token or secrets.token_urlsafe(18)
     assets = {k: v for k, v in (("renders", a.renders), ("shots", a.shots)) if v}
     a.log.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        sys.stdout.reconfigure(line_buffering=True)   # else the banner below never reaches a log file
+    except (AttributeError, ValueError):
+        pass
     db = open_db(a.db, import_from=a.log)
     dblock = threading.Lock()
     print(f"  record:   {a.db}  ({db.execute('SELECT COUNT(*) c FROM decisions').fetchone()['c']} rows)")
@@ -495,6 +499,10 @@ def main() -> int:
 
     class H(BaseHTTPRequestHandler):
         server_version = "vds-sign-review/2"
+        # Keep-alive. The card grid requests ~27 thumbnails per section; under HTTP/1.0 each one
+        # is a new TCP connection, which over Tailscale looks like the page hanging. Every
+        # response below sets Content-Length, which is what makes 1.1 safe here.
+        protocol_version = "HTTP/1.1"
 
         def log_message(self, fmt, *args):
             sys.stderr.write("  %s\n" % (fmt % args))
@@ -504,6 +512,7 @@ def main() -> int:
             self.send_response(code)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(b)))
+            self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.end_headers()
             self.wfile.write(b)
@@ -524,6 +533,9 @@ def main() -> int:
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.send_header("Content-Length", str(len(b)))
+                # The client is inline in this document. Cache it and a fixed bug looks unfixed.
+                self.send_header("Cache-Control", "no-store, must-revalidate")
+                self.send_header("X-Content-Type-Options", "nosniff")
                 self.end_headers()
                 return self.wfile.write(b)
             if u.path == "/api/state":
@@ -564,7 +576,9 @@ def main() -> int:
                 self.send_response(200)
                 self.send_header("Content-Type", "image/png")
                 self.send_header("Content-Length", str(t.stat().st_size))
-                self.send_header("Cache-Control", "private, max-age=3600")
+                # Immutable: the filename is the node id and a re-render changes the ledger,
+                # which the staleness guard already catches on the API side.
+                self.send_header("Cache-Control", "private, max-age=86400, immutable")
                 self.end_headers()
                 with t.open("rb") as fh:
                     while chunk := fh.read(1 << 16):
