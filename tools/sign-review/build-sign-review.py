@@ -609,6 +609,7 @@ def main() -> int:
             else:
                 why = "No frame node is recorded for this route in the frames ledger."
                 todo = "Draw the frame, capture it, and re-derive, or record why it needs none."
+            nf_shot, nf_refusal = find_shipped(shot_idx, route)
             frames.append({
                 "node_id": f"noframe:{route}", "route": route, "kind": "no-frame",
                 "reason": why, "remedy": todo,
@@ -616,8 +617,12 @@ def main() -> int:
                 "family": row.get("family"), "title": row.get("title"),
                 "candidates": [], "regions": [], "columns": None, "authority_by": "no frame",
                 "authority_layer": None, "content_digest": None, "disclaimed": route in disclaimed,
-                "truncated": False, "shot_refusal": None,
-                "render": None, "shipped": None,
+                "truncated": False, "shot_refusal": nf_refusal,
+                # A route with no FRAME can still have a shipped page, and seven of them do.
+                # Withholding the screenshot here told the signer "no shipped screenshot" while
+                # the file sat on disk. There is nothing to compare it against, but what the app
+                # renders today is exactly what decides whether a frame is needed at all.
+                "render": None, "shipped": asset_src(nf_shot, a.asset_base, "shots"),
                 "frame_image_digest": None, "shipped_digest": None,
             })
 

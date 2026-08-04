@@ -214,11 +214,16 @@ function chips(){const n=FRAMES.length,fl=FRAMES.filter(x=>x.flagged).length,
  document.getElementById('filters').innerHTML=[['all','All '+n],['todo','To do '+td],['decided','Decided '+dn],['flagged','Machine '+fl],['blocked','Blocked '+bl],['noframe','No frame '+nf]]
   .map(([k,l])=>`<button class="chip" aria-pressed="${filter===k}" onclick="filter='${k}';chips();rail();list()">${l}</button>`).join(' ')}
 function tags(f){const t=[];if(DEC[f.node_id])t.push(`<span class="tag ok">${esc(DEC[f.node_id].decision)}</span>`);
- if(f.kind==='no-frame'){t.push(`<span class="tag">${esc(f.tracker_tier||'no frame')}</span>`);return t.join('')}
+ if(f.kind==='no-frame'){t.push(`<span class="tag">${esc(f.tracker_tier||'no frame')}</span>`);
+  // Say which picture this is. An unlabelled shipped page in a grid of frames reads as a frame.
+  if(f.shot_url)t.push('<span class="tag">shipped page only</span>');
+  return t.join('')}
  if(f.flagged)t.push('<span class="tag bad">machine</span>');
  if((f.blocked||[]).length)t.push('<span class="tag bad">blocked</span>');return t.join('')}
 function thumb(f){
- if(f.kind==='no-frame')return `<div class="none">no frame<br><span class="sub">${esc(f.tracker_tier||'')}</span></div>`;
+ if(f.kind==='no-frame')return f.shot_url
+  ?`<img loading="lazy" alt="" src="${esc(f.shot_url)}">`
+  :`<div class="none">no frame<br><span class="sub">${esc(f.tracker_tier||'')}</span></div>`;
  // The server sends the real filename. Re-deriving it here would be a second copy of a naming
  // rule, and a divergence would show as a blank card rather than as the bug it is.
  if(!f.thumb_url)return '<div class="none">not rendered</div>';
@@ -275,7 +280,7 @@ function paintFrame(){
   el.innerHTML=`<h2>Frame &mdash; what Figma draws</h2>`+
    (f.render_url?`<img src="${esc(f.render_url)}" alt="frame" loading="lazy" onclick="big('${esc(f.render_url)}')">
     <p class="zoomhint">click to enlarge &middot; select a layer below to view it alone</p>`
-    :'<div class="missing">Not available</div>');
+    :'<div class="missing">This frame has not been rendered from Figma.</div>');
   return}
  const c=(f.candidates||[]).find(x=>x.id===LAYER)||{};
  const u=`/layers/${encodeURIComponent(LAYER)}.png?k=${encodeURIComponent(K)}`;
@@ -314,6 +319,13 @@ async function open_(id){
  if(f.kind==='no-frame'){
   document.getElementById('app').innerHTML=`<div class="bar">${nav}</div>
    <div class="warn"><b>There is no frame for this route</b>${esc(f.reason)}</div>
+   ${f.shipped_url?`<div class="panes"><div class="pane">
+     <h2>Output &mdash; what the app renders today</h2>
+     <img src="${esc(f.shipped_url)}" alt="served page" loading="lazy" onclick="big('${esc(f.shipped_url)}')">
+     <p class="zoomhint">click to enlarge &middot; there is no frame to compare this against, but
+      what the app renders is what decides whether a frame is owed at all</p></div></div>`
+    :`<div class="kvwrap"><p class="sub" style="margin:0">No shipped screenshot was captured for
+      this route either${f.shot_refusal?`: ${esc(f.shot_refusal)}`:''}.</p></div>`}
    <fieldset><legend>Why it is not reviewable</legend><table class="kv">
     <tr><td>tracker status</td><td class="mono">${esc(f.tracker_status||'-')}</td></tr>
     <tr><td>tracker tier</td><td class="mono">${esc(f.tracker_tier||'-')}</td></tr>
@@ -322,8 +334,10 @@ async function open_(id){
    <p class="sub">Nothing can be signed here. It is listed so its absence is visible and explained.</p>`;
   window._f=f;return}
  const prev=DEC[id],dem=f.candidates.filter(c=>c.marker==='demoted'),cl=f.candidates.filter(c=>c.cloned_from);
- const img=(u,a)=>u?`<img src="${u}" alt="${esc(a)}" loading="lazy" onclick="big('${u}')">`
-  :'<div class="missing">Not available</div>';
+ // "Not available" is not a reason. Say which artefact is absent and why, so a gap is
+ // chaseable rather than just blank.
+ const img=(u,a,why)=>u?`<img src="${u}" alt="${esc(a)}" loading="lazy" onclick="big('${u}')">`
+  :`<div class="missing">${esc(why)}</div>`;
  const fu=figUrl(f.node_id);
  document.getElementById('app').innerHTML=`
   <div class="bar">${nav}<button class="chip" onclick="swapSides()">&#8646; swap sides</button></div>
@@ -334,7 +348,8 @@ async function open_(id){
    <div>
     <div class="panes${SWAP?' swap':''}" id="panes">
      <div class="pane" id="figpane"></div>
-     <div class="pane"><h2>Output &mdash; what the app renders</h2>${img(f.shipped_url,'served page')}
+     <div class="pane"><h2>Output &mdash; what the app renders</h2>${img(f.shipped_url,'served page',
+      f.shot_refusal||'No screenshot of this route was captured, so there is nothing to compare the frame against.')}
       ${f.shipped_url?'<p class="zoomhint">click to enlarge</p>':''}</div></div>
     <div class="kvwrap"><table class="kv">
      <tr><td>node in Figma</td><td>${fu?`<a class="fig mono" href="${fu}" target="_blank" rel="noopener noreferrer">${esc(f.node_id)} &nearr;</a>`:`<span class="mono">${esc(f.node_id)}</span>`}</td></tr>
@@ -786,7 +801,8 @@ def main() -> int:
                                                 "blocked", "frame_name", "kind", "reason",
                                                 "tracker_status", "tracker_tier", "family",
                                                 "title")},
-                         thumb_url=asset_url("renders", f.get("render_file"), token))
+                         thumb_url=asset_url("renders", f.get("render_file"), token),
+                         shot_url=asset_url("shots", f.get("shipped_file"), token))
                     for f in frames.values()]})
             if u.path.startswith("/api/frames/"):
                 # URL-DECODE. A node id is `674:26005`; the browser's encodeURIComponent
