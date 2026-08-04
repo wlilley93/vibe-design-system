@@ -35,7 +35,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import hmac
-import json, os, sqlite3, threading, urllib.request, urllib.error
+import json, os, sqlite3, tempfile, threading, urllib.request, urllib.error
 import secrets
 import sys
 from datetime import datetime, timezone
@@ -570,8 +570,14 @@ def main() -> int:
                                     "--token-file: an argv secret is visible in ps to every "
                                     "user on the box.")
     ap.add_argument("--token-file", type=Path, help="read the shared secret from this file")
-    ap.add_argument("--layer-cache", type=Path, default=Path("/var/tmp/claude/layer-renders"),
-                    help="where on-demand per-layer renders are cached")
+    # Relative to the system temp dir, not a hardcoded absolute path. This is a VDS capability
+    # and nothing in it may be specific to one operator's box: an absolute default works
+    # forever here and nowhere else, and it fails by silently caching somewhere unwritable
+    # rather than by saying so.
+    ap.add_argument("--layer-cache", type=Path,
+                    default=Path(tempfile.gettempdir()) / "vds-sign-review-layers",
+                    help="where on-demand per-layer renders are cached "
+                         "(default: <tmp>/vds-sign-review-layers)")
     ap.add_argument("--no-prewarm", action="store_true",
                     help="do not warm the layer cache in the background at startup")
     ap.add_argument("--figma-token-file", type=Path,
