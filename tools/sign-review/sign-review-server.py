@@ -41,14 +41,17 @@ import sys
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse, parse_qs, unquote
+from urllib.parse import urlparse, parse_qs, unquote, quote
 
 MAX_BODY = 4 * 1024 * 1024
 VALID = {"sign", "refuse", "defer"}
 
 APP = r"""<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="color-scheme" content="light dark"><title>Sign review</title><style>
+<meta name="color-scheme" content="light dark">
+<!-- The token is in this page's URL. The Figma links navigate off-site; without this the
+     browser would hand figma.com the referring URL and the shared secret with it. -->
+<meta name="referrer" content="no-referrer"><title>Sign review</title><style>
 :root{--bg:#fff;--fg:#111;--mute:#4d4d4d;--line:rgba(0,0,0,.11);--warn:#fc0035;--ok:#28a948;--accent:#006bff;--surface:#fafafa;--rail:220px}
 @media(prefers-color-scheme:dark){:root{--bg:#0a0a0a;--fg:#ededed;--mute:#a1a1a1;--line:rgba(255,255,255,.13);--surface:#131313}}
 *{box-sizing:border-box}html,body{height:100%}
@@ -166,7 +169,9 @@ if(K)sessionStorage.setItem('k',K);
 const api=async(p,o={})=>{const r=await fetch(p,{...o,headers:{'X-Auth':K,'Content-Type':'application/json',...(o.headers||{})}});
  if(r.status===401)throw new Error('unauthorised - use the URL the server printed');
  if(!r.ok){let m;try{m=(await r.json()).error}catch(e){m='HTTP '+r.status}throw new Error(m)}return r.json()};
-const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+// Escapes for BOTH contexts this interpolates into: HTML text/attributes, and JS string
+// literals inside onclick="...('...')". The apostrophe is the one that matters for the second.
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fam=f=>(f&&f.family)||'unindexed';
 // Figma resolves /design/<key>/?node-id=<a-b> without the name slug, and selects the node.
 const figUrl=id=>{const k=STATE.header&&STATE.header.file_key;if(!k||!id)return null;
@@ -212,7 +217,10 @@ function tags(f){const t=[];if(DEC[f.node_id])t.push(`<span class="tag ok">${esc
  if((f.blocked||[]).length)t.push('<span class="tag bad">blocked</span>');return t.join('')}
 function thumb(f){
  if(f.kind==='no-frame')return `<div class="none">no frame<br><span class="sub">${esc(f.tracker_tier||'')}</span></div>`;
- return `<img loading="lazy" alt="" src="/renders/${esc(f.node_id.replace(':','-'))}.png?k=${encodeURIComponent(K)}"
+ // The server sends the real filename. Re-deriving it here would be a second copy of a naming
+ // rule, and a divergence would show as a blank card rather than as the bug it is.
+ if(!f.thumb_url)return '<div class="none">not rendered</div>';
+ return `<img loading="lazy" alt="" src="${esc(f.thumb_url)}"
   onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'none',textContent:'not rendered'}))">`;
 }
 function list(){CUR=null;
@@ -296,7 +304,7 @@ async function open_(id){
      <div class="pane"><h2>Output &mdash; what the app renders</h2>${img(f.shipped_url,'served page')}
       ${f.shipped_url?'<p class="zoomhint">click to enlarge</p>':''}</div></div>
     <div class="kvwrap"><table class="kv">
-     <tr><td>node in Figma</td><td>${fu?`<a class="fig mono" href="${fu}" target="_blank" rel="noopener">${esc(f.node_id)} &nearr;</a>`:`<span class="mono">${esc(f.node_id)}</span>`}</td></tr>
+     <tr><td>node in Figma</td><td>${fu?`<a class="fig mono" href="${fu}" target="_blank" rel="noopener noreferrer">${esc(f.node_id)} &nearr;</a>`:`<span class="mono">${esc(f.node_id)}</span>`}</td></tr>
      <tr><td>frame name</td><td class="mono">${esc(f.frame_name||'-')}</td></tr>
      <tr><td>authority resolves by</td><td class="mono">${esc(f.authority_by)}</td></tr>
      <tr><td>regions the frame declares</td><td class="mono">${f.regions.join(', ')||'none'}</td></tr>
@@ -317,7 +325,7 @@ async function open_(id){
       ${c.marker==='demoted'?'<span class="tag bad">demoted</span>':''}
       ${c.cloned_from?'<span class="tag bad">cloned</span>':''}
       <br><span class="meta">${c.nodes} nodes &middot; ${c.texts} texts &middot; ${c.w}&times;${c.h}
-      ${cu?` &middot; <a class="fig" href="${cu}" target="_blank" rel="noopener" onclick="event.stopPropagation()">open &nearr;</a>`:''}</span></span></label>`}).join('')}
+      ${cu?` &middot; <a class="fig" href="${cu}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">open &nearr;</a>`:''}</span></span></label>`}).join('')}
     </fieldset>
     <fieldset><legend>2 &middot; Decision</legend>
      <p class="help"><b>Sign</b> adopts it as the contract. <b>Refuse</b> rejects it. <b>Defer</b> parks
@@ -397,6 +405,11 @@ CREATE VIEW IF NOT EXISTS current_decisions AS
 """
 
 
+def asset_url(kind: str, name: str | None, token: str) -> str | None:
+    """Quote the filename. It is a path segment, and an unquoted `#` or `?` would truncate it."""
+    return f"/{kind}/{quote(name)}?k={quote(token)}" if name else None
+
+
 def open_db(path: Path, import_from: Path | None) -> sqlite3.Connection:
     """Open the record. WAL so a reader never blocks a write that is a Principal act, and
     synchronous=FULL because losing an acknowledged decision is the failure that matters here."""
@@ -455,6 +468,9 @@ def export_jsonl(db: sqlite3.Connection, out: Path) -> None:
     rows = db.execute("SELECT payload FROM decisions ORDER BY seq").fetchall()
     tmp = out.with_suffix(out.suffix + ".tmp")
     tmp.write_text("".join(r["payload"] + "\n" for r in rows))
+    # Set the mode on the TEMP file. replace() moves a new inode into place, so a chmod on the
+    # destination is undone by the first write - which is exactly what happened here.
+    os.chmod(tmp, 0o600)
     tmp.replace(out)
 
 
@@ -471,14 +487,18 @@ def main() -> int:
                     help="JSONL EXPORT, derived from --db after every write. Not the record.")
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8787)
-    ap.add_argument("--token", help="shared secret; one is minted if omitted")
+    ap.add_argument("--token", help="shared secret; one is minted if omitted. Prefer "
+                                    "--token-file: an argv secret is visible in ps to every "
+                                    "user on the box.")
+    ap.add_argument("--token-file", type=Path, help="read the shared secret from this file")
     a = ap.parse_args()
 
     data = json.loads(a.frames.read_text())
     frames = {f["node_id"]: f for f in data["frames"]}
     header = data.get("header", {})
     ledger_digest = header.get("content_digest", "")
-    token = a.token or secrets.token_urlsafe(18)
+    token = (a.token_file.read_text().strip() if a.token_file
+             else a.token) or secrets.token_urlsafe(18)
     assets = {k: v for k, v in (("renders", a.renders), ("shots", a.shots)) if v}
     a.log.parent.mkdir(parents=True, exist_ok=True)
     try:
@@ -487,6 +507,16 @@ def main() -> int:
         pass
     db = open_db(a.db, import_from=a.log)
     dblock = threading.Lock()
+    # The record holds Principal acts; the export sits in a disposable dir. Neither is for
+    # other users of this box.
+    for f in (a.db, a.log):
+        try:
+            os.chmod(f, 0o600)
+        except OSError:
+            pass
+    # Re-derive the export at boot, so "derived from the db" is true from the first request and
+    # not only after the first write.
+    export_jsonl(db, a.log)
     print(f"  record:   {a.db}  ({db.execute('SELECT COUNT(*) c FROM decisions').fetchone()['c']} rows)")
     print(f"  export:   {a.log}  (derived, rewritten after each write)")
 
@@ -505,7 +535,12 @@ def main() -> int:
         protocol_version = "HTTP/1.1"
 
         def log_message(self, fmt, *args):
-            sys.stderr.write("  %s\n" % (fmt % args))
+            # The token rides in the query string because an <img> cannot send a header, so
+            # every request line contains the shared secret. Redact before it reaches a file.
+            line = fmt % args
+            if token and token in line:
+                line = line.replace(token, "<redacted>")
+            sys.stderr.write("  %s\n" % line)
 
         def _j(self, code, obj):
             b = json.dumps(obj).encode()
@@ -522,6 +557,15 @@ def main() -> int:
             return hmac.compare_digest(got or "", token)
 
         def do_GET(self):
+            try:
+                return self._get()
+            except (BrokenPipeError, ConnectionResetError):
+                self.close_connection = True     # the tab navigated away mid-image; not an error
+            except Exception as exc:
+                self.close_connection = True     # keep-alive must not carry on over a torn reply
+                sys.stderr.write(f"  GET {self.path.split('?')[0]} failed: {exc!r}\n")
+
+        def _get(self):
             u = urlparse(self.path)
             q = parse_qs(u.query)
             if u.path == "/health":
@@ -543,9 +587,11 @@ def main() -> int:
                                      "count": len(frames)})
             if u.path == "/api/frames":
                 return self._j(200, {"frames": [
-                    {k: f.get(k) for k in ("node_id", "route", "authority_by", "flagged",
-                                           "blocked", "frame_name", "kind", "reason",
-                                           "tracker_status", "tracker_tier", "family", "title")}
+                    dict({k: f.get(k) for k in ("node_id", "route", "authority_by", "flagged",
+                                                "blocked", "frame_name", "kind", "reason",
+                                                "tracker_status", "tracker_tier", "family",
+                                                "title")},
+                         thumb_url=asset_url("renders", f.get("render_file"), token))
                     for f in frames.values()]})
             if u.path.startswith("/api/frames/"):
                 # URL-DECODE. A node id is `674:26005`; the browser's encodeURIComponent
@@ -556,8 +602,8 @@ def main() -> int:
                 if not f:
                     return self._j(404, {"error": "no such frame"})
                 out = dict(f)
-                out["render_url"] = f"/renders/{f['render_file']}?k={token}" if f.get("render_file") else None
-                out["shipped_url"] = f"/shots/{f['shipped_file']}?k={token}" if f.get("shipped_file") else None
+                out["render_url"] = asset_url("renders", f.get("render_file"), token)
+                out["shipped_url"] = asset_url("shots", f.get("shipped_file"), token)
                 return self._j(200, out)
             if u.path == "/api/decisions":
                 return self._j(200, {"decisions": decisions()})
@@ -587,6 +633,19 @@ def main() -> int:
             return self._j(404, {"error": "not found"})
 
         def do_POST(self):
+            try:
+                return self._post()
+            except (BrokenPipeError, ConnectionResetError):
+                self.close_connection = True
+            except Exception as exc:
+                self.close_connection = True
+                sys.stderr.write(f"  POST failed: {exc!r}\n")
+                try:
+                    self._j(500, {"error": "the server failed to record this; it is NOT saved"})
+                except Exception:
+                    pass
+
+        def _post(self):
             u = urlparse(self.path)
             if not self._auth(parse_qs(u.query)):
                 return self._j(401, {"error": "unauthorised"})
@@ -654,10 +713,19 @@ def main() -> int:
                 d |= {"recordedAt": datetime.now(timezone.utc).isoformat(),
                       "recordedBy": "tools/sign-review/sign-review-server.py",
                       "authority": "none; input to a vds-recorded Principal act (order 16)"}
-                seq = insert_decision(db, d)
-                d["seq"] = seq
-                db.execute("UPDATE decisions SET payload = ? WHERE seq = ?",
-                           (json.dumps(d), seq))
+                # One transaction. The seq is only known after the INSERT, so the payload is
+                # completed by an UPDATE; under autocommit a crash between the two would leave a
+                # stored payload that does not carry the seq it was filed under.
+                db.execute("BEGIN IMMEDIATE")
+                try:
+                    seq = insert_decision(db, d)
+                    d["seq"] = seq
+                    db.execute("UPDATE decisions SET payload = ? WHERE seq = ?",
+                               (json.dumps(d), seq))
+                    db.execute("COMMIT")
+                except Exception:
+                    db.execute("ROLLBACK")
+                    raise
                 export_jsonl(db, a.log)
             print(f"  {d['decision']:>7}  {d.get('route')}"
                   + ("  [overrides the tool's proposal]" if d.get("overridesToolProposal") else ""))
