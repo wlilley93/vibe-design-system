@@ -280,8 +280,10 @@ function paintFrame(){
  const c=(f.candidates||[]).find(x=>x.id===LAYER)||{};
  const u=`/layers/${encodeURIComponent(LAYER)}.png?k=${encodeURIComponent(K)}`;
  el.innerHTML=`<h2>Layer &mdash; <span class="mono">${esc(c.name||LAYER)}</span></h2>
-  <img id="figimg" src="${u}" alt="layer" onclick="big('${u}')"
-   onerror="layerFailed('${esc(LAYER)}')">
+  <div id="figwait" class="missing" style="border-style:solid;border-color:var(--line);color:var(--mute)">rendering this layer&hellip;</div>
+  <img id="figimg" src="${u}" alt="layer" style="display:none"
+   onload="this.style.display='block';const w=document.getElementById('figwait');if(w)w.remove()"
+   onclick="big('${u}')" onerror="layerFailed('${esc(LAYER)}')">
   <p class="zoomhint">${c.visible===false?'<b style="color:var(--warn)">this layer is hidden in Figma</b> &middot; ':''}
    <a href="#" onclick="LAYER=null;paintFrame();return false">show the whole frame</a></p>`;
 }
@@ -555,6 +557,8 @@ def main() -> int:
     ap.add_argument("--token-file", type=Path, help="read the shared secret from this file")
     ap.add_argument("--layer-cache", type=Path, default=Path("/var/tmp/claude/layer-renders"),
                     help="where on-demand per-layer renders are cached")
+    ap.add_argument("--no-prewarm", action="store_true",
+                    help="do not warm the layer cache in the background at startup")
     ap.add_argument("--figma-token-file", type=Path,
                     help="Figma PAT for on-demand layer renders; falls back to $FIGMA_TOKEN")
     a = ap.parse_args()
@@ -594,20 +598,58 @@ def main() -> int:
     # service is an open proxy to any node in any file the PAT can reach.
     layer_meta = {c["id"]: c for f in frames.values()
                   for c in (f.get("candidates") or []) if c.get("id")}
-    fetch_lock = threading.Lock()
     hidden = sum(1 for c in layer_meta.values() if c.get("visible") is False)
     print(f"  layers:   {len(layer_meta)} loci ({hidden} hidden) -> {a.layer_cache}"
           f"{'' if figma_token else '  (NO FIGMA TOKEN - layer view will report why)'}")
 
+    # Per-node de-duplication rather than one global lock: a prewarm and a click wanting the
+    # SAME layer must not each fetch it, but wanting different layers must not queue either.
+    inflight: dict[str, threading.Event] = {}
+    inflight_lock = threading.Lock()
+
+    def cache_path(node_id: str) -> Path:
+        return a.layer_cache / (node_id.replace(":", "-") + ".png")
+
+    def cached_ok(pth: Path) -> bool:
+        return pth.is_file() and pth.stat().st_size > 0
+
+    def image_urls(ids: list[str]) -> tuple[dict, str | None]:
+        """One images call for up to 25 nodes. Batching is the point: the round trip dominates,
+        so 25 layers cost about what one does."""
+        try:
+            url = (f"https://api.figma.com/v1/images/{file_key}"
+                   f"?ids={quote(','.join(ids))}&format=png&scale=2")
+            req = urllib.request.Request(url, headers={"X-Figma-Token": figma_token})
+            with urllib.request.urlopen(req, timeout=180) as r:
+                body = json.loads(r.read())
+            if body.get("err"):
+                return {}, f"Figma refused: {body['err']}"
+            return body.get("images") or {}, None
+        except (urllib.error.URLError, OSError, ValueError) as exc:
+            return {}, f"could not reach Figma: {exc}"
+
+    def download(src: str, dest: Path) -> str | None:
+        try:
+            with urllib.request.urlopen(src, timeout=120) as r:
+                png = r.read()
+        except (urllib.error.URLError, OSError) as exc:
+            return f"could not download the render: {exc}"
+        if not png.startswith(b"\x89PNG"):
+            return "the fetched bytes are not a PNG"
+        tmp = dest.with_suffix(".part")
+        tmp.write_bytes(png)
+        tmp.replace(dest)
+        return None
+
     def layer_png(node_id: str) -> tuple[Path | None, str | None]:
         """Cached-or-fetched PNG for one layer. Returns (path, refusal). Never raises at the
         caller: a Figma outage must read as a stated reason in the pane, not a blank box."""
-        cached = a.layer_cache / (node_id.replace(":", "-") + ".png")
-        if cached.is_file() and cached.stat().st_size:
-            return cached, None
+        pth = cache_path(node_id)
+        if cached_ok(pth):
+            return pth, None
         # Answer from what we already know. Figma renders nothing for a fully hidden node, and
-        # most loci here ARE hidden (the frozen LEGACY UNDERLAY layers), so asking would spend
-        # five seconds per click to be told nothing. Say the real reason immediately.
+        # many loci here ARE hidden (the frozen LEGACY UNDERLAY layers), so asking would spend
+        # seconds per click to be told nothing. Say the real reason immediately.
         c = layer_meta.get(node_id) or {}
         if c.get("visible") is False:
             return None, (f"\u201c{c.get('name', node_id)}\u201d is hidden in Figma, so Figma "
@@ -617,31 +659,61 @@ def main() -> int:
             return None, "no Figma token on this server, so layers cannot be rendered"
         if not file_key:
             return None, "the capture header names no file_key"
-        with fetch_lock:                       # serialise: a burst of clicks is one PAT at a time
-            if cached.is_file() and cached.stat().st_size:
-                return cached, None
-            try:
-                url = (f"https://api.figma.com/v1/images/{file_key}"
-                       f"?ids={quote(node_id)}&format=png&scale=2")
-                req = urllib.request.Request(url, headers={"X-Figma-Token": figma_token})
-                with urllib.request.urlopen(req, timeout=60) as r:
-                    body = json.loads(r.read())
-                if body.get("err"):
-                    return None, f"Figma refused: {body['err']}"
-                src = (body.get("images") or {}).get(node_id)
-                if not src:
-                    return None, ("Figma returned no image for this node "
-                                  "(usually: it is empty, or fully hidden)")
-                with urllib.request.urlopen(src, timeout=120) as r:
-                    png = r.read()
-                if not png.startswith(b"\x89PNG"):
-                    return None, "the fetched bytes are not a PNG"
-                tmp = cached.with_suffix(".part")
-                tmp.write_bytes(png)
-                tmp.replace(cached)
-                return cached, None
-            except (urllib.error.URLError, OSError, ValueError) as exc:
-                return None, f"could not reach Figma: {exc}"
+        with inflight_lock:
+            ev = inflight.get(node_id)
+            mine = ev is None
+            if mine:
+                ev = inflight[node_id] = threading.Event()
+        if not mine:
+            ev.wait(120)
+            return (pth, None) if cached_ok(pth) else (None, "still rendering; try again")
+        try:
+            imgs, why = image_urls([node_id])
+            if why:
+                return None, why
+            src = imgs.get(node_id)
+            if not src:
+                return None, ("Figma returned no image for this node "
+                              "(usually: it is empty, or fully hidden)")
+            why = download(src, pth)
+            return (None, why) if why else (pth, None)
+        finally:
+            with inflight_lock:
+                inflight.pop(node_id, None)
+            ev.set()
+
+    def prewarm() -> None:
+        """Warm every renderable locus in the background, 25 per call. Without this, selecting a
+        locus radio - which is REQUIRED in order to sign - costs a cold round trip to Figma every
+        single time, so the mandatory path through the form is the slow one. That is the bug this
+        exists to fix, and it was introduced by adding the layer view in the first place."""
+        todo = [n for n, c in layer_meta.items()
+                if c.get("visible") is not False and not cached_ok(cache_path(n))]
+        if not todo:
+            print("  prewarm:  layer cache already complete")
+            return
+        print(f"  prewarm:  {len(todo)} layers to warm in the background")
+        done = fail = 0
+        for i in range(0, len(todo), 25):
+            chunk = [n for n in todo[i:i + 25] if not cached_ok(cache_path(n))]
+            if not chunk:
+                continue
+            imgs, why = image_urls(chunk)
+            if why:
+                fail += len(chunk)
+                continue
+            for nid in chunk:
+                src = imgs.get(nid)
+                if not src or download(src, cache_path(nid)):
+                    fail += 1
+                else:
+                    done += 1
+            if (done + fail) % 200 < 25:
+                print(f"  prewarm:  {done + fail}/{len(todo)}")
+        print(f"  prewarm:  done - {done} cached, {fail} unavailable")
+
+    if figma_token and file_key and not a.no_prewarm:
+        threading.Thread(target=prewarm, daemon=True, name="prewarm").start()
 
     def decisions() -> list[dict]:
         """The operative decision per node, from the database view."""
