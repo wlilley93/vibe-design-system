@@ -1,0 +1,22 @@
+# Designpack manifest — vds@v1
+#
+# The vendored normative corpus (VDS S-3(2)). A project subscribes by vendoring
+# this tree read-only and pinning its digest in .vds/designpack.lock.
+
+id = "vds"
+version = "v1"
+title = "Vibe Design System specification, first pack"
+specification = "spec/VDS.md"
+specification_digest = "sha256:32f47e0966791a1f48d4ad518b33e26f2ba19e8f97f1740ba69105bd3ce49473"
+
+[contents]
+specs = ["spec/VDS.md"]
+provenance = ["provenance/README.md"]
+
+[note]
+# S-15(1): the specification commences on a dated, digest-pinned assent event.
+# No such event exists yet: this pack vendors the DRAFTED specification so
+# subscribers receive its doctrine pinned, and its RESERVED clauses resolve
+# upstream (the jurisdiction that ships VDS.md answers them). Warrants remain
+# gated per S-6; nothing in this pack confers assent.
+commencement = "not_commenced"
